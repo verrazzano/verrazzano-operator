@@ -5,11 +5,11 @@ package wlsdom
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,7 +20,7 @@ func createFluentdContainer(domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbP
 	container := corev1.Container{
 		Name:            "fluentd",
 		Args:            []string{"-c", "/etc/fluent.conf"},
-		Image:           constants.FluentdImage,
+		Image:           util.GetFluentdKubernetesDaemonsetImage(),
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Env: []corev1.EnvVar{
 			{

@@ -5,14 +5,13 @@ package wlsdom
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"testing"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/constants"
-
-	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/stretchr/testify/assert"
 	vz "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v6weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v6"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 )
 
 // Test using default value for enabling Fluentd
@@ -58,7 +57,7 @@ func checkDomainModel(t *testing.T, weblogicDomain *v6weblogic.Domain, domainNam
 	assert.Equal(t, name, containers[0].Args[0], fmt.Sprintf("Expect fist argument to be %s", name))
 	name = "/etc/fluent.conf"
 	assert.Equal(t, name, containers[0].Args[1], fmt.Sprintf("Expect second argument to be %s", name))
-	assert.Equal(t, constants.FluentdImage, containers[0].Image, fmt.Sprintf("Expect image name to be %s", constants.FluentdImage))
+	assert.Equal(t, util.GetFluentdKubernetesDaemonsetImage(), containers[0].Image, fmt.Sprintf("Expect image name to be %s", util.GetFluentdKubernetesDaemonsetImage()))
 	assert.Equal(t, 2, len(containers[0].VolumeMounts), "Expected volume mounts count to be 2")
 	name = "fluentd-config-volume"
 	assert.Equal(t, name, containers[0].VolumeMounts[0].Name, fmt.Sprintf("Expect volume mount name to be %s", name))

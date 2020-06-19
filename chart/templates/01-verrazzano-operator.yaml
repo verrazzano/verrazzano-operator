@@ -43,6 +43,8 @@ spec:
               value: {{ .Values.verrazzanoOperator.journalbeatImage }}
             - name: WEBLOGIC_OPERATOR_IMAGE
               value: {{ .Values.verrazzanoOperator.weblogicOperatorImage }}
+            - name: FLUENTD_KUBERNETES_DAEMONSET_IMAGE
+              value: {{ .Values.verrazzanoOperator.fluentdKubernetesDaemonsetImage }}
       serviceAccount: {{ .Values.verrazzanoOperator.name }}
 ---
 kind: Service
