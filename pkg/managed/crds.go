@@ -1,0 +1,79 @@
+// Copyright (C) 2020, Oracle Corporation and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+// Handles creation of CRDs into Managed Clusters
+package managed
+
+import (
+	"io/ioutil"
+
+	"github.com/golang/glog"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
+	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
+)
+
+func CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnection, managedCluster *v1beta1v8o.VerrazzanoManagedCluster, manifest *util.Manifest) error {
+
+	glog.V(6).Infof("Creating/updating CRDs for ManagedCluster %s", managedCluster.Name)
+	managedClusterConnection.Lock.RLock()
+	managedClusterConnection.Lock.RUnlock()
+
+	newCrds, err := newCrds(manifest)
+	if err != nil {
+		return err
+	}
+
+	for _, newCrd := range newCrds {
+		existingCrd, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Get(newCrd.Name, metav1.GetOptions{})
+		if err == nil {
+			specDiffs := diff.CompareIgnoreTargetEmpties(existingCrd, newCrd)
+			if specDiffs != "" {
+				glog.V(6).Infof("CRD %s : Spec differences %s", newCrd.Name, specDiffs)
+				if len(newCrd.ResourceVersion) == 0 {
+					newCrd.ResourceVersion = existingCrd.ResourceVersion
+				}
+				glog.V(4).Infof("Updating CRD %s", newCrd.Name)
+				_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Update(newCrd)
+			}
+		} else {
+			glog.V(4).Infof("Creating CRD %s", newCrd.Name)
+			_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Create(newCrd)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Constructs the necessary CRD Definitions for managed clusters
+func newCrds(manifest *util.Manifest) ([]*v1beta1.CustomResourceDefinition, error) {
+	yamlFiles := []string{manifest.WlsMicroOperatorCrd, manifest.HelidonAppOperatorCrd, manifest.CohClusterOperatorCrd}
+	var crds []*v1beta1.CustomResourceDefinition
+
+	// Loop through the CRD's that need to be generated
+	for fileIndex := range yamlFiles {
+
+		// Read the yaml file that defines the CRD
+		yamlFile, err := ioutil.ReadFile(yamlFiles[fileIndex])
+		if err != nil {
+			return nil, err
+		}
+
+		// Create a CRD struct
+		var crd v1beta1.CustomResourceDefinition
+		err = yaml.Unmarshal(yamlFile, &crd)
+		if err != nil {
+			return nil, err
+		}
+
+		crds = append(crds, &crd)
+	}
+
+	return crds, nil
+}

@@ -1,0 +1,40 @@
+# Copyright (C) 2020, Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: verrazzano.io/v1beta1
+kind: VerrazzanoBinding
+metadata:
+  name: sock-shop-binding
+  namespace: default
+spec:
+  description: "Sock Shop Binding"
+  scope: Namespaced
+  group: verrazzano.io
+  modelName: sock-shop-model
+  helidonBindings:
+    - name: frontend
+      replicas: 1
+  weblogicBindings:
+    - name: "wl-frontend"
+      replicas: 1
+  placement:
+    - name: cluster1
+      namespaces:
+        - name: sockshop
+          components:
+            - name: frontend
+            - name: carts
+            - name: catalogue
+            - name: orders
+            - name: payment
+            - name: shipping
+            - name: user
+            - name: swagger
+            - name: wl-frontend
+  ingressBindings:
+    - name: "sockshop-frontend-ingress"
+      dnsName: "*"
+    - name: "wl-ingress"
+      dnsName: "*"
+
+

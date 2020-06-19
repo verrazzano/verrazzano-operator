@@ -1,0 +1,1 @@
+github.com/operator-framework/go-appr@v0.0.0-20180917210448-f2aef88446f2

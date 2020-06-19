@@ -1,0 +1,9 @@
+build/_output
+vendor
+.idea
+**/*.iml
+pkg/assets
+dist
+archive
+latest
+

@@ -1,0 +1,85 @@
+name: verrazzano
+
+image:
+  pullPolicy: Always
+  terminationGracePeriodSeconds: 60
+
+verrazzanoOperator:
+  name: verrazzano-operator
+  imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator
+  imageVersion: OPERATOR_VERSION
+  sslVerify: true
+  cohMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.6
+  helidonMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.5
+  wlsMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.4
+  prometheusPusherImage: phx.ocir.io/odx-sre/sauron/prometheus-pusher:1.0.1_6
+  nodeExporterImage: phx.ocir.io/odx-sre/sauron/node-exporter-mirror:0.18.1-1
+  filebeatImage: phx.ocir.io/odx-sre/sauron/beats-mirror/filebeat-oss:6.8.3-2
+  journalbeatImage: phx.ocir.io/odx-sre/sauron/beats-mirror/journalbeat-oss:6.8.3-2
+  weblogicOperatorImage: oracle/weblogic-kubernetes-operator:2.5.0
+  apiServerRealm: verrazzano-system
+
+monitoringOperator:
+  name: verrazzano-monitoring-operator
+  imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-operator
+  imageVersion: v0.0.12
+  metricsPort: 8090
+  defaultSimpleCompReplicas: 1
+  defaultPrometheusReplicas: 1
+  grafanaImage: grafana/grafana:6.3.5
+  prometheusImage: prom/prometheus:v2.12.0
+  prometheusInitImage: busybox:1.31.1
+  prometheusGatewayImage: phx.ocir.io/odx-sre/sauron/pushgateway-mirror:1.2.0-1
+  alertManagerImage: prom/alertmanager:v0.16.0
+  esWaitTargetVersion: 7.6.1
+  esImage: phx.ocir.io/odx-sre/sauron/elasticsearch-mirror:7.6.1-2
+  esWaitImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.2
+  esExporterImage: justwatch/elasticsearch_exporter:1.1.0
+  esInitImage: oraclelinux:7
+  kibanaImage: phx.ocir.io/odx-sre/sauron/kibana-mirror:7.6.1-2
+  monitoringInstanceApiImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.5
+  configReloaderImage: phx.ocir.io/odx-sre/sauron/configmap-reloader:0.3
+  nodeExporterImage: phx.ocir.io/odx-sre/sauron/node-exporter-mirror:0.18.1-1
+
+clusterOperator:
+  name: verrazzano-cluster-operator
+  imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator
+  imageVersion: v0.0.4
+  rancherURL:
+  rancherUserName:
+  rancherPassword:
+  rancherHostname:
+
+verrazzanoAdmissionController:
+  name: verrazzano-validation
+  controllerName: verrazzano-admission-controller
+  imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller
+  imageVersion: v0.0.7
+  caBundle:
+
+# OCI-related values
+oci:
+  region: ""
+  tenancyOcid: ""
+  userOcid: ""
+  fingerprint: ""
+  privateKey: ""
+  compartment: ""
+  clusterOcid: ""
+  objectStore:
+    bucketName: ""
+    namespace: ""
+
+config:
+  envName:
+  dnsSuffix: verrazzano.io
+  enableMonitoringStorage: true
+
+verrazzanoConsole:
+  name: verrazzano-console
+  imageName: phx.ocir.io/stevengreenberginc/verrazzano/web
+  imageVersion: 1.0.19
+
+verrazzanoConsoleWrapper:
+  imageName: phx.ocir.io/stevengreenberginc/verrazzano/web-standalone
+  imageVersion: 1.0.21

@@ -1,0 +1,35 @@
+# Copyright (C) 2020, Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: verrazzano.io/v1beta1
+kind: VerrazzanoModel
+metadata:
+  name: sock-shop-model
+  namespace: default
+spec:
+  description: "Sock Shop Model"
+  scope: Namespaced
+  group: verrazzano.io
+  helidonApplications:
+    - name: "frontend"
+      image: "helidonsockshop/front-end:0.3.12"
+      connections:
+        - ingress:
+            - name: "sock-shop-ingress"
+    - name: "carts"
+      image: "helidonsockshop/carts-core:latest"
+    - name: "catalog"
+      image: "helidonsockshop/catalog-core:latest"
+    - name: "orders"
+      image: "helidonsockshop/orders-core:latest"
+    - name: "payment"
+      image: "helidonsockshop/payment-core:latest"
+    - name: "shipping"
+      image: "helidonsockshop/shipping-core:latest"
+    - name: "user"
+      image: "helidonsockshop/users-core:latest"
+    - name: "swagger"
+      image: "swaggerapi/swagger-ui:latest"
+    - name: "foobar"
+      image: "foobar/foobar-core:latest"
+

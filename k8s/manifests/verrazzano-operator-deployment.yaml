@@ -1,0 +1,29 @@
+# Copyright (c) 2020, Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: verrazzano-operator
+  labels:
+    app: verrazzano-operator
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verrazzano-operator
+  template:
+    metadata:
+      labels:
+        app: verrazzano-operator
+    spec:
+      containers:
+      - name: verrazzano-operator
+        # The IMAGE-TAG is replaced by the test system to be the image being tested
+        image: <DOCKER-REPO-TAG>/<DOCKER-NAMESPACE-TAG>/verrazzano/verrazzano-operator:<IMAGE-TAG>
+        imagePullPolicy: Always
+        args:
+          - --v=4
+          - --watchNamespace=default
+          - --verrazzanoUri=my.verrazzano.com
+      serviceAccount: verrazzano-operator
