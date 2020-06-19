@@ -120,6 +120,7 @@ pipeline {
         }
     }
 
+
     post {
         failure {
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: 'noreply@oracle.com',
