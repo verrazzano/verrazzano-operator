@@ -505,6 +505,8 @@ github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljT
 github.com/urfave/negroni v1.0.0/go.mod h1:Meg73S6kFm/4PpbYdq35yYWoCZ9mS/YSx+lKnmiohz4=
 github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.6 h1:rV+iHHzHY5qfDiVhxoyUplM+KZ12WncteB5g1gFh280=
 github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.6/go.mod h1:gvwPW4MV14JXwVQ4+Ovb2zDK/CoeNocAGXOK8J5hWfg=
+github.com/verrazzano/verrazzano-crd-generator v0.3.27-1 h1:VDVBDA3KWWdZVTnHhs4aIuXTHk5lRUBau3y3RBc7cJ0=
+github.com/verrazzano/verrazzano-crd-generator v0.3.27-1/go.mod h1:cFKwPu1TljLqMrZpry9GZbcnWKavjs3mfYtM7hTxyRw=
 github.com/verrazzano/verrazzano-crd-generator v0.3.27 h1:FXOPq8jHCFdwthLgNlWt49HfoG4rVZij7HCGJesiesE=
 github.com/verrazzano/verrazzano-crd-generator v0.3.27/go.mod h1:cFKwPu1TljLqMrZpry9GZbcnWKavjs3mfYtM7hTxyRw=
 github.com/verrazzano/verrazzano-crd-generator v0.3.28-0.20200619234113-c8597df9968d h1:STtJH92DhN6ed5Dyf7WXSfN8Kgm28DNgU4V/RbMh3Vw=
