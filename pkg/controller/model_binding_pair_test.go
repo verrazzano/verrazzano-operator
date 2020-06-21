@@ -14,7 +14,7 @@ import (
 	. "github.com/verrazzano/verrazzano-operator/test/integ/util"
 	"github.com/stretchr/testify/assert"
 	v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v6"
+	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

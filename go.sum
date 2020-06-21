@@ -507,6 +507,8 @@ github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.6 h1:rV+iHHzHY5qfDiVh
 github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.6/go.mod h1:gvwPW4MV14JXwVQ4+Ovb2zDK/CoeNocAGXOK8J5hWfg=
 github.com/verrazzano/verrazzano-crd-generator v0.3.27 h1:FXOPq8jHCFdwthLgNlWt49HfoG4rVZij7HCGJesiesE=
 github.com/verrazzano/verrazzano-crd-generator v0.3.27/go.mod h1:cFKwPu1TljLqMrZpry9GZbcnWKavjs3mfYtM7hTxyRw=
+github.com/verrazzano/verrazzano-crd-generator v0.3.28-0.20200619234113-c8597df9968d h1:STtJH92DhN6ed5Dyf7WXSfN8Kgm28DNgU4V/RbMh3Vw=
+github.com/verrazzano/verrazzano-crd-generator v0.3.28-0.20200619234113-c8597df9968d/go.mod h1:cFKwPu1TljLqMrZpry9GZbcnWKavjs3mfYtM7hTxyRw=
 github.com/verrazzano/verrazzano-helidon-app-operator v0.0.5 h1:C7JQ5hORIOo25v11917yxq+Q+XV9vnB21IfFWDZP05k=
 github.com/verrazzano/verrazzano-helidon-app-operator v0.0.5/go.mod h1:Z0btnjktqFZ6hlOYePaeZwBD40WPb7QYCWxmbiHo+n0=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.12 h1:VILmAVDqlbia88Th58p6iZbuQ98Z8JP+9gtstED8j5g=
