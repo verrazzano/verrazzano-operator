@@ -538,7 +538,7 @@ func getTargetNamespacePlacement(restTarget string, binding *v1beta1v8o.Verrazza
 func getTargetTypePort(managedCluster *types.ManagedCluster, target string) (types.ComponentType, uint32, error) {
 	for _, wls := range managedCluster.WlsDomainCRs {
 		if wls.Name == target {
-			return types.Wls, 31111, nil
+			return types.Wls, 8001, nil
 		}
 	}
 
