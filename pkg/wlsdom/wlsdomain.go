@@ -80,7 +80,7 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 								port = 30701
 							}
 							channels = append(channels, v7weblogic.Channel{
-								ChannelName: "default",
+								ChannelName: "istio-default",
 								NodePort:    port,
 							})
 
