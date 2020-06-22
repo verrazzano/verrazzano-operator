@@ -22,19 +22,18 @@ verrazzanoOperator:
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-operator
-  imageVersion: v0.0.12
+  imageVersion: v0.0.13
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
-  grafanaImage: grafana/grafana:6.3.5
-  prometheusImage: prom/prometheus:v2.12.0
-  prometheusInitImage: busybox:1.31.1
+  grafanaImage: container-registry.oracle.com/olcne/grafana:v6.4.4
+  prometheusImage: container-registry.oracle.com/olcne/prometheus:v2.13.1
+  prometheusInitImage: oraclelinux:7
   prometheusGatewayImage: phx.ocir.io/odx-sre/sauron/pushgateway-mirror:1.2.0-1
   alertManagerImage: prom/alertmanager:v0.16.0
   esWaitTargetVersion: 7.6.1
   esImage: phx.ocir.io/odx-sre/sauron/elasticsearch-mirror:7.6.1-2
   esWaitImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.2
-  esExporterImage: justwatch/elasticsearch_exporter:1.1.0
   esInitImage: oraclelinux:7
   kibanaImage: phx.ocir.io/odx-sre/sauron/kibana-mirror:7.6.1-2
   monitoringInstanceApiImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.5
