@@ -12,7 +12,7 @@ import (
 
 const urlTemp = "https://%v.%v"
 
-const vzUri = "abc.v8o.oracledx.com"
+const vzUri = "abc.v8o.example.com"
 
 // Test KeyCloak Url
 func TestGetKeyCloakUrl(t *testing.T) {
@@ -20,7 +20,7 @@ func TestGetKeyCloakUrl(t *testing.T) {
 	keycloakUrl := fmt.Sprintf(urlTemp, "keycloak", vzUri)
 	assert.Equal(t, keycloakUrl, GetKeyCloakUrl(), "Expected KeyCloakUrl")
 
-	vzUri2 := "xyz.v8o.oracledx.com"
+	vzUri2 := "xyz.v8o.example.com"
 	SetVerrazzanoUri(vzUri2)
 	keycloakUrl = fmt.Sprintf(urlTemp, "keycloak", vzUri2)
 	assert.Equal(t, keycloakUrl, GetKeyCloakUrl(), "Expected KeyCloakUrl")
