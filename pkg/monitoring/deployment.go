@@ -100,7 +100,7 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 							VolumeMounts: []corev1.VolumeMount {
 								{
 									Name: "cert-vol",
-									MountPath: " /verrazzano/certs",
+									MountPath: "/verrazzano/certs",
 								},
 							},
 						},
