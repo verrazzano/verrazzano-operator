@@ -90,12 +90,32 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 									Name:  "NO_PROXY",
 									Value: "localhost,prometheus.istio-system.svc.cluster.local,127.0.0.1,/var/run/docker.sock",
 								},
-							},
+								{
+									Name:  "PROM_CERT",
+									Value: "/verrazzano/certs/ca.crt",
+								},							},
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports:           []corev1.ContainerPort{{Name: "master", ContainerPort: int32(9091)}},
+							VolumeMounts: []corev1.VolumeMount {
+								{
+									Name: "cert-vol",
+									MountPath: " /verrazzano/certs",
+								},
+							},
 						},
 					},
 					TerminationGracePeriodSeconds: new64Val(1),
+					Volumes: []corev1.Volume {
+						{
+							Name:         "cert-vol",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName:  "system-tls",
+									DefaultMode: newVal(420),
+								},
+							},
+						},
+					},
 				},
 			},
 		},
