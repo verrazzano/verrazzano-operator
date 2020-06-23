@@ -164,7 +164,7 @@ func init() {
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&watchNamespace, "watchNamespace", "", "Optionally, a namespace to watch exclusively.  If not set, all namespaces will be watched.")
-	flag.StringVar(&verrazzanoUri, "verrazzanoUri", "", "Verrazzano URI, for example my-verrazzano-1.verrazzano.oracledx.com")
+	flag.StringVar(&verrazzanoUri, "verrazzanoUri", "", "Verrazzano URI, for example my-verrazzano-1.verrazzano.example.com")
 	flag.StringVar(&helidonAppOperatorDeployment, "helidonAppOperatorDeployment", "", "--helidonAppOperatorDeployment=false disables helidonAppOperatorDeployment")
 	flag.StringVar(&enableMonitoringStorage, "enableMonitoringStorage", "", "Enable storage for monitoring.  The default is true. 'false' means monitoring storage is disabled.")
 	flag.BoolVar(&sslVerify, "sslVerify", true, "When set to 'false' some HTTPS connections will be allowed without Certs. The default is 'true'.")
