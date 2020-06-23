@@ -10,9 +10,9 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
 	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.6
-	github.com/verrazzano/verrazzano-crd-generator v0.3.27-1
+	github.com/verrazzano/verrazzano-crd-generator v0.3.28
 	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.5
-	github.com/verrazzano/verrazzano-monitoring-operator v0.0.12
+	github.com/verrazzano/verrazzano-monitoring-operator v0.0.13
 	github.com/verrazzano/verrazzano-wko-operator v0.0.4
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	gopkg.in/yaml.v2 v2.3.0
