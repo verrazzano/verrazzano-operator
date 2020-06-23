@@ -75,7 +75,7 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 								},
 								{
 									Name:  "LOGLEVEL",
-									Value: "5",
+									Value: "4",
 								},
 								{
 									Name:  "SPLIT_SIZE",
