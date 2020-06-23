@@ -65,12 +65,12 @@ Docker build:
 ```
 export ACCESS_USERNAME=<username with read access to github verrazzano project>
 export ACCESS_PASSWORD=<password for account with read access to github verrazzano project>
-make docker-build
+make build
 ```
 
 Docker push:
 ```
-make docker-push
+make push
 ```
 
 ## Updating the CRDs
