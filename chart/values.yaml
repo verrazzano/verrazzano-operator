@@ -17,7 +17,7 @@ verrazzanoOperator:
   filebeatImage: phx.ocir.io/odx-sre/sauron/beats-mirror/filebeat-oss:6.8.3-2
   journalbeatImage: phx.ocir.io/odx-sre/sauron/beats-mirror/journalbeat-oss:6.8.3-2
   weblogicOperatorImage: oracle/weblogic-kubernetes-operator:2.5.0
-  fluentdKubernetesDaemonsetImage: phx.ocir.io/stevengreenberginc/fluentd-kubernetes-daemonset:v1.10.4-oel-elasticsearch7-1.0
+  fluentdKubernetesDaemonsetImage: phx.ocir.io/stevengreenberginc/fluentd-kubernetes-daemonset:v1.10.4-oraclelinux-elasticsearch7-1.0
   apiServerRealm: verrazzano-system
 
 monitoringOperator:
