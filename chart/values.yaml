@@ -12,7 +12,7 @@ verrazzanoOperator:
   cohMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.6
   helidonMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.5
   wlsMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.4
-  prometheusPusherImage: phx.ocir.io/odx-sre/sauron/prometheus-pusher:1.0.1_6
+  prometheusPusherImage: phx.ocir.io/odx-sre/sauron/prometheus-pusher:1.0.1_9
   nodeExporterImage: phx.ocir.io/odx-sre/sauron/node-exporter-mirror:0.18.1-1
   filebeatImage: phx.ocir.io/odx-sre/sauron/beats-mirror/filebeat-oss:6.8.3-2
   journalbeatImage: phx.ocir.io/odx-sre/sauron/beats-mirror/journalbeat-oss:6.8.3-2
