@@ -9,24 +9,24 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	v6weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v6"
+	v7weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
 	corev1 "k8s.io/api/core/v1"
 	v1meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbPair *types.ModelBindingPair, labels map[string]string) *v6weblogic.Domain {
+func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbPair *types.ModelBindingPair, labels map[string]string) *v7weblogic.Domain {
 	domainCRValues := domainModel.DomainCRValues
 
-	labels["weblogic.resourceVersion"] = "domain-v6"
+	labels["weblogic.resourceVersion"] = "domain-v7"
 	labels["weblogic.domainUID"] = domainModel.Name
 
-	domainCR := &v6weblogic.Domain{
+	domainCR := &v7weblogic.Domain{
 		ObjectMeta: v1meta.ObjectMeta{
 			Name:      domainModel.Name,
 			Namespace: namespace,
 			Labels:    labels,
 		},
-		Spec: v6weblogic.DomainSpec{
+		Spec: v7weblogic.DomainSpec{
 			DomainHome: domainCRValues.DomainHome,
 			DomainUID: func() string {
 				if len(domainCRValues.DomainUID) > 0 {
@@ -45,7 +45,7 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 				}
 			}(),
 			ImagePullSecrets: domainCRValues.ImagePullSecrets,
-			WebLogicCredentialsSecret: v6weblogic.WebLogicSecret{
+			WebLogicCredentialsSecret: v7weblogic.WebLogicSecret{
 				Name: domainCRValues.WebLogicCredentialsSecret.Name,
 			},
 			LogHome:                  fmt.Sprintf("/scratch/logs/%s", domainModel.Name),
@@ -53,9 +53,9 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 			Clusters:                 domainCRValues.Clusters,
 			IncludeServerOutInPodLog: domainCRValues.IncludeServerOutInPodLog,
 			DomainHomeInImage:        true,
-			AdminServer: v6weblogic.AdminServer{
-				Server: v6weblogic.Server{
-					BaseConfiguration: v6weblogic.BaseConfiguration{
+			AdminServer: v7weblogic.AdminServer{
+				Server: v7weblogic.Server{
+					BaseConfiguration: v7weblogic.BaseConfiguration{
 						ServerStartState: func() string {
 							if len(domainCRValues.AdminServer.ServerStartState) > 0 {
 								return domainCRValues.AdminServer.ServerStartState
@@ -67,26 +67,25 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 						ServerService:  domainCRValues.AdminServer.ServerService,
 					},
 				},
-				AdminService: v6weblogic.AdminService{
-					Channels: func() []v6weblogic.Channel {
-						var channels []v6weblogic.Channel
+				AdminService: v7weblogic.AdminService{
+					Channels: func() []v7weblogic.Channel {
+						var channels []v7weblogic.Channel
 
 						if domainCRValues.AdminServer.AdminService.Channels != nil {
 							channels = domainCRValues.AdminServer.AdminService.Channels
 						} else {
 							// Default Channel
 							port := domainModel.AdminPort
-							if port == 0 {
-								port = 30701
+							if port > 0 {
+								channels = append(channels, v7weblogic.Channel{
+									ChannelName: "istio-default",
+									NodePort:    port,
+								})
 							}
-							channels = append(channels, v6weblogic.Channel{
-								ChannelName: "default",
-								NodePort:    port,
-							})
 
 							// T3 Channel?
 							if domainModel.T3Port > 0 {
-								channels = append(channels, v6weblogic.Channel{
+								channels = append(channels, v7weblogic.Channel{
 									ChannelName: "T3Channel",
 									NodePort:    domainModel.T3Port,
 								})
@@ -104,10 +103,11 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 					return util.NewVal(1)
 				}
 			}(),
-			Experimental: v6weblogic.Experimental{
-				Istio: v6weblogic.Istio{
+			Configuration: v7weblogic.Configuration{
+				Istio: v7weblogic.Istio{
 					// Istio is always enabled for WebLogic domains in Verrazzano
 					Enabled: true,
+					ReadinessPort: 8888,
 				},
 			},
 			ServerStartPolicy: func() string {
@@ -117,8 +117,8 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 					return "IF_NEEDED"
 				}
 			}(),
-			BaseConfiguration: v6weblogic.BaseConfiguration{
-				ServerPod: func() v6weblogic.ServerPod {
+			BaseConfiguration: v7weblogic.BaseConfiguration{
+				ServerPod: func() v7weblogic.ServerPod {
 					serverPod := domainCRValues.ServerPod
 
 					// Add fluentd config
@@ -159,7 +159,7 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 				RestartVersion: domainCRValues.RestartVersion,
 			},
 		},
-		Status: v6weblogic.DomainStatus{},
+		Status: v7weblogic.DomainStatus{},
 	}
 
 	// ConfigOverrides
@@ -201,7 +201,7 @@ func UpdateEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.En
 }
 
 // Add fluentd to the server pod
-func addFluentdConfig(serverPod *v6weblogic.ServerPod, domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbPair *types.ModelBindingPair) {
+func addFluentdConfig(serverPod *v7weblogic.ServerPod, domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbPair *types.ModelBindingPair) {
 	// Add fluentd container
 	serverPod.Containers = append(serverPod.Containers, createFluentdContainer(domainModel, mbPair))
 

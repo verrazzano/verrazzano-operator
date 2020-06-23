@@ -184,18 +184,3 @@ To run integration tests:
 ```
 make integ-test
 ```
-
-## Generating/Updating THIRD_PARTY_LICENSES.txt
-
-Whenever project dependencies (go.mod) are updated, the `THIRD_PARTY_LICENSES.txt` file contained in this project must be updated as well.
-This is verified in the CI pipeline - the build will fail if this file is found to be out of sync with
-go.mod.
-
-To update the `THIRD_PARTY_LICENSES.txt` file, install the *Attribution Helper* tool as described [here](https://github.com/oracle/attribution-helper#how-to-use),
-run it within this project's root directory:
-
-```
-attribution-helper gen
-```
-
-and then commit the updated `THIRD_PARTY_LICENSES.txt` file.
