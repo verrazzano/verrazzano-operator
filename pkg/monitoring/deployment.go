@@ -5,8 +5,6 @@ package monitoring
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
@@ -132,12 +130,4 @@ func newVal(value int32) *int32 {
 func new64Val(value int64) *int64 {
 	var val = value
 	return &val
-}
-
-func getVerrazzanoName(verrazzanoUri string) string {
-	segs := strings.Split(verrazzanoUri, ".")
-	if len(segs) > 1 {
-		return segs[0]
-	}
-	return ""
 }
