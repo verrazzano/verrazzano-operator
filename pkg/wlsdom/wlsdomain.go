@@ -76,13 +76,12 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 						} else {
 							// Default Channel
 							port := domainModel.AdminPort
-							if port == 0 {
-								port = 30701
+							if port > 0 {
+								channels = append(channels, v7weblogic.Channel{
+									ChannelName: "istio-default",
+									NodePort:    port,
+								})
 							}
-							channels = append(channels, v7weblogic.Channel{
-								ChannelName: "istio-default",
-								NodePort:    port,
-							})
 
 							// T3 Channel?
 							if domainModel.T3Port > 0 {
