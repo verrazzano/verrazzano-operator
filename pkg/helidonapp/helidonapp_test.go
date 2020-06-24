@@ -7,11 +7,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	vz "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
-	"github.com/stretchr/testify/assert"
-	vz "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func TestCreateHelidonAppCR(t *testing.T) {
@@ -124,7 +125,12 @@ func checkFluentdEnabled(t *testing.T, helidonApp *v1helidonapp.HelidonApp, appN
 	assert.Equal(t, name, helidonApp.Spec.Containers[0].VolumeMounts[2].MountPath, fmt.Sprintf("Expect volume mount path to be %s", name))
 	assert.Equal(t, true, helidonApp.Spec.Containers[0].VolumeMounts[2].ReadOnly, "Expect volume mount to be readOnly")
 	assert.Equal(t, 8, len(helidonApp.Spec.Containers[0].Env), "Expected env count to be 8")
-
+	es_username := findEnv(helidonApp.Spec.Containers[0].Env, "ELASTICSEARCH_USER")
+	es_password := findEnv(helidonApp.Spec.Containers[0].Env, "ELASTICSEARCH_PASSWORD")
+	assert.NotNil(t, es_username)
+	assert.NotNil(t, es_password)
+	assert.Equal(t, constants.VmiSecretName, es_username.ValueFrom.SecretKeyRef.Name)
+	assert.Equal(t, constants.VmiSecretName, es_password.ValueFrom.SecretKeyRef.Name)
 	assert.Equal(t, 3, len(helidonApp.Spec.Volumes), "Expected volumes count to be 3")
 	name = "varlog"
 	assert.Equal(t, name, helidonApp.Spec.Volumes[0].Name, fmt.Sprintf("Expected volume name to be %s", name))
@@ -138,4 +144,13 @@ func checkFluentdEnabled(t *testing.T, helidonApp *v1helidonapp.HelidonApp, appN
 	assert.Equal(t, name, helidonApp.Spec.Volumes[2].Name, fmt.Sprintf("Expected volume name to be %s", name))
 	name = fmt.Sprintf("%s-fluentd", appName)
 	assert.Equal(t, name, helidonApp.Spec.Volumes[2].VolumeSource.ConfigMap.Name, fmt.Sprintf("Expected volume hostpath to be %s", name))
+}
+
+func findEnv(envvars []corev1.EnvVar, name string) *corev1.EnvVar {
+	for _, env := range envvars {
+		if name == env.Name {
+			return &env
+		}
+	}
+	return nil
 }

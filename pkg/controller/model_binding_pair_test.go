@@ -8,13 +8,15 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+
+	"github.com/stretchr/testify/assert"
+	v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	. "github.com/verrazzano/verrazzano-operator/test/integ/util"
-	"github.com/stretchr/testify/assert"
-	v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -171,6 +173,12 @@ func TestSockShopSimpleModelBinding(t *testing.T) {
 	assertPorts(t, pair, cluster, namespace, "carts", 8080, 8080)
 	assertPorts(t, pair, cluster, namespace, "user", 8080, 8080)
 	assertPorts(t, pair, cluster, namespace, "swagger", 8080, 8080)
+
+	for _, cluster := range pair.ManagedClusters {
+		for _, secrets := range cluster.Secrets {
+			assert.Contains(t, secrets, constants.VmiSecretName)
+		}
+	}
 }
 
 func assertPorts(t *testing.T, pair *types.ModelBindingPair,
@@ -358,6 +366,9 @@ func validateModelBindingPair(t *testing.T,
 		assert.NotNil(t, expectedNamespaces)
 		for _, ns := range cluster.Namespaces {
 			assert.Contains(t, expectedNamespaces, ns)
+		}
+		for _, secrets := range cluster.Secrets {
+			assert.Contains(t, secrets, constants.VmiSecretName)
 		}
 	}
 }

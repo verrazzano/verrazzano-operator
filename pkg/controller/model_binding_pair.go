@@ -8,16 +8,17 @@ import (
 	"sync"
 
 	"github.com/golang/glog"
+	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	v7weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/cohcluster"
 	"github.com/verrazzano/verrazzano-operator/pkg/cohoperator"
+	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/helidonapp"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsdom"
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsopr"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	v7weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -127,7 +128,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						mc.ConfigMaps = append(mc.ConfigMaps, configMap)
 
 						// Add secret for binding to the namespace, it contains the credentials fluentd needs for ElasticSearch
-						addSecret(mc, util.GetVmiNameForBinding(mbPair.Binding.Name), namespace.Name)
+						addSecret(mc, constants.VmiSecretName, namespace.Name)
 
 						virtualSerivceDestinationPort := 8001
 						processIngressConnections(mc, domain.Connections, namespace.Name, domainCR, getDomainDestinationHost(domainCR), virtualSerivceDestinationPort, &mbPair.Binding.Spec.IngressBindings)
@@ -205,7 +206,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 							configMap := helidonapp.CreateFluentdConfigMap(&app, namespace.Name, helidonLabels)
 							mc.ConfigMaps = append(mc.ConfigMaps, configMap)
 							// Add secret for binding to the namespace, it contains the credentials fluentd needs for ElasticSearch
-							addSecret(mc, util.GetVmiNameForBinding(mbPair.Binding.Name), namespace.Name)
+							addSecret(mc, constants.VmiSecretName, namespace.Name)
 						}
 
 						virtualSerivceDestinationPort := int(helidonCR.Spec.Port) //service.port

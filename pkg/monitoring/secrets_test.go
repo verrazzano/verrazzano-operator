@@ -7,9 +7,9 @@ import (
 
 	"golang.org/x/crypto/pbkdf2"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/stretchr/testify/assert"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -50,7 +50,7 @@ func TestExistingVmiSecrets(t *testing.T) {
 	binding.Name = "TestExistingVmiSecrets"
 	existing := NewVmiSecret(&binding)
 	secrets := MockSecrets{secrets: map[string]*corev1.Secret{
-		constants.VmiUsername: existing,
+		constants.VmiSecretName: existing,
 	}}
 	CreateVmiSecrets(&binding, &secrets)
 	sec, _ := GetVmiPassword(&secrets)
@@ -59,7 +59,7 @@ func TestExistingVmiSecrets(t *testing.T) {
 }
 
 func assertSaltedHash(t *testing.T, secrets Secrets) {
-	sec, _ := secrets.Get(constants.VmiUsername)
+	sec, _ := secrets.Get(constants.VmiSecretName)
 	saltString := base64.StdEncoding.EncodeToString(sec.Data["salt"])
 	salt, _ := base64.StdEncoding.DecodeString(saltString)
 	hash := pbkdf2.Key(sec.Data["password"], salt, 27500, 64, sha256.New)
@@ -74,17 +74,17 @@ func TestNewVmiRandomPassword(t *testing.T) {
 	CreateVmiSecrets(&binding, secrets)
 	sec1, _ := GetVmiPassword(secrets)
 	assertSaltedHash(t, secrets)
-	secrets.Delete(constants.VerrazzanoNamespace, constants.VmiUsername)
+	secrets.Delete(constants.VerrazzanoNamespace, constants.VmiSecretName)
 
 	CreateVmiSecrets(&binding, secrets)
 	sec2, _ := GetVmiPassword(secrets)
 	assertSaltedHash(t, secrets)
-	secrets.Delete(constants.VerrazzanoNamespace, constants.VmiUsername)
+	secrets.Delete(constants.VerrazzanoNamespace, constants.VmiSecretName)
 
 	CreateVmiSecrets(&binding, secrets)
 	sec3, _ := GetVmiPassword(secrets)
 	assertSaltedHash(t, secrets)
-	secrets.Delete(constants.VerrazzanoNamespace, constants.VmiUsername)
+	secrets.Delete(constants.VerrazzanoNamespace, constants.VmiSecretName)
 
 	assert.NotEqual(t, sec1, sec2, "new random password")
 	assert.NotEqual(t, sec3, sec2, "new random password")

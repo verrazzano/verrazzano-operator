@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -124,7 +124,7 @@ func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: binding.Name,
+							Name: constants.VmiSecretName,
 						},
 						Key: "username",
 						Optional: func(opt bool) *bool {
@@ -138,7 +138,7 @@ func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: binding.Name,
+							Name: constants.VmiSecretName,
 						},
 						Key: "password",
 						Optional: func(opt bool) *bool {
