@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 )
 
 func doTestCreateStorageOption(t *testing.T, option string, expected string) {
@@ -36,5 +36,5 @@ func TestNewVmiSecrets(t *testing.T) {
 	binding.Name = "TestNewVmiSecrets"
 	vmi := newVMIs(&binding, "v8o.uri", "")
 	assert.Equal(t, constants.VerrazzanoNamespace, vmi[0].Namespace, "right Namespace")
-	assert.Equal(t, constants.VmiUsername, vmi[0].Spec.SecretsName, "right SecretsName")
+	assert.Equal(t, constants.VmiSecretName, vmi[0].Spec.SecretsName, "right SecretsName")
 }

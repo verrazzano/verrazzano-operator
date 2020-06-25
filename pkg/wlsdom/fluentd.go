@@ -9,8 +9,8 @@ import (
 
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -68,7 +68,7 @@ func createFluentdContainer(domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbP
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: mbPair.Binding.Name,
+							Name: constants.VmiSecretName,
 						},
 						Key: "username",
 						Optional: func(opt bool) *bool {
@@ -82,7 +82,7 @@ func createFluentdContainer(domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbP
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: mbPair.Binding.Name,
+							Name: constants.VmiSecretName,
 						},
 						Key: "password",
 						Optional: func(opt bool) *bool {

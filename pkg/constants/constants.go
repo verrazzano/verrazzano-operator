@@ -60,6 +60,7 @@ var SystemDashboards = []string{
 // VMI related
 const VmiSystemBindingName = "system"
 const VmiUsername = "verrazzano"
+const VmiSecretName = "verrazzano"
 
 // Cert-Manager related
 const AcmeDnsSecret = "verrazzano-cert-manager-acme-dns"

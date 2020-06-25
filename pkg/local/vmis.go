@@ -9,13 +9,13 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmoclientset "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
 	vmolisters "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/listers/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -118,7 +118,7 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 			Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
 				URI:             util.GetVmiUri(binding.Name, verrazzanoUri),
 				AutoSecret:      true,
-				SecretsName:     constants.VmiUsername,
+				SecretsName:     constants.VmiSecretName,
 				CascadingDelete: true,
 				Grafana: vmov1.Grafana{
 					Enabled:             true,

@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"golang.org/x/crypto/pbkdf2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +38,7 @@ func NewVmiSecret(binding *v1beta1v8o.VerrazzanoBinding) *corev1.Secret {
 	bindingLabels := util.GetLocalBindingLabels(binding)
 	sec := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.VmiUsername,
+			Name:      constants.VmiSecretName,
 			Namespace: constants.VerrazzanoNamespace,
 			Labels:    bindingLabels,
 		},
@@ -51,7 +51,7 @@ func NewVmiSecret(binding *v1beta1v8o.VerrazzanoBinding) *corev1.Secret {
 }
 
 func GetVmiPassword(secrets Secrets) (string, error) {
-	sec, err := secrets.Get(constants.VmiUsername)
+	sec, err := secrets.Get(constants.VmiSecretName)
 	pw := ""
 	if sec != nil {
 		bytes := sec.Data["password"]
@@ -86,7 +86,7 @@ func saltedHash(sec *corev1.Secret) *corev1.Secret {
 }
 
 func CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets Secrets) error {
-	vmiSecret, err := secrets.Get(constants.VmiUsername)
+	vmiSecret, err := secrets.Get(constants.VmiSecretName)
 
 	if vmiSecret == nil {
 		vmiSecret = NewVmiSecret(binding)
