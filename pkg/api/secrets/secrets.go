@@ -55,10 +55,22 @@ func Init(listers controller.Listers) {
 	refreshSecrets()
 }
 
+// Add the name of a secret to an array of secret names if there is not a duplicate
+func addSecret(secretNames []string, secretName string) {
+	// Check to see if the name of the secret has already been added
+	for _, name := range secretNames {
+		if name == secretName {
+			return
+		}
+	}
+	secretNames = append(secretNames, secretName)
+}
+
 func refreshSecrets() {
 	// initialize domains as an empty list to avoid json encoding "nil"
 	Secrets = []Secret{}
 
+	// Get a list of the models that have been deployed to the management cluster
 	modelSelector := labels.SelectorFromSet(map[string]string{})
 	models, err := (*listerSet.ModelLister).VerrazzanoModels("default").List(modelSelector)
 	if err != nil {
@@ -66,25 +78,29 @@ func refreshSecrets() {
 		return
 	}
 
+	// Loop thru the list of models and get all secrets specified in the model
 	for _, model := range models {
 		var secretNames []string
+		// Get the Weblogic secrets
 		for _, domain := range model.Spec.WeblogicDomains {
 			for _, pullSecret := range domain.DomainCRValues.ImagePullSecrets {
-				secretNames = append(secretNames, pullSecret.Name)
+				addSecret(secretNames, pullSecret.Name)
 			}
 			for _, pullSecret := range domain.DomainCRValues.ConfigOverrideSecrets {
-				secretNames = append(secretNames, pullSecret)
+				addSecret(secretNames, pullSecret)
 			}
-			secretNames = append(secretNames, domain.DomainCRValues.WebLogicCredentialsSecret.Name)
+			addSecret(secretNames, domain.DomainCRValues.WebLogicCredentialsSecret.Name)
 		}
+		// Get the Helidon secrets
 		for _, helidon := range model.Spec.HelidonApplications {
 			for _, pullSecret := range helidon.ImagePullSecrets {
-				secretNames = append(secretNames, pullSecret.Name)
+				addSecret(secretNames, pullSecret.Name)
 			}
 		}
+		// Get the Coherence secrets
 		for _, coherence := range model.Spec.CoherenceClusters {
 			for _, pullSecret := range coherence.ImagePullSecrets {
-				secretNames = append(secretNames, pullSecret.Name)
+				addSecret(secretNames, pullSecret.Name)
 			}
 		}
 
