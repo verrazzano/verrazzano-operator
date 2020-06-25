@@ -66,9 +66,8 @@ func refreshSecrets() {
 		return
 	}
 
-	var secretNames []string
-
 	for _, model := range models {
+		var secretNames []string
 		for _, domain := range model.Spec.WeblogicDomains {
 			for _, pullSecret := range domain.DomainCRValues.ImagePullSecrets {
 				secretNames = append(secretNames, pullSecret.Name)
