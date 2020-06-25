@@ -56,14 +56,14 @@ func Init(listers controller.Listers) {
 }
 
 // Add the name of a secret to an array of secret names if there is not a duplicate
-func addSecret(secretNames []string, secretName string) {
+func addSecret(secretNames []string, secretName string) []string {
 	// Check to see if the name of the secret has already been added
 	for _, name := range secretNames {
 		if name == secretName {
-			return
+			return secretNames
 		}
 	}
-	secretNames = append(secretNames, secretName)
+	return append(secretNames, secretName)
 }
 
 func refreshSecrets() {
@@ -84,23 +84,23 @@ func refreshSecrets() {
 		// Get the Weblogic secrets
 		for _, domain := range model.Spec.WeblogicDomains {
 			for _, pullSecret := range domain.DomainCRValues.ImagePullSecrets {
-				addSecret(secretNames, pullSecret.Name)
+				secretNames = addSecret(secretNames, pullSecret.Name)
 			}
 			for _, pullSecret := range domain.DomainCRValues.ConfigOverrideSecrets {
-				addSecret(secretNames, pullSecret)
+				secretNames = addSecret(secretNames, pullSecret)
 			}
-			addSecret(secretNames, domain.DomainCRValues.WebLogicCredentialsSecret.Name)
+			secretNames = addSecret(secretNames, domain.DomainCRValues.WebLogicCredentialsSecret.Name)
 		}
 		// Get the Helidon secrets
 		for _, helidon := range model.Spec.HelidonApplications {
 			for _, pullSecret := range helidon.ImagePullSecrets {
-				addSecret(secretNames, pullSecret.Name)
+				secretNames = addSecret(secretNames, pullSecret.Name)
 			}
 		}
 		// Get the Coherence secrets
 		for _, coherence := range model.Spec.CoherenceClusters {
 			for _, pullSecret := range coherence.ImagePullSecrets {
-				addSecret(secretNames, pullSecret.Name)
+				secretNames = addSecret(secretNames, pullSecret.Name)
 			}
 		}
 
