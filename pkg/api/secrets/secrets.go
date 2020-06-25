@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/local"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // This file is very similar to applications.go - please see comments there
@@ -58,44 +59,69 @@ func refreshSecrets() {
 	// initialize domains as an empty list to avoid json encoding "nil"
 	Secrets = []Secret{}
 
-	i := 0
-	for _, mbp := range *listerSet.ModelBindingPairs {
-		for clusterName, managedCluster := range mbp.ManagedClusters {
-			for namespace, secretNames := range managedCluster.Secrets {
-				for _, secretName := range secretNames {
-					// get the actual secret from the management cluster
-					theSecret, err := local.GetSecret(secretName, constants.DefaultNamespace, *listerSet.KubeClientSet)
-					if err != nil {
-						glog.Warningf("Error getting secret %s in management cluster: %s", secretName, err.Error())
-						continue
-					}
-					if theSecret == nil {
-						glog.Warningf("Secret %s not found in management cluster", secretName)
-						continue
-					}
+	modelSelector := labels.SelectorFromSet(map[string]string{})
+	models, err := (*listerSet.ModelLister).VerrazzanoModels("default").List(modelSelector)
+	if err != nil {
+		glog.Errorf("Error getting application models: %s", err.Error())
+		return
+	}
 
-					Secrets = append(Secrets, Secret{
-						Id:        string(theSecret.UID),
-						Name:      secretName,
-						Namespace: namespace,
-						Cluster:   clusterName,
-						Type:      string(theSecret.Type),
-						Status:    "NYI",
-						Data: func() []Data {
+	var secretNames []string
 
-							theData := []Data{}
-							for k, v := range theSecret.Data {
-								theData = append(theData, Data{
-									Name:  k,
-									Value: string(v),
-								})
-							}
-							return theData
-						}(),
-					})
-					i++
-				}
+	for _, model := range models {
+		for _, domain := range model.Spec.WeblogicDomains {
+			for _, pullSecret := range domain.DomainCRValues.ImagePullSecrets {
+				secretNames = append(secretNames, pullSecret.Name)
 			}
+			for _, pullSecret := range domain.DomainCRValues.ConfigOverrideSecrets {
+				secretNames = append(secretNames, pullSecret)
+			}
+			secretNames = append(secretNames, domain.DomainCRValues.WebLogicCredentialsSecret.Name)
+		}
+		for _, helidon := range model.Spec.HelidonApplications {
+			for _, pullSecret := range helidon.ImagePullSecrets {
+				secretNames = append(secretNames, pullSecret.Name)
+			}
+		}
+		for _, coherence := range model.Spec.CoherenceClusters {
+			for _, pullSecret := range coherence.ImagePullSecrets {
+				secretNames = append(secretNames, pullSecret.Name)
+			}
+		}
+
+		i := 0
+		for _, secretName := range secretNames {
+			// get the actual secret from the management cluster
+			theSecret, err := local.GetSecret(secretName, constants.DefaultNamespace, *listerSet.KubeClientSet)
+			if err != nil {
+				glog.Warningf("Error getting secret %s in management cluster: %s", secretName, err.Error())
+				continue
+			}
+			if theSecret == nil {
+				glog.Warningf("Secret %s not found in management cluster", secretName)
+				continue
+			}
+
+			Secrets = append(Secrets, Secret{
+				Id:        string(theSecret.UID),
+				Name:      secretName,
+				Namespace: "",
+				Cluster:   "",
+				Type:      string(theSecret.Type),
+				Status:    "NYI",
+				Data: func() []Data {
+
+					theData := []Data{}
+					for k, v := range theSecret.Data {
+						theData = append(theData, Data{
+							Name:  k,
+							Value: string(v),
+						})
+					}
+					return theData
+				}(),
+			})
+			i++
 		}
 	}
 }
