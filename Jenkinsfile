@@ -54,14 +54,10 @@ pipeline {
         stage('Build') {
             when { not { buildingTag() } }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'github-markxnelns-private-access-token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
-                    sh """
-                        make chart-publish OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_NAME}
-                       """  
-                }
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
                     make push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+                    make chart-publish OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_NAME}
                    """
             }
         }

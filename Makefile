@@ -41,7 +41,7 @@ COH_PATH = github.com/verrazzano/verrazzano-coh-cluster-operator
 CRDGEN_PATH = github.com/verrazzano/verrazzano-crd-generator
 CRD_PATH = deploy/crds
 HELM_CHART_REPO_NAME:=helm-charts
-HELM_CHART_REPO_GIT_URL:="https://${GIT_USER}:${GIT_PASS}@github.com/verrazzano/${HELM_CHART_REPO_NAME}.git"
+HELM_CHART_REPO_GIT_URL:="https://github.com/verrazzano/${HELM_CHART_REPO_NAME}.git"
 HELM_CHART_REPO_URL:="https://raw.githubusercontent.com/verrazzano/${HELM_CHART_REPO_NAME}/${HELM_CHART_BRANCH}"
 HELM_CHART_NAME:=verrazzano
 HELM_CHART_ARCHIVE_NAME = "${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz"
@@ -190,13 +190,13 @@ chart-publish: chart-build
 	mv archive/${HELM_CHART_ARCHIVE_NAME} ${DIST_DIR}/
 	rm -rf archive
 	rm -rf ${HELM_CHART_REPO_NAME}
-	git config --global user.email "jenkins@verrazzano.io"
-	git config --global user.name "jenkins"
 	git clone -b ${HELM_CHART_BRANCH} ${HELM_CHART_REPO_GIT_URL}
 	cp ${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME} ${HELM_CHART_REPO_NAME}/${HELM_CHART_ARCHIVE_NAME}
 	echo ${HELM_CHART_VERSION} > ${HELM_CHART_REPO_NAME}/latest
 	cd ${HELM_CHART_REPO_NAME} && \
 	helm repo index --url ${HELM_CHART_REPO_URL} . && \
+	git config user.email "verrazzano@verrazzano.io" && \
+	git config user.name "verrazzano" && \
 	git add . && \
 	git commit -m "Adding helm chart version ${HELM_CHART_VERSION}" && \
 	git push && \
