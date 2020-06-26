@@ -675,58 +675,20 @@ func newDestinationRules(mbPair *types.ModelBindingPair, mc *types.ManagedCluste
 	// create an destination rule for each binding namespace in the given cluster
 	for _, namespace := range mc.Namespaces {
 		if _, ok := namespaceMap[namespace]; ok {
-			// get the admin ports for all the Weblogic admin servers in this namespace
-			adminPorts := getWeblogicAdminPorts(namespace, pods)
-
-			var spec istio.DestinationRule
-
-			// if there are weblogic components then we need to disable TLS on the admin ports
-			if len(adminPorts) > 0 {
-				var policies []*istio.TrafficPolicy_PortTrafficPolicy
-				for _, adminPort := range adminPorts {
-					p, err := strconv.ParseUint(adminPort, 10, 32)
-					if err != nil {
-						return nil, err
-					}
-					// create a port traffic policy that disables TLS on the admin port
-					policies = append(policies, &istio.TrafficPolicy_PortTrafficPolicy{
-						Port: &istio.PortSelector{
-							Number: uint32(p),
-						},
-						Tls: &istio.TLSSettings{
-							Mode: istio.TLSSettings_DISABLE,
-						},
-					})
-				}
-				// create a destination rule spec that enables MTLS for the namespace and includes the above traffic policy
-				spec = istio.DestinationRule{
-					Host: "*." + namespace + ".svc.cluster.local",
-					TrafficPolicy: &istio.TrafficPolicy{
-						Tls: &istio.TLSSettings{
-							Mode: istio.TLSSettings_ISTIO_MUTUAL,
-						},
-						PortLevelSettings: policies,
-					},
-				}
-			} else {
-				// create a destination rule spec that enables MTLS for the namespace
-				spec = istio.DestinationRule{
-					Host: "*." + namespace + ".svc.cluster.local",
-					TrafficPolicy: &istio.TrafficPolicy{
-						Tls: &istio.TLSSettings{
-							Mode: istio.TLSSettings_ISTIO_MUTUAL,
-						},
-					},
-				}
-			}
-
-			// create a destination rule in this namespace
+			// create a destination rule spec that enables MTLS for the namespace
 			rules = append(rules, &v1alpha3.DestinationRule{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      namespace + "-destination-rule",
 					Namespace: namespace,
 				},
-				Spec: spec,
+				Spec: istio.DestinationRule{
+					Host: "*." + namespace + ".svc.cluster.local",
+					TrafficPolicy: &istio.TrafficPolicy{
+						Tls: &istio.TLSSettings{
+							Mode: istio.TLSSettings_ISTIO_MUTUAL,
+						},
+					},
+				},
 			})
 		}
 	}
@@ -744,25 +706,32 @@ func newAuthorizationPolicies(mbPair *types.ModelBindingPair, mc *types.ManagedC
 	componentNameSpaces := make(map[string]string)
 	// map of namespaces to set of connected component namespaces
 	namespaceSources := make(map[string]map[string]struct{})
+	// map of namespaces to set of Coherence components
+	cohComponents := make(map[string]map[string]struct{})
 
 	// map all of the model components to their namespaces
 	mapComponentNamespaces(mbPair, componentNameSpaces, namespaceSources)
 
 	// map the connected namespace sources and Coherence components for each weblogic component
 	for _, weblogic := range mbPair.Model.Spec.WeblogicDomains {
-		mapNamespaceSources(weblogic.Name, weblogic.Connections, componentNameSpaces, namespaceSources)
+		mapNamespaceSources(weblogic.Name, weblogic.Connections, componentNameSpaces, namespaceSources, cohComponents)
 	}
 
 	// map the connected namespace sources and Coherence components for each helidon component
 	for _, helidon := range mbPair.Model.Spec.HelidonApplications {
-		mapNamespaceSources(helidon.Name, helidon.Connections, componentNameSpaces, namespaceSources)
+		mapNamespaceSources(helidon.Name, helidon.Connections, componentNameSpaces, namespaceSources, cohComponents)
+	}
+
+	// map the connected namespace sources and Coherence components for each helidon component
+	for _, helidon := range mbPair.Model.Spec.HelidonApplications {
+		mapNamespaceSources(helidon.Name, helidon.Connections, componentNameSpaces, namespaceSources, cohComponents)
 	}
 
 	// create an authorization policy for each binding namespace in the given cluster
 	for _, ns := range mc.Namespaces {
 		if namespaceSources[ns] != nil {
 			// get the ips for all the Coherence pods connected to this namespace
-			podIPs := getPodIps(ns, pods)
+			podIPs := getCoherencePodIps(ns, pods, cohComponents)
 			// allow traffic from any of the binding namespaces that are connected to components in this namespace
 			fromRules := []*istiosecv1beta1.Rule_From{
 				{
@@ -812,7 +781,7 @@ func mapComponentNamespaces(mbPair *types.ModelBindingPair, componentNameSpaces 
 
 // map the connected namespace sources for the given component connections
 func mapNamespaceSources(componentName string, connections []v1beta1v8o.VerrazzanoConnections, componentNameSpaces map[string]string,
-	namespaceSources map[string]map[string]struct{}) {
+	namespaceSources map[string]map[string]struct{}, cohComponents map[string]map[string]struct{}) {
 
 	ns := componentNameSpaces[componentName]
 	for _, connection := range connections {
@@ -820,39 +789,28 @@ func mapNamespaceSources(componentName string, connections []v1beta1v8o.Verrazza
 			// add the component namespace to the set of namespaces allowed to access components in the connection target namespace
 			AddToNamespace(namespaceSources, componentNameSpaces[rest.Target], ns)
 		}
-	}
-}
-
-// from the given pods get the pod ips for all pods in the given namespace
-func getPodIps(ns string, pods []*v1.Pod) []string {
-	var podIPs []string
-	for _, pod := range pods {
-		if ns == pod.Namespace && pod.Status.PodIP != "" {
-			podIPs = append(podIPs, pod.Status.PodIP)
+		for _, coherence := range connection.Coherence {
+			// add the given component and the target component to the set of Coherence components
+			AddToNamespace(cohComponents, ns, coherence.Target)
+			AddToNamespace(cohComponents, ns, componentName)
 		}
 	}
-	return podIPs
 }
 
-// from the given pods get the all of the Weblogic admin server admin ports for the given namespace
-func getWeblogicAdminPorts(ns string, pods []*v1.Pod) []string {
-	var adminPorts []string
+// from the given pods get the ips for all pods that will be part of a Coherence cluster
+func getCoherencePodIps(ns string, pods []*v1.Pod, cohComponents map[string]map[string]struct{}) []string {
+	var podIPs []string
 	for _, pod := range pods {
-		if ns == pod.Namespace {
-			if pod.Labels["weblogic.serverName"] == "admin-server" {
-				for _, container := range pod.Spec.Containers {
-					if container.Name == "weblogic-server" {
-						for _, env := range container.Env {
-							if env.Name == "ADMIN_PORT" {
-								adminPorts = append(adminPorts, env.Value)
-							}
-						}
-					}
-				}
+		// if the pod is a component that has a Coherence connection or is a Coherence storage pod
+		if (ns == pod.Namespace && NamespaceContainsValue(cohComponents, ns, pod.Labels["app"])) ||
+			(pod.Labels["coherenceRole"] == "storage" && NamespaceContainsValue(cohComponents, ns, pod.Labels["coherenceCluster"])) {
+
+			if pod.Status.PodIP != "" {
+				podIPs = append(podIPs, pod.Status.PodIP)
 			}
 		}
 	}
-	return adminPorts
+	return podIPs
 }
 
 // Add a value to a set for a given namespace map
