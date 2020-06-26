@@ -27,11 +27,6 @@ pipeline {
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('ocir-pull-and-push-account')
         NETRC_FILE = credentials('netrc')
-        OCI_CLI_TENANCY = credentials('oci-tenancy')
-        OCI_CLI_USER = credentials('oci-user-ocid')
-        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
-        OCI_CLI_KEY_FILE = credentials('oci-api-key')
-        OCI_CLI_REGION = 'us-phoenix-1'
     }
 
     stages {
@@ -59,10 +54,12 @@ pipeline {
         stage('Build') {
             when { not { buildingTag() } }
             steps {
-                sshagent (credentials: ['5e39ef7d-1642-4210-adbd-1b8c3825968c']) {
+                withCredentials([sshUserPrivateKey(credentialsId: ‘5e39ef7d-1642-4210-adbd-1b8c3825968c’, keyFileVariable: ‘GIT_KEY’)]){
                     sh """
                         cd ${GO_REPO_PATH}/verrazzano-operator
                         make push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+                        eval "$(ssh-agent -s)"
+                        ssh-add -K ${GIT_KEY}
                         make chart-publish OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_NAME}
                     """
                 }
