@@ -56,13 +56,15 @@ pipeline {
             steps {
                 withCredentials([sshUserPrivateKey(credentialsId: '5e39ef7d-1642-4210-adbd-1b8c3825968c', keyFileVariable: 'GIT_KEY')]){
                     sh """
-                        cd ${GO_REPO_PATH}/verrazzano-operator
-                        make push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
                         eval "$(ssh-agent -s)"
                         ssh-add -K ${GIT_KEY}
                         make chart-publish OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_NAME}
-                    """
+                       """  
                 }
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano-operator
+                    make push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+                   """
             }
         }
 
