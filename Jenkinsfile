@@ -59,11 +59,13 @@ pipeline {
         stage('Build') {
             when { not { buildingTag() } }
             steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano-operator
-                    make push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-                    make chart-publish OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_NAME}
-                """
+                sshagent (credentials: ['5e39ef7d-1642-4210-adbd-1b8c3825968c']) {
+                    sh """
+                        cd ${GO_REPO_PATH}/verrazzano-operator
+                        make push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+                        make chart-publish OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_NAME}
+                    """
+                }
             }
         }
 
