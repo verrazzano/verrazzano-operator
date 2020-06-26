@@ -54,10 +54,8 @@ pipeline {
         stage('Build') {
             when { not { buildingTag() } }
             steps {
-                withCredentials([sshUserPrivateKey(credentialsId: '5e39ef7d-1642-4210-adbd-1b8c3825968c', keyFileVariable: 'GIT_KEY')]){
+                withCredentials([usernamePassword(credentialsId: 'github-markxnelns-private-access-token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
                     sh """
-                        eval "$(ssh-agent -s)"
-                        ssh-add -K ${GIT_KEY}
                         make chart-publish OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_NAME}
                        """  
                 }
