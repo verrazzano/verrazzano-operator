@@ -4535,7 +4535,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "NginX Ingress Uptime by Service",
+      "title": "Uptime by Service",
       "tooltip": {
         "shared": true,
         "sort": 1,
@@ -4623,7 +4623,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "NginX Ingress Upstream Latency by Service",
+      "title": "Upstream Latency by Service",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -4709,7 +4709,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "NginX Ingress Request Latency by Service",
+      "title": "Request Latency by Service",
       "tooltip": {
         "shared": true,
         "sort": 2,
