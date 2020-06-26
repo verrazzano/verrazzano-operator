@@ -191,7 +191,7 @@ chart-publish: chart-build
 	rm -rf archive
 	rm -rf ${HELM_CHART_REPO_NAME}
 	git config --global user.email "jenkins@verrazzano.io"
-  	git config --global user.name "jenkins"
+	git config --global user.name "jenkins"
 	git clone -b ${HELM_CHART_BRANCH} ${HELM_CHART_REPO_GIT_URL}
 	cp ${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME} ${HELM_CHART_REPO_NAME}/${HELM_CHART_ARCHIVE_NAME}
 	echo ${HELM_CHART_VERSION} > ${HELM_CHART_REPO_NAME}/latest
