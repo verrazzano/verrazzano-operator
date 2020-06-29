@@ -43,7 +43,7 @@ spec:
               value: {{ .Values.verrazzanoOperator.journalbeatImage }}
             - name: WEBLOGIC_OPERATOR_IMAGE
               value: {{ .Values.verrazzanoOperator.weblogicOperatorImage }}
-            - name: FLUENTD_OPERATOR_IMAGE
+            - name: FLUENTD_IMAGE
               value: {{ .Values.verrazzanoOperator.fluentdImage }}
       serviceAccount: {{ .Values.verrazzanoOperator.name }}
 ---
