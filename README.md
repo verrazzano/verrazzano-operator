@@ -43,10 +43,10 @@ See `./chart/values.yaml` for the full list of configurable parameters that can 
 `--set parameter=value` when installing the Helm chart.
 
 ### Building chart
-`make chart-build OPERATOR_IMAGE_NAME=$image OPERATOR_VERSION=$version` will build the chart archive in `dist` directory. The `OPERATOR_IMAGE_NAME` attribute in `values.yaml` of resulting chart will be replaced with version specified by input `image` and `OPERATOR_VERSION` will be replaced by input `version`.
+`make chart-build OPERATOR_IMAGE_NAME=$image TAG_NAME=$version` will build the chart archive in `dist` directory. The `OPERATOR_IMAGE_NAME` attribute in `values.yaml` of resulting chart will be replaced with version specified by input `image` and `OPERATOR_VERSION` will be replaced by input `version`.
 
 ### Publishing chart
-`make chart-publish OPERATOR_IMAGE_NAME=$image OPERATOR_VERSION=$version` will build the chart and publish to chart repository with operator image name specified by input `image` and tag as `version`.
+`make chart-publish OPERATOR_IMAGE_NAME=$image TAG_NAME=$version` will build the chart and publish to chart repository with operator image name specified by input `image` and tag as `version`.
 
 ## Artifacts
 
