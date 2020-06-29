@@ -7,14 +7,15 @@ import "os"
 // This file contains all of the env vars used by the Verrazzano Operator
 // Define the ENV vars
 
-const cohMicroImage = "COH_MICRO_IMAGE";
-const helidonMicroImage = "HELIDON_MICRO_IMAGE";
-const wlsMicroImage = "WLS_MICRO_IMAGE";
+const cohMicroImage = "COH_MICRO_IMAGE"
+const helidonMicroImage = "HELIDON_MICRO_IMAGE"
+const wlsMicroImage = "WLS_MICRO_IMAGE"
 const prometheusPusherImage = "PROMETHEUS_PUSHER_IMAGE"
 const nodeExporterImage = "NODE_EXPORTER_IMAGE"
 const filebeatImage = "FILEBEAT_IMAGE"
 const journalbeatImage = "JOURNALBEAT_IMAGE"
 const weblogicOperatorImage = "WEBLOGIC_OPERATOR_IMAGE"
+const fluentdImage = "FLUENTD_IMAGE"
 
 func getCohMicroImage() string {
 	return os.Getenv(cohMicroImage)
@@ -45,9 +46,13 @@ func GetJournalbeatImage() string {
 }
 
 func GetTestWlsFrontendImage() string {
-	return  "container-registry.oracle.com/verrazzano/wl-frontend:324813"
+	return "container-registry.oracle.com/verrazzano/wl-frontend:324813"
 }
 
 func GetWeblogicOperatorImage() string {
 	return os.Getenv(weblogicOperatorImage)
+}
+
+func GetFluentdImage() string {
+	return os.Getenv(fluentdImage)
 }

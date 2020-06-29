@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
+
 	"github.com/stretchr/testify/assert"
 	vz "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
@@ -105,7 +107,7 @@ func checkFluentdEnabled(t *testing.T, helidonApp *v1helidonapp.HelidonApp, appN
 	assert.Equal(t, name, helidonApp.Spec.Containers[0].Args[0], fmt.Sprintf("Expect fist argument to be %s", name))
 	name = "/etc/fluent.conf"
 	assert.Equal(t, name, helidonApp.Spec.Containers[0].Args[1], fmt.Sprintf("Expect second argument to be %s", name))
-	assert.Equal(t, constants.FluentdImage, helidonApp.Spec.Containers[0].Image, fmt.Sprintf("Expect image name to be %s", constants.FluentdImage))
+	assert.Equal(t, util.GetFluentdImage(), helidonApp.Spec.Containers[0].Image, fmt.Sprintf("Expect image name to be %s", util.GetFluentdImage()))
 	assert.Equal(t, 3, len(helidonApp.Spec.Containers[0].VolumeMounts), "Expected volume mounts count to be 3")
 	name = "fluentd-config-volume"
 	assert.Equal(t, name, helidonApp.Spec.Containers[0].VolumeMounts[0].Name, fmt.Sprintf("Expect volume mount name to be %s", name))

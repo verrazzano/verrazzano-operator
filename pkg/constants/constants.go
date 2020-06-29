@@ -66,9 +66,6 @@ const VmiSecretName = "verrazzano"
 const AcmeDnsSecret = "verrazzano-cert-manager-acme-dns"
 const AcmeDnsSecretKey = "acmedns.json"
 
-// fluentd Related
-const FluentdImage = "fluent/fluentd-kubernetes-daemonset:v1.9.3-debian-elasticsearch7-1.0"
-
 // Monitoring related variables
 const FilebeatName = "filebeat"
 const JournalbeatName = "journalbeat"
