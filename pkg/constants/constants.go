@@ -16,7 +16,6 @@ const ResyncPeriod = 15 * time.Second
 const DefaultNamespace = "default"
 const ServiceAppLabel = "app"
 const K8SAppLabel = "k8s-app"
-const ServicePortName = "web"
 
 // Label values
 const VerrazzanoBinding = "verrazzano.binding"
