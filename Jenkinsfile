@@ -111,7 +111,7 @@ pipeline {
         }
 
         stage('Publish Image') {
-            when { buildingTag() }
+            when { not { buildingTag() } }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
