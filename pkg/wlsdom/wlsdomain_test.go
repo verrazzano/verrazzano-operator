@@ -7,12 +7,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
-
 	"github.com/stretchr/testify/assert"
 	vz "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v7weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
 )
 
 // Test using default value for enabling Fluentd

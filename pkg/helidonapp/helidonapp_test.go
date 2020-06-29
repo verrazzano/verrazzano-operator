@@ -7,13 +7,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
-
 	"github.com/stretchr/testify/assert"
 	vz "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 )
 
