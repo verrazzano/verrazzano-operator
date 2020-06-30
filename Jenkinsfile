@@ -27,6 +27,11 @@ pipeline {
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('ocir-pull-and-push-account')
         NETRC_FILE = credentials('netrc')
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OCI_CLI_REGION = 'us-phoenix-1'
     }
 
     stages {

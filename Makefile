@@ -40,6 +40,8 @@ HELIDON_PATH = github.com/verrazzano/verrazzano-helidon-app-operator
 COH_PATH = github.com/verrazzano/verrazzano-coh-cluster-operator
 CRDGEN_PATH = github.com/verrazzano/verrazzano-crd-generator
 CRD_PATH = deploy/crds
+DIST_OBJECT_STORE_NAMESPACE:=stevengreenberginc
+DIST_OBJECT_STORE_BUCKET:=verrazzano-helm-chart
 HELM_CHART_REPO_NAME:=helm-charts
 HELM_CHART_REPO_GIT_URL:="https://github.com/verrazzano/${HELM_CHART_REPO_NAME}.git"
 HELM_CHART_REPO_URL:="https://raw.githubusercontent.com/verrazzano/${HELM_CHART_REPO_NAME}/${HELM_CHART_BRANCH}"
@@ -189,6 +191,17 @@ chart-publish: chart-build
 	tar cvzf archive/${HELM_CHART_ARCHIVE_NAME} -C ${DIST_DIR}/ .
 	mv archive/${HELM_CHART_ARCHIVE_NAME} ${DIST_DIR}/
 	rm -rf archive
+	
+	echo "Publishing Helm chart to OCI object storage"
+	export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING=True
+	echo ${HELM_CHART_VERSION} > latest
+	helm repo index --url https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/ ${DIST_DIR}/
+	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/index.yaml --file ${DIST_DIR}/index.yaml
+	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/${HELM_CHART_ARCHIVE_NAME} --file ${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME}
+	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name latest --file latest
+	echo "Published Helm chart to https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/${HELM_CHART_ARCHIVE_NAME}"
+	
+	echo "Publishing Helm chart to github repo"
 	rm -rf ${HELM_CHART_REPO_NAME}
 	git clone -b ${HELM_CHART_BRANCH} ${HELM_CHART_REPO_GIT_URL}
 	cp ${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME} ${HELM_CHART_REPO_NAME}/${HELM_CHART_ARCHIVE_NAME}
