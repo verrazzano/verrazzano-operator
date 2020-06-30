@@ -16,7 +16,6 @@ const ResyncPeriod = 15 * time.Second
 const DefaultNamespace = "default"
 const ServiceAppLabel = "app"
 const K8SAppLabel = "k8s-app"
-const ServicePortName = "web"
 
 // Label values
 const VerrazzanoBinding = "verrazzano.binding"
@@ -65,9 +64,6 @@ const VmiSecretName = "verrazzano"
 // Cert-Manager related
 const AcmeDnsSecret = "verrazzano-cert-manager-acme-dns"
 const AcmeDnsSecretKey = "acmedns.json"
-
-// fluentd Related
-const FluentdImage = "fluent/fluentd-kubernetes-daemonset:v1.9.3-debian-elasticsearch7-1.0"
 
 // Monitoring related variables
 const FilebeatName = "filebeat"
