@@ -78,8 +78,8 @@ config:
 verrazzanoConsole:
   name: verrazzano-console
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/web
-  imageVersion: 1.0.19
+  imageVersion: 1.0.20
 
 verrazzanoConsoleWrapper:
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/web-standalone
-  imageVersion: 1.0.21
+  imageVersion: 1.0.22
