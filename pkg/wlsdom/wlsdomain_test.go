@@ -27,7 +27,7 @@ func TestFluentdEnabledDefault(t *testing.T) {
 	}
 	mbPair.Binding.Spec.WeblogicBindings = []vz.VerrazzanoWeblogicBinding{{Name: domainName}}
 	labels := make(map[string]string)
-	weblogicDomain := CreateWlsDomainCR(namespace, vzWeblogicDomain, &mbPair, labels)
+	weblogicDomain := CreateWlsDomainCR(namespace, vzWeblogicDomain, &mbPair, labels, "", nil)
 	checkDomainModel(t, weblogicDomain, domainName)
 }
 

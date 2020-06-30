@@ -322,6 +322,17 @@ func TestUpdateModelBindingPair(t *testing.T) {
 	validateModelBindingPair(t, mbp, expectedValues)
 }
 
+func TestDatabaseBindings(t *testing.T) {
+	model, _ := ReadModel("testdata/sockshop-model.yaml")
+	binding, _ := ReadBinding("testdata/sockshop-binding.yaml")
+
+	// create a new ModelBindingPair
+	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url", true)
+
+	// validate the returned mbp
+	validateDatabaseBindings(t, mbp)
+}
+
 // MbpExpectedValues is a struct of expected ModelBindingPair state used in assertions
 type MbpExpectedValues struct {
 	Binding     *v8o.VerrazzanoBinding
@@ -369,6 +380,47 @@ func validateModelBindingPair(t *testing.T,
 		}
 		for _, secrets := range cluster.Secrets {
 			assert.Contains(t, secrets, constants.VmiSecretName)
+		}
+	}
+}
+
+// validates that the config map and overrides are created when databaseBindings are specified
+func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair) {
+	const configMapXml = `<?xml version='1.0' encoding='UTF-8'?>
+<jdbc-data-source xmlns="http://xmlns.oracle.com/weblogic/jdbc-data-source"
+                  xmlns:f="http://xmlns.oracle.com/weblogic/jdbc-data-source-fragment"
+                  xmlns:s="http://xmlns.oracle.com/weblogic/situational-config">
+  <name>socks</name>
+  <jdbc-driver-params>
+    <url f:combine-mode="replace">jdbc%3Amysql%3A%2F%2Fmysql.default.svc.cluster.local%3A3306%2Fsocks</url>
+    <properties>
+       <property>
+          <name>user</name>
+          <value f:combine-mode="replace">${secret:mysqlsecret.username}</value>
+       </property>
+    </properties>
+    <password-encrypted f:combine-mode="replace">${secret:mysqlsecret.password}</password-encrypted>
+  </jdbc-driver-params>
+</jdbc-data-source>
+`
+	managedClusters := mbp.ManagedClusters
+	for _, cluster := range managedClusters {
+		// Look for the config map with the overrides
+		foundConfigMap := false
+		for _, configMap := range cluster.ConfigMaps {
+			if configMap.Name == "jdbc-override-cm" {
+				foundConfigMap = true
+				data := configMap.Data["jdbc-socks.xml"]
+				assert.Equal(t, data, configMapXml)
+				break
+			}
+		}
+		assert.True(t, foundConfigMap, "Missing config map for the databaseBindings overrides.")
+
+		// Check that overrides are set on the domain
+		for _, cluster := range cluster.WlsDomainCRs {
+			assert.Equal(t, cluster.Spec.ConfigOverrides, "jdbc-override-cm")
+			assert.Contains(t, cluster.Spec.ConfigOverrideSecrets, "mysqlsecret")
 		}
 	}
 }

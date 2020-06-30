@@ -5,6 +5,9 @@ package controller
 
 import (
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/golang/glog"
@@ -114,7 +117,43 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 
 						// Create the WlsDomain CR and update the secrets list for the namespace
 						domLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
-						domainCR := wlsdom.CreateWlsDomainCR(namespace.Name, domain, mbPair, domLabels)
+
+						// Create a config map with jdbc overrides if there are database bindings
+						configOverrides := ""
+						var configOverrideSecrets []string = nil
+						var data map[string]string
+						data = make(map[string]string)
+						data["version.txt"] = "2.0"
+
+						// For each database binding check to see if there are any corresponding domain connections
+						for _, databaseBinding := range mbPair.Binding.Spec.DatabaseBindings {
+							datasourceName := getDatasourceName(domain, databaseBinding)
+							// If this domain has a database connection that targets this database binding...
+							if len(datasourceName) > 0 {
+								// Create config map data for the database binding on this domain
+								escapedUrl := url.QueryEscape(databaseBinding.Url)
+								data[fmt.Sprintf("jdbc-%s.xml", datasourceName)] =
+									createDatasourceConfigMap(databaseBinding.Credentials, escapedUrl, datasourceName)
+								configOverrideSecrets = append(configOverrideSecrets, databaseBinding.Credentials)
+							}
+						}
+						// If there are overrides then create a config map
+						if len(configOverrideSecrets) > 0 {
+							labels := make(map[string]string)
+							labels["weblogic.domainUID"] = domain.Name
+							configMap := &corev1.ConfigMap{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "jdbc-override-cm",
+									Namespace: namespace.Name,
+									Labels:    labels,
+								},
+								Data: data,
+							}
+							configOverrides = configMap.Name
+							mc.ConfigMaps = append(mc.ConfigMaps, configMap)
+						}
+
+						domainCR := wlsdom.CreateWlsDomainCR(namespace.Name, domain, mbPair, domLabels, configOverrides, configOverrideSecrets)
 						if domainCR.Spec.ImagePullSecrets != nil {
 							for _, secret := range domainCR.Spec.ImagePullSecrets {
 								addSecret(mc, secret.Name, namespace.Name)
@@ -595,4 +634,40 @@ func appendNamespace(Namespaces *[]string, namespace string) {
 		*Namespaces = append(*Namespaces, namespace)
 	}
 
+}
+
+// Get the datasource name from the database connection in the given domain that targets the given database binding
+func getDatasourceName(domain v1beta1v8o.VerrazzanoWebLogicDomain, databaseBinding v1beta1v8o.VerrazzanoDatabaseBinding) string {
+	for _, connection := range domain.Connections {
+		for _, databaseConnection := range connection.Database {
+			if databaseConnection.Target == databaseBinding.Name {
+				parts := strings.Split(databaseConnection.DatasourceName, "/")
+				return parts[len(parts)-1]
+			}
+		}
+	}
+	return ""
+}
+
+// Create a jdbc override config map datasource section for the given datasource, url and secret
+func createDatasourceConfigMap(secret string, url string, datasourceName string) string {
+
+	format := `<?xml version='1.0' encoding='UTF-8'?>
+<jdbc-data-source xmlns="http://xmlns.oracle.com/weblogic/jdbc-data-source"
+                  xmlns:f="http://xmlns.oracle.com/weblogic/jdbc-data-source-fragment"
+                  xmlns:s="http://xmlns.oracle.com/weblogic/situational-config">
+  <name>%s</name>
+  <jdbc-driver-params>
+    <url f:combine-mode="replace">%s</url>
+    <properties>
+       <property>
+          <name>user</name>
+          <value f:combine-mode="replace">${secret:%s.username}</value>
+       </property>
+    </properties>
+    <password-encrypted f:combine-mode="replace">${secret:%s.password}</password-encrypted>
+  </jdbc-driver-params>
+</jdbc-data-source>
+`
+	return fmt.Sprintf(format, datasourceName, url, secret, secret)
 }

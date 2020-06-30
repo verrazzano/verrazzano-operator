@@ -36,5 +36,8 @@ spec:
       dnsName: "*"
     - name: "wl-ingress"
       dnsName: "*"
-
+  databaseBindings:
+    - credentials: mysqlsecret
+      name: mysql
+      url: jdbc:mysql://mysql.default.svc.cluster.local:3306/socks
 
