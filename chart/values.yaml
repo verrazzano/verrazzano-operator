@@ -17,6 +17,7 @@ verrazzanoOperator:
   filebeatImage: phx.ocir.io/odx-sre/sauron/beats-mirror/filebeat-oss:6.8.3-2
   journalbeatImage: phx.ocir.io/odx-sre/sauron/beats-mirror/journalbeat-oss:6.8.3-2
   weblogicOperatorImage: oracle/weblogic-kubernetes-operator:2.6.0
+  fluentdImage: phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-oraclelinux-elasticsearch7-1.0
   apiServerRealm: verrazzano-system
 
 monitoringOperator:
@@ -33,7 +34,7 @@ monitoringOperator:
   alertManagerImage: prom/alertmanager:v0.16.0
   esWaitTargetVersion: 7.6.1
   esImage: phx.ocir.io/odx-sre/sauron/elasticsearch-mirror:7.6.1-2
-  esWaitImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.2
+  esWaitImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.3
   esInitImage: oraclelinux:7
   kibanaImage: phx.ocir.io/odx-sre/sauron/kibana-mirror:7.6.1-2
   monitoringInstanceApiImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.5
