@@ -43,10 +43,10 @@ CRD_PATH = deploy/crds
 DIST_OBJECT_STORE_NAMESPACE:=stevengreenberginc
 DIST_OBJECT_STORE_BUCKET:=verrazzano-helm-chart
 HELM_CHART_REPO_NAME:=helm-charts
-HELM_CHART_REPO_GIT_URL:="https://github.com/verrazzano/${HELM_CHART_REPO_NAME}.git"
-HELM_CHART_REPO_URL:="https://raw.githubusercontent.com/verrazzano/${HELM_CHART_REPO_NAME}/${HELM_CHART_BRANCH}"
+HELM_CHART_REPO_GIT_URL:=https://github.com/verrazzano/${HELM_CHART_REPO_NAME}.git
+HELM_CHART_REPO_URL:=https://raw.githubusercontent.com/verrazzano/${HELM_CHART_REPO_NAME}/${HELM_CHART_BRANCH}
 HELM_CHART_NAME:=verrazzano
-HELM_CHART_ARCHIVE_NAME = "${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz"
+HELM_CHART_ARCHIVE_NAME = ${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz
 
 .PHONY: all
 all: build
