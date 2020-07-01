@@ -16,7 +16,7 @@ require (
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.14-2
 	github.com/verrazzano/verrazzano-wko-operator v0.0.4-1
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.2.8
 	istio.io/api v0.0.0-20200629210345-933b83065c19
 	istio.io/client-go v0.0.0-20200630182733-fd3f873f3f52
 	k8s.io/api v0.18.2
@@ -28,7 +28,6 @@ require (
 
 replace (
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
-	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.5
 	k8s.io/client-go => k8s.io/client-go v0.18.2
 )
 
