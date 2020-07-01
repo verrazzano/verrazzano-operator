@@ -50,7 +50,7 @@ func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterCo
 			if existingDeployment != nil {
 				specDiffs := diff.CompareIgnoreTargetEmpties(existingDeployment, newDeployment)
 				if specDiffs != "" {
-					glog.V(4).Infof("Deployment %s : Spec differences %s", newDeployment.Name, specDiffs)
+					glog.V(6).Infof("Deployment %s : Spec differences %s", newDeployment.Name, specDiffs)
 					glog.V(4).Infof("Updating deployment %s:%s in cluster %s", newDeployment.Namespace, newDeployment.Name, clusterName)
 					_, err = managedClusterConnection.KubeClient.AppsV1().Deployments(newDeployment.Namespace).Update(context.TODO(), newDeployment, metav1.UpdateOptions{})
 				}
