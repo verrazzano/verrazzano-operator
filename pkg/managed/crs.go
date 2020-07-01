@@ -100,7 +100,7 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 				// this time period we will try again the next resource checking interval.
 				found := false
 				for i := 0; i < 10; i++ {
-					_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), "domains.weblogic.oracle", metav1.GetOptions{})
+					_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), "domains.weblogic.oracle", metav1.GetOptions{})
 					if err != nil && strings.Contains(err.Error(), "\"domains.weblogic.oracle\" not found") {
 						glog.V(4).Infof("Waiting for domains.weblogic.oracle CRD to be created in cluster %s", clusterName)
 						time.Sleep(time.Second)
@@ -206,7 +206,7 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 				crd3 := false
 				for i := 0; i < 10; i++ {
 					if !crd1 {
-						_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), "coherenceclusters.coherence.oracle.com", metav1.GetOptions{})
+						_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), "coherenceclusters.coherence.oracle.com", metav1.GetOptions{})
 						if err != nil && strings.Contains(err.Error(), "\"coherenceclusters.coherence.oracle.com\" not found") {
 							glog.V(4).Infof("Waiting for coherenceclusters.coherence.oracle.com CRD to be created in cluster %s", clusterName)
 							time.Sleep(time.Second)
@@ -218,7 +218,7 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 						crd1 = true
 					}
 					if !crd2 {
-						_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), "coherenceroles.coherence.oracle.com", metav1.GetOptions{})
+						_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), "coherenceroles.coherence.oracle.com", metav1.GetOptions{})
 						if err != nil && strings.Contains(err.Error(), "\"coherenceroles.coherence.oracle.com\" not found") {
 							glog.V(4).Infof("Waiting for coherenceroles.coherence.oracle.com CRD to be created in cluster %s", clusterName)
 							time.Sleep(time.Second)
@@ -229,7 +229,7 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 						}
 						crd2 = true
 					}
-					_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), "coherenceinternals.coherence.oracle.com", metav1.GetOptions{})
+					_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), "coherenceinternals.coherence.oracle.com", metav1.GetOptions{})
 					if err != nil && strings.Contains(err.Error(), "\"coherenceinternals.coherence.oracle.com\" not found") {
 						glog.V(4).Infof("Waiting for coherenceinternals.coherence.oracle.com CRD to be created in cluster %s", clusterName)
 						time.Sleep(time.Second)

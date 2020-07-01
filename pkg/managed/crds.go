@@ -12,8 +12,9 @@ import (
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"sigs.k8s.io/yaml"
 )
 
@@ -29,7 +30,7 @@ func CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnectio
 	}
 
 	for _, newCrd := range newCrds {
-		existingCrd, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), newCrd.Name, metav1.GetOptions{})
+		existingCrd, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), newCrd.Name, metav1.GetOptions{})
 		if err == nil {
 			specDiffs := diff.CompareIgnoreTargetEmpties(existingCrd, newCrd)
 			if specDiffs != "" {
@@ -38,11 +39,11 @@ func CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnectio
 					newCrd.ResourceVersion = existingCrd.ResourceVersion
 				}
 				glog.V(4).Infof("Updating CRD %s", newCrd.Name)
-				_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Update(context.TODO(), newCrd, metav1.UpdateOptions{})
+				_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), newCrd, metav1.UpdateOptions{})
 			}
 		} else {
 			glog.V(4).Infof("Creating CRD %s", newCrd.Name)
-			_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Create(context.TODO(), newCrd, metav1.CreateOptions{})
+			_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Create(context.TODO(), newCrd, metav1.CreateOptions{})
 		}
 		if err != nil {
 			return err
@@ -53,9 +54,9 @@ func CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnectio
 }
 
 // Constructs the necessary CRD Definitions for managed clusters
-func newCrds(manifest *util.Manifest) ([]*v1beta1.CustomResourceDefinition, error) {
+func newCrds(manifest *util.Manifest) ([]*v1.CustomResourceDefinition, error) {
 	yamlFiles := []string{manifest.WlsMicroOperatorCrd, manifest.HelidonAppOperatorCrd, manifest.CohClusterOperatorCrd}
-	var crds []*v1beta1.CustomResourceDefinition
+	var crds []*v1.CustomResourceDefinition
 
 	// Loop through the CRD's that need to be generated
 	for fileIndex := range yamlFiles {
@@ -67,7 +68,7 @@ func newCrds(manifest *util.Manifest) ([]*v1beta1.CustomResourceDefinition, erro
 		}
 
 		// Create a CRD struct
-		var crd v1beta1.CustomResourceDefinition
+		var crd v1.CustomResourceDefinition
 		err = yaml.Unmarshal(yamlFile, &crd)
 		if err != nil {
 			return nil, err
