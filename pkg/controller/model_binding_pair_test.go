@@ -386,41 +386,48 @@ func validateModelBindingPair(t *testing.T,
 
 // validates that the config map and overrides are created when databaseBindings are specified
 func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair) {
+
+
 	const configMapXml = `<?xml version='1.0' encoding='UTF-8'?>
 <jdbc-data-source xmlns="http://xmlns.oracle.com/weblogic/jdbc-data-source"
                   xmlns:f="http://xmlns.oracle.com/weblogic/jdbc-data-source-fragment"
                   xmlns:s="http://xmlns.oracle.com/weblogic/situational-config">
-  <name>socks</name>
+  <name>%s</name>
   <jdbc-driver-params>
-    <url f:combine-mode="replace">jdbc%3Amysql%3A%2F%2Fmysql.default.svc.cluster.local%3A3306%2Fsocks</url>
+    <url f:combine-mode="replace">jdbc%%3Amysql%%3A%%2F%%2Fmysql.default.svc.cluster.local%%3A3306%%2F%s</url>
     <properties>
        <property>
           <name>user</name>
-          <value f:combine-mode="replace">${secret:mysqlsecret.username}</value>
+          <value f:combine-mode="replace">${secret:%s.username}</value>
        </property>
     </properties>
-    <password-encrypted f:combine-mode="replace">${secret:mysqlsecret.password}</password-encrypted>
+    <password-encrypted f:combine-mode="replace">${secret:%s.password}</password-encrypted>
   </jdbc-driver-params>
 </jdbc-data-source>
 `
+	var expected = map[string]string{
+		"jdbc-socks.xml": fmt.Sprintf(configMapXml, "socks", "socks", "mysqlsecret", "mysqlsecret"),
+		"jdbc-socks2.xml": fmt.Sprintf(configMapXml, "socks2", "socks2", "mysql2secret", "mysql2secret"),
+		"version.txt": "2.0",
+	}
+
 	managedClusters := mbp.ManagedClusters
 	for _, cluster := range managedClusters {
 		// Look for the config map with the overrides
-		foundConfigMap := false
 		for _, configMap := range cluster.ConfigMaps {
 			if configMap.Name == "jdbc-override-cm" {
-				foundConfigMap = true
-				data := configMap.Data["jdbc-socks.xml"]
-				assert.Equal(t, data, configMapXml)
+				assert.Equal(t, len(expected), len(configMap.Data))
+				for key, value := range configMap.Data {
+					assert.Equal(t, expected[key], value)
+				}
 				break
 			}
 		}
-		assert.True(t, foundConfigMap, "Missing config map for the databaseBindings overrides.")
-
 		// Check that overrides are set on the domain
 		for _, cluster := range cluster.WlsDomainCRs {
 			assert.Equal(t, cluster.Spec.ConfigOverrides, "jdbc-override-cm")
 			assert.Contains(t, cluster.Spec.ConfigOverrideSecrets, "mysqlsecret")
+			assert.Contains(t, cluster.Spec.ConfigOverrideSecrets, "mysql2secret")
 		}
 	}
 }

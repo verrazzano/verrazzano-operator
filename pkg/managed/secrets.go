@@ -91,7 +91,7 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 		}
 	}
 
-	// For each database binding check to see if there are any corresponding Weblogic domain connections
+	// For each database binding check to see if there are any corresponding WebLogic domain connections
 	binding := mbPair.Binding
 	for _, databaseBinding := range binding.Spec.DatabaseBindings {
 		secretName := databaseBinding.Credentials

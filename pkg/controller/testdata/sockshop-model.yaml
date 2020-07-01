@@ -94,4 +94,7 @@ spec:
         - database:
             - target: "mysql"
               datasourceName: "jdbc/socks"
+        - database:
+            - target: "mysql2"
+              datasourceName: "jdbc/socks2"
 
