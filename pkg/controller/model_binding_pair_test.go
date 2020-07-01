@@ -407,7 +407,7 @@ func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair) {
 `
 	var expected = map[string]string{
 		"jdbc-socks.xml": fmt.Sprintf(configMapXml, "socks", "socks", "mysqlsecret", "mysqlsecret"),
-		"jdbc-socks2.xml": fmt.Sprintf(configMapXml, "socks2", "socks2", "mysql2secret", "mysql2secret"),
+		"jdbc-jdbc2fsocks.xml": fmt.Sprintf(configMapXml, "jdbc/socks", "socks2", "mysql2secret", "mysql2secret"),
 		"version.txt": "2.0",
 	}
 

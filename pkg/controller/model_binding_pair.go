@@ -132,7 +132,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 							if len(datasourceName) > 0 {
 								// Create config map data for the database binding on this domain
 								escapedUrl := url.QueryEscape(databaseBinding.Url)
-								data[fmt.Sprintf("jdbc-%s.xml", datasourceName)] =
+								data[fmt.Sprintf("jdbc-%s.xml", strings.Replace(datasourceName, "/", "2f", -1))] =
 									createDatasourceConfigMap(databaseBinding.Credentials, escapedUrl, datasourceName)
 								configOverrideSecrets = append(configOverrideSecrets, databaseBinding.Credentials)
 							}
@@ -641,8 +641,7 @@ func getDatasourceName(domain v1beta1v8o.VerrazzanoWebLogicDomain, databaseBindi
 	for _, connection := range domain.Connections {
 		for _, databaseConnection := range connection.Database {
 			if databaseConnection.Target == databaseBinding.Name {
-				parts := strings.Split(databaseConnection.DatasourceName, "/")
-				return parts[len(parts)-1]
+				return databaseConnection.DatasourceName
 			}
 		}
 	}
