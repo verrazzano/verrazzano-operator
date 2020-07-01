@@ -23,7 +23,7 @@ verrazzanoOperator:
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-operator
-  imageVersion: v0.0.14
+  imageVersion: v0.0.15
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
@@ -44,7 +44,7 @@ monitoringOperator:
 clusterOperator:
   name: verrazzano-cluster-operator
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator
-  imageVersion: v0.0.4
+  imageVersion: v0.0.5
   rancherURL:
   rancherUserName:
   rancherPassword:
@@ -54,7 +54,7 @@ verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller
-  imageVersion: v0.0.7
+  imageVersion: v0.0.8
   caBundle:
 
 # OCI-related values
