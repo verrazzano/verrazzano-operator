@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -13,6 +14,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/golang/glog"
+	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
+	clientsetscheme "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/scheme"
+	informers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/informers/externalversions"
+	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
 	vmoclientset "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
 	vmoinformers "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/informers/externalversions"
 	vmolisters "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/listers/vmcontroller/v1"
@@ -22,11 +28,6 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/signals"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
-	clientsetscheme "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/scheme"
-	informers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/informers/externalversions"
-	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
 	wlsoprclientset "github.com/verrazzano/verrazzano-wko-operator/pkg/client/clientset/versioned"
 	wlsoprinformers "github.com/verrazzano/verrazzano-wko-operator/pkg/client/informers/externalversions"
 	corev1 "k8s.io/api/core/v1"
@@ -914,7 +915,7 @@ func (c *Controller) addFinalizer(binding *v1beta1v8o.VerrazzanoBinding) (*v1bet
 	binding.SetFinalizers(append(binding.GetFinalizers(), bindingFinalizer))
 
 	// Update binding
-	binding, err := c.verrazzanoOperatorClientSet.VerrazzanoV1beta1().VerrazzanoBindings(binding.Namespace).Update(binding)
+	binding, err := c.verrazzanoOperatorClientSet.VerrazzanoV1beta1().VerrazzanoBindings(binding.Namespace).Update(context.TODO(), binding, metav1.UpdateOptions{})
 	if err != nil {
 		glog.Errorf("Failed adding finalizer %s to binding %s, error %s", bindingFinalizer, binding.Name, err.Error())
 		return nil, err
@@ -928,7 +929,7 @@ func (c *Controller) removeFinalizer(binding *v1beta1v8o.VerrazzanoBinding) erro
 	binding.SetFinalizers(remove(binding.GetFinalizers(), bindingFinalizer))
 
 	// Update binding
-	_, err := c.verrazzanoOperatorClientSet.VerrazzanoV1beta1().VerrazzanoBindings(binding.Namespace).Update(binding)
+	_, err := c.verrazzanoOperatorClientSet.VerrazzanoV1beta1().VerrazzanoBindings(binding.Namespace).Update(context.TODO(), binding, metav1.UpdateOptions{})
 	if err != nil {
 		glog.Errorf("Failed removing finalizer %s from binding %s, error %s", bindingFinalizer, binding.Name, err.Error())
 		return err

@@ -5,12 +5,13 @@
 package managed
 
 import (
+	"context"
 	"io/ioutil"
 
 	"github.com/golang/glog"
+	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
@@ -28,7 +29,7 @@ func CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnectio
 	}
 
 	for _, newCrd := range newCrds {
-		existingCrd, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Get(newCrd.Name, metav1.GetOptions{})
+		existingCrd, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), newCrd.Name, metav1.GetOptions{})
 		if err == nil {
 			specDiffs := diff.CompareIgnoreTargetEmpties(existingCrd, newCrd)
 			if specDiffs != "" {
@@ -37,11 +38,11 @@ func CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnectio
 					newCrd.ResourceVersion = existingCrd.ResourceVersion
 				}
 				glog.V(4).Infof("Updating CRD %s", newCrd.Name)
-				_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Update(newCrd)
+				_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Update(context.TODO(), newCrd, metav1.UpdateOptions{})
 			}
 		} else {
 			glog.V(4).Infof("Creating CRD %s", newCrd.Name)
-			_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Create(newCrd)
+			_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Create(context.TODO(), newCrd, metav1.CreateOptions{})
 		}
 		if err != nil {
 			return err

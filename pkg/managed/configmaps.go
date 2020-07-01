@@ -4,6 +4,8 @@
 package managed
 
 import (
+	"context"
+
 	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
@@ -58,11 +60,11 @@ func createUpdateConfigMaps(managedClusterConnection *util.ManagedClusterConnect
 		if specDiffs != "" {
 			glog.V(6).Infof("ConfigMap %s : Spec differences %s", newConfigMap.Name, specDiffs)
 			glog.V(4).Infof("Updating ConfigMap %s in cluster %s", newConfigMap.Name, clusterName)
-			_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newConfigMap.Namespace).Update(newConfigMap)
+			_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newConfigMap.Namespace).Update(context.TODO(), newConfigMap, metav1.UpdateOptions{})
 		}
 	} else {
 		glog.V(4).Infof("Creating ConfigMap %s in cluster %s", newConfigMap.Name, clusterName)
-		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newConfigMap.Namespace).Create(newConfigMap)
+		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newConfigMap.Namespace).Create(context.TODO(), newConfigMap, metav1.CreateOptions{})
 	}
 	if err != nil {
 		return err
@@ -91,7 +93,7 @@ func CleanupOrphanedConfigMaps(mbPair *types.ModelBindingPair, availableManagedC
 		// Delete these ConfigMaps since none are expected on this cluster
 		for _, configMap := range existingConfigMapsList {
 			glog.V(4).Infof("Deleting ConfigMap %s in cluster %s", configMap.Name, clusterName)
-			err := managedClusterConnection.KubeClient.CoreV1().ConfigMaps(configMap.Namespace).Delete(configMap.Name, &metav1.DeleteOptions{})
+			err := managedClusterConnection.KubeClient.CoreV1().ConfigMaps(configMap.Namespace).Delete(context.TODO(), configMap.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}

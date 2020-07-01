@@ -4,14 +4,15 @@
 package local
 
 import (
+	"context"
 	"reflect"
 	"strings"
 
 	"github.com/golang/glog"
+	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/assets"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -36,14 +37,14 @@ func CreateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 			newConfigMap.OwnerReferences = existingConfigMap.OwnerReferences
 			newConfigMap.Labels = existingConfigMap.Labels
 			glog.V(4).Infof("Updating ConfigMap %s", newConfigMap.Name)
-			_, err = kubeClientSet.CoreV1().ConfigMaps(newConfigMap.Namespace).Update(newConfigMap)
+			_, err = kubeClientSet.CoreV1().ConfigMaps(newConfigMap.Namespace).Update(context.TODO(), newConfigMap, metav1.UpdateOptions{})
 			if err != nil {
 				return err
 			}
 		}
 	} else {
 		glog.V(4).Infof("Creating ConfigMap %s", newConfigMap.Name)
-		_, err = kubeClientSet.CoreV1().ConfigMaps(newConfigMap.Namespace).Create(newConfigMap)
+		_, err = kubeClientSet.CoreV1().ConfigMaps(newConfigMap.Namespace).Create(context.TODO(), newConfigMap, metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
@@ -58,7 +59,7 @@ func CreateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 	for _, existingConfigMap := range existingConfigMapsList {
 		if !util.Contains(configMapNames, existingConfigMap.Name) {
 			glog.V(4).Infof("Deleting ConfigMap %s", existingConfigMap.Name)
-			err := kubeClientSet.CoreV1().ConfigMaps(existingConfigMap.Namespace).Delete(existingConfigMap.Name, &metav1.DeleteOptions{})
+			err := kubeClientSet.CoreV1().ConfigMaps(existingConfigMap.Namespace).Delete(context.TODO(), existingConfigMap.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
@@ -77,7 +78,7 @@ func DeleteConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 	}
 	for _, existingConfigMap := range existingConfigMapsList {
 		glog.V(4).Infof("Deleting configMap %s", existingConfigMap.Name)
-		err := kubeClientSet.CoreV1().ConfigMaps(existingConfigMap.Namespace).Delete(existingConfigMap.Name, &metav1.DeleteOptions{})
+		err := kubeClientSet.CoreV1().ConfigMaps(existingConfigMap.Namespace).Delete(context.TODO(), existingConfigMap.Name, metav1.DeleteOptions{})
 		if err != nil {
 			return err
 		}

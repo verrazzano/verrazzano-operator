@@ -25,7 +25,7 @@ WATCH_NAMESPACE:=
 EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-operator
-GO ?= GO111MODULE=on GOPRIVATE=github.com/oracle,github.com/verrazzano go
+GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 WKO_PATH = github.com/verrazzano/verrazzano-wko-operator
 HELIDON_PATH = github.com/verrazzano/verrazzano-helidon-app-operator
 COH_PATH = github.com/verrazzano/verrazzano-coh-cluster-operator

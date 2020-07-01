@@ -4,6 +4,8 @@
 package managed
 
 import (
+	"context"
+
 	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
@@ -11,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
 	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoUri string) error {
@@ -44,7 +47,7 @@ func CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterCon
 			existingcm, err := managedClusterConnection.DaemonSetLister.DaemonSets(newDaemonSet.Namespace).Get(newDaemonSet.Name)
 			if existingcm == nil {
 				glog.V(4).Infof("Creating DaemonSet %s in cluster %s", newDaemonSet.Name, clusterName)
-				_, err = managedClusterConnection.KubeClient.AppsV1().DaemonSets(newDaemonSet.Namespace).Create(newDaemonSet)
+				_, err = managedClusterConnection.KubeClient.AppsV1().DaemonSets(newDaemonSet.Namespace).Create(context.TODO(), newDaemonSet, metav1.CreateOptions{})
 				if err != nil {
 					return err
 				}
@@ -55,7 +58,7 @@ func CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterCon
 			if specDiffs != "" {
 				glog.V(6).Infof("DaemonSet %s : Spec differences %s", newDaemonSet.Name, specDiffs)
 				glog.V(4).Infof("Updating DaemonSet %s in cluster %s", newDaemonSet.Name, clusterName)
-				_, err = managedClusterConnection.KubeClient.AppsV1().DaemonSets(newDaemonSet.Namespace).Update(newDaemonSet)
+				_, err = managedClusterConnection.KubeClient.AppsV1().DaemonSets(newDaemonSet.Namespace).Update(context.TODO(), newDaemonSet, metav1.UpdateOptions{})
 			}
 			if err != nil {
 				return err

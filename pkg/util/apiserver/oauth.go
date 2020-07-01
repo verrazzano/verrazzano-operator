@@ -224,7 +224,7 @@ func getKeyCloakClient() *retryablehttp.Client {
 // get the ca.crt from secret "<vz-env-name>-secret" in namespace "verrazzano-system"
 func getCACert(kubeClientSet kubernetes.Interface) []byte {
 	secretResName := instance.GetVerrazzanoName() + "-secret"
-	certSecret, err := kubeClientSet.CoreV1().Secrets(constants.VerrazzanoSystem).Get(secretResName, metav1.GetOptions{})
+	certSecret, err := kubeClientSet.CoreV1().Secrets(constants.VerrazzanoSystem).Get(context.TODO(), secretResName, metav1.GetOptions{})
 	if err != nil {
 		glog.Warningf("Error getting secret %s/%s in management cluster: %s", constants.VerrazzanoSystem, secretResName, err.Error())
 		return []byte{}

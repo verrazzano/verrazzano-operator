@@ -4,6 +4,7 @@
 package managed
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -146,7 +147,7 @@ func updateIstioPrometheusConfigMap(clusterName string, managedClusterConnection
 	existingcm, err := managedClusterConnection.ConfigMapLister.ConfigMaps(IstioNamespace).Get(IstioPrometheusCMName)
 	if existingcm == nil {
 		glog.V(4).Infof("Creating Configmaps %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
-		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newPrometheusConfigMap.Namespace).Create(newPrometheusConfigMap)
+		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newPrometheusConfigMap.Namespace).Create(context.TODO(), newPrometheusConfigMap, metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
@@ -158,12 +159,12 @@ func updateIstioPrometheusConfigMap(clusterName string, managedClusterConnection
 	if specDiffs != "" {
 		glog.V(6).Infof("ConfigMap %s : Spec differences %s", newPrometheusConfigMap.Name, specDiffs)
 		glog.V(4).Infof("Updating ConfigMap %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
-		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newPrometheusConfigMap.Namespace).Update(newPrometheusConfigMap)
+		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newPrometheusConfigMap.Namespace).Update(context.TODO(), newPrometheusConfigMap, metav1.UpdateOptions{})
 		// Bounce Prometheus Pod
-		istioPodName, err := managedClusterConnection.KubeClient.CoreV1().Pods(IstioNamespace).List(metav1.ListOptions{LabelSelector: PrometheusLabel})
+		istioPodName, err := managedClusterConnection.KubeClient.CoreV1().Pods(IstioNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: PrometheusLabel})
 		for _, pod := range istioPodName.Items {
 			glog.V(4).Infof("Deleting pod %s in namespace %s in cluster %s", pod.Name, IstioNamespace, clusterName)
-			err = managedClusterConnection.KubeClient.CoreV1().Pods(IstioNamespace).Delete(pod.Name, &metav1.DeleteOptions{})
+			err = managedClusterConnection.KubeClient.CoreV1().Pods(IstioNamespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
