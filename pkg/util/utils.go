@@ -11,11 +11,6 @@ import (
 
 	cohoprclientset "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/clientset/versioned"
 	cohoprlister "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/listers/verrazzano/v1beta1"
-	helidonclientset "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/clientset/versioned"
-	helidionlister "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/listers/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano-operator/pkg/assets"
-	"github.com/verrazzano/verrazzano-operator/pkg/constants"
-	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
 	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned"
@@ -24,6 +19,11 @@ import (
 	istioLister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/listers/networking.istio.io/v1alpha3"
 	domclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned"
 	domlister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/listers/weblogic/v7"
+	helidonclientset "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/clientset/versioned"
+	helidionlister "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/listers/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/assets"
+	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	wlsoprclientset "github.com/verrazzano/verrazzano-wko-operator/pkg/client/clientset/versioned"
 	wlsoprlister "github.com/verrazzano/verrazzano-wko-operator/pkg/client/listers/verrazzano/v1beta1"
 	istioAuthClientset "istio.io/client-go/pkg/clientset/versioned"
@@ -229,4 +229,18 @@ func IsClusterInBinding(clusterName string, allMbPairs map[string]*types.ModelBi
 		}
 	}
 	return false
+}
+
+// Find the namespace for the component from the given binding placements
+func GetComponentNamespace(componentName string, binding *v1beta1v8o.VerrazzanoBinding) (error, string) {
+	for _, placement := range binding.Spec.Placement {
+		for _, namespace := range placement.Namespaces {
+			for _, component := range namespace.Components {
+				if component.Name == componentName {
+					return nil, namespace.Name
+				}
+			}
+		}
+	}
+	return errors.New(fmt.Sprintf("No placement found for component %s", componentName)), ""
 }
