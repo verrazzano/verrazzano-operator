@@ -14,7 +14,7 @@ require (
 	github.com/verrazzano/verrazzano-crd-generator v0.3.29
 	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.6
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.16
-	github.com/verrazzano/verrazzano-wko-operator v0.0.5
+	github.com/verrazzano/verrazzano-wko-operator v0.0.6
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	gopkg.in/yaml.v2 v2.2.8
 	istio.io/api v0.0.0-20200629210345-933b83065c19
