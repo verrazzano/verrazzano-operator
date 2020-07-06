@@ -4,15 +4,16 @@
 package integ
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/test/integ/framework"
 	testutil "github.com/verrazzano/verrazzano-operator/test/integ/util"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 )
 
 // Register 2 Managed Clusters pointing (both pointing to the local cluster),
@@ -50,7 +51,7 @@ func TestVerrazzanonBasic1(t *testing.T) {
 		// Wait for the binding to be deleted before we delete the model
 		fmt.Println(fmt.Sprintf("Waiting for binding VerrazzanoBinding %s to be deleted", appBinding.Name))
 		err = testutil.Retry(testutil.DefaultRetry, func() (bool, error) {
-			_, err = f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoBindings(f.Namespace).Get(appBinding.Name, v1.GetOptions{})
+			_, err = f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoBindings(f.Namespace).Get(context.TODO(), appBinding.Name, v1.GetOptions{})
 			if err != nil {
 				if k8sErrors.IsNotFound(err) {
 					return true, nil

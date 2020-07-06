@@ -5,7 +5,10 @@
 package managed
 
 import (
+	"context"
+
 	"github.com/golang/glog"
+	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/cohoperator"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/helidonapp"
@@ -14,8 +17,8 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsopr"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, manifest *util.Manifest, verrazzanoUri string, sec monitoring.Secrets) error {
@@ -47,13 +50,13 @@ func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterCo
 			if existingDeployment != nil {
 				specDiffs := diff.CompareIgnoreTargetEmpties(existingDeployment, newDeployment)
 				if specDiffs != "" {
-					glog.V(4).Infof("Deployment %s : Spec differences %s", newDeployment.Name, specDiffs)
+					glog.V(6).Infof("Deployment %s : Spec differences %s", newDeployment.Name, specDiffs)
 					glog.V(4).Infof("Updating deployment %s:%s in cluster %s", newDeployment.Namespace, newDeployment.Name, clusterName)
-					_, err = managedClusterConnection.KubeClient.AppsV1().Deployments(newDeployment.Namespace).Update(newDeployment)
+					_, err = managedClusterConnection.KubeClient.AppsV1().Deployments(newDeployment.Namespace).Update(context.TODO(), newDeployment, metav1.UpdateOptions{})
 				}
 			} else {
 				glog.V(4).Infof("Creating deployment %s:%s in cluster %s", newDeployment.Namespace, newDeployment.Name, clusterName)
-				_, err = managedClusterConnection.KubeClient.AppsV1().Deployments(newDeployment.Namespace).Create(newDeployment)
+				_, err = managedClusterConnection.KubeClient.AppsV1().Deployments(newDeployment.Namespace).Create(context.TODO(), newDeployment, metav1.CreateOptions{})
 			}
 			if err != nil {
 				return err

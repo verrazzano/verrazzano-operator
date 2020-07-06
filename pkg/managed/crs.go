@@ -4,6 +4,7 @@
 package managed
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,17 +14,17 @@ import (
 
 	"github.com/golang/glog"
 	cohoprtypes "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/apis/verrazzano/v1beta1"
+	cohclutypes "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
+	domaintypes "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
+	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
+	cohcluinformers "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/informers/externalversions"
+	dominformers "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/informers/externalversions"
 	helidontypes "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/cohcluster"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
-	cohclutypes "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
-	domaintypes "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
-	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
-	cohcluinformers "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/informers/externalversions"
-	dominformers "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/informers/externalversions"
 	wlsoprtypes "github.com/verrazzano/verrazzano-wko-operator/pkg/apis/verrazzano/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -78,14 +79,14 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 					if len(wlsOperatorCopy.ResourceVersion) == 0 {
 						wlsOperatorCopy.ResourceVersion = existingCR.ResourceVersion
 					}
-					_, err = managedClusterConnection.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators(wlsOperatorCopy.Namespace).Update(wlsOperatorCopy)
+					_, err = managedClusterConnection.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators(wlsOperatorCopy.Namespace).Update(context.TODO(), wlsOperatorCopy, metav1.UpdateOptions{})
 				}
 
 				// Retain the current status so it can be reported through the UI
 				mc.WlsOperator.Status = existingCR.Status
 			} else {
 				glog.V(4).Infof("Creating WlsOperator custom resource %s:%s in cluster %s", mc.WlsOperator.Namespace, mc.WlsOperator.Name, clusterName)
-				_, err = managedClusterConnection.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators(mc.WlsOperator.Namespace).Create(mc.WlsOperator)
+				_, err = managedClusterConnection.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators(mc.WlsOperator.Namespace).Create(context.TODO(), mc.WlsOperator, metav1.CreateOptions{})
 			}
 			if err != nil {
 				return err
@@ -99,7 +100,7 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 				// this time period we will try again the next resource checking interval.
 				found := false
 				for i := 0; i < 10; i++ {
-					_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Get("domains.weblogic.oracle", metav1.GetOptions{})
+					_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), "domains.weblogic.oracle", metav1.GetOptions{})
 					if err != nil && strings.Contains(err.Error(), "\"domains.weblogic.oracle\" not found") {
 						glog.V(4).Infof("Waiting for domains.weblogic.oracle CRD to be created in cluster %s", clusterName)
 						time.Sleep(time.Second)
@@ -144,14 +145,14 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 						if err != nil {
 							return err
 						}
-						_, err = managedClusterConnection.DomainClientSet.WeblogicV7().Domains(domainCR.Namespace).Patch(domainCR.Name, k8sTypes.MergePatchType, domainCRjson)
+						_, err = managedClusterConnection.DomainClientSet.WeblogicV7().Domains(domainCR.Namespace).Patch(context.TODO(), domainCR.Name, k8sTypes.MergePatchType, domainCRjson, metav1.PatchOptions{})
 					}
 
 					// Retain the current status so it can be reported through the UI
 					domainCR.Status = existingCR.Status
 				} else {
 					glog.V(4).Infof("Creating Domain custom resource %s:%s in cluster %s", domainCR.Namespace, domainCR.Name, clusterName)
-					_, err = managedClusterConnection.DomainClientSet.WeblogicV7().Domains(domainCR.Namespace).Create(domainCR)
+					_, err = managedClusterConnection.DomainClientSet.WeblogicV7().Domains(domainCR.Namespace).Create(context.TODO(), domainCR, metav1.CreateOptions{})
 				}
 				if err != nil {
 					return err
@@ -183,11 +184,11 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 						if len(operatorCR.ResourceVersion) == 0 {
 							operatorCR.ResourceVersion = existingCR.ResourceVersion
 						}
-						_, err = managedClusterConnection.CohOprClientSet.VerrazzanoV1beta1().CohClusters(operatorCR.Namespace).Update(operatorCR)
+						_, err = managedClusterConnection.CohOprClientSet.VerrazzanoV1beta1().CohClusters(operatorCR.Namespace).Update(context.TODO(), operatorCR, metav1.UpdateOptions{})
 					}
 				} else {
 					glog.V(4).Infof("Creating CohCluster custom resource %s:%s in cluster %s", operatorCR.Namespace, operatorCR.Name, clusterName)
-					_, err = managedClusterConnection.CohOprClientSet.VerrazzanoV1beta1().CohClusters(operatorCR.Namespace).Create(operatorCR)
+					_, err = managedClusterConnection.CohOprClientSet.VerrazzanoV1beta1().CohClusters(operatorCR.Namespace).Create(context.TODO(), operatorCR, metav1.CreateOptions{})
 				}
 				if err != nil {
 					return err
@@ -205,7 +206,7 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 				crd3 := false
 				for i := 0; i < 10; i++ {
 					if !crd1 {
-						_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Get("coherenceclusters.coherence.oracle.com", metav1.GetOptions{})
+						_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), "coherenceclusters.coherence.oracle.com", metav1.GetOptions{})
 						if err != nil && strings.Contains(err.Error(), "\"coherenceclusters.coherence.oracle.com\" not found") {
 							glog.V(4).Infof("Waiting for coherenceclusters.coherence.oracle.com CRD to be created in cluster %s", clusterName)
 							time.Sleep(time.Second)
@@ -217,7 +218,7 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 						crd1 = true
 					}
 					if !crd2 {
-						_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Get("coherenceroles.coherence.oracle.com", metav1.GetOptions{})
+						_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), "coherenceroles.coherence.oracle.com", metav1.GetOptions{})
 						if err != nil && strings.Contains(err.Error(), "\"coherenceroles.coherence.oracle.com\" not found") {
 							glog.V(4).Infof("Waiting for coherenceroles.coherence.oracle.com CRD to be created in cluster %s", clusterName)
 							time.Sleep(time.Second)
@@ -228,7 +229,7 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 						}
 						crd2 = true
 					}
-					_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1beta1().CustomResourceDefinitions().Get("coherenceinternals.coherence.oracle.com", metav1.GetOptions{})
+					_, err := managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), "coherenceinternals.coherence.oracle.com", metav1.GetOptions{})
 					if err != nil && strings.Contains(err.Error(), "\"coherenceinternals.coherence.oracle.com\" not found") {
 						glog.V(4).Infof("Waiting for coherenceinternals.coherence.oracle.com CRD to be created in cluster %s", clusterName)
 						time.Sleep(time.Second)
@@ -279,14 +280,14 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 						if len(clusterCR.ResourceVersion) == 0 {
 							clusterCR.ResourceVersion = existingCR.ResourceVersion
 						}
-						_, err = managedClusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters(clusterCR.Namespace).Update(clusterCR)
+						_, err = managedClusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters(clusterCR.Namespace).Update(context.TODO(), clusterCR, metav1.UpdateOptions{})
 					}
 
 					// Retain the current status so it can be reported through the UI
 					clusterCR.Status = existingCR.Status
 				} else {
 					glog.V(4).Infof("Creating CoherenceCluster custom resource %s:%s in cluster %s", clusterCR.Namespace, clusterCR.Name, clusterName)
-					_, err = managedClusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters(clusterCR.Namespace).Create(clusterCR)
+					_, err = managedClusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters(clusterCR.Namespace).Create(context.TODO(), clusterCR, metav1.CreateOptions{})
 				}
 				if err != nil {
 					return err
@@ -320,7 +321,7 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 						if len(helidonCR.ResourceVersion) == 0 {
 							helidonCR.ResourceVersion = existingCR.ResourceVersion
 						}
-						_, err = managedClusterConnection.HelidonClientSet.VerrazzanoV1beta1().HelidonApps(helidonCR.Namespace).Update(helidonCR)
+						_, err = managedClusterConnection.HelidonClientSet.VerrazzanoV1beta1().HelidonApps(helidonCR.Namespace).Update(context.TODO(), helidonCR, metav1.UpdateOptions{})
 
 					}
 
@@ -328,7 +329,7 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 					helidonCR.Status = existingCR.Status
 				} else {
 					glog.V(4).Infof("Creating HelidonApp custom resource %s:%s in cluster %s", helidonCR.Namespace, helidonCR.Name, clusterName)
-					_, err = managedClusterConnection.HelidonClientSet.VerrazzanoV1beta1().HelidonApps(helidonCR.Namespace).Create(helidonCR)
+					_, err = managedClusterConnection.HelidonClientSet.VerrazzanoV1beta1().HelidonApps(helidonCR.Namespace).Create(context.TODO(), helidonCR, metav1.CreateOptions{})
 				}
 				if err != nil {
 					return err
@@ -363,7 +364,7 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 			}
 			for _, domain := range existingDomainList {
 				glog.V(4).Infof("Deleting Domain custom resource %s:%s in cluster %s", domain.Namespace, domain.Name, clusterName)
-				err = mc.DomainClientSet.WeblogicV7().Domains(domain.Namespace).Delete(domain.Name, &metav1.DeleteOptions{})
+				err = mc.DomainClientSet.WeblogicV7().Domains(domain.Namespace).Delete(context.TODO(), domain.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
 				}
@@ -382,7 +383,7 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 		}
 		for _, wlsopr := range existingWlsOprList {
 			glog.V(4).Infof("Deleting WlsOperator custom resource %s:%s in cluster %s", wlsopr.Namespace, wlsopr.Name, clusterName)
-			err = mc.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators(wlsopr.Namespace).Delete(wlsopr.Name, &metav1.DeleteOptions{})
+			err = mc.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators(wlsopr.Namespace).Delete(context.TODO(), wlsopr.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
@@ -400,7 +401,7 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 		}
 		for _, app := range existingAppList {
 			glog.V(4).Infof("Deleting HelidonApp custom resource %s:%s in cluster %s", app.Namespace, app.Name, clusterName)
-			err = mc.HelidonClientSet.VerrazzanoV1beta1().HelidonApps(app.Namespace).Delete(app.Name, &metav1.DeleteOptions{})
+			err = mc.HelidonClientSet.VerrazzanoV1beta1().HelidonApps(app.Namespace).Delete(context.TODO(), app.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
@@ -419,7 +420,7 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 			}
 			for _, cluster := range existingClusterList {
 				glog.V(4).Infof("Deleting CoherenceCluster custom resource %s:%s in cluster %s", cluster.Namespace, cluster.Name, clusterName)
-				err = mc.CohClusterClientSet.CoherenceV1().CoherenceClusters(cluster.Namespace).Delete(cluster.Name, &metav1.DeleteOptions{})
+				err = mc.CohClusterClientSet.CoherenceV1().CoherenceClusters(cluster.Namespace).Delete(context.TODO(), cluster.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
 				}
@@ -438,7 +439,7 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 		}
 		for _, cohCluster := range existingCohList {
 			glog.V(4).Infof("Deleting CohCluster custom resource %s:%s in cluster %s", cohCluster.Namespace, cohCluster.Name, clusterName)
-			err = mc.CohOprClientSet.VerrazzanoV1beta1().CohClusters(cohCluster.Namespace).Delete(cohCluster.Name, &metav1.DeleteOptions{})
+			err = mc.CohOprClientSet.VerrazzanoV1beta1().CohClusters(cohCluster.Namespace).Delete(context.TODO(), cohCluster.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
@@ -548,7 +549,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 		for _, app := range existingCRList {
 			if !containsHelidonApp(mc.HelidonApps, app.Name, app.Namespace) {
 				glog.V(4).Infof("Deleting HelidonApp custom resource %s:%s in cluster %s", app.Namespace, app.Name, clusterName)
-				err := managedClusterConnection.HelidonClientSet.VerrazzanoV1beta1().HelidonApps(app.Namespace).Delete(app.Name, &metav1.DeleteOptions{})
+				err := managedClusterConnection.HelidonClientSet.VerrazzanoV1beta1().HelidonApps(app.Namespace).Delete(context.TODO(), app.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
 				}
@@ -576,7 +577,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 			for _, cohCluster := range existingCRList {
 				if !containsCohClusterCRs(mc.CohClusterCRs, cohCluster.Name, cohCluster.Namespace) {
 					glog.V(4).Infof("Deleting CoherenceCluster custom resource %s:%s in cluster %s", cohCluster.Namespace, cohCluster.Name, clusterName)
-					err := managedClusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters(cohCluster.Namespace).Delete(cohCluster.Name, &metav1.DeleteOptions{})
+					err := managedClusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters(cohCluster.Namespace).Delete(context.TODO(), cohCluster.Name, metav1.DeleteOptions{})
 					if err != nil {
 						return err
 					}
@@ -604,7 +605,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 		for _, cohOperator := range existingCohClustersCRList {
 			if !containsCohOperatorCRs(mc.CohOperatorCRs, cohOperator.Name, cohOperator.Namespace) {
 				glog.V(4).Infof("Deleting CohCluster custom resource %s:%s on cluster %s", cohOperator.Namespace, cohOperator.Name, clusterName)
-				err := managedClusterConnection.CohOprClientSet.VerrazzanoV1beta1().CohClusters(cohOperator.Namespace).Delete(cohOperator.Name, &metav1.DeleteOptions{})
+				err := managedClusterConnection.CohOprClientSet.VerrazzanoV1beta1().CohClusters(cohOperator.Namespace).Delete(context.TODO(), cohOperator.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
 				}
@@ -632,7 +633,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 			for _, wlsDomain := range existingCRList {
 				if !containsWlsDomainCRs(mc.WlsDomainCRs, wlsDomain.Name, wlsDomain.Namespace) {
 					glog.V(4).Infof("Deleting Domain custom resource %s:%s in cluster %s", wlsDomain.Namespace, wlsDomain.Name, clusterName)
-					err := managedClusterConnection.DomainClientSet.WeblogicV7().Domains(wlsDomain.Namespace).Delete(wlsDomain.Name, &metav1.DeleteOptions{})
+					err := managedClusterConnection.DomainClientSet.WeblogicV7().Domains(wlsDomain.Namespace).Delete(context.TODO(), wlsDomain.Name, metav1.DeleteOptions{})
 					if err != nil {
 						return err
 					}
@@ -660,7 +661,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 		for _, wlsOperator := range existingWlsOperatorCRList {
 			if !containsWlsOperator(mc.WlsOperator, wlsOperator.Name, wlsOperator.Namespace) {
 				glog.V(4).Infof("Deleting WLSOperator custom resource %s:%s in cluster %s", wlsOperator.Namespace, wlsOperator.Name, clusterName)
-				err := managedClusterConnection.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators(wlsOperator.Namespace).Delete(wlsOperator.Name, &metav1.DeleteOptions{})
+				err := managedClusterConnection.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators(wlsOperator.Namespace).Delete(context.TODO(), wlsOperator.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
 				}
@@ -690,7 +691,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 		// Delete these Helidon apps since none are expected on this cluster
 		for _, app := range appList {
 			glog.V(4).Infof("Deleting HelidonApp custom resource %s:%s in cluster %s", app.Namespace, app.Name, clusterName)
-			err := managedClusterConnection.HelidonClientSet.VerrazzanoV1beta1().HelidonApps(app.Namespace).Delete(app.Name, &metav1.DeleteOptions{})
+			err := managedClusterConnection.HelidonClientSet.VerrazzanoV1beta1().HelidonApps(app.Namespace).Delete(context.TODO(), app.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
@@ -710,7 +711,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 			// Delete these Coherence clusters since none are expected on this cluster
 			for _, cluster := range clusterList {
 				glog.V(4).Infof("Deleting CoherenceCluster custom resource %s:%s in cluster %s", cluster.Namespace, cluster.Name, clusterName)
-				err := managedClusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters(cluster.Namespace).Delete(cluster.Name, &metav1.DeleteOptions{})
+				err := managedClusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters(cluster.Namespace).Delete(context.TODO(), cluster.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
 				}
@@ -730,7 +731,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 		// Delete these Coherence operators since none are expected on this cluster
 		for _, coh := range cohList {
 			glog.V(4).Infof("Deleting CohCluster custom resource %s:%s in cluster %s", coh.Namespace, coh.Name, clusterName)
-			err := managedClusterConnection.CohOprClientSet.VerrazzanoV1beta1().CohClusters(coh.Namespace).Delete(coh.Name, &metav1.DeleteOptions{})
+			err := managedClusterConnection.CohOprClientSet.VerrazzanoV1beta1().CohClusters(coh.Namespace).Delete(context.TODO(), coh.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
@@ -750,7 +751,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 			// Delete these WLS Domains since none are expected on this cluster
 			for _, domain := range domainList {
 				glog.V(4).Infof("Deleting Domain custom resource %s:%s in cluster %s", domain.Namespace, domain.Name, clusterName)
-				err := managedClusterConnection.DomainClientSet.WeblogicV7().Domains(domain.Namespace).Delete(domain.Name, &metav1.DeleteOptions{})
+				err := managedClusterConnection.DomainClientSet.WeblogicV7().Domains(domain.Namespace).Delete(context.TODO(), domain.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
 				}
@@ -770,7 +771,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 		// Delete these WLS Operators since none are expected on this cluster
 		for _, operator := range operatorList {
 			glog.V(4).Infof("Deleting WLSOperator custom resource %s:%s in cluster %s", operator.Namespace, operator.Name, clusterName)
-			err := managedClusterConnection.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators(operator.Namespace).Delete(operator.Name, &metav1.DeleteOptions{})
+			err := managedClusterConnection.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators(operator.Namespace).Delete(context.TODO(), operator.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
@@ -797,17 +798,17 @@ func waitForCRDeletion(mc *util.ManagedClusterConnection, crType string, crName 
 			glog.V(4).Infof("Waiting for %s %s in namespace %s in managed cluster %s to be removed..", crType, crName, namespace, cluster)
 			switch crType {
 			case "domain":
-				_, err = mc.DomainClientSet.WeblogicV7().Domains(namespace).Get(crName, metav1.GetOptions{})
+				_, err = mc.DomainClientSet.WeblogicV7().Domains(namespace).Get(context.TODO(), crName, metav1.GetOptions{})
 			case "wlsoperator":
-				_, err = mc.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators(namespace).Get(crName, metav1.GetOptions{})
+				_, err = mc.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators(namespace).Get(context.TODO(), crName, metav1.GetOptions{})
 			case "cohcluster":
-				_, err = mc.CohOprClientSet.VerrazzanoV1beta1().CohClusters(namespace).Get(crName, metav1.GetOptions{})
+				_, err = mc.CohOprClientSet.VerrazzanoV1beta1().CohClusters(namespace).Get(context.TODO(), crName, metav1.GetOptions{})
 			case "coherencecluster":
-				_, err = mc.CohClusterClientSet.CoherenceV1().CoherenceClusters(namespace).Get(crName, metav1.GetOptions{})
+				_, err = mc.CohClusterClientSet.CoherenceV1().CoherenceClusters(namespace).Get(context.TODO(), crName, metav1.GetOptions{})
 			case "coherenceinternals":
-				_, err = mc.CohClusterClientSet.CoherenceV1().CoherenceInternals(namespace).Get(crName, metav1.GetOptions{})
+				_, err = mc.CohClusterClientSet.CoherenceV1().CoherenceInternals(namespace).Get(context.TODO(), crName, metav1.GetOptions{})
 			case "helidonapp":
-				_, err = mc.HelidonClientSet.VerrazzanoV1beta1().HelidonApps(namespace).Get(crName, metav1.GetOptions{})
+				_, err = mc.HelidonClientSet.VerrazzanoV1beta1().HelidonApps(namespace).Get(context.TODO(), crName, metav1.GetOptions{})
 			default:
 				err = errors.New("Unknown CR type")
 			}

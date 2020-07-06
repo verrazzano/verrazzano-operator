@@ -5,6 +5,7 @@
 package local
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -41,11 +42,11 @@ func CreateVmis(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset
 				glog.V(6).Infof("VMI %s : Spec differences %s", newVmi.Name, specDiffs)
 				glog.V(4).Infof("Updating VMI %s", newVmi.Name)
 				newVmi.ResourceVersion = existingVmi.ResourceVersion
-				_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Update(newVmi)
+				_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Update(context.TODO(), newVmi, metav1.UpdateOptions{})
 			}
 		} else {
 			glog.V(4).Infof("Creating VMI %s", newVmi.Name)
-			_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Create(newVmi)
+			_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Create(context.TODO(), newVmi, metav1.CreateOptions{})
 		}
 		if err != nil {
 			return err
@@ -61,7 +62,7 @@ func CreateVmis(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset
 	for _, existingVmi := range existingVMIsList {
 		if !util.Contains(vmiNames, existingVmi.Name) {
 			glog.V(4).Infof("Deleting VMI %s", existingVmi.Name)
-			err := vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(existingVmi.Namespace).Delete(existingVmi.Name, &metav1.DeleteOptions{})
+			err := vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(existingVmi.Namespace).Delete(context.TODO(), existingVmi.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
@@ -81,7 +82,7 @@ func DeleteVmis(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset
 	}
 	for _, existingVmi := range existingVMIsList {
 		glog.V(4).Infof("Deleting VMI %s", existingVmi.Name)
-		err := vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(existingVmi.Namespace).Delete(existingVmi.Name, &metav1.DeleteOptions{})
+		err := vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(existingVmi.Namespace).Delete(context.TODO(), existingVmi.Name, metav1.DeleteOptions{})
 		if err != nil {
 			return err
 		}

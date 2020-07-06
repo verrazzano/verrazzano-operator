@@ -4,6 +4,8 @@
 package managed
 
 import (
+	"context"
+
 	"github.com/golang/glog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
@@ -62,11 +64,11 @@ func createSecrets(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnecti
 			if specDiffs != "" {
 				glog.V(6).Infof("Secret %s : Spec differences %s", newSecret.Name, specDiffs)
 				glog.V(4).Infof("Updating secret %s:%s in cluster %s", newSecret.Namespace, newSecret.Name, clusterName)
-				_, err = managedClusterConnection.KubeClient.CoreV1().Secrets(newSecret.Namespace).Update(newSecret)
+				_, err = managedClusterConnection.KubeClient.CoreV1().Secrets(newSecret.Namespace).Update(context.TODO(), newSecret, metav1.UpdateOptions{})
 			}
 		} else {
 			glog.V(4).Infof("Creating secret %s:%s in cluster %s", newSecret.Namespace, newSecret.Name, clusterName)
-			_, err = managedClusterConnection.KubeClient.CoreV1().Secrets(newSecret.Namespace).Create(newSecret)
+			_, err = managedClusterConnection.KubeClient.CoreV1().Secrets(newSecret.Namespace).Create(context.TODO(), newSecret, metav1.CreateOptions{})
 		}
 		if err != nil {
 			return err

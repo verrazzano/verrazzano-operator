@@ -4,11 +4,12 @@
 package util
 
 import (
+	"context"
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano-operator/test/integ/framework"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/test/integ/framework"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,7 +28,7 @@ func CreateManagedCluster(f *framework.Framework, clusterName string) (*v1beta1v
 				"kubeconfig": []byte(f.KubeConfigContents),
 			},
 		}
-	_, err := f.KubeClient.CoreV1().Secrets(f.Namespace).Create(secret)
+	_, err := f.KubeClient.CoreV1().Secrets(f.Namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +41,7 @@ func CreateManagedCluster(f *framework.Framework, clusterName string) (*v1beta1v
 			KubeconfigSecret: clusterName,
 		},
 	}
-	_, err = f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoManagedClusters(f.Namespace).Create(managedCluster)
+	_, err = f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoManagedClusters(f.Namespace).Create(context.TODO(), managedCluster, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -50,11 +51,11 @@ func CreateManagedCluster(f *framework.Framework, clusterName string) (*v1beta1v
 // Deletes the given ManagedCluster
 func DeleteManagedCluster(f *framework.Framework, clusterName string) error {
 	var returnErr error
-	err := f.KubeClient.CoreV1().Secrets(f.Namespace).Delete(clusterName, &metav1.DeleteOptions{})
+	err := f.KubeClient.CoreV1().Secrets(f.Namespace).Delete(context.TODO(), clusterName, metav1.DeleteOptions{})
 	if err != nil {
 		returnErr = err
 	}
-	err = f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoManagedClusters(f.Namespace).Delete(clusterName, &metav1.DeleteOptions{})
+	err = f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoManagedClusters(f.Namespace).Delete(context.TODO(), clusterName, metav1.DeleteOptions{})
 	if err != nil {
 		returnErr = err
 	}
@@ -73,7 +74,7 @@ func CreateAppModel(f *framework.Framework, modelName string) (*v1beta1v8o.Verra
 		},
 	}
 
-	_, err := f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoModels(f.Namespace).Create(appModel)
+	_, err := f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoModels(f.Namespace).Create(context.TODO(), appModel, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +111,7 @@ func CreateAppBinding(f *framework.Framework, bindingName string, modelName stri
 		appBinding.Spec.Placement = append(appBinding.Spec.Placement, placement)
 	}
 
-	_, err := f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoBindings(f.Namespace).Create(appBinding)
+	_, err := f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoBindings(f.Namespace).Create(context.TODO(), appBinding, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -119,13 +120,13 @@ func CreateAppBinding(f *framework.Framework, bindingName string, modelName stri
 
 // Deletes the given ApplicationModel
 func DeleteAppModel(f *framework.Framework, modelName string) error {
-	err := f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoModels(f.Namespace).Delete(modelName, &metav1.DeleteOptions{})
+	err := f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoModels(f.Namespace).Delete(context.TODO(), modelName, metav1.DeleteOptions{})
 	return err
 }
 
 // Deletes the given ApplicationBinding
 func DeleteAppBinding(f *framework.Framework, bindingName string) error {
-	err := f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoBindings(f.Namespace).Delete(bindingName, &metav1.DeleteOptions{})
+	err := f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoBindings(f.Namespace).Delete(context.TODO(), bindingName, metav1.DeleteOptions{})
 	return err
 }
 

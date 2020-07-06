@@ -4,6 +4,8 @@
 package controller
 
 import (
+	"context"
+
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,11 +25,11 @@ func (ks *KubeSecrets) Get(name string) (*corev1.Secret, error) {
 }
 
 func (ks *KubeSecrets) Create(newSecret *corev1.Secret) (*corev1.Secret, error) {
-	return ks.kubeClientSet.CoreV1().Secrets(ks.namespace).Create(newSecret)
+	return ks.kubeClientSet.CoreV1().Secrets(ks.namespace).Create(context.TODO(), newSecret, metav1.CreateOptions{})
 }
 
 func (ks *KubeSecrets) Update(newSecret *corev1.Secret) (*corev1.Secret, error) {
-	return ks.kubeClientSet.CoreV1().Secrets(ks.namespace).Update(newSecret)
+	return ks.kubeClientSet.CoreV1().Secrets(ks.namespace).Update(context.TODO(), newSecret, metav1.UpdateOptions{})
 }
 
 func (ks *KubeSecrets) List(ns string, selector labels.Selector) (ret []*corev1.Secret, err error) {
@@ -35,7 +37,7 @@ func (ks *KubeSecrets) List(ns string, selector labels.Selector) (ret []*corev1.
 }
 
 func (ks *KubeSecrets) Delete(ns, name string) error {
-	return ks.kubeClientSet.CoreV1().Secrets(ns).Delete(name, &metav1.DeleteOptions{})
+	return ks.kubeClientSet.CoreV1().Secrets(ns).Delete(context.TODO(), name, metav1.DeleteOptions{})
 }
 
 func (ks *KubeSecrets) GetVmiPassword() (string, error) {

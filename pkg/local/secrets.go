@@ -5,13 +5,14 @@
 package local
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/golang/glog"
-	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +40,7 @@ func DeleteSecrets(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernet
 	}
 	for _, existingSecret := range existingSecretsList {
 		glog.V(4).Infof("Deleting secret %s", existingSecret.Name)
-		err := kubeClientSet.CoreV1().Secrets(existingSecret.Namespace).Delete(existingSecret.Name, &metav1.DeleteOptions{})
+		err := kubeClientSet.CoreV1().Secrets(existingSecret.Namespace).Delete(context.TODO(), existingSecret.Name, metav1.DeleteOptions{})
 		if err != nil {
 			return err
 		}
@@ -62,7 +63,7 @@ func DeleteSecrets(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernet
 func CreateGenericSecret(newSecret corev1.Secret, kubeClientSet kubernetes.Interface) error {
 
 	glog.V(4).Infof("Creating Secret %s", newSecret.Name)
-	_, err := kubeClientSet.CoreV1().Secrets(newSecret.Namespace).Create(&newSecret)
+	_, err := kubeClientSet.CoreV1().Secrets(newSecret.Namespace).Create(context.TODO(), &newSecret, metav1.CreateOptions{})
 
 	if err != nil {
 		glog.Errorf("Error creating secret %s:%s - error %s", newSecret.Namespace, newSecret.Name, err.Error())
@@ -73,7 +74,7 @@ func CreateGenericSecret(newSecret corev1.Secret, kubeClientSet kubernetes.Inter
 // GetSecret will retrieve a secret from the specified cluster and namespace.
 // This is intended to be used in the management cluster.
 func GetSecret(name string, namespace string, kubeClientSet kubernetes.Interface) (*corev1.Secret, error) {
-	secret, err := kubeClientSet.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
+	secret, err := kubeClientSet.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +83,7 @@ func GetSecret(name string, namespace string, kubeClientSet kubernetes.Interface
 
 // GetSecretByUID gets the secret by the Kubernetes UID
 func GetSecretByUID(kubeClientSet kubernetes.Interface, ns string, uid string) (*corev1.Secret, bool, error) {
-	secretsList, err := kubeClientSet.CoreV1().Secrets(ns).List(metav1.ListOptions{})
+	secretsList, err := kubeClientSet.CoreV1().Secrets(ns).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		glog.Errorf("Error %s getting the list of secrets", err.Error())
 		return nil, false, err
@@ -156,7 +157,7 @@ func UpdateAcmeDnsSecret(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet ku
 
 		secret.Data[acmeDnsKey] = secretDataEnc
 
-		_, err = kubeClientSet.CoreV1().Secrets(namespace).Update(secret)
+		_, err = kubeClientSet.CoreV1().Secrets(namespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
@@ -167,11 +168,11 @@ func UpdateAcmeDnsSecret(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet ku
 
 // UpdateSecret updates an existing secret
 func DeleteSecret(kubeClientSet kubernetes.Interface, secret *corev1.Secret) error {
-	return kubeClientSet.CoreV1().Secrets(secret.Namespace).Delete(secret.Name, &metav1.DeleteOptions{})
+	return kubeClientSet.CoreV1().Secrets(secret.Namespace).Delete(context.TODO(), secret.Name, metav1.DeleteOptions{})
 }
 
 // UpdateSecret updates an existing secret
 func UpdateSecret(kubeClientSet kubernetes.Interface, secret *corev1.Secret) error {
-	_, err := kubeClientSet.CoreV1().Secrets(secret.Namespace).Update(secret)
+	_, err := kubeClientSet.CoreV1().Secrets(secret.Namespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
 	return err
 }
