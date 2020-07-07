@@ -6,7 +6,7 @@ image:
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator
+  imageName: phx.ocir.io/stevengreenberginc/verrazzano/OPERATOR_IMAGE_NAME
   imageVersion: OPERATOR_VERSION
   sslVerify: true
   cohMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.7
