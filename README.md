@@ -32,9 +32,14 @@ be fixed by the Verrazzano Operator.
 The `chart` directory contains helm chart for Verrazzano that packages together the core elements that will be installed into the Verrazzano Management Cluster - micro operators,
 verrazzano-operator, verrazzano-monitoring-operator, etc - into a single Helm chart.
 
-### Chart storage
+### Chart helm repos
 
-https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart/o/
+#### OCI object storage
+https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart
+
+#### Github repo
+Stable - https://raw.githubusercontent.com/verrazzano/helm-charts/master
+Development/Pre-release - https://raw.githubusercontent.com/verrazzano/helm-charts/devel
 
 ### Chart Parameters
 
@@ -42,16 +47,16 @@ See `./chart/values.yaml` for the full list of configurable parameters that can 
 `--set parameter=value` when installing the Helm chart.
 
 ### Building chart
-`make chart-build TAG_NAME=$tag` will build the chart archive in `dist` directory. The `OPERATOR_VERSION` attribute in `values.yaml` of resulting chart will be replaced with tag specified by input `tag`.
+`make chart-build OPERATOR_IMAGE_NAME=$image TAG_NAME=$version` will build the chart archive in `dist` directory. The `OPERATOR_IMAGE_NAME` attribute in `values.yaml` of resulting chart will be replaced with version specified by input `image` and `OPERATOR_VERSION` will be replaced by input `version`.
 
 ### Publishing chart
-`make chart-publish TAG_NAME=$tag` will build the chart and publish to chart repository with tag specified by input `tag`.
+`make chart-publish OPERATOR_IMAGE_NAME=$image TAG_NAME=$version` will build the chart and publish to chart repository with operator image name specified by input `image` and tag as `version`.
 
 ## Artifacts
 
 On a successful release (which occurs on a Git tag), this repo 
 - publises a Docker image: `container-registry.oracle.com/verrazzano/verrazzano-operator:tag`
-- publishes a new version of Verrazzano-helm-chart at `https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart/o/`
+- publishes a new version of Verrazzano-helm-chart at `https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart` and `https://raw.githubusercontent.com/verrazzano/helm-charts/master`
 
 
 ## Building

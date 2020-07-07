@@ -62,7 +62,8 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
                     make push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-                """
+                    make chart-publish OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_NAME}
+                   """
             }
         }
 
@@ -124,7 +125,7 @@ pipeline {
             when { buildingTag() }
             steps {
                 sh """
-                    make chart-publish
+                    make chart-publish OPERATOR_IMAGE_NAME=${env.DOCKER_PUBLISH_IMAGE_NAME}
                 """
             }
         }

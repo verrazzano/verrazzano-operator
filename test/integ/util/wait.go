@@ -4,6 +4,7 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -44,7 +45,7 @@ func WaitForDeploymentAvailable(namespace string, deploymentName string, availab
 	var err error
 	fmt.Printf("Waiting for deployment '%s' to reach %d available and total replicas...\n", deploymentName, availableReplicas)
 	err = Retry(DefaultRetry, func() (bool, error) {
-		deployments, err := kubeClient.ExtensionsV1beta1().Deployments(namespace).List(metav1.ListOptions{})
+		deployments, err := kubeClient.ExtensionsV1beta1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -65,7 +66,7 @@ func WaitForServiceAccountAvailable(namespace string, serviceAccount string, kub
 	var err error
 	fmt.Printf("Waiting for ServiceAccount '%s' to become available...\n", serviceAccount)
 	err = Retry(DefaultRetry, func() (bool, error) {
-		_, err := kubeClient.CoreV1().ServiceAccounts(namespace).Get(serviceAccount, metav1.GetOptions{})
+		_, err := kubeClient.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), serviceAccount, metav1.GetOptions{})
 		if err != nil {
 			fmt.Printf("Error getting ServiceAccount '%s'\n", err)
 			return false, nil

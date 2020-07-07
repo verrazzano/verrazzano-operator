@@ -6,15 +6,16 @@ package wlsdom
 import (
 	"fmt"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/types"
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v7weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	v1meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbPair *types.ModelBindingPair, labels map[string]string) *v7weblogic.Domain {
+func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbPair *types.ModelBindingPair,
+	labels map[string]string, configOverrides string, configOverrideSecrets []string) *v7weblogic.Domain {
 	domainCRValues := domainModel.DomainCRValues
 
 	labels["weblogic.resourceVersion"] = "domain-v7"
@@ -106,7 +107,7 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 			Configuration: v7weblogic.Configuration{
 				Istio: v7weblogic.Istio{
 					// Istio is always enabled for WebLogic domains in Verrazzano
-					Enabled: true,
+					Enabled:       true,
 					ReadinessPort: 8888,
 				},
 			},
@@ -163,12 +164,16 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 	}
 
 	// ConfigOverrides
-	if len(domainCRValues.ConfigOverrides) > 0 {
+	if len(configOverrides) > 0 {
+		domainCR.Spec.ConfigOverrides = configOverrides
+	} else if len(domainCRValues.ConfigOverrides) > 0 {
 		domainCR.Spec.ConfigOverrides = domainCRValues.ConfigOverrides
 	}
 
 	// ConfigOverrideSecrets
-	if domainCRValues.ConfigOverrideSecrets != nil {
+	if configOverrideSecrets != nil {
+		domainCR.Spec.ConfigOverrideSecrets = configOverrideSecrets
+	} else if domainCRValues.ConfigOverrideSecrets != nil {
 		domainCR.Spec.ConfigOverrideSecrets = domainCRValues.ConfigOverrideSecrets
 	}
 

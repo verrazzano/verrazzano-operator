@@ -91,5 +91,10 @@ spec:
             - target: "catalog"
               environmentVariableForHost: "HELIDON_HOSTNAME"
               environmentVariableForPort: "HELIDON_PORT"
-
+        - database:
+            - target: "mysql"
+              datasourceName: "socks"
+        - database:
+            - target: "mysql2"
+              datasourceName: "jdbc/socks"
 

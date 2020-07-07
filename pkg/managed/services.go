@@ -4,6 +4,8 @@
 package managed
 
 import (
+	"context"
+
 	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
@@ -51,11 +53,11 @@ func CreateServices(mbPair *types.ModelBindingPair, availableManagedClusterConne
 				if specDiffs != "" {
 					glog.V(6).Infof("Service %s : Spec differences %s", newService.Name, specDiffs)
 					glog.V(4).Infof("Updating Service %s in cluster %s", newService.Name, clusterName)
-					_, err = managedClusterConnection.KubeClient.CoreV1().Services(newService.Namespace).Update(newService)
+					_, err = managedClusterConnection.KubeClient.CoreV1().Services(newService.Namespace).Update(context.TODO(), newService, metav1.UpdateOptions{})
 				}
 			} else {
 				glog.V(4).Infof("Creating Service %s in cluster %s", newService.Name, clusterName)
-				_, err = managedClusterConnection.KubeClient.CoreV1().Services(newService.Namespace).Create(newService)
+				_, err = managedClusterConnection.KubeClient.CoreV1().Services(newService.Namespace).Create(context.TODO(), newService, metav1.CreateOptions{})
 			}
 			if err != nil {
 				return err

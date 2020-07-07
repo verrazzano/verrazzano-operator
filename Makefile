@@ -19,13 +19,22 @@ ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),push push-tag))
 	DOCKER_IMAGE_FULLNAME = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}
 endif
 
+HELM_CHART_VERSION = v0.0.0-${TAG}
+HELM_CHART_BRANCH:=devel
+OPERATOR_VERSION = ${TAG}
+ifdef TAG_NAME
+	HELM_CHART_VERSION = ${TAG_NAME}
+	OPERATOR_VERSION = ${TAG_NAME}
+	HELM_CHART_BRANCH = master
+endif
+
 DIST_DIR:=dist
 K8S_NAMESPACE:=default
 WATCH_NAMESPACE:=
 EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-operator
-GO ?= GO111MODULE=on GOPRIVATE=github.com/oracle,github.com/verrazzano go
+GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 WKO_PATH = github.com/verrazzano/verrazzano-wko-operator
 HELIDON_PATH = github.com/verrazzano/verrazzano-helidon-app-operator
 COH_PATH = github.com/verrazzano/verrazzano-coh-cluster-operator
@@ -33,8 +42,11 @@ CRDGEN_PATH = github.com/verrazzano/verrazzano-crd-generator
 CRD_PATH = deploy/crds
 DIST_OBJECT_STORE_NAMESPACE:=stevengreenberginc
 DIST_OBJECT_STORE_BUCKET:=verrazzano-helm-chart
+HELM_CHART_REPO_NAME:=helm-charts
+HELM_CHART_REPO_GIT_URL:=https://github.com/verrazzano/${HELM_CHART_REPO_NAME}.git
+HELM_CHART_REPO_URL:=https://raw.githubusercontent.com/verrazzano/${HELM_CHART_REPO_NAME}/${HELM_CHART_BRANCH}
 HELM_CHART_NAME:=verrazzano
-HELM_CHART_ARCHIVE_NAME = "${HELM_CHART_NAME}-${TAG_NAME}.tgz"
+HELM_CHART_ARCHIVE_NAME = ${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz
 
 .PHONY: all
 all: build
@@ -169,22 +181,39 @@ chart-build: go-mod
 	cp -r chart/values.yaml  $(DIST_DIR)/
 
 	# Fill in tag version that's being built
-	sed -i.bak -e "s/latest/${TAG_NAME}/g" $(DIST_DIR)/Chart.yaml
-	sed -i.bak -e "s/OPERATOR_VERSION/${TAG_NAME}/g" $(DIST_DIR)/values.yaml
+	sed -i.bak -e "s/latest/${HELM_CHART_VERSION}/g" $(DIST_DIR)/Chart.yaml
+	sed -i.bak -e "s/OPERATOR_VERSION/${OPERATOR_VERSION}/g" -e "s/OPERATOR_IMAGE_NAME/${OPERATOR_IMAGE_NAME}/g" $(DIST_DIR)/values.yaml
 
 .PHONY chart-publish:
 chart-publish: chart-build
-	export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING=True
-	echo ${TAG_NAME} > latest
 	rm -rf archive
 	mkdir archive
 	tar cvzf archive/${HELM_CHART_ARCHIVE_NAME} -C ${DIST_DIR}/ .
 	mv archive/${HELM_CHART_ARCHIVE_NAME} ${DIST_DIR}/
 	rm -rf archive
-	helm repo index --url https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${TAG_NAME}/ ${DIST_DIR}/
-	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${TAG_NAME}/index.yaml --file ${DIST_DIR}/index.yaml
-	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${TAG_NAME}/${HELM_CHART_ARCHIVE_NAME} --file ${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME}
+	
+	echo "Publishing Helm chart to OCI object storage"
+	export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING=True
+	echo ${HELM_CHART_VERSION} > latest
+	helm repo index --url https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/ ${DIST_DIR}/
+	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/index.yaml --file ${DIST_DIR}/index.yaml
+	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/${HELM_CHART_ARCHIVE_NAME} --file ${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME}
 	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name latest --file latest
-	echo "Published Helm chart to https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o"
+	echo "Published Helm chart to https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/${HELM_CHART_ARCHIVE_NAME}"
+	
+	echo "Publishing Helm chart to github repo"
+	rm -rf ${HELM_CHART_REPO_NAME}
+	git clone -b ${HELM_CHART_BRANCH} ${HELM_CHART_REPO_GIT_URL}
+	cp ${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME} ${HELM_CHART_REPO_NAME}/${HELM_CHART_ARCHIVE_NAME}
+	echo ${HELM_CHART_VERSION} > ${HELM_CHART_REPO_NAME}/latest
+	cd ${HELM_CHART_REPO_NAME} && \
+	helm repo index --url ${HELM_CHART_REPO_URL} . && \
+	git config user.email "verrazzano@verrazzano.io" && \
+	git config user.name "verrazzano" && \
+	git add . && \
+	git commit -m "Adding helm chart version ${HELM_CHART_VERSION}" && \
+	git push && \
+	echo "Published Helm chart version ${HELM_CHART_VERSION} to ${HELM_CHART_REPO_URL}/${HELM_CHART_ARCHIVE_NAME}"
 	rm -rf ${DIST_DIR}
+	rm -rf ${HELM_CHART_REPO_NAME}
 
