@@ -38,7 +38,7 @@ monitoringOperator:
   esInitImage: oraclelinux:7
   kibanaImage: phx.ocir.io/stevengreenberginc/bfs/kibana:7.6.1-2
   monitoringInstanceApiImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.5
-  configReloaderImage: phx.ocir.io/odx-sre/sauron/configmap-reloader:0.3
+  configReloaderImage: phx.ocir.io/stevengreenberginc/bfs/configmap-reloader:0.3
   nodeExporterImage: phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-1
 
 clusterOperator:
