@@ -103,7 +103,7 @@ func createStorageOption(enableMonitoringStorage string) vmov1.Storage {
 
 // Constructs the necessary VMI for the given VerrazzanoBinding
 func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enableMonitoringStorage string) []*vmov1.VerrazzanoMonitoringInstance {
-	labels := util.GetLocalBindingLabels(binding)
+	bindingLabels := util.GetLocalBindingLabels(binding)
 
 	if verrazzanoUri == "" {
 		verrazzanoUri = "my.verrazano.com"
@@ -114,7 +114,7 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      util.GetVmiNameForBinding(binding.Name),
 				Namespace: constants.VerrazzanoNamespace,
-				Labels:    labels,
+				Labels:    bindingLabels,
 			},
 			Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
 				URI:             util.GetVmiUri(binding.Name, verrazzanoUri),
