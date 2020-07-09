@@ -163,6 +163,20 @@ func ReturnSingleSecret(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func ReturnSingleSecretByName(w http.ResponseWriter, r *http.Request) {
+	refreshSecrets()
+	vars := mux.Vars(r)
+	key := vars["name"]
+
+	glog.V(4).Info("GET /secrets/name/" + key)
+
+	for _, secrets := range Secrets {
+		if secrets.Name == key {
+			json.NewEncoder(w).Encode(secrets)
+		}
+	}
+}
+
 func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("POST /secrets")
 

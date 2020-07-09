@@ -84,6 +84,7 @@ func handleRequests() {
 	myRouter.Path("/secrets").Methods("GET").HandlerFunc(secrets.ReturnAllSecrets)
 	myRouter.Path("/secrets").Methods("POST").HandlerFunc(secrets.CreateSecret)
 	myRouter.Path("/secrets/{id}").Methods("GET").HandlerFunc(secrets.ReturnSingleSecret)
+	myRouter.Path("/secrets/name/{name}").Methods("GET").HandlerFunc(secrets.ReturnSingleSecretByName)
 	myRouter.Path("/secrets/{id}").Methods("DELETE").HandlerFunc(secrets.DeleteSecret)
 	myRouter.Path("/secrets/{id}").Methods("PATCH").HandlerFunc(secrets.UpdateSecret)
 
