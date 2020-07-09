@@ -104,7 +104,6 @@ func refreshSecrets() {
 			}
 		}
 
-		i := 0
 		for _, secretName := range secretNames {
 			// get the actual secret from the management cluster
 			theSecret, err := local.GetSecret(secretName, constants.DefaultNamespace, *listerSet.KubeClientSet)
@@ -136,9 +135,60 @@ func refreshSecrets() {
 					return theData
 				}(),
 			})
-			i++
 		}
 	}
+
+	// Get a list of the bindings that have been deployed to the management cluster
+	bindingSelector := labels.SelectorFromSet(map[string]string{})
+	bindings, err := (*listerSet.BindingLister).VerrazzanoBindings("default").List(bindingSelector)
+	if err != nil {
+		glog.Errorf("Error getting application bindings: %s", err.Error())
+		return
+	}
+
+	// Loop thru the list of models and get all secrets specified in the model
+	for _, binding := range bindings {
+		var secretNames []string
+
+		// Get the database binding credentials
+		for _, dbBinding := range binding.Spec.DatabaseBindings {
+			secretNames = addSecret(secretNames, dbBinding.Credentials)
+		}
+
+		for _, secretName := range secretNames {
+			// get the actual secret from the management cluster
+			theSecret, err := local.GetSecret(secretName, constants.DefaultNamespace, *listerSet.KubeClientSet)
+			if err != nil {
+				glog.Warningf("Error getting secret %s in management cluster: %s", secretName, err.Error())
+				continue
+			}
+			if theSecret == nil {
+				glog.Warningf("Secret %s not found in management cluster", secretName)
+				continue
+			}
+
+			Secrets = append(Secrets, Secret{
+				Id:        string(theSecret.UID),
+				Name:      secretName,
+				Namespace: "",
+				Cluster:   "",
+				Type:      string(theSecret.Type),
+				Status:    "NYI",
+				Data: func() []Data {
+
+					theData := []Data{}
+					for k, v := range theSecret.Data {
+						theData = append(theData, Data{
+							Name:  k,
+							Value: string(v),
+						})
+					}
+					return theData
+				}(),
+			})
+		}
+	}
+
 }
 
 func ReturnAllSecrets(w http.ResponseWriter, r *http.Request) {
