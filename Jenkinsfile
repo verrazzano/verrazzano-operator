@@ -32,6 +32,7 @@ pipeline {
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
         OCI_CLI_REGION = 'us-phoenix-1'
+        GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
     }
 
     stages {
