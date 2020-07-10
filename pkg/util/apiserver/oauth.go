@@ -142,7 +142,7 @@ func (kc *KeyCloak) GetPublicKey(kid string) (*rsa.PublicKey, error) {
 		if err != nil {
 			errMsg = err.Error()
 		}
-		if err != nil || kc.keyCache == nil || len(kc.keyCache) == 0 {
+		if err != nil || len(kc.keyCache) == 0 {
 			return nil, errors.New(errMsg)
 		}
 		key = kc.keyCache[kid]
@@ -152,13 +152,13 @@ func (kc *KeyCloak) GetPublicKey(kid string) (*rsa.PublicKey, error) {
 	}
 	block, _ := pem.Decode([]byte(fmt.Sprintf(certTemp, key.CertificateChain[0])))
 	if block == nil {
-		return nil, errors.New("Invalid public key")
+		return nil, errors.New("Invalid public key: key must be PEM encoded")
 	}
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err == nil {
 		publicKey, ok := cert.PublicKey.(*rsa.PublicKey)
 		if !ok {
-			return nil, errors.New("Invalid public key")
+			return nil, errors.New(fmt.Sprintf("Invalid public key: %T is not a valid RSA public key",cert.PublicKey))
 		}
 		return publicKey, nil
 	} else {
