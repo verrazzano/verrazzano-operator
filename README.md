@@ -216,7 +216,7 @@ If you want to submit a pull request to fix a bug or enhance an existing feature
 
 If you have any questions about a possible submission, feel free to open an issue too.
 
-## Contributing to the Oracle WebLogic Server Kubernetes Operator repository
+## Contributing to the Verrazzano Operator repository
 
 Pull requests can be made under The Oracle Contributor Agreement (OCA), which is available at [https://www.oracle.com/technetwork/community/oca-486395.html](https://www.oracle.com/technetwork/community/oca-486395.html).
 
