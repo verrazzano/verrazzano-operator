@@ -81,6 +81,7 @@ func refreshSecrets() {
 	// Loop thru the list of models and get all secrets specified in the model
 	for _, model := range models {
 		var secretNames []string
+
 		// Get the Weblogic secrets
 		for _, domain := range model.Spec.WeblogicDomains {
 			for _, pullSecret := range domain.DomainCRValues.ImagePullSecrets {
@@ -91,12 +92,14 @@ func refreshSecrets() {
 			}
 			secretNames = addSecret(secretNames, domain.DomainCRValues.WebLogicCredentialsSecret.Name)
 		}
+
 		// Get the Helidon secrets
 		for _, helidon := range model.Spec.HelidonApplications {
 			for _, pullSecret := range helidon.ImagePullSecrets {
 				secretNames = addSecret(secretNames, pullSecret.Name)
 			}
 		}
+
 		// Get the Coherence secrets
 		for _, coherence := range model.Spec.CoherenceClusters {
 			for _, pullSecret := range coherence.ImagePullSecrets {
@@ -104,38 +107,7 @@ func refreshSecrets() {
 			}
 		}
 
-		for _, secretName := range secretNames {
-			// get the actual secret from the management cluster
-			theSecret, err := local.GetSecret(secretName, constants.DefaultNamespace, *listerSet.KubeClientSet)
-			if err != nil {
-				glog.Warningf("Error getting secret %s in management cluster: %s", secretName, err.Error())
-				continue
-			}
-			if theSecret == nil {
-				glog.Warningf("Secret %s not found in management cluster", secretName)
-				continue
-			}
-
-			Secrets = append(Secrets, Secret{
-				Id:        string(theSecret.UID),
-				Name:      secretName,
-				Namespace: "",
-				Cluster:   "",
-				Type:      string(theSecret.Type),
-				Status:    "NYI",
-				Data: func() []Data {
-
-					theData := []Data{}
-					for k, v := range theSecret.Data {
-						theData = append(theData, Data{
-							Name:  k,
-							Value: string(v),
-						})
-					}
-					return theData
-				}(),
-			})
-		}
+		addSecrets(secretNames)
 	}
 
 	// Get a list of the bindings that have been deployed to the management cluster
@@ -155,40 +127,44 @@ func refreshSecrets() {
 			secretNames = addSecret(secretNames, dbBinding.Credentials)
 		}
 
-		for _, secretName := range secretNames {
-			// get the actual secret from the management cluster
-			theSecret, err := local.GetSecret(secretName, constants.DefaultNamespace, *listerSet.KubeClientSet)
-			if err != nil {
-				glog.Warningf("Error getting secret %s in management cluster: %s", secretName, err.Error())
-				continue
-			}
-			if theSecret == nil {
-				glog.Warningf("Secret %s not found in management cluster", secretName)
-				continue
-			}
-
-			Secrets = append(Secrets, Secret{
-				Id:        string(theSecret.UID),
-				Name:      secretName,
-				Namespace: "",
-				Cluster:   "",
-				Type:      string(theSecret.Type),
-				Status:    "NYI",
-				Data: func() []Data {
-
-					theData := []Data{}
-					for k, v := range theSecret.Data {
-						theData = append(theData, Data{
-							Name:  k,
-							Value: string(v),
-						})
-					}
-					return theData
-				}(),
-			})
-		}
+		addSecrets(secretNames)
 	}
+}
 
+// Add secrets to global list
+func addSecrets(secretNames []string) {
+	for _, secretName := range secretNames {
+		// get the actual secret from the management cluster
+		theSecret, err := local.GetSecret(secretName, constants.DefaultNamespace, *listerSet.KubeClientSet)
+		if err != nil {
+			glog.Warningf("Error getting secret %s in management cluster: %s", secretName, err.Error())
+			continue
+		}
+		if theSecret == nil {
+			glog.Warningf("Secret %s not found in management cluster", secretName)
+			continue
+		}
+
+		Secrets = append(Secrets, Secret{
+			Id:        string(theSecret.UID),
+			Name:      secretName,
+			Namespace: "",
+			Cluster:   "",
+			Type:      string(theSecret.Type),
+			Status:    "NYI",
+			Data: func() []Data {
+
+				theData := []Data{}
+				for k, v := range theSecret.Data {
+					theData = append(theData, Data{
+						Name:  k,
+						Value: string(v),
+					})
+				}
+				return theData
+			}(),
+		})
+	}
 }
 
 func ReturnAllSecrets(w http.ResponseWriter, r *http.Request) {
