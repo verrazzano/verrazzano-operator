@@ -1,95 +1,112 @@
-[![pipeline status](https://github.com/verrazzano/verrazzano-operator/badges/master/pipeline.svg)](https://github.com/verrazzano/verrazzano-operator/commits/master)
-[![coverage report](https://github.com/verrazzano/verrazzano-operator/badges/master/coverage.svg)](https://github.com/verrazzano/verrazzano-operator/commits/master)
+
 # Verrazzano Operator
 
-The Verrazzano Operator is the Kubernetes operator that runs in the Verrazzano Management Cluster, 
+The Verrazzano Operator is the Kubernetes operator that runs in the Verrazzano Management Cluster,
 watches local CRDs for models/bindings, and launches micro operators into Verrazzano Managed Clusters.
 
 ## Project Status
 
 Current functionality:
-- Learns about Managed Clusters through a "VerrazzanoManagedCluster" CR, and creates k8s clients and watchers to those
-clusters.
-- Watches the local k8s cluster for VerrazzanoModel and VerrazzanoBinding CRs.
-- A VerrazzanoModel/VerrazzanoBinding pair describes a Verrazzano application and defines which application components
-should be installed on which VerrazzanoManagedCluster.
-- On creation or update of a VerrazzanoModel/VerrazzanoBinding pair, the Verrazzano Operator launches:
+- Learns about Managed Clusters through a `VerrazzanoManagedCluster` custom resource, and creates
+  Kubernetes clients and watchers to those clusters.
+- Watches the local Kubernetes cluster for `VerrazzanoModel` and `VerrazzanoBinding` custom resources.
+- A `VerrazzanoModel`/`VerrazzanoBinding` pair describes a Verrazzano application and defines which
+  application components should be installed on which `VerrazzanoManagedCluster`.
+- On creation or update of a `VerrazzanoModel`/`VerrazzanoBinding` pair, the Verrazzano Operator launches:
   - Into the Management Cluster:
     - A Verrazzano Monitoring instance.
   - Into the Managed Cluster for each "component":
-    - TBD - Need to add more details here.  A WeblogicApplication CR.  This is also just a dummy CR for now.  This would get replaced by one of the real, eventual CRs that the
-  micro-operators will act on.
-    - TBD - Need to mention other micro operators.
-    - Agents forwarding logs and metrics to the VerrazzanoMonitoringInstance. 
+    - Custom Resources which instruct the various Verrazzano micro-operators about work
+      required to deploy the components.
+    - Agents forwarding logs and metrics to the VerrazzanoMonitoringInstance.
 
-- On deletion of a VerrazzanoBinding, deletes all related resources deployed above.
-- On updates to the Managed Cluster's objects (deployments, WeblogicApplication CRs) created by the Verrazzano Operator,
-triggers a reprocessing of the owning VerrazzanoBinding.  This causes any drift in expecting state to immediately
-be fixed by the Verrazzano Operator.
+- On deletion of a `VerrazzanoBinding`, deletes all related resources deployed above.
+- On updates to the Managed Cluster's objects (deployments, micro-operator CRs) created by the Verrazzano Operator,
+  triggers a reprocessing of the owning `VerrazzanoBinding`.  This causes any drift in expecting state to immediately
+  be fixed by the Verrazzano Operator.
 
 # Verrazzano Helm Chart
 
-The `chart` directory contains helm chart for Verrazzano that packages together the core elements that will be installed into the Verrazzano Management Cluster - micro operators,
-verrazzano-operator, verrazzano-monitoring-operator, etc - into a single Helm chart.
+The `chart` directory contains helm chart for Verrazzano that packages together the core elements that will be
+installed into the Verrazzano Management Cluster - micro operators, verrazzano-operator,
+verrazzano-monitoring-operator, and so on, into a single Helm chart.
 
 ### Chart helm repos
 
-#### OCI object storage
-https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart
+**NOTE TO AUDITORS - These URLs will change before we go public, we will use GitHug releases to store the binaries**
 
-#### Github repo
 Stable - https://raw.githubusercontent.com/verrazzano/helm-charts/master
 Development/Pre-release - https://raw.githubusercontent.com/verrazzano/helm-charts/devel
 
 ### Chart Parameters
 
-See `./chart/values.yaml` for the full list of configurable parameters that can be set using
+See the [values.yaml](./chart/values.yaml) file for the full list of configurable parameters that can be set using
 `--set parameter=value` when installing the Helm chart.
 
 ### Building chart
-`make chart-build OPERATOR_IMAGE_NAME=$image TAG_NAME=$version` will build the chart archive in `dist` directory. The `OPERATOR_IMAGE_NAME` attribute in `values.yaml` of resulting chart will be replaced with version specified by input `image` and `OPERATOR_VERSION` will be replaced by input `version`.
+
+To build the chart archive in `dist` directory:
+
+```
+make chart-build OPERATOR_IMAGE_NAME=$image TAG_NAME=$version
+```
+
+The `OPERATOR_IMAGE_NAME` attribute in `values.yaml` of resulting chart will be replaced with version specified
+by input `image` and `OPERATOR_VERSION` will be replaced by input `version`.
 
 ### Publishing chart
-`make chart-publish OPERATOR_IMAGE_NAME=$image TAG_NAME=$version` will build the chart and publish to chart repository with operator image name specified by input `image` and tag as `version`.
+To build the chart and publish to the chart repository with operator image name specified by input `image` and tag as `version`:
+
+```
+make chart-publish OPERATOR_IMAGE_NAME=$image TAG_NAME=$version
+```
 
 ## Artifacts
 
-On a successful release (which occurs on a Git tag), this repo 
+On a successful release (which occurs on a Git tag), this repo:
 - publises a Docker image: `container-registry.oracle.com/verrazzano/verrazzano-operator:tag`
-- publishes a new version of Verrazzano-helm-chart at `https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart` and `https://raw.githubusercontent.com/verrazzano/helm-charts/master`
+- publishes a new version of Verrazzano-helm-chart at `https://raw.githubusercontent.com/verrazzano/helm-charts/master`
 
+**NOTE TO AUDITORS - that URL will change to GitHub releases URL**
 
 ## Building
 
-Go build:
-```
-make go-install
-```
+To build the operator:
 
-Docker build:
-```
-export ACCESS_USERNAME=<username with read access to github verrazzano project>
-export ACCESS_PASSWORD=<password for account with read access to github verrazzano project>
-make build
-```
+* Go build:
+    ```
+    make go-install
+    ```
 
-Docker push:
-```
-make push
-```
+* Docker build:
+    ```
+    export ACCESS_USERNAME=<username with read access to github verrazzano project>
+    export ACCESS_PASSWORD=<password for account with read access to github verrazzano project>
+    make build
+    ```
+
+* Docker push:
+    ```
+    make push
+    ```
 
 ## Updating the CRDs
 
-The CRDs are auto generated by the Verrazzano project `verrazzano-crd-generator`.  The steps to include changes made to the yaml files that create the CRDs are:
+The CRDs are auto generated by the Verrazzano project `verrazzano-crd-generator`.  The steps to include
+changes made to the YAML files that create the CRDs are:
 
 * Make the API changes in the `verrazzano-crd-generator` project
-* Tag the master branch of `verrazzano-crd-generator` (e.g. 0.n)
+* Tag the master branch of `verrazzano-crd-generator`, for example `0.n`
 * Edit `go.mod` to use the newly tagged API changes.  For example `github.com/verrazzano/verrazzano-coh-cluster-operator v1.2.0`
-* make go-install
+* Run the make target:
+    ```
+    make go-install
+    ```
 
 ## Running
 
-First, as a one-time operation, create relevant CRDs in the cluster where you'll be running the Verrazzano Operator:
+Create the custom resource definitions in the cluster where you wish to run the Verrazzano Operator.
+This is a one-time operation:
 
 ```
 kubectl apply -f vendor/github.com/verrazzano/verrazzano-crd-generator/deploy/crds/verrazzano_v1beta1_verrazzanomanagedcluster_crd.yaml
@@ -99,8 +116,7 @@ kubectl apply -f vendor/github.com/verrazzano/verrazzano-crd-generator/deploy/cr
 
 ### Running locally
 
-While developing, it's usually most efficient to run the Verrazzano Operator as an out-of-cluster process,
-pointing it to your Kubernetes cluster:
+The Verrazzano Operator can be run as an out-of-cluster process during development:
 
 ```
 export KUBECONFIG=<your_kubeconfig>
@@ -109,21 +125,23 @@ make go-run
 
 ### Running in a Kubernetes Cluster
 
+To deploy the Verrazzano Operator to a Kubernetes cluster:
+
 ```
 kubectl apply -f ./k8s/manifests/verrazzano-operator-serviceaccount.yaml
 kubectl apply -f ./k8s/manifests/verrazzano-operator-deployment.yaml
 ```
 
-**Note:** - if you don't intend to use the latest official Docker image, fill in your own Docker image in
-`verrazzano-operator-deployment.yaml` above.
+**Note** If you want to use your own Docker image, update the image in the
+`verrazzano-operator-deployment.yaml` file first.
 
 ## Demo
 
-First, install the Verrazzano Operator using one of the approaches above.  Now, make it aware of 2 Managed Clusters (you
-can set these to be same as the cluster running the Super Domain Operator if you are short on clusters:
+Install the Verrazzano Operator using one of the alterantives above.  Make sure there are two Managed Clusters
+(these can be all set to be same as the cluster running the Verrazzano Operator if desired):
 
 ```
-# For now, make sure that your kubeconfig files are literally called "kubeconfig"
+# Your kubeconfig files should literally be called "kubeconfig"
 export MANAGED1_KUBECONFIG=<my_kubeconfig1>
 export MANAGED2_KUBECONFIG=<my_kubeconfig2>
 
@@ -136,12 +154,12 @@ kubectl create secret generic managed-cluster2 --from-file=$MANAGED2_KUBECONFIG
 kubectl apply -f k8s/examples/managed-cluster2.yaml
 ```
 
-Then create a VerrazzanoBinding:
+Create a `VerrazzanoBinding`:
 ```
 kubectl apply -f k8s/examples/app-binding.yaml
 ```
 
-And view the artifacts that have been created in Managed Cluster1:
+View the artifacts that have been created in Managed Cluster1:
 
 ```
 kubectl get pod,serviceaccounts --all-namespaces -l 'k8s-app=verrazzano.io'
@@ -189,3 +207,41 @@ To run integration tests:
 ```
 make integ-test
 ```
+
+## Contributing to Verrazzano
+
+Oracle welcomes contributions to this project from anyone.  Contributions may be reporting an issue with the operator or submitting a pull request.  Before embarking on significant development that may result in a large pull request, it is recommended that you create an issue and discuss the proposed changes with the existing developers first.
+
+If you want to submit a pull request to fix a bug or enhance an existing feature, please first open an issue and link to that issue when you submit your pull request.
+
+If you have any questions about a possible submission, feel free to open an issue too.
+
+## Contributing to the Oracle WebLogic Server Kubernetes Operator repository
+
+Pull requests can be made under The Oracle Contributor Agreement (OCA), which is available at [https://www.oracle.com/technetwork/community/oca-486395.html](https://www.oracle.com/technetwork/community/oca-486395.html).
+
+For pull requests to be accepted, the bottom of the commit message must have the following line, using the contributor’s name and e-mail address as it appears in the OCA Signatories list.
+
+```
+Signed-off-by: Your Name <you@example.org>
+```
+
+This can be automatically added to pull requests by committing with:
+
+```
+git commit --signoff
+```
+
+Only pull requests from committers that can be verified as having signed the OCA can be accepted.
+
+## Pull request process
+
+*	Fork the repository.
+*	Create a branch in your fork to implement the changes. We recommend using the issue number as part of your branch name, for example, `1234-fixes`.
+*	Ensure that any documentation is updated with the changes that are required by your fix.
+*	Ensure that any samples are updated if the base image has been changed.
+*	Submit the pull request. Do not leave the pull request blank. Explain exactly what your changes are meant to do and provide simple steps on how to validate your changes. Ensure that you reference the issue you created as well. We will assign the pull request to 2-3 people for review before it is merged.
+
+## Introducing a new dependency
+
+Please be aware that pull requests that seek to introduce a new dependency will be subject to additional review.  In general, contributors should avoid dependencies with incompatible licenses, and should try to use recent versions of dependencies.  Standard security vulnerability checklists will be consulted before accepting a new dependency.  Dependencies on closed-source code, including WebLogic Server, will most likely be rejected.
