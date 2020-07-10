@@ -25,7 +25,7 @@ func CreateFluentdConfigMap(app *v1beta1v8o.VerrazzanoHelidon, namespace string,
 <source>
   @type tail
   path "/var/log/containers/#{ENV['APPLICATION_NAME']}*#{ENV['APPLICATION_NAME']}*.log"
-  pos_file /tmp/#{ENV['APPLICATION_NAME']}.log.pos
+  pos_file "/tmp/#{ENV['APPLICATION_NAME']}.log.pos"
   read_from_head true
   tag "#{ENV['APPLICATION_NAME']}"
   format json

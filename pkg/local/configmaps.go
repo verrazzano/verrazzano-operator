@@ -88,12 +88,12 @@ func DeleteConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 
 // Constructs the necessary ConfigMaps for the given VerrazzanoBinding
 func newConfigMap(binding *v1beta1v8o.VerrazzanoBinding) (*corev1.ConfigMap, error) {
-	labels := util.GetLocalBindingLabels(binding)
+	bindingLabels := util.GetLocalBindingLabels(binding)
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      util.GetVmiNameForBinding(binding.Name) + "-dashboards",
 			Namespace: constants.VerrazzanoNamespace,
-			Labels:    labels,
+			Labels:    bindingLabels,
 		},
 		Data: map[string]string{},
 	}
