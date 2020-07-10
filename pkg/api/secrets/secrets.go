@@ -118,7 +118,7 @@ func refreshSecrets() {
 		return
 	}
 
-	// Loop thru the list of models and get all secrets specified in the model
+	// Loop thru the list of bindings and get all secrets specified in the model
 	for _, binding := range bindings {
 		var secretNames []string
 
