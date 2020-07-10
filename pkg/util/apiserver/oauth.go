@@ -5,9 +5,11 @@ package apiserver
 
 import (
 	"context"
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -15,15 +17,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/constants"
-	"github.com/verrazzano/verrazzano-operator/pkg/controller"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"gopkg.in/square/go-jose.v2"
 
-	"github.com/dgrijalva/jwt-go"
-	jwtreq "github.com/dgrijalva/jwt-go/request"
 	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/api/instance"
+	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano-operator/pkg/controller"
+	"gopkg.in/square/go-jose.v2/jwt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/hashicorp/go-retryablehttp"
 )
@@ -47,34 +49,31 @@ func SetRealm(realm string) {
 	} else {
 		keyRepo = nil
 	}
-	jwt.TimeFunc = func() time.Time {
-		return time.Now().Add(time.Second)
-	}
 }
 
 //context property name
 const BearerToken = "BearerToken"
 
-var parser = jwt.Parser{ValidMethods: []string{"RS256"}}
-
-var parserOpt = jwtreq.WithParser(&parser)
-
 func AuthHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var keyFunc jwt.Keyfunc = nil
 		var err error
-		//Getting public key from KeyCloak
+		auth, err := getAuthBearer(r)
 		if keyRepo != nil {
-			keyFunc, err = keyRepo.KeyFunc()
 			if err != nil {
+				errMsg := fmt.Sprintf("Error getting Authorization Header: %v", err)
+				glog.Error(errMsg)
+				InvalidTokenError(w, err.Error())
+				return
+			}
+			//Getting public key from KeyCloak
+			ok, err := keyRepo.GetPublicKeys()
+			if !ok || err != nil {
 				errMsg := fmt.Sprintf("Error getting public key from KeyCloak: %v", err)
 				glog.Error(errMsg)
 				InternalServerError(w, errMsg)
 				return
 			}
-		}
-		token, err := jwtreq.ParseFromRequest(r, jwtreq.AuthorizationHeaderExtractor, keyFunc, parserOpt)
-		if keyRepo != nil {
+			token, err := verifyJsonWebToken(auth)
 			if err != nil {
 				glog.V(5).Infof("%v error verifying token: %v", r.URL.Path, err)
 				InvalidTokenError(w, err.Error())
@@ -106,7 +105,8 @@ type JsonWebKey struct {
 }
 
 type KeyRepo interface {
-	KeyFunc() (jwt.Keyfunc, error)
+	GetPublicKey(kid string) (*rsa.PublicKey, error)
+	GetPublicKeys() (bool, error)
 }
 
 type KeyCloak struct {
@@ -124,29 +124,46 @@ const certTemp = `
 %v
 -----END CERTIFICATE-----`
 
-func (kc *KeyCloak) KeyFunc() (jwt.Keyfunc, error) {
+func (kc *KeyCloak) GetPublicKeys() (bool, error) {
 	if kc.keyCache == nil {
-		kc.keyCache = make(map[string]*JsonWebKey)
-	}
-	return func(token *jwt.Token) (interface{}, error) {
-		kid := token.Header["kid"]
-		key := kc.keyCache[kid.(string)]
-		if key == nil {
-			errMsg := "Public Key not found"
-			err := kc.refreshKeyCache()
-			if err != nil {
-				errMsg = err.Error()
-			}
-			if err != nil || kc.keyCache == nil || len(kc.keyCache) == 0 {
-				return nil, errors.New(errMsg)
-			}
-			key = kc.keyCache[kid.(string)]
-			if key == nil {
-				return nil, errors.New(errMsg)
-			}
+		err := kc.refreshKeyCache()
+		if err != nil {
+			return false, err
 		}
-		return jwt.ParseRSAPublicKeyFromPEM([]byte(fmt.Sprintf(certTemp, key.CertificateChain[0])))
-	}, nil
+	}
+	return true, nil
+}
+
+func (kc *KeyCloak) GetPublicKey(kid string) (*rsa.PublicKey, error) {
+	key := kc.keyCache[kid]
+	if key == nil {
+		errMsg := "Public Key not found"
+		err := kc.refreshKeyCache()
+		if err != nil {
+			errMsg = err.Error()
+		}
+		if err != nil || len(kc.keyCache) == 0 {
+			return nil, errors.New(errMsg)
+		}
+		key = kc.keyCache[kid]
+		if key == nil || key.CertificateChain == nil || len(key.CertificateChain) == 0 {
+			return nil, errors.New(errMsg)
+		}
+	}
+	block, _ := pem.Decode([]byte(fmt.Sprintf(certTemp, key.CertificateChain[0])))
+	if block == nil {
+		return nil, errors.New("Invalid public key: key must be PEM encoded")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err == nil {
+		publicKey, ok := cert.PublicKey.(*rsa.PublicKey)
+		if !ok {
+			return nil, errors.New(fmt.Sprintf("Invalid public key: %T is not a valid RSA public key",cert.PublicKey))
+		}
+		return publicKey, nil
+	} else {
+		return nil, err
+	}
 }
 
 const certsUrl = "%v/auth/realms/%v/protocol/openid-connect/certs"
@@ -187,7 +204,7 @@ func (kc *KeyCloak) getPublicKeys() (*PublicKeys, error) {
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return &PublicKeys{}, err
+		return nil, err
 	}
 	var publicKeys PublicKeys
 	err = json.Unmarshal(body, &publicKeys)
@@ -244,4 +261,57 @@ func rootCertPool(caData []byte) *x509.CertPool {
 	certPool := x509.NewCertPool()
 	certPool.AppendCertsFromPEM(caData)
 	return certPool
+}
+
+func getAuthBearer(r *http.Request) (string, error) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		return "", errors.New("Authorization header with Bearer {token} is required")
+	}
+	return getBearerToken(authHeader)
+}
+
+func getBearerToken(authHeader string) (string, error) {
+	authHeaderParts := strings.Fields(authHeader)
+	if len(authHeaderParts) != 2 || !strings.EqualFold(authHeaderParts[0], "Bearer") {
+		return "", errors.New("Authorization header format must be Bearer {token}")
+	}
+	return authHeaderParts[1], nil
+}
+
+var validSigningAlgorithms = []string{"RS256", "RS512"}
+
+func validateSigningAlgorithm(algorithm string) bool {
+	for _, alg := range validSigningAlgorithms {
+		if algorithm == alg {
+			return true
+		}
+	}
+	return false
+}
+
+func verifyJsonWebToken(auth string) (*jwt.JSONWebToken, error) {
+	joseToken, err := jwt.ParseSigned(auth)
+	if err != nil {
+		return nil, err
+	}
+	var header *jose.Header = nil
+	if joseToken != nil && joseToken.Headers != nil {
+		for _, jhr := range joseToken.Headers {
+			if !validateSigningAlgorithm(jhr.Algorithm) {
+				return nil, errors.New(fmt.Sprintf("Invalid signing algorithm %s", jhr.Algorithm))
+			}
+			header = &jhr
+		}
+	}
+	if header == nil {
+		return nil, errors.New("Invalid JSONWebToken headers")
+	}
+	publicKey, err := keyRepo.GetPublicKey(header.KeyID)
+	var claims jwt.Claims
+	err = joseToken.Claims(publicKey, &claims)
+	if err == nil {
+		err = claims.Validate(jwt.Expected{Time: time.Now()})
+	}
+	return joseToken, err
 }
