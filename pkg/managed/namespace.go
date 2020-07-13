@@ -228,20 +228,20 @@ func newNamespaces(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.
 			ObjectMeta: metav1.ObjectMeta{
 				Name: namespace,
 				Labels: func() map[string]string {
-					var labels map[string]string
+					var bindingLabels map[string]string
 					// Don't add the binding label for the namespace used by the verrazzano system.
 					// This namespace is common across model/binding pairs.
 					if util.GetManagedClusterNamespaceForSystem() == namespace {
-						labels = util.GetManagedLabelsNoBinding(managedCluster.Name)
+						bindingLabels = util.GetManagedLabelsNoBinding(managedCluster.Name)
 					} else {
-						labels = util.GetManagedBindingLabels(binding, managedCluster.Name)
+						bindingLabels = util.GetManagedBindingLabels(binding, managedCluster.Name)
 					}
 					// Don't enable istio for namespaces used for the verrazzano system namespace, the monitoring
 					// namespace, and the logging namespace.
 					if util.GetManagedClusterNamespaceForSystem() != namespace && namespace != constants.MonitoringNamespace && namespace != constants.LoggingNamespace {
-						labels["istio-injection"] = "enabled"
+						bindingLabels["istio-injection"] = "enabled"
 					}
-					return labels
+					return bindingLabels
 				}(),
 			},
 			Spec: corev1.NamespaceSpec{

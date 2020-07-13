@@ -13,11 +13,13 @@ import (
 	"testing"
 	"time"
 
+	"gopkg.in/square/go-jose.v2"
+
 	"github.com/stretchr/testify/assert"
 
 	"crypto/rand"
 
-	"github.com/dgrijalva/jwt-go"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 type HandlerMock struct {
@@ -71,14 +73,16 @@ type KeyRepoMock struct {
 	err error
 }
 
-func (mock *KeyRepoMock) KeyFunc() (jwt.Keyfunc, error) {
-	return func(token *jwt.Token) (interface{}, error) {
-		return mock.key.Public(), mock.err
-	}, mock.err
+func (mock *KeyRepoMock) GetPublicKey(kid string) (*rsa.PublicKey, error) {
+	pk := mock.key.Public()
+	publicKey, ok := pk.(*rsa.PublicKey)
+	if !ok {
+		return nil, errors.New("Invalid public key")
+	}
+	return publicKey, mock.err
 }
-
-func (mock *KeyRepoMock) CertFunc() (jwt.Keyfunc, error) {
-	return mock.KeyFunc()
+func (mock *KeyRepoMock) GetPublicKeys() (bool, error) {
+	return (mock.err == nil), mock.err
 }
 
 func (mock *KeyRepoMock) genToken(user string) (string, error) {
@@ -93,22 +97,34 @@ func (mock *KeyRepoMock) expiredToken(user string) (string, error) {
 
 type Claims struct {
 	PreferredUsername string `json:"preferred_username"`
-	jwt.StandardClaims
+	Expiry            int64  `json:"exp,omitempty"`
 }
 
 func genToken(user string, expirationTime time.Time, key *rsa.PrivateKey) (string, error) {
-	return sign(user, expirationTime, key, jwt.SigningMethodRS256)
+	return sign(user, expirationTime, key, jose.RS256)
 }
 
-func sign(user string, expirationTime time.Time, key *rsa.PrivateKey, method jwt.SigningMethod) (string, error) {
-	claims := &Claims{
-		PreferredUsername: user,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-		},
+func sign(user string, expirationTime time.Time, key *rsa.PrivateKey, algorithm jose.SignatureAlgorithm) (string, error) {
+	var signingKey interface{}
+	if algorithm == jose.RS256 || algorithm == jose.RS384 || algorithm == jose.RS512 {
+		signingKey = key
+	} else {
+		signingKey = []byte("signingKey")
 	}
-	token := jwt.NewWithClaims(method, claims)
-	return token.SignedString(key)
+	sig := jose.SigningKey{
+		Algorithm: algorithm,
+		Key:       signingKey,
+	}
+	signer, err := jose.NewSigner(sig, &jose.SignerOptions{})
+	if err != nil {
+		return "", err
+	}
+	builder := jwt.Signed(signer)
+	claims := Claims{
+		PreferredUsername: user,
+		Expiry:            expirationTime.Unix(),
+	}
+	return builder.Claims(claims).CompactSerialize()
 }
 
 func TestNoBearerToken(t *testing.T) {
@@ -163,7 +179,7 @@ func TestInvalidBearerToken(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %v", expiredToken)},
 	}
 	authHandler.ServeHTTP(&res, &req)
-	assertError(t, &res, 404, "TokenExpired", "Token is expired")
+	assertError(t, &res, 404, "TokenExpired", "token is expired")
 	mockHandler.assertNotCalled(t)
 }
 
@@ -177,23 +193,23 @@ func TestSigningMethods(t *testing.T) {
 	keyRepoMock := &KeyRepoMock{key: key}
 	keyRepo = keyRepoMock
 
-	wrongAlg, _ := sign("x", time.Now().Add(5*time.Minute), keyRepoMock.key, jwt.SigningMethodHS256)
+	wrongAlg, _ := sign("x", time.Now().Add(5*time.Minute), keyRepoMock.key, jose.HS256)
 	req.Header = map[string][]string{
 		"Authorization": {fmt.Sprintf("Bearer %v", wrongAlg)},
 	}
 	authHandler.ServeHTTP(&res, &req)
-	assertError(t, &res, 404, "NotAuthorizedOrNotFound", "")
+	assertError(t, &res, 404, "NotAuthorizedOrNotFound", "algorithm")
 	mockHandler.assertNotCalled(t)
 
-	wrongAlg, _ = sign("y", time.Now().Add(5*time.Minute), keyRepoMock.key, jwt.SigningMethodES256)
+	wrongAlg, _ = sign("y", time.Now().Add(5*time.Minute), keyRepoMock.key, jose.RS384)
 	req.Header = map[string][]string{
 		"Authorization": {fmt.Sprintf("Bearer %v", wrongAlg)},
 	}
 	authHandler.ServeHTTP(&res, &req)
-	assertError(t, &res, 404, "NotAuthorizedOrNotFound", "")
+	assertError(t, &res, 404, "NotAuthorizedOrNotFound", "algorithm")
 	mockHandler.assertNotCalled(t)
 
-	goodToken, _ := sign("foo", time.Now().Add(5*time.Minute), keyRepoMock.key, jwt.SigningMethodRS256)
+	goodToken, _ := sign("foo", time.Now().Add(5*time.Minute), keyRepoMock.key, jose.RS512)
 	req.Header = map[string][]string{
 		"Authorization": {fmt.Sprintf("Bearer %v", goodToken)},
 	}
@@ -273,4 +289,20 @@ func assertError(t *testing.T, res *ResponseMock, status int, code, message stri
 		assert.Equal(t, code, err.Code, "Expected ErrorCode")
 		assert.Contains(t, err.Message, message)
 	}
+}
+
+func TestVerifyJsonWebToken(t *testing.T) {
+	key, _ := rsa.GenerateKey(rand.Reader, 1024)
+	keyRepoMock := &KeyRepoMock{key: key}
+	keyRepo = keyRepoMock
+	goodToken, _ := keyRepoMock.genToken("goodJWT")
+	token, err := verifyJsonWebToken(goodToken)
+	assert.NotNil(t, token, "Expected good JWT")
+	assert.Nil(t, err)
+
+	expiredToken, _ := keyRepoMock.expiredToken("expiredToken")
+	token, err = verifyJsonWebToken(expiredToken)
+	assert.NotNil(t, token, "Expiredd JWT")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "expired")
 }

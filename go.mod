@@ -2,13 +2,13 @@ module github.com/verrazzano/verrazzano-operator
 
 require (
 	github.com/Jeffail/gabs/v2 v2.3.0
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/gorilla/mux v1.7.3
 	github.com/hashicorp/go-retryablehttp v0.6.6
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible // indirect
 	github.com/kylelemons/godebug v1.1.0
 	github.com/spf13/pflag v1.0.5
+	github.com/square/go-jose v2.5.1+incompatible // indirect
 	github.com/stretchr/testify v1.5.1
 	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.7
 	github.com/verrazzano/verrazzano-crd-generator v0.3.29
@@ -16,6 +16,7 @@ require (
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.16
 	github.com/verrazzano/verrazzano-wko-operator v0.0.6
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.2.8
 	istio.io/api v0.0.0-20200629210345-933b83065c19
 	istio.io/client-go v0.0.0-20200630182733-fd3f873f3f52

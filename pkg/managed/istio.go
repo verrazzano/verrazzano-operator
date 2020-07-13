@@ -613,7 +613,7 @@ func addMatch(matches []istiocrd.MatchRequest, key, value string) []istiocrd.Mat
 // Construct the necessary ServiceEntry objects
 func newServiceEntries(mbPair *types.ModelBindingPair, mc *types.ManagedCluster, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) []*istiocrd.ServiceEntry {
 
-	labels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
+	bindingLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
 	var serviceEntries []*istiocrd.ServiceEntry
 
 	for namespace, rests := range mc.RemoteRests {
@@ -625,7 +625,7 @@ func newServiceEntries(mbPair *types.ModelBindingPair, mc *types.ManagedCluster,
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      rest.Name,
 					Namespace: namespace,
-					Labels:    labels,
+					Labels:    bindingLabels,
 				},
 				Spec: istio.ServiceEntry{
 					Hosts: []string{
