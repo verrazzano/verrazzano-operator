@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -25,6 +26,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
+
+const PrometheusPodPrefix  = "prometheus-"
+const IstioSystemNamespace = "istio-system"
 
 func CreateIngresses(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 
@@ -707,37 +711,34 @@ func newAuthorizationPolicies(mbPair *types.ModelBindingPair, mc *types.ManagedC
 	componentNameSpaces := make(map[string]string)
 	// map of namespaces to set of connected component namespaces
 	namespaceSources := make(map[string]map[string]struct{})
-	// map of namespaces to set of Coherence components
-	cohComponents := make(map[string]map[string]struct{})
 
 	// map all of the model components to their namespaces
 	mapComponentNamespaces(mbPair, componentNameSpaces, namespaceSources)
 
-	// map the connected namespace sources and Coherence components for each weblogic component
+	// map the connected namespace sources for each Weblogic component
 	for _, weblogic := range mbPair.Model.Spec.WeblogicDomains {
-		mapNamespaceSources(weblogic.Name, weblogic.Connections, componentNameSpaces, namespaceSources, cohComponents)
+		mapNamespaceSources(weblogic.Name, weblogic.Connections, componentNameSpaces, namespaceSources)
 	}
 
-	// map the connected namespace sources and Coherence components for each helidon component
+	// map the connected namespace sources for each Helidon component
 	for _, helidon := range mbPair.Model.Spec.HelidonApplications {
-		mapNamespaceSources(helidon.Name, helidon.Connections, componentNameSpaces, namespaceSources, cohComponents)
-	}
-
-	// map the connected namespace sources and Coherence components for each helidon component
-	for _, helidon := range mbPair.Model.Spec.HelidonApplications {
-		mapNamespaceSources(helidon.Name, helidon.Connections, componentNameSpaces, namespaceSources, cohComponents)
+		mapNamespaceSources(helidon.Name, helidon.Connections, componentNameSpaces, namespaceSources)
 	}
 
 	// create an authorization policy for each binding namespace in the given cluster
 	for _, ns := range mc.Namespaces {
 		if namespaceSources[ns] != nil {
-			// get the ips for all the Coherence pods connected to this namespace
-			podIPs := getCoherencePodIps(ns, pods, cohComponents)
+			// get the ips for all the pods connected to this namespace
+			podIPs := getIpsOfNamespacePods(ns, pods)
+			systemPrometheusPodIp := getIpOfSystemPrometheusPod(pods)
+			if systemPrometheusPodIp != "" {
+				podIPs = append(podIPs, systemPrometheusPodIp)
+			}
 			// allow traffic from any of the binding namespaces that are connected to components in this namespace
 			fromRules := []*istiosecv1beta1.Rule_From{
 				{
 					Source: &istiosecv1beta1.Source{
-						Namespaces: append(GetNamespaceValues(namespaceSources, ns), "istio-system"),
+						Namespaces: append(GetNamespaceValues(namespaceSources, ns), IstioSystemNamespace),
 					},
 				},
 			}
@@ -781,8 +782,7 @@ func mapComponentNamespaces(mbPair *types.ModelBindingPair, componentNameSpaces 
 }
 
 // map the connected namespace sources for the given component connections
-func mapNamespaceSources(componentName string, connections []v1beta1v8o.VerrazzanoConnections, componentNameSpaces map[string]string,
-	namespaceSources map[string]map[string]struct{}, cohComponents map[string]map[string]struct{}) {
+func mapNamespaceSources(componentName string, connections []v1beta1v8o.VerrazzanoConnections, componentNameSpaces map[string]string, namespaceSources map[string]map[string]struct{}) {
 
 	ns := componentNameSpaces[componentName]
 	for _, connection := range connections {
@@ -790,28 +790,28 @@ func mapNamespaceSources(componentName string, connections []v1beta1v8o.Verrazza
 			// add the component namespace to the set of namespaces allowed to access components in the connection target namespace
 			AddToNamespace(namespaceSources, componentNameSpaces[rest.Target], ns)
 		}
-		for _, coherence := range connection.Coherence {
-			// add the given component and the target component to the set of Coherence components
-			AddToNamespace(cohComponents, ns, coherence.Target)
-			AddToNamespace(cohComponents, ns, componentName)
-		}
 	}
 }
 
-// from the given pods get the ips for all pods that will be part of a Coherence cluster
-func getCoherencePodIps(ns string, pods []*v1.Pod, cohComponents map[string]map[string]struct{}) []string {
+// Get the IP addresses of all pods in the provided namespace
+func getIpsOfNamespacePods(ns string, pods []*v1.Pod) []string {
 	var podIPs []string
 	for _, pod := range pods {
-		// if the pod is a component that has a Coherence connection or is a Coherence storage pod
-		if (ns == pod.Namespace && NamespaceContainsValue(cohComponents, ns, pod.Labels["app"])) ||
-			(pod.Labels["coherenceRole"] == "storage" && NamespaceContainsValue(cohComponents, ns, pod.Labels["coherenceCluster"])) {
-
-			if pod.Status.PodIP != "" {
-				podIPs = append(podIPs, pod.Status.PodIP)
-			}
+		if pod.Status.PodIP != "" && ns == pod.Namespace {
+			podIPs = append(podIPs, pod.Status.PodIP)
 		}
 	}
 	return podIPs
+}
+
+func getIpOfSystemPrometheusPod(pods []*v1.Pod) string {
+	for _, pod := range pods {
+		if pod.Namespace == IstioSystemNamespace && strings.HasPrefix(pod.Name, PrometheusPodPrefix) {
+			return pod.Status.PodIP
+		}
+	}
+	glog.Errorf("Unable to obtain IP address of System Prometheus Pod for authorization policy")
+	return ""
 }
 
 // Add a value to a set for a given namespace map
@@ -858,7 +858,7 @@ func getIstioGateways(mbPair *types.ModelBindingPair, availableManagedClusterCon
 		defer managedClusterConnection.Lock.RUnlock()
 
 		glog.V(6).Infof("Getting istio-ingressgateway address in cluster %s", remoteClusterName)
-		service, err := managedClusterConnection.KubeClient.CoreV1().Services("istio-system").Get(context.TODO(), "istio-ingressgateway", metav1.GetOptions{})
+		service, err := managedClusterConnection.KubeClient.CoreV1().Services(IstioSystemNamespace).Get(context.TODO(), "istio-ingressgateway", metav1.GetOptions{})
 
 		if err != nil || service == nil {
 			glog.Errorf("failed to get istio-ingressgateway service for cluster %s, %v", remoteClusterName, err)
