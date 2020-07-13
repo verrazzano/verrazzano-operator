@@ -5751,20 +5751,6 @@ github.com/spf13/cobra
 // Copyright 2016 French Ben. All rights reserved.
 
 -------- Dependency
-github.com/square/go-jose
--------- Copyrights
- * Copyright 2014 Square Inc.
- * Copyright 2018 Square Inc.
-Copyright (c) 2012 The Go Authors. All rights reserved.
-// Copyright 2011 The Go Authors.  All rights reserved.
-// Copyright 2010 The Go Authors. All rights reserved.
-// Copyright 2010 The Go Authors.  All rights reserved.
-// Copyright 2011 The Go Authors. All rights reserved.
- * Copyright 2017 Square Inc.
- * Copyright 2016 Zbigniew Mandziejewicz
- * Copyright 2016 Square, Inc.
-
--------- Dependency
 github.com/thanos-io/thanos
 -------- Copyrights
 // Copyright 2016 The Prometheus Authors
@@ -8073,7 +8059,6 @@ github.com/sergi/go-diff
 github.com/soheilhy/cmux
 github.com/spf13/afero
 github.com/spf13/cobra
-github.com/square/go-jose
 github.com/thanos-io/thanos
 github.com/uber/jaeger-client-go
 github.com/uber/jaeger-lib
@@ -11207,14 +11192,8 @@ github.com/go-bindata/go-bindata/v3
 -------- Copyrights
 	return fmt.Sprintf("%s %d.%d.%s (Go runtime %s).\nCopyright (c) 2010-2013, Jim Teeuwen.",
 
--------- Dependency
-github.com/jteeuwen/go-bindata
--------- Copyrights
-	return fmt.Sprintf("%s %d.%d.%s (Go runtime %s).\nCopyright (c) 2010-2013, Jim Teeuwen.",
-
 ======== Dependencies Summary
 github.com/go-bindata/go-bindata/v3
-github.com/jteeuwen/go-bindata
 
 ======== License used by Dependencies
 This work is subject to the CC0 1.0 Universal (CC0 1.0) Public Domain Dedication
@@ -11367,4 +11346,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: acd48addf4dbb9d877108eeeac4e41a6
+License file based on go.mod with md5 sum: 6bcd4f64ab6a16ebcff449b5c4fb29fb
