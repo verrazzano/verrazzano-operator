@@ -6,10 +6,10 @@ This page describes the desired logic for the SDO.
 
 ## Triggers/Inputs
 
-As stated in the [README](README.md), SDO watches `TiburonApplicationBinding` CR's in
+As stated in the [README](README.md), SDO watches `VerrazzanoApplicationBinding` CR's in
 the management cluster.  This CRD has the following structure:
 
-### TiburonApplicationBinding
+### VerrazzanoApplicationBinding
 
 This CRD is used to describe a "binding".  A binding provides environment/instance-specific
 information about an application, i.e. information that would be different in each 
@@ -17,7 +17,7 @@ deployment/instance.  A good example would be credentials and URLs used to conne
 database.  Bindings refer to (and extend) "models" (see below).
 
 ```
-TiburonApplicationBinding
+VerrazzanoApplicationBinding
     name                       the name of the binding
     version                    the version of the binding
     descripiton                a description of the binding
@@ -88,7 +88,7 @@ TiburonApplicationBinding
 
 Note: A hyphen prefix denotes an optional element.
 
-Here is an example of a `TiburonApplicationBinding`:
+Here is an example of a `VerrazzanoApplicationBinding`:
 
 ```yaml
 name: "Bob's Books Test Environment"
@@ -143,7 +143,7 @@ placement:
 ```
 
 
-### TiburonApplicationModel
+### VerrazzanoApplicationModel
 
 This CRD describes an "application" which is made up of several components.  Components
 may be WebLogic domains, Coherence clusters, Helidon microservices, or other generic 
@@ -154,10 +154,10 @@ always talks to database Y, not matter how many times this application is deploy
 In a particular instance/deployment of the application, e.g. the "test" instance, there 
 may be different credentials to access database Y, but X always talks to Y.
 
-Here is the structure of the `TiburonApplicationModel`:
+Here is the structure of the `VerrazzanoApplicationModel`:
 
 ```
-TiburonApplicationModel
+VerrazzanoApplicationModel
     name                                        the name of the model
     version                                     the version of the model
     description                                 a description of the model
@@ -313,7 +313,7 @@ TiburonApplicationModel
         -logging                                See definition weblogicDomains
 ```
 
-Here is an example `TiburonApplicationModel`:
+Here is an example `VerrazzanoApplicationModel`:
 
 ```yaml
 name: "Bob's Books"
