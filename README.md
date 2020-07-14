@@ -32,17 +32,10 @@ be fixed by the Verrazzano Operator.
 The `chart` directory contains helm chart for Verrazzano that packages together the core elements that will be installed into the Verrazzano Management Cluster - micro operators,
 verrazzano-operator, verrazzano-monitoring-operator, etc - into a single Helm chart.
 
-### Chart helm repos
-
-#### OCI object storage
+### Chart helm repo
 https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart
 
-#### Github repo
-Stable - https://raw.githubusercontent.com/verrazzano/helm-charts/master
-Development/Pre-release - https://raw.githubusercontent.com/verrazzano/helm-charts/devel
-
 ### Chart Parameters
-
 See `./chart/values.yaml` for the full list of configurable parameters that can be set using
 `--set parameter=value` when installing the Helm chart.
 
@@ -56,8 +49,7 @@ See `./chart/values.yaml` for the full list of configurable parameters that can 
 
 On a successful release (which occurs on a Git tag), this repo 
 - publises a Docker image: `container-registry.oracle.com/verrazzano/verrazzano-operator:tag`
-- publishes a new version of Verrazzano-helm-chart at `https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart` and `https://raw.githubusercontent.com/verrazzano/helm-charts/master`
-
+- publishes a new version of Verrazzano-helm-chart at `https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart`
 
 ## Building
 
