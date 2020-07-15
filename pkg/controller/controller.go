@@ -523,6 +523,8 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 func (c *Controller) processApplicationModelAdded(cluster interface{}) {
 	model := cluster.(*v1beta1v8o.VerrazzanoModel)
 
+	glog.Infof("Called processApplicationModelAdded for model %s", model.Name)
+
 	if existingModel, ok := c.applicationModels[model.Name]; ok {
 		if existingModel.GetResourceVersion() == model.GetResourceVersion() {
 			glog.V(6).Infof("No changes to the model %s", model.Name)
@@ -542,6 +544,8 @@ func (c *Controller) processApplicationModelAdded(cluster interface{}) {
 func (c *Controller) processApplicationModelDeleted(cluster interface{}) {
 	model := cluster.(*v1beta1v8o.VerrazzanoModel)
 
+	glog.Infof("Called processApplicationModelDeleted for model %s", model.Name)
+
 	if _, ok := c.applicationModels[model.Name]; ok {
 		glog.Infof("Deleting the model %s", model.Name)
 		delete(c.applicationModels, model.Name)
@@ -557,6 +561,8 @@ func getModelBindingPair(c *Controller, binding *v1beta1v8o.VerrazzanoBinding) (
 // Process a change to a VerrazzanoBinding/Sync existing VerrazzanoBinding with cluster state
 func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 	binding := cluster.(*v1beta1v8o.VerrazzanoBinding)
+
+	glog.Infof("Called processApplicationBindingAdded for binding %s", binding.Name)
 
 	// Make sure the namespaces in this binding are unique across all bindings
 	namespaceFound := c.checkNamespacesFound(binding)
@@ -754,6 +760,9 @@ func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 // Process a removal of a VerrazzanoBinding
 func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	binding := cluster.(*v1beta1v8o.VerrazzanoBinding)
+
+	glog.Infof("Called processApplicationBindingDeleted for binding %s", binding.Name)
+
 	if !contains(binding.GetFinalizers(), bindingFinalizer) {
 		glog.Infof("Resources for binding %s already deleted", binding.Name)
 		return
