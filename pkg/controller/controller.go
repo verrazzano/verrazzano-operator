@@ -784,15 +784,7 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 
 	mbPair, mbPairExists := getModelBindingPair(c, binding)
 	if !mbPairExists {
-		// If a model exists for this binding, then create the model/binding pair
-		if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-			glog.Infof("Adding model/binding pair during delete binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-			mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.sslVerify)
-			c.modelBindingPairs[binding.Name] = mbPair
-		} else {
-			glog.Errorf("Model %s not found for binding %s", binding.Spec.ModelName, binding.Name)
-			return
-		}
+		return
 	}
 
 	glog.Infof("Deleting resources for binding %s", binding.Name)
@@ -884,7 +876,7 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 		delete(c.applicationBindings, binding.Name)
 	}
 
-	if _, ok := c.modelBindingPairs[binding.Name]; ok {
+	if mbPairExists {
 		delete(c.modelBindingPairs, binding.Name)
 	}
 
