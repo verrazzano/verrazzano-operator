@@ -574,7 +574,7 @@ func httpRoutes(namespace string, ingress *types.Ingress) []istiocrd.HttpRoute {
 		}
 		routes = append(routes, route)
 
-		// If the destination is a weblogic domain then add a match for the
+		// If the destination is a WebLogic domain then add a match for the
 		// WLS console
 		if len(destination.DomainName) != 0 {
 			routes = append(routes, istiocrd.HttpRoute{
@@ -665,8 +665,8 @@ func newServiceEntries(mbPair *types.ModelBindingPair, mc *types.ManagedCluster,
 
 // Construct the necessary Istio DestinationRule objects
 // Destination rules are created for each namespace named in the binding placement.  Each destination rule enables
-// MTLS for the entire namespace with one exception... MTLS is disabled for traffic on the Weblogic admin port to avoid
-// issues with Weblogic managed server communication with the admin server.
+// MTLS for the entire namespace with one exception... MTLS is disabled for traffic on the WebLogic admin port to avoid
+// issues with WebLogic managed server communication with the admin server.
 func newDestinationRules(mbPair *types.ModelBindingPair, mc *types.ManagedCluster, pods []*v1.Pod) ([]*v1alpha3.DestinationRule, error) {
 	var rules []*v1alpha3.DestinationRule
 	namespaceMap := make(map[string]struct{})
@@ -715,7 +715,7 @@ func newAuthorizationPolicies(mbPair *types.ModelBindingPair, mc *types.ManagedC
 	// map all of the model components to their namespaces
 	mapComponentNamespaces(mbPair, componentNameSpaces, namespaceSources)
 
-	// map the connected namespace sources for each Weblogic component
+	// map the connected namespace sources for each WebLogic component
 	for _, weblogic := range mbPair.Model.Spec.WeblogicDomains {
 		mapNamespaceSources(weblogic.Name, weblogic.Connections, componentNameSpaces, namespaceSources)
 	}
