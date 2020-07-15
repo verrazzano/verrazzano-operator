@@ -538,6 +538,20 @@ func (c *Controller) processApplicationModelAdded(cluster interface{}) {
 
 	// Add or replace the model object
 	c.applicationModels[model.Name] = model
+
+	// During restart of the operator a binding can be added before a model so make sure we create
+	// model/binding pair now.
+	for _, binding := range c.applicationBindings {
+		if mbPair, ok := c.modelBindingPairs[binding.Name]; !ok {
+			if model.Name == binding.Spec.ModelName {
+				glog.Infof("Adding model/binding pair during add model for model %s and binding %s", binding.Spec.ModelName, binding.Name)
+				mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.sslVerify)
+				c.modelBindingPairs[binding.Name] = mbPair
+				break
+			}
+		}
+	}
+
 }
 
 // Process a removal of a VerrazzanoModel
@@ -617,7 +631,7 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 	if !mbPairExists {
 		// If a model exists for this binding, then create the model/binding pair
 		if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-			glog.Infof("Adding new model/binding pair for model %s and binding %s", binding.Spec.ModelName, binding.Name)
+			glog.Infof("Adding new model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
 			mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.sslVerify)
 			c.modelBindingPairs[binding.Name] = mbPair
 			mbPairExists = true
@@ -772,7 +786,7 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	if !mbPairExists {
 		// If a model exists for this binding, then create the model/binding pair
 		if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-			glog.Infof("Adding model/binding pair for model %s and binding %s", binding.Spec.ModelName, binding.Name)
+			glog.Infof("Adding model/binding pair during delete binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
 			mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.sslVerify)
 			c.modelBindingPairs[binding.Name] = mbPair
 		} else {
