@@ -354,27 +354,28 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 		mc.Lock.RLock()
 		defer mc.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name})
-
-		// Domain  Custom Resources
-		if mc.DomainLister != nil {
-			existingDomainList, err := mc.DomainLister.Domains("").List(selector)
+		// Domain Custom Resources
+		existingDomainList, err := mc.DomainClientSet.WeblogicV7().Domains("").List(
+			context.TODO(),
+			metav1.ListOptions{
+				LabelSelector: constants.VerrazzanoBinding + "=" + mbPair.Binding.Name})
+		if err != nil {
+			return err
+		}
+		for _, domain := range existingDomainList.Items {
+			glog.V(4).Infof("Deleting Domain custom resource %s:%s in cluster %s", domain.Namespace, domain.Name, clusterName)
+			err = mc.DomainClientSet.WeblogicV7().Domains(domain.Namespace).Delete(context.TODO(), domain.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
-			for _, domain := range existingDomainList {
-				glog.V(4).Infof("Deleting Domain custom resource %s:%s in cluster %s", domain.Namespace, domain.Name, clusterName)
-				err = mc.DomainClientSet.WeblogicV7().Domains(domain.Namespace).Delete(context.TODO(), domain.Name, metav1.DeleteOptions{})
-				if err != nil {
-					return err
-				}
 
-				err = waitForCRDeletion(mc, "domain", domain.Name, domain.Namespace, clusterName, 2*time.Minute, 2*time.Second)
-				if err != nil {
-					return err
-				}
+			err = waitForCRDeletion(mc, "domain", domain.Name, domain.Namespace, clusterName, 2*time.Minute, 2*time.Second)
+			if err != nil {
+				return err
 			}
 		}
+
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name})
 
 		// WlsOperator Custom Resources
 		existingWlsOprList, err := mc.WlsOperatorLister.WlsOperators("").List(selector)
@@ -413,22 +414,23 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 		}
 
 		// Coherence cluster Custom Resources
-		if mc.CohClusterLister != nil {
-			existingClusterList, err := mc.CohClusterLister.CoherenceClusters("").List(selector)
+		existingClusterList, err := mc.CohClusterClientSet.CoherenceV1().CoherenceClusters("").List(
+			context.TODO(),
+			metav1.ListOptions{
+				LabelSelector: constants.VerrazzanoBinding + "=" + mbPair.Binding.Name})
+		if err != nil {
+			return err
+		}
+		for _, cluster := range existingClusterList.Items {
+			glog.V(4).Infof("Deleting CoherenceCluster custom resource %s:%s in cluster %s", cluster.Namespace, cluster.Name, clusterName)
+			err = mc.CohClusterClientSet.CoherenceV1().CoherenceClusters(cluster.Namespace).Delete(context.TODO(), cluster.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
-			for _, cluster := range existingClusterList {
-				glog.V(4).Infof("Deleting CoherenceCluster custom resource %s:%s in cluster %s", cluster.Namespace, cluster.Name, clusterName)
-				err = mc.CohClusterClientSet.CoherenceV1().CoherenceClusters(cluster.Namespace).Delete(context.TODO(), cluster.Name, metav1.DeleteOptions{})
-				if err != nil {
-					return err
-				}
 
-				err = cleanupCoherenceCustomResources(mc, cluster.Name, cluster.Namespace, clusterName)
-				if err != nil {
-					return err
-				}
+			err = cleanupCoherenceCustomResources(mc, cluster.Name, cluster.Namespace, clusterName)
+			if err != nil {
+				return err
 			}
 		}
 
