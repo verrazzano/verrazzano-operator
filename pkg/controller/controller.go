@@ -797,7 +797,6 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 
 	mbPair, mbPairExists := getModelBindingPair(c, binding)
 	if !mbPairExists {
-		glog.Errorf("Unable to find model %s for binding %s", binding.Spec.ModelName, binding.Name)
 		return
 	}
 
