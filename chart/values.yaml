@@ -41,7 +41,7 @@ monitoringOperator:
   kibanaImage: phx.ocir.io/stevengreenberginc/bfs/kibana:7.6.1-2270f8a-4
   monitoringInstanceApiImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.6
   configReloaderImage: phx.ocir.io/stevengreenberginc/bfs/configmap-reload:0.3-3449794-32
-  nodeExporterImage: phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-1
+  nodeExporterImage: phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-25813b2-6
 
 clusterOperator:
   name: verrazzano-cluster-operator
