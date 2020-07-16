@@ -45,7 +45,7 @@ See `./chart/values.yaml` for the full list of configurable parameters that can 
 ## Artifacts
 
 On a successful release (which occurs on a Git tag), this repo 
-- publises a Docker image: `container-registry.oracle.com/verrazzano/verrazzano-operator:tag`.
+- publishes a Docker image: `container-registry.oracle.com/verrazzano/verrazzano-operator:tag`.
 - publishes a new version of verrazzano-helm-chart.
 
 ## Building
