@@ -355,6 +355,7 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 		defer mc.Lock.RUnlock()
 
 		// Domain Custom Resources
+		// Don't use domain lister since during a restart of the operator the lister may not be available.
 		existingDomainList, err := mc.DomainClientSet.WeblogicV7().Domains("").List(
 			context.TODO(),
 			metav1.ListOptions{
@@ -414,6 +415,7 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 		}
 
 		// Coherence cluster Custom Resources
+		// Don't use Coherence cluster lister since during a restart of the operator the lister may not be available.
 		existingClusterList, err := mc.CohClusterClientSet.CoherenceV1().CoherenceClusters("").List(
 			context.TODO(),
 			metav1.ListOptions{
@@ -563,31 +565,28 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 			}
 		}
 
-		if managedClusterConnection.CohClusterLister != nil {
-			// Make sure the cache is up-to-date before we get the resource list
-			if ok := cache.WaitForCacheSync(stopCh, managedClusterConnection.CohClusterInformer.HasSynced); !ok {
-				glog.V(4).Info("Failed to wait for caches to sync")
-			}
+		// Get list of Coherence Clusters for this cluster and given binding.
+		// Don't use Coherence cluster lister since during a restart of the operator the lister may not be available.
+		existingClusterList, err := managedClusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters("").List(
+			context.TODO(),
+			metav1.ListOptions{
+				LabelSelector: constants.VerrazzanoBinding + "=" + mbPair.Binding.Name})
+		if err != nil {
+			return err
+		}
 
-			// Get list of Coherence Clusters for this cluster and given binding
-			existingCRList, err := managedClusterConnection.CohClusterLister.CoherenceClusters("").List(selector)
-			if err != nil {
-				return err
-			}
+		// Delete any Coherence Clusters not expected on this cluster
+		for _, cohCluster := range existingClusterList.Items {
+			if !containsCohClusterCRs(mc.CohClusterCRs, cohCluster.Name, cohCluster.Namespace) {
+				glog.V(4).Infof("Deleting CoherenceCluster custom resource %s:%s in cluster %s", cohCluster.Namespace, cohCluster.Name, clusterName)
+				err := managedClusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters(cohCluster.Namespace).Delete(context.TODO(), cohCluster.Name, metav1.DeleteOptions{})
+				if err != nil {
+					return err
+				}
 
-			// Delete any Coherence Clusters not expected on this cluster
-			for _, cohCluster := range existingCRList {
-				if !containsCohClusterCRs(mc.CohClusterCRs, cohCluster.Name, cohCluster.Namespace) {
-					glog.V(4).Infof("Deleting CoherenceCluster custom resource %s:%s in cluster %s", cohCluster.Namespace, cohCluster.Name, clusterName)
-					err := managedClusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters(cohCluster.Namespace).Delete(context.TODO(), cohCluster.Name, metav1.DeleteOptions{})
-					if err != nil {
-						return err
-					}
-
-					err = cleanupCoherenceCustomResources(managedClusterConnection, cohCluster.Name, cohCluster.Namespace, clusterName)
-					if err != nil {
-						return err
-					}
+				err = cleanupCoherenceCustomResources(managedClusterConnection, cohCluster.Name, cohCluster.Namespace, clusterName)
+				if err != nil {
+					return err
 				}
 			}
 		}
@@ -619,31 +618,28 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 			}
 		}
 
-		if managedClusterConnection.DomainLister != nil {
-			// Make sure the cache is up-to-date before we get the resource list
-			if ok := cache.WaitForCacheSync(stopCh, managedClusterConnection.DomainInformer.HasSynced); !ok {
-				glog.V(4).Info("Failed to wait for caches to sync")
-			}
+		// Get list of WLS Domains for this cluster and given binding.
+		// Don't use domain lister since during a restart of the operator the lister may not be available.
+		existingDomainList, err := managedClusterConnection.DomainClientSet.WeblogicV7().Domains("").List(
+			context.TODO(),
+			metav1.ListOptions{
+				LabelSelector: constants.VerrazzanoBinding + "=" + mbPair.Binding.Name})
+		if err != nil {
+			return err
+		}
 
-			// Get list of WLS Domains for this cluster and given binding
-			existingCRList, err := managedClusterConnection.DomainLister.Domains("").List(selector)
-			if err != nil {
-				return err
-			}
+		// Delete any WLS Domains not expected on this cluster
+		for _, wlsDomain := range existingDomainList.Items {
+			if !containsWlsDomainCRs(mc.WlsDomainCRs, wlsDomain.Name, wlsDomain.Namespace) {
+				glog.V(4).Infof("Deleting Domain custom resource %s:%s in cluster %s", wlsDomain.Namespace, wlsDomain.Name, clusterName)
+				err := managedClusterConnection.DomainClientSet.WeblogicV7().Domains(wlsDomain.Namespace).Delete(context.TODO(), wlsDomain.Name, metav1.DeleteOptions{})
+				if err != nil {
+					return err
+				}
 
-			// Delete any WLS Domains not expected on this cluster
-			for _, wlsDomain := range existingCRList {
-				if !containsWlsDomainCRs(mc.WlsDomainCRs, wlsDomain.Name, wlsDomain.Namespace) {
-					glog.V(4).Infof("Deleting Domain custom resource %s:%s in cluster %s", wlsDomain.Namespace, wlsDomain.Name, clusterName)
-					err := managedClusterConnection.DomainClientSet.WeblogicV7().Domains(wlsDomain.Namespace).Delete(context.TODO(), wlsDomain.Name, metav1.DeleteOptions{})
-					if err != nil {
-						return err
-					}
-
-					err = waitForCRDeletion(managedClusterConnection, "domain", wlsDomain.Name, wlsDomain.Namespace, clusterName, 2*time.Minute, 2*time.Second)
-					if err != nil {
-						return err
-					}
+				err = waitForCRDeletion(managedClusterConnection, "domain", wlsDomain.Name, wlsDomain.Namespace, clusterName, 2*time.Minute, 2*time.Second)
+				if err != nil {
+					return err
 				}
 			}
 		}
