@@ -6,10 +6,11 @@ package domains
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 )
@@ -158,20 +159,26 @@ func refreshDomains() {
 }
 
 func ReturnAllDomains(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning all domains
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Domains").Str("name", "Return").Logger()
+
 	refreshDomains()
 
-	glog.V(4).Info("GET /domains")
+	logger.Info().Msg("GET /domains")
 
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Domains)), 10))
 	json.NewEncoder(w).Encode(Domains)
 }
 
 func ReturnSingleDomain(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning single domain
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Domains").Str("name", "Return").Logger()
+
 	refreshDomains()
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /domains/" + key)
+	logger.Info().Msg("GET /domains/" + key)
 
 	for _, domains := range Domains {
 		if domains.Id == key {

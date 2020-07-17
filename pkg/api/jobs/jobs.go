@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"net/http"
+	"os"
 	"strconv"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/gorilla/mux"
 )
 
@@ -94,17 +95,23 @@ func Init() {
 }
 
 func ReturnAllJobs(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /jobs")
+	// Create log instance for returning single job
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Jobs").Str("name", "Return").Logger()
+
+	logger.Info().Msg("GET /jobs")
 
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Jobs)), 10))
 	json.NewEncoder(w).Encode(Jobs)
 }
 
 func ReturnSingleJob(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning single job
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Jobs").Str("name", "Return").Logger()
+
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /jobs/" + key)
+	logger.Info().Msg("GET /jobs/" + key)
 
 	for _, jobs := range Jobs {
 		if jobs.Id == key {

@@ -11,10 +11,11 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
@@ -76,16 +77,22 @@ func genPassword(passSize int) string {
 }
 
 func saltedHash(sec *corev1.Secret) *corev1.Secret {
+	// Create log instance for getting salted hash
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secret").Str("name", sec.Name).Logger()
+
 	salt := make([]byte, 16, 16+sha1.Size)
 	io.ReadFull(crand.Reader, salt)
 	pw := sec.Data["password"]
 	sec.Data["salt"] = salt
 	sec.Data["hash"] = pbkdf2.Key(pw, salt, 27500, 64, sha256.New)
-	glog.V(6).Infof("Creating/updating %s secret %s", sec.Namespace, sec.Name)
+	logger.Debug().Msgf("Creating/updating %s secret %s", sec.Namespace, sec.Name)
 	return sec
 }
 
 func CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets Secrets) error {
+	// Create log instance for creating vmi secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Binding").Str("name", binding.Name).Logger()
+
 	vmiSecret, err := secrets.Get(constants.VmiSecretName)
 
 	if vmiSecret == nil {
@@ -115,7 +122,7 @@ func CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets Secrets) er
 	}
 	for _, existingSecret := range existingSecretsList {
 		if !util.Contains(secretNames, existingSecret.Name) {
-			glog.V(4).Infof("Deleting Secret %s", existingSecret.Name)
+			logger.Info().Msgf("Deleting Secret %s", existingSecret.Name)
 			err := secrets.Delete(existingSecret.Namespace, existingSecret.Name)
 			if err != nil {
 				return err
@@ -127,18 +134,21 @@ func CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets Secrets) er
 
 // Create all the secrets needed by Filebeats and Journalbeats in all the managed cluster
 func GetSystemSecrets(sec Secrets) []*corev1.Secret {
+	// Create log instance for getting system secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secrets").Str("name", "Retrieve").Logger()
+
 	var secrets []*corev1.Secret
 	password, err := sec.GetVmiPassword()
 	if err != nil {
-		glog.Errorf("Failed to retrieve secret %v", err)
+		logger.Error().Msgf("Failed to retrieve secret %v", err)
 	}
 	fileabeatSecret, err := createLoggingSecret(constants.LoggingNamespace, constants.FilebeatName, password)
 	if err != nil {
-		glog.V(6).Infof("New logging secret %s is giving error %s", constants.FilebeatName, err)
+		logger.Debug().Msgf("New logging secret %s is giving error %s", constants.FilebeatName, err)
 	}
 	journalbeatSecret, err := createLoggingSecret(constants.LoggingNamespace, constants.JournalbeatName, password)
 	if err != nil {
-		glog.V(6).Infof("New logging secret %s is giving error %s", constants.JournalbeatName, err)
+		logger.Debug().Msgf("New logging secret %s is giving error %s", constants.JournalbeatName, err)
 	}
 	secrets = append(secrets, fileabeatSecret, journalbeatSecret)
 	return secrets

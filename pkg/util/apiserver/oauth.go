@@ -14,12 +14,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"gopkg.in/square/go-jose.v2"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/verrazzano/verrazzano-operator/pkg/api/instance"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
@@ -55,13 +56,16 @@ func SetRealm(realm string) {
 const BearerToken = "BearerToken"
 
 func AuthHandler(h http.Handler) http.Handler {
+	// Create log instance for getting authentication handler
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "AuthHandler").Str("name", "Receive").Logger()
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var err error
 		auth, err := getAuthBearer(r)
 		if keyRepo != nil {
 			if err != nil {
 				errMsg := fmt.Sprintf("Error getting Authorization Header: %v", err)
-				glog.Error(errMsg)
+				logger.Error().Msg(errMsg)
 				InvalidTokenError(w, err.Error())
 				return
 			}
@@ -69,19 +73,19 @@ func AuthHandler(h http.Handler) http.Handler {
 			ok, err := keyRepo.GetPublicKeys()
 			if !ok || err != nil {
 				errMsg := fmt.Sprintf("Error getting public key from KeyCloak: %v", err)
-				glog.Error(errMsg)
+				logger.Error().Msg(errMsg)
 				InternalServerError(w, errMsg)
 				return
 			}
 			token, err := verifyJsonWebToken(auth)
 			if err != nil {
-				glog.V(5).Infof("%v error verifying token: %v", r.URL.Path, err)
+				logger.Info().Msgf("%v error verifying token: %v", r.URL.Path, err)
 				InvalidTokenError(w, err.Error())
 				return
 			}
 			if token == nil {
 				errMsg := fmt.Sprintf("%v missing Bearer token", r.URL.Path)
-				glog.V(5).Infoln(errMsg)
+				logger.Info().Msg(errMsg)
 				InvalidTokenError(w, errMsg)
 				return
 			}
@@ -187,17 +191,20 @@ func (kc *KeyCloak) refreshKeyCache() error {
 // when the public key id specified by the JWT token is not
 // cached, which should not happen often.
 func (kc *KeyCloak) getPublicKeys() (*PublicKeys, error) {
+	// Create log instance for getting public keys
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "PublicKeys").Str("name", "Get").Logger()
+
 	url := fmt.Sprintf(certsUrl, kc.Endpoint, kc.Realm)
 	httpClient := getKeyCloakClient()
 	httpClient.RetryMax = 10
-	glog.Info(fmt.Sprintf("Calling KeyCloak to get the public keys at url " + url))
+	logger.Info().Msg(fmt.Sprintf("Calling KeyCloak to get the public keys at url " + url))
 	res, err := httpClient.Get(url)
 	if err != nil {
-		glog.Error(fmt.Sprintf("Error %s calling %s to get certs ", err.Error(), url))
+		logger.Error().Msg(fmt.Sprintf("Error %s calling %s to get certs ", err.Error(), url))
 		return &PublicKeys{}, err
 	}
 	if res.StatusCode == http.StatusNotFound {
-		glog.Error(fmt.Sprintf("HTTP StatusNotFound calling %s to get certs ", url))
+		logger.Error().Msg(fmt.Sprintf("HTTP StatusNotFound calling %s to get certs ", url))
 		return &PublicKeys{}, errors.New(fmt.Sprintf("Failed retrieving Public Key from %s", url))
 	}
 
@@ -240,14 +247,17 @@ func getKeyCloakClient() *retryablehttp.Client {
 
 // get the ca.crt from secret "<vz-env-name>-secret" in namespace "verrazzano-system"
 func getCACert(kubeClientSet kubernetes.Interface) []byte {
+	// Create log instance for initializing flags
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "CACert").Str("name", "Get").Logger()
+
 	secretResName := instance.GetVerrazzanoName() + "-secret"
 	certSecret, err := kubeClientSet.CoreV1().Secrets(constants.VerrazzanoSystem).Get(context.TODO(), secretResName, metav1.GetOptions{})
 	if err != nil {
-		glog.Warningf("Error getting secret %s/%s in management cluster: %s", constants.VerrazzanoSystem, secretResName, err.Error())
+		logger.Warn().Msgf("Error getting secret %s/%s in management cluster: %s", constants.VerrazzanoSystem, secretResName, err.Error())
 		return []byte{}
 	}
 	if certSecret == nil {
-		glog.Warningf("Secret %s/%s not found in management cluster", constants.VerrazzanoSystem, secretResName)
+		logger.Warn().Msgf("Secret %s/%s not found in management cluster", constants.VerrazzanoSystem, secretResName)
 		return []byte{}
 	}
 	return certSecret.Data["ca.crt"]

@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	clusterPkg "github.com/verrazzano/verrazzano-operator/pkg/api/clusters"
 )
 
@@ -37,12 +38,15 @@ func SetVerrazzanoUri(s string) {
 }
 
 func ReturnSingleInstance(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /instance")
+	// Create log instance for returning single instance
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Instance").Str("name", "Return").Logger()
+
+	logger.Info().Msg("GET /instance")
 
 	clusters, err := clusterPkg.GetClusters()
 	if err != nil {
 		msg := fmt.Sprintf("Error getting clusters : %s", err.Error())
-		glog.Error(msg)
+		logger.Error().Msg(msg)
 		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}

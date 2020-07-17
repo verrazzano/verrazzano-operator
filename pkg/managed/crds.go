@@ -7,8 +7,9 @@ package managed
 import (
 	"context"
 	"io/ioutil"
+	"os"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
@@ -19,8 +20,10 @@ import (
 )
 
 func CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnection, managedCluster *v1beta1v8o.VerrazzanoManagedCluster, manifest *util.Manifest) error {
+	// Create log instance for creating crd definitions
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "CrdDefinitions").Str("name", "Creation").Logger()
 
-	glog.V(6).Infof("Creating/updating CRDs for ManagedCluster %s", managedCluster.Name)
+	logger.Debug().Msgf("Creating/updating CRDs for ManagedCluster %s", managedCluster.Name)
 	managedClusterConnection.Lock.RLock()
 	managedClusterConnection.Lock.RUnlock()
 
@@ -34,15 +37,15 @@ func CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnectio
 		if err == nil {
 			specDiffs := diff.CompareIgnoreTargetEmpties(existingCrd, newCrd)
 			if specDiffs != "" {
-				glog.V(6).Infof("CRD %s : Spec differences %s", newCrd.Name, specDiffs)
+				logger.Debug().Msgf("CRD %s : Spec differences %s", newCrd.Name, specDiffs)
 				if len(newCrd.ResourceVersion) == 0 {
 					newCrd.ResourceVersion = existingCrd.ResourceVersion
 				}
-				glog.V(4).Infof("Updating CRD %s", newCrd.Name)
+				logger.Info().Msgf("Updating CRD %s", newCrd.Name)
 				_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), newCrd, metav1.UpdateOptions{})
 			}
 		} else {
-			glog.V(4).Infof("Creating CRD %s", newCrd.Name)
+			logger.Info().Msgf("Creating CRD %s", newCrd.Name)
 			_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Create(context.TODO(), newCrd, metav1.CreateOptions{})
 		}
 		if err != nil {

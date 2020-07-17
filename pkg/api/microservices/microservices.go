@@ -6,9 +6,10 @@ package microservices
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strconv"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 )
@@ -58,18 +59,24 @@ func refreshMicroservices() {
 }
 
 func ReturnAllMicroservices(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning microservices
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Microservices").Str("name", "Return").Logger()
+
 	refreshMicroservices()
-	glog.V(4).Info("GET /microservices")
+	logger.Info().Msg("GET /microservices")
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Microservices)), 10))
 	json.NewEncoder(w).Encode(Microservices)
 }
 
 func ReturnSingleMicroservice(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning single microservice
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Microservices").Str("name", "Return").Logger()
+
 	refreshMicroservices()
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /microservices/" + key)
+	logger.Info().Msg("GET /microservices/" + key)
 
 	for _, microservices := range Microservices {
 		if microservices.Id == key {

@@ -7,10 +7,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"os"
 	"strings"
 
 	"github.com/Jeffail/gabs/v2"
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
@@ -46,7 +48,10 @@ func UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretListe
 
 // Updating the istio prometheus scrape configs to include all the node exporter endpoints in monitoring namespace
 func UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Add/Update node export scrape target in Istio Prometheus configmaps for all clusters.")
+	// Create log instance for updating config maps for mode exporter
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ConfigMapsNodeExporter").Str("name", "Update").Logger()
+
+	logger.Debug().Msg("Add/Update node export scrape target in Istio Prometheus configmaps for all clusters.")
 
 	// Construct prometheus.yml configMaps for each managed cluster
 	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
@@ -101,7 +106,10 @@ func UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair *types.ModelBindingPa
 //    myvb_poc-managed-1_myapps_coherence_my-cache-app
 //
 func UpdateIstioPrometheusConfigMapsForBinding(mbPair *types.ModelBindingPair, secretLister corev1listers.SecretLister, clusterConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Create/Update Istio Prometheus configmap [binding]%s [model]%s", mbPair.Binding.Name, mbPair.Model.Name)
+	// Create log instance for updating config maps for binding
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ConfigMapsBinding").Str("name", "Update").Logger()
+
+	logger.Debug().Msgf("Create/Update Istio Prometheus configmap [binding]%s [model]%s", mbPair.Binding.Name, mbPair.Model.Name)
 
 	// Parse out the managed clusters that this binding applies to
 	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, clusterConnections)
@@ -137,6 +145,9 @@ func UpdateIstioPrometheusConfigMapsForBinding(mbPair *types.ModelBindingPair, s
 // Creating/Updating prometheus config map
 func updateIstioPrometheusConfigMap(clusterName string, managedClusterConnection *util.ManagedClusterConnection,
 	scrapeConfigInfoList []ScrapeConfigInfo, istioPrometheusCMData map[string]string) error {
+	// Create log instance for updating config map
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Cluster").Str("name", clusterName).Logger()
+
 	// Construct the expected prometheus config map
 	newPrometheusConfigMap, err := getNewPrometheusConfigMap(scrapeConfigInfoList, istioPrometheusCMData)
 	if err != nil {
@@ -146,7 +157,7 @@ func updateIstioPrometheusConfigMap(clusterName string, managedClusterConnection
 	// Create a new istio prometheus configmap if necessary
 	existingcm, err := managedClusterConnection.ConfigMapLister.ConfigMaps(IstioNamespace).Get(IstioPrometheusCMName)
 	if existingcm == nil {
-		glog.V(4).Infof("Creating Configmaps %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
+		logger.Info().Msgf("Creating Configmaps %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
 		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newPrometheusConfigMap.Namespace).Create(context.TODO(), newPrometheusConfigMap, metav1.CreateOptions{})
 		if err != nil {
 			return err
@@ -157,13 +168,13 @@ func updateIstioPrometheusConfigMap(clusterName string, managedClusterConnection
 	// Update the existing istio prometheus configmap if necessary
 	specDiffs := diff.CompareIgnoreTargetEmpties(existingcm, newPrometheusConfigMap)
 	if specDiffs != "" {
-		glog.V(6).Infof("ConfigMap %s : Spec differences %s", newPrometheusConfigMap.Name, specDiffs)
-		glog.V(4).Infof("Updating ConfigMap %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
+		logger.Debug().Msgf("ConfigMap %s : Spec differences %s", newPrometheusConfigMap.Name, specDiffs)
+		logger.Info().Msgf("Updating ConfigMap %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
 		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newPrometheusConfigMap.Namespace).Update(context.TODO(), newPrometheusConfigMap, metav1.UpdateOptions{})
 		// Bounce Prometheus Pod
 		istioPodName, err := managedClusterConnection.KubeClient.CoreV1().Pods(IstioNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: PrometheusLabel})
 		for _, pod := range istioPodName.Items {
-			glog.V(4).Infof("Deleting pod %s in namespace %s in cluster %s", pod.Name, IstioNamespace, clusterName)
+			logger.Info().Msgf("Deleting pod %s in namespace %s in cluster %s", pod.Name, IstioNamespace, clusterName)
 			err = managedClusterConnection.KubeClient.CoreV1().Pods(IstioNamespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err

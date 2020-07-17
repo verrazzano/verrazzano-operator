@@ -5,10 +5,11 @@ package helidonapp
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
@@ -22,6 +23,9 @@ const DefaultPort = int32(8080)
 const DefaultTargetPort = int32(8080)
 
 func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.VerrazzanoHelidon, mbPair *types.ModelBindingPair, labels map[string]string) *v1helidonapp.HelidonApp {
+	// Create log instance for creating helidon app cr
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ManagedCluster").Str("name", mcName).Logger()
+
 	helidonApp := v1helidonapp.HelidonApp{}
 
 	helidonApp.TypeMeta.Kind = "HelidonApp"
@@ -63,7 +67,7 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 	for _, connection := range app.Connections {
 		if connection.Coherence != nil {
 			if len(connection.Coherence) > 1 {
-				glog.Errorf("Only one Coherence binding allowed for a Helidon application '%s'. Found %d", app.Name, len(connection.Coherence))
+				logger.Error().Msgf("Only one Coherence binding allowed for a Helidon application '%s'. Found %d", app.Name, len(connection.Coherence))
 			}
 			for _, cohConnection := range connection.Coherence {
 				// Get the Coherence cluster
@@ -89,7 +93,7 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 					env.Value = cohCluster.PofConfig
 					envs = append(envs, env)
 				} else {
-					glog.Errorf("Coherence binding '%s' not found in binding file", cohConnection.Target)
+					logger.Error().Msgf("Coherence binding '%s' not found in binding file", cohConnection.Target)
 				}
 			}
 		}

@@ -1,9 +1,10 @@
 github.com/verrazzano/verrazzano-operator
 -------- Copyrights
 Copyright (c) 2020 Oracle America, Inc. and its affiliates. 
-# Copyright (C) 2020, Oracle Corporation and/or its affiliates.
-// Copyright (C) 2020, Oracle Corporation and/or its affiliates.
-// Copyright (c) 2020, Oracle Corporation and/or its affiliates.
+# Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, Oracle and/or its affiliates.
 
 ======== License
 Copyright (c) 2020 Oracle America, Inc. and its affiliates. 
@@ -10137,6 +10138,17 @@ github.com/rs/cors
 Copyright (c) 2014 Olivier Poitrey <rs@dailymotion.com>
 
 -------- Dependency
+github.com/rs/xid
+-------- Copyrights
+Copyright (c) 2015 Olivier Poitrey <rs@dailymotion.com>
+
+-------- Dependency
+github.com/rs/zerolog
+-------- Copyrights
+Copyright (c) 2017 Olivier Poitrey
+Copyright (c) 2014, 2015, 2016 Carl Jackson (carl@avtok.com)
+
+-------- Dependency
 github.com/rubenv/sql-migrate
 -------- Copyrights
 Copyright (C) 2014-2019 by Ruben Vermeersch <ruben@rocketeer.be>
@@ -10551,6 +10563,8 @@ github.com/peterbourgon/diskv
 github.com/posener/complete
 github.com/robfig/cron
 github.com/rs/cors
+github.com/rs/xid
+github.com/rs/zerolog
 github.com/rubenv/sql-migrate
 github.com/ryanuber/columnize
 github.com/satori/go.uuid
@@ -11346,4 +11360,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 6bcd4f64ab6a16ebcff449b5c4fb29fb
+License file based on go.mod with md5 sum: 7adccc6d3a6084cb2734b509b5ed06ed

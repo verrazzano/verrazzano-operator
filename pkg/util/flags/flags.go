@@ -5,16 +5,20 @@ package flags
 
 import (
 	goflag "flag"
+	"os"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
 )
 
 // InitFlags parses, then logs the command line flags.
 func InitFlags() {
+	// Create log instance for initializing flags
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Flags").Str("name", "Init").Logger()
+
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 	pflag.Parse()
 	pflag.VisitAll(func(flag *pflag.Flag) {
-		glog.V(4).Infof("FLAG: --%s=%q", flag.Name, flag.Value)
+		logger.Info().Msgf("FLAG: --%s=%q", flag.Name, flag.Value)
 	})
 }
