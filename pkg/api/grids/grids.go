@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 )
@@ -71,7 +72,10 @@ func refreshGrids() {
 
 // ReturnAllGrids returns all grids used by model and bindings.
 func ReturnAllGrids(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /grids")
+	// Create log instance for returning all grids
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Grids").Str("name", "Return").Logger()
+
+	logger.Info().Msg("GET /grids")
 
 	refreshGrids()
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Grids)), 10))
@@ -80,11 +84,14 @@ func ReturnAllGrids(w http.ResponseWriter, r *http.Request) {
 
 // ReturnSingleGrid returns a single grid identified by the grid Kubernetes UID.
 func ReturnSingleGrid(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning single grid
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Grids").Str("name", "Return").Logger()
+
 	refreshGrids()
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /grids/" + key)
+	logger.Info().Msg("GET /grids/" + key)
 
 	foundApplication := false
 	for _, grids := range Grids {

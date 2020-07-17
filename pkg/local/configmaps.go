@@ -5,10 +5,11 @@ package local
 
 import (
 	"context"
+	"os"
 	"reflect"
 	"strings"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/assets"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
@@ -22,6 +23,9 @@ import (
 
 // UpdateConfigMaps updates config maps for a given binding in the management cluster.
 func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+	// Create log instance for creating config maps
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Binding").Str("name", binding.Name).Logger()
+
 	glog.V(6).Infof("Updating Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the set of expected configMap - this currently consists of the ConfigMap that contains the default Grafana dashboard definitions
@@ -37,7 +41,7 @@ func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 			// Don't mess with owner references or labels - VMO makes itself the "owner" of this object
 			newConfigMap.OwnerReferences = existingConfigMap.OwnerReferences
 			newConfigMap.Labels = existingConfigMap.Labels
-			glog.V(4).Infof("Updating ConfigMap %s", newConfigMap.Name)
+			logger.Info().Msgf("Updating ConfigMap %s", newConfigMap.Name)
 			_, err = kubeClientSet.CoreV1().ConfigMaps(newConfigMap.Namespace).Update(context.TODO(), newConfigMap, metav1.UpdateOptions{})
 			if err != nil {
 				return err
@@ -53,7 +57,7 @@ func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 	}
 	for _, existingConfigMap := range existingConfigMapsList {
 		if !util.Contains(configMapNames, existingConfigMap.Name) {
-			glog.V(4).Infof("Deleting ConfigMap %s", existingConfigMap.Name)
+			logger.Info().Msgf("Deleting ConfigMap %s", existingConfigMap.Name)
 			err := kubeClientSet.CoreV1().ConfigMaps(existingConfigMap.Namespace).Delete(context.TODO(), existingConfigMap.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
@@ -65,7 +69,10 @@ func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 
 // DeleteConfigMaps deletes config maps for a given binding in the management cluster.
 func DeleteConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
-	glog.V(6).Infof("Deleting Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
+	// Create log instance for deleting config maps
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Binding").Str("name", binding.Name).Logger()
+
+	logger.Debug().Msgf("Deleting Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
 
 	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
 	existingConfigMapsList, err := configMapLister.ConfigMaps("").List(selector)
@@ -73,7 +80,7 @@ func DeleteConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 		return err
 	}
 	for _, existingConfigMap := range existingConfigMapsList {
-		glog.V(4).Infof("Deleting configMap %s", existingConfigMap.Name)
+		logger.Info().Msgf("Deleting configMap %s", existingConfigMap.Name)
 		err := kubeClientSet.CoreV1().ConfigMaps(existingConfigMap.Namespace).Delete(context.TODO(), existingConfigMap.Name, metav1.DeleteOptions{})
 		if err != nil {
 			return err

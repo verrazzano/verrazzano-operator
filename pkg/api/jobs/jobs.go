@@ -6,11 +6,12 @@ package jobs
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 
-	"github.com/golang/glog"
+    "github.com/rs/zerolog"
 	"github.com/gorilla/mux"
 )
 
@@ -104,7 +105,10 @@ func Init() {
 
 // ReturnAllJobs returns all jobs used by model and bindings.
 func ReturnAllJobs(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /jobs")
+	// Create log instance for returning single job
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Jobs").Str("name", "Return").Logger()
+
+	logger.Info().Msg("GET /jobs")
 
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Jobs)), 10))
 	json.NewEncoder(w).Encode(Jobs)
@@ -112,10 +116,13 @@ func ReturnAllJobs(w http.ResponseWriter, r *http.Request) {
 
 // ReturnSingleJob returns a single job identified by the job Kubernetes UID.
 func ReturnSingleJob(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning single job
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Jobs").Str("name", "Return").Logger()
+
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /jobs/" + key)
+	logger.Info().Msg("GET /jobs/" + key)
 
 	for _, jobs := range Jobs {
 		if jobs.ID == key {

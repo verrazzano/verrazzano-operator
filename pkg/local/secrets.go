@@ -9,8 +9,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -31,8 +32,10 @@ type acmeDNS struct {
 
 // DeleteSecrets deletes secrets for a given binding in the management cluster.
 func DeleteSecrets(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
+	// Create log instance for deleting secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Binding").Str("name", binding.Name).Logger()
 
-	glog.V(6).Infof("Deleting Management Cluster secrets for VerrazzanoBinding %s", binding.Name)
+	logger.Debug().Msgf("Deleting Management Cluster secrets for VerrazzanoBinding %s", binding.Name)
 
 	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
 	existingSecretsList, err := secretLister.Secrets("").List(selector)
@@ -40,7 +43,7 @@ func DeleteSecrets(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernet
 		return err
 	}
 	for _, existingSecret := range existingSecretsList {
-		glog.V(4).Infof("Deleting secret %s", existingSecret.Name)
+		logger.Info().Msgf("Deleting secret %s", existingSecret.Name)
 		err := kubeClientSet.CoreV1().Secrets(existingSecret.Namespace).Delete(context.TODO(), existingSecret.Name, metav1.DeleteOptions{})
 		if err != nil {
 			return err
@@ -62,12 +65,14 @@ func DeleteSecrets(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernet
 // CreateGenericSecret will create a secret in the specified cluster - this is intended to
 // be used to create secrets in the management cluster
 func CreateGenericSecret(newSecret corev1.Secret, kubeClientSet kubernetes.Interface) error {
+	// Create log instance for creating generic secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secret").Str("name", newSecret.Name).Logger()
 
-	glog.V(4).Infof("Creating Secret %s", newSecret.Name)
+	logger.Info().Msgf("Creating Secret %s", newSecret.Name)
 	_, err := kubeClientSet.CoreV1().Secrets(newSecret.Namespace).Create(context.TODO(), &newSecret, metav1.CreateOptions{})
 
 	if err != nil {
-		glog.Errorf("Error creating secret %s:%s - error %s", newSecret.Namespace, newSecret.Name, err.Error())
+		logger.Error().Msgf("Error creating secret %s:%s - error %s", newSecret.Namespace, newSecret.Name, err.Error())
 	}
 	return err
 }
@@ -84,9 +89,12 @@ func GetSecret(name string, namespace string, kubeClientSet kubernetes.Interface
 
 // GetSecretByUID gets the secret by the Kubernetes UID
 func GetSecretByUID(kubeClientSet kubernetes.Interface, ns string, uid string) (*corev1.Secret, bool, error) {
+	// Create log instance for getting secret by uid
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "UID").Str("name", uid).Logger()
+
 	secretsList, err := kubeClientSet.CoreV1().Secrets(ns).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		glog.Errorf("Error %s getting the list of secrets", err.Error())
+		logger.Error().Msgf("Error %s getting the list of secrets", err.Error())
 		return nil, false, err
 	}
 	for _, secret := range secretsList.Items {
@@ -100,8 +108,10 @@ func GetSecretByUID(kubeClientSet kubernetes.Interface, ns string, uid string) (
 // UpdateAcmeDNSSecret updates the AcmeDnsSecret, which is used for "bring your own dns" installs, to contain the DNS
 // entries for the model/binding.  This is one of the required steps for the monitoring endpoints to work.
 func UpdateAcmeDNSSecret(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
+	// Create log instance for updating acme dns secret
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Binding").Str("name", binding.Name).Logger()
 
-	glog.V(6).Infof("Updating Management Cluster secret %s for VerrazzanoBinding %s", name, binding.Name)
+	logger.Debug().Msgf("Updating Management Cluster secret %s for VerrazzanoBinding %s", name, binding.Name)
 	namespace := constants.VerrazzanoNamespace
 	acmeDNSKey := constants.AcmeDNSSecretKey
 

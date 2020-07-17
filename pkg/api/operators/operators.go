@@ -6,9 +6,10 @@ package operators
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strconv"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 )
@@ -68,7 +69,10 @@ func refreshOperators() {
 
 // ReturnAllOperators returns all operators used by model and bindings.
 func ReturnAllOperators(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /operators")
+	// Create log instance for returning all operators
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Operators").Str("name", "Return").Logger()
+
+	logger.Info().Msg("GET /operators")
 
 	refreshOperators()
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Operators)), 10))
@@ -77,10 +81,13 @@ func ReturnAllOperators(w http.ResponseWriter, r *http.Request) {
 
 // ReturnSingleOperator returns a single operator identified by the operator Kubernetes UID.
 func ReturnSingleOperator(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning single operator
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Operators").Str("name", "Return").Logger()
+
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /operators/" + key)
+	logger.Info().Msg("GET /operators/" + key)
 
 	var found bool
 	for _, operator := range Operators {

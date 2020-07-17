@@ -10137,6 +10137,17 @@ github.com/rs/cors
 Copyright (c) 2014 Olivier Poitrey <rs@dailymotion.com>
 
 -------- Dependency
+github.com/rs/xid
+-------- Copyrights
+Copyright (c) 2015 Olivier Poitrey <rs@dailymotion.com>
+
+-------- Dependency
+github.com/rs/zerolog
+-------- Copyrights
+Copyright (c) 2017 Olivier Poitrey
+Copyright (c) 2014, 2015, 2016 Carl Jackson (carl@avtok.com)
+
+-------- Dependency
 github.com/rubenv/sql-migrate
 -------- Copyrights
 Copyright (C) 2014-2019 by Ruben Vermeersch <ruben@rocketeer.be>
@@ -10551,6 +10562,8 @@ github.com/peterbourgon/diskv
 github.com/posener/complete
 github.com/robfig/cron
 github.com/rs/cors
+github.com/rs/xid
+github.com/rs/zerolog
 github.com/rubenv/sql-migrate
 github.com/ryanuber/columnize
 github.com/satori/go.uuid

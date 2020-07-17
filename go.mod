@@ -2,10 +2,10 @@ module github.com/verrazzano/verrazzano-operator
 
 require (
 	github.com/Jeffail/gabs/v2 v2.3.0
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/gorilla/mux v1.7.3
 	github.com/hashicorp/go-retryablehttp v0.6.6
 	github.com/kylelemons/godebug v1.1.0
+	github.com/rs/zerolog v1.19.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.0-20200921120302-d4040fa2f3c4

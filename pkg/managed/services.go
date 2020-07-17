@@ -5,10 +5,11 @@ package managed
 
 import (
 	"context"
+	"os"
 
 	"k8s.io/apimachinery/pkg/labels"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
@@ -21,8 +22,10 @@ import (
 
 // CreateServices creates/updates services needed for each managed cluster.
 func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	// Create log instance for creating services
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Services").Str("name", "Creation").Logger()
 
-	glog.V(6).Infof("Creating/updating Service for VerrazzanoBinding %s", mbPair.Binding.Name)
+	logger.Debug().Msgf("Creating/updating Service for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Construct services for each ManagedCluster
 	for clusterName, mc := range mbPair.ManagedClusters {
@@ -47,12 +50,12 @@ func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 			if existingService != nil {
 				specDiffs := diff.CompareIgnoreTargetEmpties(existingService, service)
 				if specDiffs != "" {
-					glog.V(6).Infof("Service %s : Spec differences %s", service.Name, specDiffs)
-					glog.V(4).Infof("Updating Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
+     				logger.Debug().Msgf("Service %s : Spec differences %s", service.Name, specDiffs)
+	    			logger.Info().Msgf("Updating Service %s in cluster %s", service.Name, clusterName)
 					_, err = managedClusterConnection.KubeClient.CoreV1().Services(service.Namespace).Update(context.TODO(), service, metav1.UpdateOptions{})
 				}
 			} else {
-				glog.V(4).Infof("Creating Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
+				logger.Info().Msgf("Creating Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
 				_, err = managedClusterConnection.KubeClient.CoreV1().Services(service.Namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 			}
 			if err != nil {

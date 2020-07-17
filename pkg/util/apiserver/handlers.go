@@ -6,19 +6,23 @@ package apiserver
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 )
 
 // CORSHandler is an HTTP handler that will handle CORS preflight requests
 // or delegate to the actual handler on real requests
 func CORSHandler(h http.Handler) http.Handler {
+	// Create log instance for initializing flags
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "CORSHandler").Str("name", "Handle").Logger()
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		EnableCors(r, &w)
 		if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
 			// CORS preflight request
 			SetupOptionsResponse(&w, r)
-			glog.Info("OPTIONS /" + r.URL.Path)
+			logger.Info().Msg("OPTIONS /" + r.URL.Path)
 			return
 		}
 		// actual request

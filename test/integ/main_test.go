@@ -7,14 +7,17 @@ import (
 	"os"
 	"testing"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/verrazzano/verrazzano-operator/test/integ/framework"
 )
 
 func TestMain(m *testing.M) {
+	// Create log instance for building model pair
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Main").Str("name", "Test").Logger()
+
 	// Global setup
 	if err := framework.Setup(); err != nil {
-		glog.Errorf("Failed to setup framework: %v", err)
+		logger.Error().Msgf("Failed to setup framework: %v", err)
 		os.Exit(1)
 	}
 
@@ -22,7 +25,7 @@ func TestMain(m *testing.M) {
 
 	// Global tear-down
 	if err := framework.Teardown(); err != nil {
-		glog.Errorf("Failed to teardown framework: %v", err)
+		logger.Error().Msgf("Failed to teardown framework: %v", err)
 		os.Exit(1)
 	}
 	os.Exit(code)

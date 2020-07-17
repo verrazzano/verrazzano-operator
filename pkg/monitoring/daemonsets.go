@@ -6,7 +6,7 @@ package monitoring
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+    "github.com/rs/zerolog"
 	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/resources"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
@@ -14,11 +14,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 )
 
 // SystemDaemonSets create all the Daemon sets needed by Filebeats, Journalbeats, and NodeExporters
 // in all the managed clusters.
 func SystemDaemonSets(managedClusterName string, verrazzanoURI string) []*appsv1.DaemonSet {
+	// Create log instance for creating system daemon sets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ManagedCluster").Str("name", managedClusterName).Logger()
+
 	filebeatLabels := GetFilebeatLabels(managedClusterName)
 	journalbeatLabels := GetJournalbeatLabels(managedClusterName)
 	nodeExporterLabels := GetNodeExporterLabels(managedClusterName)
@@ -26,15 +30,15 @@ func SystemDaemonSets(managedClusterName string, verrazzanoURI string) []*appsv1
 
 	fileabeatDS, err := createFilebeatDaemonSet(constants.LoggingNamespace, constants.FilebeatName, filebeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New Daemonset %s is giving error %s", constants.FilebeatName, err)
+		logger.Debug().Msgf("New Daemonset %s is giving error %s", constants.FilebeatName, err)
 	}
 	journalbeatDS, err := createJournalbeatDaemonSet(constants.LoggingNamespace, constants.JournalbeatName, journalbeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New Daemonset %s is giving error %s", constants.JournalbeatName, err)
+		logger.Debug().Msgf("New Daemonset %s is giving error %s", constants.JournalbeatName, err)
 	}
 	nodeExporterDS, err := createNodeExporterDaemonSet(constants.MonitoringNamespace, constants.NodeExporterName, nodeExporterLabels)
 	if err != nil {
-		glog.V(6).Infof("New Daemonset %s is giving error %s", constants.NodeExporterName, err)
+		logger.Debug().Msgf("New Daemonset %s is giving error %s", constants.NodeExporterName, err)
 	}
 
 	daemonSets = append(daemonSets, fileabeatDS, journalbeatDS, nodeExporterDS)

@@ -5,8 +5,9 @@ package managed
 
 import (
 	"context"
+	"os"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
@@ -20,8 +21,10 @@ import (
 
 // CreateClusterRoleBindings creates/updates cluster role bindings needed for each managed cluster.
 func CreateClusterRoleBindings(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	// Create log instance for creating cluster role bindings
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ClusterRoleBindings").Str("name", "Creation").Logger()
 
-	glog.V(6).Infof("Creating/updating ClusterRoleBindings for VerrazzanoBinding %s", mbPair.Binding.Name)
+	logger.Debug().Msgf("Creating/updating ClusterRoleBindings for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Construct ClusterRoleBindings for each ManagedCluster
 	for clusterName := range mbPair.ManagedClusters {
@@ -38,12 +41,12 @@ func CreateClusterRoleBindings(mbPair *types.ModelBindingPair, filteredConnectio
 			if existingClusterRoleBinding != nil {
 				specDiffs := diff.CompareIgnoreTargetEmpties(existingClusterRoleBinding, clusterRoleBinding)
 				if specDiffs != "" {
-					glog.V(6).Infof("ClusterRoleBinding %s : Spec differences %s", clusterRoleBinding.Name, specDiffs)
-					glog.V(4).Infof("Updating ClusterRoleBinding %s in cluster %s", clusterRoleBinding.Name, clusterName)
+					logger.Debug().Msgf("ClusterRoleBinding %s : Spec differences %s", clusterRoleBinding.Name, specDiffs)
+					logger.Info().Msgf("Updating ClusterRoleBinding %s in cluster %s", clusterRoleBinding.Name, clusterName)
 					_, err = managedClusterConnection.KubeClient.RbacV1().ClusterRoleBindings().Update(context.TODO(), clusterRoleBinding, metav1.UpdateOptions{})
 				}
 			} else {
-				glog.V(4).Infof("Creating ClusterRoleBinding %s in cluster %s", clusterRoleBinding.Name, clusterName)
+				logger.Debug().Msgf("Creating ClusterRoleBinding %s in cluster %s", clusterRoleBinding.Name, clusterName)
 				_, err = managedClusterConnection.KubeClient.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding, metav1.CreateOptions{})
 			}
 			if err != nil {
@@ -56,7 +59,10 @@ func CreateClusterRoleBindings(mbPair *types.ModelBindingPair, filteredConnectio
 
 // CleanupOrphanedClusterRoleBindings deletes cluster role bindings that have been orphaned.
 func CleanupOrphanedClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Cleaning up orphaned ClusterRoleBindings for VerrazzanoBinding %s", mbPair.Binding.Name)
+	// Create log instance for creating cluster role bindings
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "OrphanedClusterRoleBindings").Str("name", "Creation").Logger()
+
+	logger.Info().Msgf("Cleaning up orphaned ClusterRoleBindings for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Get the managed clusters that this binding does NOT apply to
 	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
@@ -75,7 +81,7 @@ func CleanupOrphanedClusterRoleBindings(mbPair *types.ModelBindingPair, availabl
 		}
 		// Delete these ClusterRoleBindings since none are expected on this cluster
 		for _, roleBinding := range existingClusterRoleBindingsList {
-			glog.V(4).Infof("Deleting ClusterRoleBinding %s in cluster %s", roleBinding.Name, clusterName)
+			logger.Info().Msgf("Deleting ClusterRoleBinding %s in cluster %s", roleBinding.Name, clusterName)
 			err := managedClusterConnection.KubeClient.RbacV1().ClusterRoleBindings().Delete(context.TODO(), roleBinding.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
@@ -88,7 +94,10 @@ func CleanupOrphanedClusterRoleBindings(mbPair *types.ModelBindingPair, availabl
 
 // DeleteClusterRoleBindings deletes cluster role bindings for a given binding.
 func DeleteClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
-	glog.V(6).Infof("Deleting ClusterRoleBinding for VerrazzanoBinding %s", mbPair.Binding.Name)
+	// Create log instance for creating cluster role bindings
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ClusterRoleBindings").Str("name", "Deletion").Logger()
+
+	logger.Debug().Msgf("Deleting ClusterRoleBinding for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Parse out the managed clusters that this binding applies to
 	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
@@ -113,7 +122,7 @@ func DeleteClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedC
 		}
 		for _, clusterRoleBinding := range existingClusterRoleBindingsList {
 			if clusterRoleBinding.Name != constants.VerrazzanoSystem && clusterRoleBinding.Name != constants.VerrazzanoSystemAdmin {
-				glog.V(4).Infof("Deleting ClusterRoleBinding %s", clusterRoleBinding.Name)
+				logger.Info().Msgf("Deleting ClusterRoleBinding %s", clusterRoleBinding.Name)
 				err := managedClusterConnection.KubeClient.RbacV1().ClusterRoleBindings().Delete(context.TODO(), clusterRoleBinding.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err

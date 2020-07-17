@@ -6,10 +6,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/rs/zerolog"
 	"net/http"
+	"os"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/api/applications"
 	"github.com/verrazzano/verrazzano-operator/pkg/api/clusters"
@@ -46,17 +47,19 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("GET /")
 }
 
-// handleRequests registers the routes and handlers
 func handleRequests(apiServerFinished chan bool, rootRouter *mux.Router) {
+	// Create log instance for handling requests
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "VerrazzanoOperator").Str("name", "OperatorInit").Logger()
+
 	apiRouter := registerPathHandlers(rootRouter)
 
-	glog.Info("Starting API server...")
+	logger.Info().Msg("Starting API server...")
 
 	if apiServerRealm == "" {
-		glog.Warning("Bearer token verification is disabled as apiServerRealm is not specified")
+		logger.Warn().Msg("Bearer token verification is disabled as apiServerRealm is not specified")
 	}
 
-	glog.Fatal(http.ListenAndServe(":3456", apiserver.CORSHandler(apiserver.AuthHandler(apiRouter))))
+	logger.Fatal().Err(http.ListenAndServe(":3456", apiserver.CORSHandler(apiserver.AuthHandler(apiRouter))))
 	apiServerFinished <- true
 }
 
@@ -119,23 +122,27 @@ func main() {
 
 	// Load Verrazzano Operator Manifest
 
+	logs.InitLogs()
+
+	// Create log instance for main operator
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "VerrazzanoOperator").Str("name", "OperatorInit").Logger()
+
 	manifest, err := util.LoadManifest()
 	if err != nil {
-		glog.Fatalf("Error loading manifest: %s", err.Error())
+		logger.Fatal().Msgf("Error loading manifest: %s", err.Error())
 	}
 
 	flag.Parse()
 
-	logs.InitLogs()
 
-	glog.V(6).Infof("Creating new controller watching namespace %s.", watchNamespace)
+	logger.Debug().Msgf("Creating new controller watching namespace %s.", watchNamespace)
 	if strings.EqualFold(helidonAppOperatorDeployment, "false") {
-		glog.V(6).Info("helidonAppOperatorDeployment Disabled")
+		logger.Debug().Msgf("helidonAppOperatorDeployment Disabled")
 		manifest.HelidonAppOperatorImage = ""
 	}
 	controller, err := pkgverrazzanooperator.NewController(kubeconfig, manifest, masterURL, watchNamespace, verrazzanoURI, enableMonitoringStorage)
 	if err != nil {
-		glog.Fatalf("Error creating the controller: %s", err.Error())
+		logger.Fatal().Msgf("Error creating the controller: %s", err.Error())
 	}
 
 	apiServerExited := make(chan bool)

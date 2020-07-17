@@ -8,9 +8,11 @@ package managed
 import (
 	"context"
 	"fmt"
+
+	"os"
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
@@ -23,8 +25,10 @@ import (
 
 // CreateNamespaces creates/updates namespaces needed for each managed cluster.
 func CreateNamespaces(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	// Create log instance for create namespaces
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Namespaces").Str("name", "Creation").Logger()
 
-	glog.V(6).Infof("Creating/updating Namespaces for VerrazzanoBinding %s", mbPair.Binding.Name)
+	logger.Debug().Msgf("Creating/updating Namespaces for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Construct namespaces for each ManagedCluster
 	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
@@ -45,14 +49,17 @@ func CreateNamespaces(mbPair *types.ModelBindingPair, filteredConnections map[st
 }
 
 func createNamespace(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnection *util.ManagedClusterConnection, newNamespaces []*corev1.Namespace, clusterName string) error {
+	// Create log instance for create namespaces
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Namespaces").Str("name", "Creation").Logger()
+
 	// Construct the set of expected namespaces
 	for _, newNamespace := range newNamespaces {
 		existingNamespace, err := managedClusterConnection.NamespaceLister.Get(newNamespace.Name)
 		if existingNamespace != nil {
 			// Do nothing in the case of an existing namespace.  When a namespace is later associated with a project in Rancher, Rancher "takes control" of the namespace, adding additional labels and finalizers.  For now, we'll opt not to touch the namespace after it's created.
-			glog.V(7).Infof("Namespace %s already exists in cluster %s, doing nothing...", existingNamespace.Name, clusterName)
+			logger.Debug().Msgf("Namespace %s already exists in cluster %s, doing nothing...", existingNamespace.Name, clusterName)
 		} else {
-			glog.V(4).Infof("Creating namespace %s in cluster %s", newNamespace.Name, clusterName)
+			logger.Info().Msgf("Creating namespace %s in cluster %s", newNamespace.Name, clusterName)
 			_, err = managedClusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), newNamespace, metav1.CreateOptions{})
 		}
 		if err != nil {
@@ -64,7 +71,10 @@ func createNamespace(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnec
 
 // CleanupOrphanedNamespaces deletes namespaces that have been orphaned.
 func CleanupOrphanedNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allMbPairs map[string]*types.ModelBindingPair) error {
-	glog.V(6).Infof("Cleaning up orphaned Namespace for VerrazzanoBinding %s", mbPair.Binding.Name)
+	// Create log instance for creating namespaces
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Namespaces").Str("name", "Creation").Logger()
+
+	logger.Debug().Msgf("Cleaning up orphaned Namespace for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Get the managed clusters that this binding applies to
 	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
@@ -95,7 +105,7 @@ func CleanupOrphanedNamespaces(mbPair *types.ModelBindingPair, availableManagedC
 			// Delete any Namespaces apps not expected on this cluster
 			for _, namespace := range existingNamespaceList {
 				if !util.Contains(Namespaces, namespace.Name) {
-					glog.V(4).Infof("Deleting Namespaces %s in cluster %s", namespace.Name, clusterName)
+					logger.Debug().Msgf("Deleting Namespaces %s in cluster %s", namespace.Name, clusterName)
 					err := managedClusterConnection.KubeClient.CoreV1().Namespaces().Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
 					if err != nil {
 						return err
@@ -124,7 +134,7 @@ func CleanupOrphanedNamespaces(mbPair *types.ModelBindingPair, availableManagedC
 		for _, ns := range existingNamespaceList {
 			// Skip deletion of namespaces Logging and Monitoring from management cluster
 			if ns.Name != constants.MonitoringNamespace && ns.Name != constants.LoggingNamespace {
-				glog.V(4).Infof("Deleting Namespace %s in cluster %s", ns.Name, clusterName)
+				logger.Info().Msgf("Deleting Namespace %s in cluster %s", ns.Name, clusterName)
 				err := managedClusterConnection.KubeClient.CoreV1().Namespaces().Delete(context.TODO(), ns.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
@@ -132,7 +142,7 @@ func CleanupOrphanedNamespaces(mbPair *types.ModelBindingPair, availableManagedC
 
 				err = waitForNSDeletion(managedClusterConnection, ns.Name, clusterName, 2*time.Minute, 1*time.Second)
 				if err != nil {
-					glog.Errorf("Failed to delete namespace %s, for the reason (%v)", ns.Name, err)
+					logger.Error().Msgf("Failed to delete namespace %s, for the reason (%v)", ns.Name, err)
 					return err
 				}
 			}
@@ -152,7 +162,7 @@ func CleanupOrphanedNamespaces(mbPair *types.ModelBindingPair, availableManagedC
 			for _, ns := range existingNamespaceSystemList {
 				// Skip deletion of namespaces Logging, Monitoring, and verrazzano system from management cluster
 				if ns.Name != constants.MonitoringNamespace && ns.Name != constants.LoggingNamespace && ns.Name != constants.VerrazzanoNamespace {
-					glog.V(4).Infof("Deleting Namespace %s in cluster %s", ns.Name, clusterName)
+					logger.Info().Msgf("Deleting Namespace %s in cluster %s", ns.Name, clusterName)
 					err := managedClusterConnection.KubeClient.CoreV1().Namespaces().Delete(context.TODO(), ns.Name, metav1.DeleteOptions{})
 					if err != nil {
 						return err
@@ -160,7 +170,7 @@ func CleanupOrphanedNamespaces(mbPair *types.ModelBindingPair, availableManagedC
 
 					err = waitForNSDeletion(managedClusterConnection, ns.Name, clusterName, 2*time.Minute, 1*time.Second)
 					if err != nil {
-						glog.Errorf("Failed to delete namespace %s, for the reason (%v)", ns.Name, err)
+						logger.Error().Msgf("Failed to delete namespace %s, for the reason (%v)", ns.Name, err)
 						return err
 					}
 				}
@@ -173,7 +183,10 @@ func CleanupOrphanedNamespaces(mbPair *types.ModelBindingPair, availableManagedC
 
 // DeleteNamespaces deletes namespaces for a given binding.
 func DeleteNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
-	glog.V(6).Infof("Deleting Namespaces for VerrazzanoBinding %s", mbPair.Binding.Name)
+	// Create log instance for deleting namespaces
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Namespaces").Str("name", "Deletion").Logger()
+
+	logger.Debug().Msgf("Deleting Namespaces for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Parse out the managed clusters that this binding applies to
 	managedClusters, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
@@ -199,16 +212,16 @@ func DeleteNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterCon
 		for _, namespace := range existingNamespace {
 			// Skip deletion of namespaces Logging, Monitoring, and verrazzano system namespace from management cluster
 			if namespace.Name != constants.MonitoringNamespace && namespace.Name != constants.LoggingNamespace && namespace.Name != constants.VerrazzanoNamespace {
-				glog.V(4).Infof("Deleting Namespace %s in cluster %s", namespace.Name, clusterName)
+				logger.Info().Msgf("Deleting Namespace %s in cluster %s", namespace.Name, clusterName)
 				err := managedClusterConnection.KubeClient.CoreV1().Namespaces().Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
 				if err != nil {
-					glog.Errorf("Failed to delete namespace %s, for the reason (%v)", namespace.Name, err)
+					logger.Error().Msgf("Failed to delete namespace %s, for the reason (%v)", namespace.Name, err)
 					return err
 				}
 
 				err = waitForNSDeletion(managedClusterConnection, namespace.Name, clusterName, 2*time.Minute, 1*time.Second)
 				if err != nil {
-					glog.Errorf("Failed to delete namespace %s, for the reason (%v)", namespace.Name, err)
+					logger.Error().Msgf("Failed to delete namespace %s, for the reason (%v)", namespace.Name, err)
 					return err
 				}
 			}
@@ -255,6 +268,9 @@ func newNamespaces(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.
 }
 
 func waitForNSDeletion(mc *util.ManagedClusterConnection, namespace string, cluster string, timeoutDuration time.Duration, tickDuration time.Duration) error {
+	// Create log instance for deleting NS
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Namespace").Str("name", "Deletion").Logger()
+
 	timeout := time.After(timeoutDuration)
 	tick := time.Tick(tickDuration)
 	var err error
@@ -263,10 +279,10 @@ func waitForNSDeletion(mc *util.ManagedClusterConnection, namespace string, clus
 		case <-timeout:
 			return fmt.Errorf("timed out waiting for namespace %s to be removed in  managed cluster %s", namespace, cluster)
 		case <-tick:
-			glog.V(4).Infof("Waiting for namespace %s in managed cluster %s to be removed..", namespace, cluster)
+			logger.Info().Msgf("Waiting for namespace %s in managed cluster %s to be removed..", namespace, cluster)
 			_, err = mc.KubeClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
 			if err != nil && k8sErrors.IsNotFound(err) {
-				glog.V(4).Infof("Removed namespace %s in managed cluster %s ..", namespace, cluster)
+				logger.Info().Msgf("Removed namespace %s in managed cluster %s ..", namespace, cluster)
 				return nil
 			}
 

@@ -7,10 +7,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 	"github.com/verrazzano/verrazzano-operator/pkg/managed"
@@ -163,9 +164,12 @@ func refreshDomains() {
 
 // ReturnAllDomains returns all domains used by model and bindings.
 func ReturnAllDomains(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning all domains
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Domains").Str("name", "Return").Logger()
+
 	refreshDomains()
 
-	glog.V(4).Info("GET /domains")
+	logger.Info().Msg("GET /domains")
 
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Domains)), 10))
 	json.NewEncoder(w).Encode(Domains)
@@ -173,11 +177,14 @@ func ReturnAllDomains(w http.ResponseWriter, r *http.Request) {
 
 // ReturnSingleDomain returns a single domain identified by the domain Kubernetes UID.
 func ReturnSingleDomain(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning single domain
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Domains").Str("name", "Return").Logger()
+
 	refreshDomains()
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /domain/" + key)
+	logger.Info().Msg("GET /domain/" + key)
 
 	for _, domain := range Domains {
 		if domain.ID == key {

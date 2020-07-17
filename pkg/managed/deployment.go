@@ -9,7 +9,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/cohoperator"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
@@ -26,7 +26,10 @@ import (
 
 // CreateDeployments creates/updates deployments needed for each managed cluster.
 func CreateDeployments(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) error {
-	glog.V(6).Infof("Creating/updating Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
+	// Create log instance for creating deployments
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Deployments").Str("name", "ClusterConnection").Logger()
+
+	logger.Info().Msgf("Creating/updating Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Construct deployments for each ManagedCluster
 	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
@@ -60,12 +63,12 @@ func CreateDeployments(mbPair *types.ModelBindingPair, filteredConnections map[s
 			if existingDeployment != nil {
 				specDiffs := diff.CompareIgnoreTargetEmpties(existingDeployment, newDeployment)
 				if specDiffs != "" {
-					glog.V(6).Infof("Deployment %s : Spec differences %s", newDeployment.Name, specDiffs)
-					glog.V(4).Infof("Updating deployment %s:%s in cluster %s", newDeployment.Namespace, newDeployment.Name, clusterName)
+					logger.Debug().Msgf("Deployment %s : Spec differences %s", newDeployment.Name, specDiffs)
+					logger.Info().Msgf("Updating deployment %s:%s in cluster %s", newDeployment.Namespace, newDeployment.Name, clusterName)
 					_, err = managedClusterConnection.KubeClient.AppsV1().Deployments(newDeployment.Namespace).Update(context.TODO(), newDeployment, metav1.UpdateOptions{})
 				}
 			} else {
-				glog.V(4).Infof("Creating deployment %s:%s in cluster %s", newDeployment.Namespace, newDeployment.Name, clusterName)
+				logger.Info().Msgf("Creating deployment %s:%s in cluster %s", newDeployment.Namespace, newDeployment.Name, clusterName)
 				_, err = managedClusterConnection.KubeClient.AppsV1().Deployments(newDeployment.Namespace).Create(context.TODO(), newDeployment, metav1.CreateOptions{})
 			}
 			if err != nil {
@@ -175,6 +178,9 @@ func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManaged
 
 // Constructs the necessary Verrazzano system deployments for the specified ManagedCluster in the given VerrazzanoBinding
 func newSystemDeployments(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.ManagedCluster, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
+	// Create log instance for adding new deployments
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ManagedCluster").Str("name", managedCluster.Name).Logger()
+
 	managedNamespace := util.GetManagedClusterNamespaceForSystem()
 	deployPromPusher := true //temporary variable to create pusher deployment
 	depLabels := util.GetManagedLabelsNoBinding(managedCluster.Name)

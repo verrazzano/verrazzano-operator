@@ -5,8 +5,9 @@ package managed
 
 import (
 	"context"
+	"os"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
@@ -18,12 +19,14 @@ import (
 
 // CreateDaemonSets creates/updates daemon sets needed for each managed cluster.
 func CreateDaemonSets(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string) error {
+	// Create log instance for creating daemon sets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "DaemonSets").Str("name", "Creation").Logger()
 
-	glog.V(6).Infof("Creating/updating daemonset for VerrazzanoBinding %s", mbPair.Binding.Name)
+	logger.Debug().Msgf("Creating/updating daemonset for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// If binding is not System binding, skip creating Daemon sets
 	if mbPair.Binding.Name != constants.VmiSystemBindingName {
-		glog.V(6).Infof("Skip creating Daemon sets for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
+		logger.Debug().Msgf("Skip creating Daemon sets for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
 		return nil
 	}
 
@@ -42,7 +45,7 @@ func CreateDaemonSets(mbPair *types.ModelBindingPair, filteredConnections map[st
 		for _, newDaemonSet := range newDaemonSets {
 			existingcm, err := managedClusterConnection.DaemonSetLister.DaemonSets(newDaemonSet.Namespace).Get(newDaemonSet.Name)
 			if existingcm == nil {
-				glog.V(4).Infof("Creating DaemonSet %s in cluster %s", newDaemonSet.Name, clusterName)
+				logger.Info().Msgf("Creating DaemonSet %s in cluster %s", newDaemonSet.Name, clusterName)
 				_, err = managedClusterConnection.KubeClient.AppsV1().DaemonSets(newDaemonSet.Namespace).Create(context.TODO(), newDaemonSet, metav1.CreateOptions{})
 				if err != nil {
 					return err
@@ -52,8 +55,8 @@ func CreateDaemonSets(mbPair *types.ModelBindingPair, filteredConnections map[st
 			//If  daemonset already exists, check the spec differences
 			specDiffs := diff.CompareIgnoreTargetEmpties(existingcm, newDaemonSet)
 			if specDiffs != "" {
-				glog.V(6).Infof("DaemonSet %s : Spec differences %s", newDaemonSet.Name, specDiffs)
-				glog.V(4).Infof("Updating DaemonSet %s in cluster %s", newDaemonSet.Name, clusterName)
+				logger.Debug().Msgf("DaemonSet %s : Spec differences %s", newDaemonSet.Name, specDiffs)
+				logger.Info().Msgf("Updating DaemonSet %s in cluster %s", newDaemonSet.Name, clusterName)
 				_, err = managedClusterConnection.KubeClient.AppsV1().DaemonSets(newDaemonSet.Namespace).Update(context.TODO(), newDaemonSet, metav1.UpdateOptions{})
 			}
 			if err != nil {

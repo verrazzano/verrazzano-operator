@@ -6,9 +6,10 @@ package images
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strconv"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/gorilla/mux"
 )
 
@@ -53,7 +54,10 @@ func Init() {
 
 // ReturnAllImages returns all images available
 func ReturnAllImages(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /images")
+	// Create log instance for returning all images
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Images").Str("name", "Return").Logger()
+
+	logger.Info().Msg("GET /images")
 
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Images)), 10))
 	json.NewEncoder(w).Encode(Images)
@@ -62,10 +66,13 @@ func ReturnAllImages(w http.ResponseWriter, r *http.Request) {
 // ReturnSingleImage returns the image identified by the supplied key. If no image
 // is found, sets the 404/NotFound HTTP status header
 func ReturnSingleImage(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning single Image
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Images").Str("name", "Return").Logger()
+
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /images/" + key)
+	logger.Info().Msg("GET /images/" + key)
 
 	found := false
 	for _, images := range Images {

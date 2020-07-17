@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 )
@@ -63,19 +64,25 @@ func refreshMicroservices() {
 
 // ReturnAllMicroservices returns all microservices used by model and bindings.
 func ReturnAllMicroservices(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning microservices
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Microservices").Str("name", "Return").Logger()
+
 	refreshMicroservices()
-	glog.V(4).Info("GET /microservices")
+	logger.Info().Msg("GET /microservices")
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Microservices)), 10))
 	json.NewEncoder(w).Encode(Microservices)
 }
 
 // ReturnSingleMicroservice returns a single microservice identified by the microservice Kubernetes UID.
 func ReturnSingleMicroservice(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning single microservice
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Microservices").Str("name", "Return").Logger()
+
 	refreshMicroservices()
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /microservices/" + key)
+	logger.Info().Msg("GET /microservices/" + key)
 
 	foundApplication := false
 	for _, microservices := range Microservices {
