@@ -20,12 +20,10 @@ ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),push push-tag))
 endif
 
 HELM_CHART_VERSION = v0.0.0-${TAG}
-HELM_CHART_BRANCH:=devel
 OPERATOR_VERSION = ${TAG}
-ifdef TAG_NAME
-	HELM_CHART_VERSION = ${TAG_NAME}
-	OPERATOR_VERSION = ${TAG_NAME}
-	HELM_CHART_BRANCH = master
+ifdef RELEASE_VERSION
+	HELM_CHART_VERSION = ${RELEASE_VERSION}
+	OPERATOR_VERSION = ${RELEASE_VERSION}
 endif
 
 DIST_DIR:=dist
@@ -180,12 +178,12 @@ chart-build: go-mod
 	cp -r chart/NOTES.txt  $(DIST_DIR)/
 	cp -r chart/values.yaml  $(DIST_DIR)/
 
+.PHONY chart-publish:
+chart-publish: chart-build
 	# Fill in tag version that's being built
 	sed -i.bak -e "s/latest/${HELM_CHART_VERSION}/g" $(DIST_DIR)/Chart.yaml
 	sed -i.bak -e "s/OPERATOR_VERSION/${OPERATOR_VERSION}/g" -e "s/OPERATOR_IMAGE_NAME/${OPERATOR_IMAGE_NAME}/g" $(DIST_DIR)/values.yaml
 
-.PHONY chart-publish:
-chart-publish: chart-build
 	rm -rf archive
 	mkdir archive
 	tar cvzf archive/${HELM_CHART_ARCHIVE_NAME} -C ${DIST_DIR}/ .
@@ -239,3 +237,35 @@ chart-publish: chart-build
 	fi
 	rm -rf response.txt
 	rm -rf ${DIST_DIR}
+
+.PHONY release:
+release: chart-build
+	if [ ! -z "${RELEASE_VERSION}" ]; then
+		echo "Get the latest release."
+		rm -rf response.txt
+		curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/latest" -o response.txt
+		while [ ! -f response.txt ]; do sleep 1; done;
+		cat response.txt
+	fi
+
+	if [ ! -z "${RELEASE_VERSION}" ]; then \
+		version=$$(echo "${RELEASE_VERSION}"); \
+	else \
+		msg=$$(jq -r .message response.txt); \
+		if [ "$$msg" == "Not Found" ]; then \
+			echo "No release found. Creating release with version v0.1.0."; \
+			version="v0.1.0"
+		else \
+			latest=$$(jq -r .tag_name response.txt); \
+			if [ -z "$$latest" ]; then \
+				echo "Error: Failed to get tag_name for latest release.Aborting.."; \
+				exit 1; \
+			else \
+				echo "Version for latest release is $$latest."; \
+				rgx="^((?:[0-9]+\.)*)([0-9]+)($)"; \
+				val=$$(echo -e $$latest | perl -pe 's/^.*'$$rgx'.*$/$2/'); \
+				latest=$$(echo "$$latest" | perl -pe s/$$rgx.*$'/${1}'`printf %0${#val}s $$($$val+1)); \
+				echo "Creating new release with version $$latest."; \
+			fi; \
+		fi; \
+	fi;

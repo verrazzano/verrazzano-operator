@@ -18,6 +18,16 @@ pipeline {
         }
     }
 
+    parameters {
+        string (name: 'RELEASE_VERSION',
+                defaultValue: '',
+                description: 'Release version used for the version of helm chart and tag for the image:\n'+
+                'When RELEASE_VERSION is not defined, version will be determined by incrementing last minor release version by 1, for example:\n'+
+                'When RELEASE_VERSION is v0.1.0, image tag will be v0.1.0 and helm chart version is also v0.1.0.\n'+
+                'When RELEASE_VERSION is not specified and last release version is v0.1.0, image tag will be v0.1.1 and helm chart version is also v0.1.1.',
+                trim: true)
+    }
+
     environment {
         DOCKER_CI_IMAGE_NAME = 'verrazzano-operator-jenkins'
         DOCKER_PUBLISH_IMAGE_NAME = 'verrazzano-operator'
@@ -58,7 +68,7 @@ pipeline {
         }
 
         stage('Build') {
-            when { not { buildingTag() } }
+            when { buildingTag() }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -69,7 +79,7 @@ pipeline {
         }
 
         stage('Third Party License Check') {
-            when { not { buildingTag() } }
+            when { buildingTag() }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -79,14 +89,14 @@ pipeline {
         }
 
         stage('Copyright Compliance Check') {
-            when { not { buildingTag() } }
+            when { buildingTag() }
             steps {
                 copyrightScan "${WORKSPACE}"
             }
         }
 
         stage('Unit Tests') {
-            when { not { buildingTag() } }
+            when { buildingTag() }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -105,7 +115,7 @@ pipeline {
         }
 
         stage('Scan Image') {
-            when { not { buildingTag() } }
+            when { buildingTag() }
             steps {
                 script {
                     HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
@@ -120,7 +130,7 @@ pipeline {
         }
 
         stage('Publish Image') {
-            when { not { buildingTag() } }
+            when { buildingTag() }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -129,11 +139,11 @@ pipeline {
             }
         }
 
-        stage('Publish Helm Chart') {
-            when { buildingTag() }
+        stage('Release') {
+            // when { buildingTag() }
             steps {
                 sh """
-                    make chart-publish OPERATOR_IMAGE_NAME=${env.DOCKER_PUBLISH_IMAGE_NAME}
+                    make release OPERATOR_IMAGE_NAME=${env.DOCKER_PUBLISH_IMAGE_NAME} RELEASE_VERSION=${params.RELEASE_VERSION}
                 """
             }
         }
