@@ -40,7 +40,7 @@ monitoringOperator:
   esInitImage: oraclelinux:7
   kibanaImage: docker.elastic.co/kibana/kibana-oss:7.6.1
   monitoringInstanceApiImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.6
-  configReloaderImage: phx.ocir.io/stevengreenberginc/bfs/configmap-reload:0.3-3449794-32
+  configReloaderImage: phx.ocir.io/stevengreenberginc/bfs/configmap-reload:0.3-81d6423-33
   nodeExporterImage: phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-25813b2-6
 
 clusterOperator:
