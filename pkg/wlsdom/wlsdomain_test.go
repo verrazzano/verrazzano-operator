@@ -44,8 +44,8 @@ func createWeblogicDomainModel(name string, fluentd bool) vz.VerrazzanoWebLogicD
 }
 
 func checkDomainModel(t *testing.T, weblogicDomain *v8weblogic.Domain, domainName string) {
-	containers := weblogicDomain.Spec.BaseConfiguration.ServerPod.Containers
-	volumes := weblogicDomain.Spec.BaseConfiguration.ServerPod.Volumes
+	containers := weblogicDomain.Spec.ServerPod.Containers
+	volumes := weblogicDomain.Spec.ServerPod.Volumes
 
 	assert.Equal(t, domainName, weblogicDomain.Name, fmt.Sprintf("Expected domain name to be %s", domainName))
 	assert.Equal(t, domainName, weblogicDomain.Spec.DomainUID, fmt.Sprintf("Expected domain UID to be %s", domainName))

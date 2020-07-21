@@ -1,9 +1,10 @@
 github.com/verrazzano/verrazzano-operator
 -------- Copyrights
 Copyright (c) 2020 Oracle America, Inc. and its affiliates. 
-# Copyright (C) 2020, Oracle Corporation and/or its affiliates.
-// Copyright (C) 2020, Oracle Corporation and/or its affiliates.
-// Copyright (c) 2020, Oracle Corporation and/or its affiliates.
+# Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, Oracle and/or its affiliates.
 
 ======== License
 Copyright (c) 2020 Oracle America, Inc. and its affiliates. 
@@ -1843,9 +1844,8 @@ Copyright (c) 2020 Oracle America, Inc. and its affiliates.
 github.com/verrazzano/verrazzano-crd-generator
 -------- Copyrights
 Copyright (c) 2020 Oracle America, Inc. and its affiliates. 
-# Copyright (c) 2020, Oracle Corporation and/or its affiliates.
-// Copyright (c) 2020, Oracle Corporation and/or its affiliates.
- * Copyright (c) 2020, Oracle Corporation and/or its affiliates.
+# Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, Oracle and/or its affiliates.
 
 -------- Dependency
 github.com/verrazzano/verrazzano-helidon-app-operator
@@ -1867,8 +1867,8 @@ Copyright 2019 The Kubernetes Authors.
 github.com/verrazzano/verrazzano-wko-operator
 -------- Copyrights
 Copyright (c) 2020 Oracle America, Inc. and its affiliates. 
-# Copyright (c) 2020, Oracle Corporation and/or its affiliates.
-// Copyright (c) 2020, Oracle Corporation and/or its affiliates.
+# Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, Oracle and/or its affiliates.
 
 ======== Dependencies Summary
 github.com/verrazzano/verrazzano-coh-cluster-operator
@@ -11192,8 +11192,14 @@ github.com/go-bindata/go-bindata/v3
 -------- Copyrights
 	return fmt.Sprintf("%s %d.%d.%s (Go runtime %s).\nCopyright (c) 2010-2013, Jim Teeuwen.",
 
+-------- Dependency
+github.com/jteeuwen/go-bindata
+-------- Copyrights
+	return fmt.Sprintf("%s %d.%d.%s (Go runtime %s).\nCopyright (c) 2010-2013, Jim Teeuwen.",
+
 ======== Dependencies Summary
 github.com/go-bindata/go-bindata/v3
+github.com/jteeuwen/go-bindata
 
 ======== License used by Dependencies
 This work is subject to the CC0 1.0 Universal (CC0 1.0) Public Domain Dedication
@@ -11346,4 +11352,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 6bcd4f64ab6a16ebcff449b5c4fb29fb
+License file based on go.mod with md5 sum: 737460fabd5dfa8cc71b82974e11fcb9
