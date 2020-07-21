@@ -8,7 +8,6 @@ require (
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible // indirect
 	github.com/kylelemons/godebug v1.1.0
 	github.com/spf13/pflag v1.0.5
-	github.com/square/go-jose v2.5.1+incompatible // indirect
 	github.com/stretchr/testify v1.5.1
 	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.7
 	github.com/verrazzano/verrazzano-crd-generator v0.3.29

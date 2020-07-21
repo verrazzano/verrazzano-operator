@@ -1,4 +1,4 @@
-// Copyright (C) 2020, Oracle Corporation and/or its affiliates.
+// Copyright (C) 2020, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helidonapp
@@ -28,9 +28,22 @@ func CreateFluentdConfigMap(app *v1beta1v8o.VerrazzanoHelidon, namespace string,
   pos_file "/tmp/#{ENV['APPLICATION_NAME']}.log.pos"
   read_from_head true
   tag "#{ENV['APPLICATION_NAME']}"
-  format json
   # Helidon application messages are expected to look like this:
   # 2020.04.22 16:09:21 INFO org.books.bobby.Main Thread[main,5,main]: http://localhost:8080/books
+  <parse>
+    @type multi_format
+    <pattern>
+      # Docker output
+      format json
+      time_format %Y-%m-%dT%H:%M:%S.%NZ
+    </pattern>
+    <pattern>
+      # cri-o output
+      format regexp
+      expression /^(?<timestamp>(.*?)) (?<stream>stdout|stderr) (?<log>.*)$/
+      time_format %Y-%m-%dT%H:%M:%S.%N%:z
+    </pattern>
+  </parse>
 </source>
 <filter **>
   @type parser

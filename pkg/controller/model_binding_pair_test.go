@@ -1,4 +1,4 @@
-// Copyright (C) 2020, Oracle Corporation and/or its affiliates.
+// Copyright (C) 2020, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package controller
@@ -244,13 +244,16 @@ func TestCreateModelBindingPair(t *testing.T) {
 	model, _ := ReadModel("testdata/sockshop-model.yaml")
 	binding, _ := ReadBinding("testdata/sockshop-binding.yaml")
 
+	assert.NotEmpty(t, model.Name)
+	assert.NotEmpty(t, binding.Name)
+
 	// create a new ModelBindingPair
 	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url", true)
 
 	// gather expected state
 	expectedClusterHelidonApps := map[string]map[string]struct{}{"cluster1": {"frontend": {}, "carts": {},
 		"catalogue": {}, "orders": {}, "payment": {}, "shipping": {}, "user": {}, "swagger": {}}}
-	expectedClusterNamespaces := map[string]map[string]struct{}{"cluster1": {"verrazzano-system": {}, "sockshop": {}, "verrazzano-": {}}}
+	expectedClusterNamespaces := map[string]map[string]struct{}{"cluster1": {"verrazzano-system": {}, "sockshop": {}, "verrazzano-sock-shop-binding": {}}}
 	wlsDomain := &wls.Domain{ObjectMeta: metav1.ObjectMeta{Name: "wl-frontend", Namespace: "sockshop"},
 		Spec: wls.DomainSpec{Image: util.GetTestWlsFrontendImage(), LogHome: "/u01/oracle/user_projects/domains/wl-frontend/logs"}}
 
@@ -279,13 +282,18 @@ func TestUpdateModelBindingPair(t *testing.T) {
 	model2, _ := ReadModel("testdata/sockshop-model-2.yaml")
 	binding2, _ := ReadBinding("testdata/sockshop-binding-2.yaml")
 
+	assert.NotEmpty(t, model.Name)
+	assert.NotEmpty(t, binding.Name)
+	assert.NotEmpty(t, model2.Name)
+	assert.NotEmpty(t, binding2.Name)
+
 	// create a new ModelBindingPair
 	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url", false)
 
 	// gather expected state
 	expectedClusterHelidonApps := map[string]map[string]struct{}{"cluster1": {"frontend": {}, "carts": {}, "catalogue": {},
 		"orders": {}, "payment": {}, "shipping": {}, "user": {}, "swagger": {}}}
-	expectedClusterNamespaces := map[string]map[string]struct{}{"cluster1": {"verrazzano-system": {}, "sockshop": {}, "verrazzano-": {}}}
+	expectedClusterNamespaces := map[string]map[string]struct{}{"cluster1": {"verrazzano-system": {}, "sockshop": {}, "verrazzano-sock-shop-binding": {}}}
 	wlsDomain := &wls.Domain{ObjectMeta: metav1.ObjectMeta{Name: "wl-frontend", Namespace: "sockshop"},
 		Spec: wls.DomainSpec{Image: util.GetTestWlsFrontendImage(), LogHome: "/u01/oracle/user_projects/domains/wl-frontend/logs"}}
 	expectedValues := MbpExpectedValues{
@@ -387,7 +395,6 @@ func validateModelBindingPair(t *testing.T,
 // validates that the config map and overrides are created when databaseBindings are specified
 func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair) {
 
-
 	const configMapXml = `<?xml version='1.0' encoding='UTF-8'?>
 <jdbc-data-source xmlns="http://xmlns.oracle.com/weblogic/jdbc-data-source"
                   xmlns:f="http://xmlns.oracle.com/weblogic/jdbc-data-source-fragment"
@@ -406,9 +413,9 @@ func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair) {
 </jdbc-data-source>
 `
 	var expected = map[string]string{
-		"jdbc-socks.xml": fmt.Sprintf(configMapXml, "socks", "socks", "mysqlsecret", "mysqlsecret"),
+		"jdbc-socks.xml":       fmt.Sprintf(configMapXml, "socks", "socks", "mysqlsecret", "mysqlsecret"),
 		"jdbc-jdbc2fsocks.xml": fmt.Sprintf(configMapXml, "jdbc/socks", "socks2", "mysql2secret", "mysql2secret"),
-		"version.txt": "2.0",
+		"version.txt":          "2.0",
 	}
 
 	managedClusters := mbp.ManagedClusters
