@@ -7,10 +7,10 @@ import (
 	"sync"
 
 	v1cohoperator "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/apis/verrazzano/v1beta1"
-	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	v1cohcluster "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	v7weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
+	v8weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
+	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	v1wlsopr "github.com/verrazzano/verrazzano-wko-operator/pkg/apis/verrazzano/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -89,7 +89,7 @@ type ManagedCluster struct {
 	WlsOperator *v1wlsopr.WlsOperator
 
 	// WebLogic domain CRs for this cluster
-	WlsDomainCRs []*v7weblogic.Domain
+	WlsDomainCRs []*v8weblogic.Domain
 
 	// Helidon applications for this cluster
 	HelidonApps []*v1helidonapp.HelidonApp

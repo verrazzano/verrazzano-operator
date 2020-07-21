@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vz "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	v7weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
+	v8weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 )
@@ -37,13 +37,13 @@ func createWeblogicDomainModel(name string, fluentd bool) vz.VerrazzanoWebLogicD
 		AdminPort:      80,
 		T3Port:         81,
 		FluentdEnabled: fluentd,
-		DomainCRValues: v7weblogic.DomainSpec{
+		DomainCRValues: v8weblogic.DomainSpec{
 			DomainUID: name,
 		},
 	}
 }
 
-func checkDomainModel(t *testing.T, weblogicDomain *v7weblogic.Domain, domainName string) {
+func checkDomainModel(t *testing.T, weblogicDomain *v8weblogic.Domain, domainName string) {
 	containers := weblogicDomain.Spec.BaseConfiguration.ServerPod.Containers
 	volumes := weblogicDomain.Spec.BaseConfiguration.ServerPod.Volumes
 

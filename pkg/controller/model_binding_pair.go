@@ -5,14 +5,15 @@ package controller
 
 import (
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/url"
 	"strings"
 	"sync"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/golang/glog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	v7weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
+	v8weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/cohcluster"
 	"github.com/verrazzano/verrazzano-operator/pkg/cohoperator"
@@ -337,7 +338,7 @@ func addSecret(mc *types.ManagedCluster, secretName string, namespace string) {
 }
 
 // Add the name of an ingress to the array of ingresses in a managed cluster
-func addIngress(mc *types.ManagedCluster, ingressConn v1beta1v8o.VerrazzanoIngressConnection, namespace string, domainCR *v7weblogic.Domain, destinationHost string, virtualSerivceDestinationPort int) {
+func addIngress(mc *types.ManagedCluster, ingressConn v1beta1v8o.VerrazzanoIngressConnection, namespace string, domainCR *v8weblogic.Domain, destinationHost string, virtualSerivceDestinationPort int) {
 	var domainName = ""
 	if domainCR != nil {
 		domainName = domainCR.Spec.DomainUID
@@ -437,7 +438,7 @@ func addRemoteRest(mc *types.ManagedCluster, restName string, localNamespace str
 	})
 }
 
-func processIngressConnections(mc *types.ManagedCluster, connections []v1beta1v8o.VerrazzanoConnections, namespace string, domainCR *v7weblogic.Domain, destinationHost string, virtualSerivceDestinationPort int, ingressBindings *[]v1beta1v8o.VerrazzanoIngressBinding) {
+func processIngressConnections(mc *types.ManagedCluster, connections []v1beta1v8o.VerrazzanoConnections, namespace string, domainCR *v8weblogic.Domain, destinationHost string, virtualSerivceDestinationPort int, ingressBindings *[]v1beta1v8o.VerrazzanoIngressBinding) {
 	for _, connection := range connections {
 		for _, ingress := range connection.Ingress {
 			inBindings := []v1beta1v8o.VerrazzanoIngressBinding{}
@@ -613,7 +614,7 @@ func getSourcePlacement(compName string, binding *v1beta1v8o.VerrazzanoBinding) 
 }
 
 // Utility function to generate the destination host name for a domain
-func getDomainDestinationHost(domain *v7weblogic.Domain) string {
+func getDomainDestinationHost(domain *v8weblogic.Domain) string {
 	return fmt.Sprintf("%s-cluster-%s.%s.svc.cluster.local", domain.Spec.DomainUID, domain.Spec.Clusters[0].ClusterName, domain.Namespace)
 }
 

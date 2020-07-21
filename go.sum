@@ -1032,12 +1032,16 @@ github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.7 h1:KHpnNDQhHRwRk+3s
 github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.7/go.mod h1:rBbERv1D+QcHlf7aZVulAOjU3Rv4nHOINZhBmcrt9bg=
 github.com/verrazzano/verrazzano-crd-generator v0.3.29 h1:i5/8u2q5Dofuj+OmCU9s8hDkLqbP9BvW6+CD02P9B+U=
 github.com/verrazzano/verrazzano-crd-generator v0.3.29/go.mod h1:m9coaK+3mJPr+jVWJ18ydpUg/CD659dFxiSshiEudtw=
+github.com/verrazzano/verrazzano-crd-generator v0.3.30 h1:f4Hdb973uw/TJlFjOFwxPvGmWkuR8R2kk6cleHvi0HM=
+github.com/verrazzano/verrazzano-crd-generator v0.3.30/go.mod h1:m9coaK+3mJPr+jVWJ18ydpUg/CD659dFxiSshiEudtw=
 github.com/verrazzano/verrazzano-helidon-app-operator v0.0.6 h1:xO+Ky9TvmDP2mGX5poKUTdxnO8qG0+bX4VnnQ5uann4=
 github.com/verrazzano/verrazzano-helidon-app-operator v0.0.6/go.mod h1:RVTNJZZ6toH1fJmZVwlpcNXXnzG8kth0FdyPG9m9pq4=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.16 h1:VS6ygCdlBC+zXv2EtxQJJ5I7U1DTmw8fS1TugufG+Zk=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.16/go.mod h1:rzkO22zlewUe9o2haP+YFGVMclwCD9gzHSHeEI5ZMxQ=
 github.com/verrazzano/verrazzano-wko-operator v0.0.6 h1:PaATe8qbjn6T5sd1zDFCZ2tOs0W2QEtXbzzL6XJ85lA=
 github.com/verrazzano/verrazzano-wko-operator v0.0.6/go.mod h1:21Tk36WlM0a1SF4jDbvY00KbpnvDvX5saFj6ZnofVSY=
+github.com/verrazzano/verrazzano-wko-operator v0.0.7 h1:nF4fX4TwFKTGkhs3QbXJ7GKNr1DA9j8/91lxRxT6DD0=
+github.com/verrazzano/verrazzano-wko-operator v0.0.7/go.mod h1:21Tk36WlM0a1SF4jDbvY00KbpnvDvX5saFj6ZnofVSY=
 github.com/xanzy/go-gitlab v0.15.0 h1:rWtwKTgEnXyNUGrOArN7yyc3THRkpYcKXIXia9abywQ=
 github.com/xanzy/go-gitlab v0.15.0/go.mod h1:8zdQa/ri1dfn8eS3Ir1SyfvOKlw7WBJ8DVThkpGiXrs=
 github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c h1:u40Z8hqBAAQyv+vATcGgV0YCnDjqSL7/q/JyPhhJSPk=

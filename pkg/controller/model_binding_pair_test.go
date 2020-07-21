@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
+	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"

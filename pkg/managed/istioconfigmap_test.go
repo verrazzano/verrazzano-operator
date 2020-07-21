@@ -8,11 +8,13 @@ import (
 	"sync"
 	"testing"
 
+	v8 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
+
 	"github.com/Jeffail/gabs/v2"
-	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/stretchr/testify/assert"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	v7 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
+	v8 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -345,8 +347,8 @@ func addTestWeblogicPlacement(mbPair *types.ModelBindingPair) {
 func addTestWeblogicDomainToModel(mbPair *types.ModelBindingPair) {
 	webLogicDomain := &v1beta1v8o.VerrazzanoWebLogicDomain{
 		Name: testWeblogicBindingName,
-		DomainCRValues: v7.DomainSpec{
-			WebLogicCredentialsSecret: v7.WebLogicSecret{
+		DomainCRValues: v8.DomainSpec{
+			WebLogicCredentialsSecret: v8.WebLogicSecret{
 				Name: testWeblogicCredentialsSecret,
 			},
 		},
