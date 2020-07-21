@@ -361,7 +361,7 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 			return nil
 		}
 
-		if err != nil {
+		if err == nil {
 			existingDomainList, err := mc.DomainClientSet.WeblogicV7().Domains("").List(
 				context.TODO(),
 				metav1.ListOptions{
@@ -428,7 +428,7 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 			return nil
 		}
 
-		if err != nil {
+		if err == nil {
 			existingClusterList, err := mc.CohClusterClientSet.CoherenceV1().CoherenceClusters("").List(
 				context.TODO(),
 				metav1.ListOptions{
@@ -586,7 +586,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 			return nil
 		}
 
-		if err != nil {
+		if err == nil {
 			existingClusterList, err := managedClusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters("").List(
 				context.TODO(),
 				metav1.ListOptions{
@@ -646,7 +646,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 			return nil
 		}
 
-		if err != nil {
+		if err == nil {
 			existingDomainList, err := managedClusterConnection.DomainClientSet.WeblogicV7().Domains("").List(
 				context.TODO(),
 				metav1.ListOptions{
@@ -735,7 +735,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 			return nil
 		}
 
-		if err != nil {
+		if err == nil {
 			clusterList, err := managedClusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters("").List(
 				context.TODO(),
 				metav1.ListOptions{
@@ -785,7 +785,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 			return nil
 		}
 
-		if err != nil {
+		if err == nil {
 			domainList, err := managedClusterConnection.DomainClientSet.WeblogicV7().Domains("").List(
 				context.TODO(),
 				metav1.ListOptions{
