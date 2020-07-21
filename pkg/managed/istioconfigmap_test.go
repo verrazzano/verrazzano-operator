@@ -8,8 +8,6 @@ import (
 	"sync"
 	"testing"
 
-	v8 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
-
 	"github.com/Jeffail/gabs/v2"
 	"github.com/stretchr/testify/assert"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
@@ -348,7 +346,7 @@ func addTestWeblogicDomainToModel(mbPair *types.ModelBindingPair) {
 	webLogicDomain := &v1beta1v8o.VerrazzanoWebLogicDomain{
 		Name: testWeblogicBindingName,
 		DomainCRValues: v8.DomainSpec{
-			WebLogicCredentialsSecret: v8.WebLogicSecret{
+			WebLogicCredentialsSecret: apicorev1.SecretReference{
 				Name: testWeblogicCredentialsSecret,
 			},
 		},
