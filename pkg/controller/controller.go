@@ -536,19 +536,6 @@ func (c *Controller) processApplicationModelAdded(cluster interface{}) {
 
 	// Add or replace the model object
 	c.applicationModels[model.Name] = model
-
-	// During restart of the operator a binding can be added before a model so make sure we create
-	// model/binding pair now.
-	for _, binding := range c.applicationBindings {
-		if mbPair, ok := c.modelBindingPairs[binding.Name]; !ok {
-			if model.Name == binding.Spec.ModelName {
-				glog.Infof("Adding model/binding pair during add model for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-				mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.sslVerify)
-				c.modelBindingPairs[binding.Name] = mbPair
-				break
-			}
-		}
-	}
 }
 
 // Process a removal of a VerrazzanoModel
@@ -578,24 +565,7 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 	}
 
 	if binding.GetDeletionTimestamp() != nil {
-		if contains(binding.GetFinalizers(), bindingFinalizer) {
-			// Add binding in the case where delete has been initiated before the binding is added.
-			if _, ok := c.applicationBindings[binding.Name]; !ok {
-				glog.Infof("Adding the binding %s", binding.Name)
-				c.applicationBindings[binding.Name] = binding
-			}
-			mbPair, mbPairExists := getModelBindingPair(c, binding)
-			if !mbPairExists {
-				// During restart of the operator a delete can happen before a model/binding is created so create one now.
-				if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-					glog.Infof("Adding model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-					mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.sslVerify)
-					c.modelBindingPairs[binding.Name] = mbPair
-				}
-			}
-		}
-
-		glog.V(6).Infof("Binding %s is marked for deletion/already deleted", binding.Name)
+		glog.Infof("Binding %s is marked for deletion/already deleted", binding.Name)
 		if contains(binding.GetFinalizers(), bindingFinalizer) {
 			c.processApplicationBindingDeleted(cluster)
 		}
@@ -641,7 +611,7 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 	if !mbPairExists {
 		// If a model exists for this binding, then create the model/binding pair
 		if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-			glog.Infof("Adding new model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
+			glog.Infof("Adding new model/binding pair for model %s and binding %s", binding.Spec.ModelName, binding.Name)
 			mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.sslVerify)
 			c.modelBindingPairs[binding.Name] = mbPair
 			mbPairExists = true
@@ -784,7 +754,6 @@ func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 // Process a removal of a VerrazzanoBinding
 func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	binding := cluster.(*v1beta1v8o.VerrazzanoBinding)
-
 	if !contains(binding.GetFinalizers(), bindingFinalizer) {
 		glog.Infof("Resources for binding %s already deleted", binding.Name)
 		return
