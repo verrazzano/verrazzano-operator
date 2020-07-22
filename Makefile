@@ -266,14 +266,14 @@ github-release: release-version
 	cp chart/index.yaml ${DIST_DIR}/
 	helm repo index --url https://github.com/verrazzano/verrazzano-operator/releases/download ${DIST_DIR}/
 	cp ${DIST_DIR}/index.yaml chart/.
-	RELEASE_VERSION=$(cat chart/latest) && \
-	git config user.email "verrazzano@verrazzano.io" && \
-	git config user.name "verrazzano" && \
-	git add chart/index.yaml && \
-	git add -f chart/latest && \
-	git commit -m "[skip ci] Adding helm chart version $$RELEASE_VERSION" && \
-	git push && \
-	git tag -a $$RELEASE_VERSION -m "Release $$RELEASE_VERSION" && \
+	RELEASE_VERSION=$$(cat chart/latest); \
+	git config user.email "verrazzano@verrazzano.io"; \
+	git config user.name "verrazzano"; \
+	git add chart/index.yaml; \
+	git add -f chart/latest; \
+	git commit -m "[skip ci] Adding helm chart version $$RELEASE_VERSION"; \
+	git push; \
+	git tag -a $$RELEASE_VERSION -m "Release $$RELEASE_VERSION"; \
 	git push --tags
 
 .PHONY release-image:

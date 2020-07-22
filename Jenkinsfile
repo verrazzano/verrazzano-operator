@@ -130,7 +130,7 @@ pipeline {
         }
 
         stage('Release') {
-            when { buildingTag() }
+            //when { buildingTag() }
             steps {
                 sh """
                     make release OPERATOR_IMAGE_NAME=${env.DOCKER_PUBLISH_IMAGE_NAME} RELEASE_VERSION=${params.RELEASE_VERSION} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${env.DOCKER_PUBLISH_IMAGE_NAME}
