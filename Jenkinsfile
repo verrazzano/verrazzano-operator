@@ -26,6 +26,10 @@ pipeline {
                 'When RELEASE_VERSION is v0.1.0, image tag will be v0.1.0 and helm chart version is also v0.1.0.\n'+
                 'When RELEASE_VERSION is not specified and last release version is v0.1.0, image tag will be v0.1.1 and helm chart version is also v0.1.1.',
                 trim: true)
+        string (name: 'RELEASE_DESCRIPTION',
+                defaultValue: '',
+                description: 'Brief description for the release.',
+                trim: true)
     }
 
     environment {
@@ -73,7 +77,7 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
                     make push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-                    make chart-publish OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_NAME}
+                    make chart-publish DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME}
                    """
             }
         }
@@ -133,7 +137,7 @@ pipeline {
             //when { buildingTag() }
             steps {
                 sh """
-                    make release OPERATOR_IMAGE_NAME=${env.DOCKER_PUBLISH_IMAGE_NAME} RELEASE_VERSION=${params.RELEASE_VERSION} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${env.DOCKER_PUBLISH_IMAGE_NAME}
+                    make release DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${env.DOCKER_IMAGE_NAME} RELEASE_VERSION=${params.RELEASE_VERSION} RELEASE_DESCRIPTION=${params.RELEASE_DESCRIPTION}
                 """
             }
         }
