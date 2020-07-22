@@ -279,7 +279,7 @@ github-release: release-image
 	echo "Updating index.yaml in github repo."; \
 	git config user.email "verrazzano@verrazzano.io"; \
 	git config user.name "verrazzano"; \
-	git add chart/index.yaml; \
+	git add -f chart/index.yaml; \
 	git add -f chart/latest; \
 	git commit -m "[ci skip] Adding helm chart version $$RELEASE_VERSION"; \
 	git push; \
