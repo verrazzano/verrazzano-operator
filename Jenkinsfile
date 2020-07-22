@@ -34,7 +34,7 @@ pipeline {
                 defaultValue: 'master',
                 description: 'Branch to create release from, change this to enable release from a non master branch, e.g.\n'+
                 'When the branch being built is master then release will always be created when RELEASE_BRANCH has the default value - master.\n'+
-                'When the branch being built is any non-master branch - release can be created by setting RELEASE_BRANCH to same value as non-master branch, else it is skipped.\n'+,
+                'When the branch being built is any non-master branch - release can be created by setting RELEASE_BRANCH to same value as non-master branch, else it is skipped.\n',
                 trim: true)
     }
 
