@@ -171,7 +171,7 @@ chart-build: go-mod
 	cp -r chart/values.yaml  $(DIST_DIR)/
 	# Fill in tag version that's being built
 	sed -i.bak -e "s/latest/${HELM_CHART_VERSION}/g" $(DIST_DIR)/Chart.yaml
-	sed -i.bak -e "s/OPERATOR_VERSION/${OPERATOR_VERSION}/g" -e "s/OPERATOR_IMAGE_NAME/${OPERATOR_IMAGE_NAME}/g" $(DIST_DIR)/values.yaml
+	sed -i.bak -e "s/OPERATOR_VERSION/${OPERATOR_VERSION}/g" -e "s/OPERATOR_IMAGE_NAME/${DOCKER_IMAGE_NAME}/g" $(DIST_DIR)/values.yaml
 
 	rm -rf archive
 	mkdir archive
