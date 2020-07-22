@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
@@ -67,6 +68,9 @@ func addSecret(secretNames []string, secretName string) []string {
 }
 
 func refreshSecrets() {
+	// Create log instance for refreshing secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secrets").Str("name", "Refresh").Logger()
+
 	// initialize domains as an empty list to avoid json encoding "nil"
 	Secrets = []Secret{}
 
@@ -74,7 +78,7 @@ func refreshSecrets() {
 	modelSelector := labels.SelectorFromSet(map[string]string{})
 	models, err := (*listerSet.ModelLister).VerrazzanoModels("default").List(modelSelector)
 	if err != nil {
-		glog.Errorf("Error getting application models: %s", err.Error())
+		logger.Error().Msgf("Error getting application models: %s", err.Error())
 		return
 	}
 
@@ -114,7 +118,7 @@ func refreshSecrets() {
 	bindingSelector := labels.SelectorFromSet(map[string]string{})
 	bindings, err := (*listerSet.BindingLister).VerrazzanoBindings("default").List(bindingSelector)
 	if err != nil {
-		glog.Errorf("Error getting application bindings: %s", err.Error())
+		logger.Error().Msgf("Error getting application bindings: %s", err.Error())
 		return
 	}
 
@@ -133,15 +137,18 @@ func refreshSecrets() {
 
 // Add secrets to global list
 func addSecrets(secretNames []string) {
+	// Create log instance for returning adding secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secrets").Str("name", "Add").Logger()
+
 	for _, secretName := range secretNames {
 		// get the actual secret from the management cluster
 		theSecret, err := local.GetSecret(secretName, constants.DefaultNamespace, *listerSet.KubeClientSet)
 		if err != nil {
-			glog.Warningf("Error getting secret %s in management cluster: %s", secretName, err.Error())
+			logger.Warn().Msgf("Error getting secret %s in management cluster: %s", secretName, err.Error())
 			continue
 		}
 		if theSecret == nil {
-			glog.Warningf("Secret %s not found in management cluster", secretName)
+			logger.Warn().Msgf("Secret %s not found in management cluster", secretName)
 			continue
 		}
 
@@ -168,7 +175,10 @@ func addSecrets(secretNames []string) {
 }
 
 func ReturnAllSecrets(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /secrets")
+	// Create log instance for returning all secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secrets").Str("name", "Return").Logger()
+
+	logger.Info().Msg("GET /secrets")
 	refreshSecrets()
 
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Secrets)), 10))
@@ -176,11 +186,14 @@ func ReturnAllSecrets(w http.ResponseWriter, r *http.Request) {
 }
 
 func ReturnSingleSecret(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning single secret
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secrets").Str("name", "Return").Logger()
+
 	refreshSecrets()
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /secrets/" + key)
+	logger.Info().Msg("GET /secrets/" + key)
 
 	for _, secrets := range Secrets {
 		if secrets.Id == key {
@@ -190,7 +203,10 @@ func ReturnSingleSecret(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateSecret(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("POST /secrets")
+	// Create log instance for creating secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secrets").Str("name", "Creation").Logger()
+
+	logger.Info().Msg("POST /secrets")
 
 	// unmarshall the secret from the payload
 	reqBody, _ := ioutil.ReadAll(r.Body)
@@ -198,7 +214,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	err := json.Unmarshal(reqBody, &secret)
 	if err != nil {
 		msg := fmt.Sprintf("Error: failed to unmarshal json: %s", err.Error())
-		glog.Error(msg)
+		logger.Error().Msg(msg)
 		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
@@ -206,7 +222,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	kSecret, _ := local.GetSecret(secret.Name, constants.DefaultNamespace, *listerSet.KubeClientSet)
 	if kSecret != nil {
 		msg := fmt.Sprintf("Error: secret %s already exists in default namespace", secret.Name)
-		glog.Error(msg)
+		logger.Error().Msg(msg)
 		http.Error(w, msg, http.StatusConflict)
 		return
 	}
@@ -247,7 +263,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	err = local.CreateGenericSecret(newSecret, *listerSet.KubeClientSet)
 	if err != nil {
 		msg := fmt.Sprintf("Error creating secret %s:%s failed: %s", secret.Namespace, secret.Name, err.Error())
-		glog.Error(msg)
+		logger.Error().Msg(msg)
 		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}
@@ -256,9 +272,12 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 
 // DeleteSecret will delete a secret identified by the secret Kubernetes UID.
 func DeleteSecret(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for deleting secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secrets").Str("name", "Deletion").Logger()
+
 	vars := mux.Vars(r)
 	uid := vars["id"]
-	glog.V(4).Info("DELETE /secrets/" + uid)
+	logger.Info().Msg("DELETE /secrets/" + uid)
 
 	kubSecret := getSecretLogError(w, uid)
 	if kubSecret == nil {
@@ -274,9 +293,12 @@ func DeleteSecret(w http.ResponseWriter, r *http.Request) {
 
 // UpdateSecret will update a secret identified by the secret Kubernetes UID.
 func UpdateSecret(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for creating secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secrets").Str("name", "Update").Logger()
+
 	vars := mux.Vars(r)
 	uid := vars["id"]
-	glog.V(4).Info("PATCH /secrets/" + uid)
+	logger.Info().Msg("PATCH /secrets/" + uid)
 
 	// unmarshall the secret from the payload
 	reqBody, _ := ioutil.ReadAll(r.Body)
@@ -320,16 +342,19 @@ func buildSecretData(secret Secret) map[string][]byte {
 
 // Get the secret by UID.  Write http response and log error on failure
 func getSecretLogError(w http.ResponseWriter, uid string) *corev1.Secret {
+	// Create log instance for creating secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secrets").Str("name", "Error").Logger()
+
 	kubSecret, found, err := local.GetSecretByUID(*listerSet.KubeClientSet, constants.DefaultNamespace, uid)
 	if err != nil {
 		msg := fmt.Sprintf("Error: get secret with UID %s failed: %s", uid, err.Error())
-		glog.Error(msg)
+		logger.Error().Msg(msg)
 		http.Error(w, msg, http.StatusInternalServerError)
 		return nil
 	}
 	if !found {
 		msg := fmt.Sprintf("Error: secret with UID %s not found: ", uid)
-		glog.Error(msg)
+		logger.Error().Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
 		return nil
 	}

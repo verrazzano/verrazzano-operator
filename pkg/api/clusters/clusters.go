@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 	"k8s.io/apimachinery/pkg/labels"
@@ -43,11 +44,13 @@ func GetClusters() ([]Cluster, error) {
 }
 
 func refreshClusters() error {
+	// Create log instance for refreshing of clusters
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Clusters").Str("name", "Refresh").Logger()
 
 	clusterSelector := labels.SelectorFromSet(map[string]string{})
 	managedClusters, err := (*listerSet.ManagedClusterLister).VerrazzanoManagedClusters("default").List(clusterSelector)
 	if err != nil {
-		glog.Errorf("Error failed getting managed clusters: %s", err.Error())
+		logger.Error().Msgf("Error failed getting managed clusters: %s", err.Error())
 		return err
 	}
 
@@ -68,7 +71,10 @@ func refreshClusters() error {
 }
 
 func ReturnAllClusters(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /clusters")
+	// Create log instance for returning clusters
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Clusters").Str("name", "Return").Logger()
+
+	logger.Info().Msg("GET /clusters")
 
 	err := refreshClusters()
 	if err != nil {
@@ -82,6 +88,9 @@ func ReturnAllClusters(w http.ResponseWriter, r *http.Request) {
 }
 
 func ReturnSingleCluster(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for creating secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secrets").Str("name", "Creation").Logger()
+
 	err := refreshClusters()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error getting managed clusters: %s", err.Error()),
@@ -92,7 +101,7 @@ func ReturnSingleCluster(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /clusters/" + key)
+	logger.Info().Msg("GET /clusters/" + key)
 
 	// Loop over all of our Clusters
 	// if the article.Id equals the key we pass in

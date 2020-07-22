@@ -6,9 +6,10 @@ package grids
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strconv"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 )
@@ -66,7 +67,10 @@ func refreshGrids() {
 }
 
 func ReturnAllGrids(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /grids")
+	// Create log instance for returning all grids
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Grids").Str("name", "Return").Logger()
+
+	logger.Info().Msg("GET /grids")
 
 	refreshGrids()
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Grids)), 10))
@@ -74,11 +78,14 @@ func ReturnAllGrids(w http.ResponseWriter, r *http.Request) {
 }
 
 func ReturnSingleGrid(w http.ResponseWriter, r *http.Request) {
+	// Create log instance for returning single grid
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Grids").Str("name", "Return").Logger()
+
 	refreshGrids()
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /grids/" + key)
+	logger.Info().Msg("GET /grids/" + key)
 
 	for _, grids := range Grids {
 		if grids.Id == key {

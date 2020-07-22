@@ -6,8 +6,9 @@ package managed
 
 import (
 	"context"
+	"os"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
@@ -19,8 +20,10 @@ import (
 )
 
 func CreateServiceAccounts(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	// Create log instance for creating crd definitions
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ServiceAccounts").Str("name", "Creation").Logger()
 
-	glog.V(6).Infof("Creating/updating Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
+	logger.Debug().Msgf("Creating/updating Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
 	if err != nil {
@@ -53,6 +56,9 @@ func CreateServiceAccounts(mbPair *types.ModelBindingPair, availableManagedClust
 }
 
 func createServiceAccount(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnection *util.ManagedClusterConnection, newServiceAccounts []*corev1.ServiceAccount, clusterName string) error {
+	// Create log instance for creating crd definitions
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ServiceAccounts").Str("name", "Creation").Logger()
+
 	// Create/Update Service Account
 	var serviceAccountNames = []string{}
 
@@ -62,12 +68,12 @@ func createServiceAccount(binding *v1beta1v8o.VerrazzanoBinding, managedClusterC
 		if existingServiceAccount != nil {
 			specDiffs := diff.CompareIgnoreTargetEmpties(existingServiceAccount, newServiceAccount)
 			if specDiffs != "" {
-				glog.V(6).Infof("ServiceAccount %s : Spec differences %s", newServiceAccount.Name, specDiffs)
-				glog.V(4).Infof("Updating ServiceAccount %s:%s in cluster %s", newServiceAccount.Namespace, newServiceAccount.Name, clusterName)
+				logger.Debug().Msgf("ServiceAccount %s : Spec differences %s", newServiceAccount.Name, specDiffs)
+				logger.Info().Msgf("Updating ServiceAccount %s:%s in cluster %s", newServiceAccount.Namespace, newServiceAccount.Name, clusterName)
 				_, err = managedClusterConnection.KubeClient.CoreV1().ServiceAccounts(newServiceAccount.Namespace).Update(context.TODO(), newServiceAccount, metav1.UpdateOptions{})
 			}
 		} else {
-			glog.V(4).Infof("Creating ServiceAccount %s:%s in cluster %s", newServiceAccount.Namespace, newServiceAccount.Name, clusterName)
+			logger.Info().Msgf("Creating ServiceAccount %s:%s in cluster %s", newServiceAccount.Namespace, newServiceAccount.Name, clusterName)
 			_, err = managedClusterConnection.KubeClient.CoreV1().ServiceAccounts(newServiceAccount.Namespace).Create(context.TODO(), newServiceAccount, metav1.CreateOptions{})
 		}
 		if err != nil {

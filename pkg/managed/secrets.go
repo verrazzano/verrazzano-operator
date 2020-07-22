@@ -6,7 +6,9 @@ package managed
 import (
 	"context"
 
-	"github.com/golang/glog"
+	"os"
+
+	"github.com/rs/zerolog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/local"
@@ -23,8 +25,10 @@ import (
 // components, and it will then check if those secrets exist in the correct namespaces and clusters,
 // and then update or create them as needed
 func CreateSecrets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets) error {
+	// Create log instance for creating secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secrets").Str("name", "Creation").Logger()
 
-	glog.V(6).Infof("Creating/updating Secrets for VerrazzanoBinding %s", mbPair.Binding.Name)
+	logger.Debug().Msgf("Creating/updating Secrets for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
 	if err != nil {
@@ -54,6 +58,9 @@ func CreateSecrets(mbPair *types.ModelBindingPair, availableManagedClusterConnec
 }
 
 func createSecrets(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnection *util.ManagedClusterConnection, newSecrets []*corev1.Secret, clusterName string) error {
+	// Create log instance for creating secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secrets").Str("name", "Creation").Logger()
+
 	// Create or update secrets
 	var secretNames = []string{}
 	for _, newSecret := range newSecrets {
@@ -62,12 +69,12 @@ func createSecrets(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnecti
 		if existingSecret != nil {
 			specDiffs := diff.CompareIgnoreTargetEmpties(existingSecret, newSecret)
 			if specDiffs != "" {
-				glog.V(6).Infof("Secret %s : Spec differences %s", newSecret.Name, specDiffs)
-				glog.V(4).Infof("Updating secret %s:%s in cluster %s", newSecret.Namespace, newSecret.Name, clusterName)
+				logger.Debug().Msgf("Secret %s : Spec differences %s", newSecret.Name, specDiffs)
+				logger.Info().Msgf("Updating secret %s:%s in cluster %s", newSecret.Namespace, newSecret.Name, clusterName)
 				_, err = managedClusterConnection.KubeClient.CoreV1().Secrets(newSecret.Namespace).Update(context.TODO(), newSecret, metav1.UpdateOptions{})
 			}
 		} else {
-			glog.V(4).Infof("Creating secret %s:%s in cluster %s", newSecret.Namespace, newSecret.Name, clusterName)
+			logger.Info().Msgf("Creating secret %s:%s in cluster %s", newSecret.Namespace, newSecret.Name, clusterName)
 			_, err = managedClusterConnection.KubeClient.CoreV1().Secrets(newSecret.Namespace).Create(context.TODO(), newSecret, metav1.CreateOptions{})
 		}
 		if err != nil {
@@ -80,6 +87,8 @@ func createSecrets(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnecti
 // Constructs the necessary Secrets for the specified ManagedCluster in the given VerrazzanoBinding
 // note that the actual secret data is kept in a secret in the management cluster
 func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedCluster, kubeClientSet kubernetes.Interface) []*corev1.Secret {
+	// Create log instance for new secrets
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Secrets").Str("name", "Creation").Logger()
 
 	var secrets []*corev1.Secret
 
@@ -118,7 +127,7 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 				// Find the namespace for this domain in the binding placements
 				err, namespace := util.GetComponentNamespace(domain.Name, binding)
 				if err != nil {
-					glog.V(6).Infof("Getting namespace for domain %s is giving error %s", domain.Name, err)
+					logger.Debug().Msgf("Getting namespace for domain %s is giving error %s", domain.Name, err)
 					continue
 				}
 				// Create the new secret in the domain's namespace from the secret named in this database binding
@@ -126,7 +135,7 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 				labels["weblogic.domainUID"] = domain.Name
 				err, secretObj := newSecret(secretName, namespace, kubeClientSet, data, labels)
 				if err != nil {
-					glog.V(6).Infof("Copying secret %s to namespace %s for database binding %s is giving error %s", secretName, namespace, databaseBinding.Name, err)
+					logger.Debug().Msgf("Copying secret %s to namespace %s for database binding %s is giving error %s", secretName, namespace, databaseBinding.Name, err)
 					continue
 				}
 				secrets = append(secrets, secretObj)

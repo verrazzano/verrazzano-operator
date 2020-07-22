@@ -7,10 +7,11 @@ import (
 	"fmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v7weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
@@ -57,6 +58,8 @@ func UpdateModelBindingPair(mbPair *types.ModelBindingPair, model *v1beta1v8o.Ve
 
 // Common function for building a model/binding pair
 func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPair {
+	// Create log instance for building model pair
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ModelBindingPair").Str("name", "Creation").Logger()
 
 	// Acquire write lock
 	acquireLock(mbPair)
@@ -220,7 +223,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 								addSecret(mc, secret.Name, namespace.Name)
 							}
 						} else {
-							glog.Errorf("Coherence binding '%s' not found in binding file", cluster.Name)
+							logger.Error().Msgf("Coherence binding '%s' not found in binding file", cluster.Name)
 						}
 					}
 				}
@@ -453,6 +456,9 @@ func processIngressConnections(mc *types.ManagedCluster, connections []v1beta1v8
 
 // Create a RemoteRestConnection type for each remote rest connection
 func createRemoteRestConnections(mbPair *types.ModelBindingPair, mc *types.ManagedCluster, connections []v1beta1v8o.VerrazzanoRestConnection, localNamespace string) {
+	// Create log instance for creating remote test connections
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ManagedCluster").Str("name", mc.Name).Logger()
+
 	for _, rest := range connections {
 		// Get the placement objects
 		placements := getPlacements(mbPair.Binding)
@@ -463,7 +469,7 @@ func createRemoteRestConnections(mbPair *types.ModelBindingPair, mc *types.Manag
 				if err == nil {
 					addRemoteRest(mc, rest.Target, localNamespace, mbPair.ManagedClusters[placement.Name], remoteNamespace, remotePort, remoteClusterName, remoteType)
 				} else {
-					glog.Errorf("error getting remote port, %v", err)
+					logger.Error().Msgf("error getting remote port, %v", err)
 				}
 				break
 			}
@@ -492,20 +498,23 @@ func isRestTargetRemote(mc *types.ManagedCluster, restTarget string, placement v
 
 // Get the environment variables that need to be set based on the rest connection
 func getRestConnectionEnvVars(mbPair *types.ModelBindingPair, connections []v1beta1v8o.VerrazzanoRestConnection, crName string) *[]corev1.EnvVar {
+	// Create log instance for creating helidon app cr
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "REstConnection").Str("name", crName).Logger()
+
 	var env corev1.EnvVar
 	var envs []corev1.EnvVar
 	for _, restConnection := range connections {
 		// Get the placement for the component we need to create env variables for
 		sourcePlacement, err := getSourcePlacement(crName, mbPair.Binding)
 		if err != nil {
-			glog.Errorf("unable to create rest connection env variables: %v", err)
+			logger.Error().Msgf("unable to create rest connection env variables: %v", err)
 			continue
 		}
 
 		// Get the namespace and placement for the rest target
 		targetNamespace, targetPlacement, err := getTargetNamespacePlacement(restConnection.Target, mbPair.Binding)
 		if err != nil {
-			glog.Errorf("unable to create rest connection env variables: %v", err)
+			logger.Error().Msgf("unable to create rest connection env variables: %v", err)
 			continue
 		}
 
@@ -520,7 +529,7 @@ func getRestConnectionEnvVars(mbPair *types.ModelBindingPair, connections []v1be
 		// Get the target type and target port for the rest connection
 		targetType, targetPort, err := getTargetTypePort(remoteMc, restConnection.Target)
 		if err != nil {
-			glog.Errorf("error getting port, %v", err)
+			logger.Error().Msgf("error getting port, %v", err)
 			continue
 		}
 

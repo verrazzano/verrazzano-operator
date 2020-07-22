@@ -5,8 +5,9 @@ package managed
 
 import (
 	"context"
+	"os"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
@@ -18,8 +19,10 @@ import (
 )
 
 func CreateConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	// Create log instance for create config maps
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ConfigMaps").Str("name", "Creation").Logger()
 
-	glog.V(6).Infof("Creating/updating ConfigMap for VerrazzanoBinding %s", mbPair.Binding.Name)
+	logger.Debug().Msgf("Creating/updating ConfigMap for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Parse out the clusters that this binding applies to Construct configMaps for each Cluster
 	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
@@ -53,17 +56,20 @@ func CreateConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterCon
 }
 
 func createUpdateConfigMaps(managedClusterConnection *util.ManagedClusterConnection, newConfigMap *corev1.ConfigMap, clusterName string) error {
+	// Create log instance for create update config maps
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "UpdateConfigMaps").Str("name", "Creation").Logger()
+
 	existingcm, err := managedClusterConnection.ConfigMapLister.ConfigMaps(newConfigMap.Namespace).Get(newConfigMap.Name)
 	if existingcm != nil {
 		// If config map already exists, check the spec differences
 		specDiffs := diff.CompareIgnoreTargetEmpties(existingcm, newConfigMap)
 		if specDiffs != "" {
-			glog.V(6).Infof("ConfigMap %s : Spec differences %s", newConfigMap.Name, specDiffs)
-			glog.V(4).Infof("Updating ConfigMap %s in cluster %s", newConfigMap.Name, clusterName)
+			logger.Debug().Msgf("ConfigMap %s : Spec differences %s", newConfigMap.Name, specDiffs)
+			logger.Info().Msgf("Updating ConfigMap %s in cluster %s", newConfigMap.Name, clusterName)
 			_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newConfigMap.Namespace).Update(context.TODO(), newConfigMap, metav1.UpdateOptions{})
 		}
 	} else {
-		glog.V(4).Infof("Creating ConfigMap %s in cluster %s", newConfigMap.Name, clusterName)
+		logger.Info().Msgf("Creating ConfigMap %s in cluster %s", newConfigMap.Name, clusterName)
 		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newConfigMap.Namespace).Create(context.TODO(), newConfigMap, metav1.CreateOptions{})
 	}
 	if err != nil {
@@ -73,7 +79,10 @@ func createUpdateConfigMaps(managedClusterConnection *util.ManagedClusterConnect
 }
 
 func CleanupOrphanedConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allMbPairs map[string]*types.ModelBindingPair) error {
-	glog.V(6).Infof("Cleaning up orphaned ConfigMaps for VerrazzanoBinding %s", mbPair.Binding.Name)
+	// Create log instance for cleaning up orphaned config maps
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "OrphanedConfigMaps").Str("name", "Clean").Logger()
+
+	logger.Debug().Msgf("Cleaning up orphaned ConfigMaps for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Get the managed clusters that this binding does NOT apply to
 	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
@@ -92,7 +101,7 @@ func CleanupOrphanedConfigMaps(mbPair *types.ModelBindingPair, availableManagedC
 		}
 		// Delete these ConfigMaps since none are expected on this cluster
 		for _, configMap := range existingConfigMapsList {
-			glog.V(4).Infof("Deleting ConfigMap %s in cluster %s", configMap.Name, clusterName)
+			logger.Info().Msgf("Deleting ConfigMap %s in cluster %s", configMap.Name, clusterName)
 			err := managedClusterConnection.KubeClient.CoreV1().ConfigMaps(configMap.Namespace).Delete(context.TODO(), configMap.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err

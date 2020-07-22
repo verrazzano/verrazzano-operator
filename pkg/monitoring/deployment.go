@@ -5,7 +5,9 @@ package monitoring
 
 import (
 	"fmt"
-	"github.com/golang/glog"
+	"os"
+
+	"github.com/rs/zerolog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -15,11 +17,14 @@ import (
 
 // Constructs the necessary Deployments for the specified ManagedCluster for the System VMI
 func GetSystemDeployments(managedClusterName, verrazzanoUri string, sec Secrets) []*appsv1.Deployment {
+	// Create log instance for getting system deployments
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ManagedCluster").Str("name", managedClusterName).Logger()
+
 	depLabels := util.GetManagedLabelsNoBinding(managedClusterName)
 	var deployments []*appsv1.Deployment
 
 	if verrazzanoUri == "" {
-		glog.V(4).Infof("Verrazzano URI must not be empty for prometheus pusher to work")
+		logger.Info().Msg("Verrazzano URI must not be empty for prometheus pusher to work")
 	} else {
 		deployment := CreateDeployment(constants.MonitoringNamespace, constants.VmiSystemBindingName, depLabels, verrazzanoUri, sec)
 		deployments = append(deployments, deployment)
@@ -30,10 +35,13 @@ func GetSystemDeployments(managedClusterName, verrazzanoUri string, sec Secrets)
 
 // Create prometheus pusher deployment on all clusters, based on a VerrazzanoApplicationBinding
 func CreateDeployment(namespace string, bindingName string, labels map[string]string, verrazzanoUri string, sec Secrets) *appsv1.Deployment {
+	// Create log instance for creating system deployments
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Binding").Str("name", bindingName).Logger()
+
 	payload := "match%5B%5D=%7Bjob%3D~%22" + bindingName + "%2E%2A%22%7D" // URL encoded : match[]={job=~"binding-name.*"}
 	password, err := sec.GetVmiPassword()
 	if err != nil {
-		glog.Errorf("Failed to retrieve secret %v", err)
+		logger.Error().Msgf("Failed to retrieve secret %v", err)
 	}
 	image := util.GetPromtheusPusherImage()
 	pusherDeployment := &appsv1.Deployment{
