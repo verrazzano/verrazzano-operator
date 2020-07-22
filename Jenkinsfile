@@ -68,7 +68,7 @@ pipeline {
         }
 
         stage('Build') {
-            when { buildingTag() }
+            when { not { buildingTag() } }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -79,7 +79,7 @@ pipeline {
         }
 
         stage('Third Party License Check') {
-            when { buildingTag() }
+            when { not { buildingTag() } }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -89,14 +89,14 @@ pipeline {
         }
 
         stage('Copyright Compliance Check') {
-            when { buildingTag() }
+            when { not { buildingTag() } }
             steps {
                 copyrightScan "${WORKSPACE}"
             }
         }
 
         stage('Unit Tests') {
-            when { buildingTag() }
+            when { not { buildingTag() } }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -115,7 +115,7 @@ pipeline {
         }
 
         stage('Scan Image') {
-            when { buildingTag() }
+            when { not { buildingTag() } }
             steps {
                 script {
                     HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
@@ -129,21 +129,11 @@ pipeline {
             }
         }
 
-        stage('Publish Image') {
+        stage('Release') {
             when { buildingTag() }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano-operator
-                    make push-tag DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${env.DOCKER_PUBLISH_IMAGE_NAME}
-                """
-            }
-        }
-
-        stage('Release') {
-            // when { buildingTag() }
-            steps {
-                sh """
-                    make release OPERATOR_IMAGE_NAME=${env.DOCKER_PUBLISH_IMAGE_NAME} RELEASE_VERSION=${params.RELEASE_VERSION}
+                    make release OPERATOR_IMAGE_NAME=${env.DOCKER_PUBLISH_IMAGE_NAME} RELEASE_VERSION=${params.RELEASE_VERSION} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${env.DOCKER_PUBLISH_IMAGE_NAME}
                 """
             }
         }

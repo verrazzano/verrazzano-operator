@@ -123,12 +123,6 @@ push: build
 		docker push ${DOCKER_IMAGE_FULLNAME}:latest; \
 	fi
 
-.PHONY: push-tag
-push-tag:
-	docker pull ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
-	docker tag ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:${TAG_NAME}
-	docker push ${DOCKER_IMAGE_FULLNAME}:${TAG_NAME}
-
 #
 # Tests-related tasks
 #
@@ -177,9 +171,6 @@ chart-build: go-mod
 	cp -r vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml ${DIST_DIR}/crds/verrazzano.io_verrazzanomanagedclusters_crd.yaml
 	cp -r chart/NOTES.txt  $(DIST_DIR)/
 	cp -r chart/values.yaml  $(DIST_DIR)/
-
-.PHONY chart-publish:
-chart-publish: chart-build
 	# Fill in tag version that's being built
 	sed -i.bak -e "s/latest/${HELM_CHART_VERSION}/g" $(DIST_DIR)/Chart.yaml
 	sed -i.bak -e "s/OPERATOR_VERSION/${OPERATOR_VERSION}/g" -e "s/OPERATOR_IMAGE_NAME/${OPERATOR_IMAGE_NAME}/g" $(DIST_DIR)/values.yaml
@@ -189,14 +180,15 @@ chart-publish: chart-build
 	tar cvzf archive/${HELM_CHART_ARCHIVE_NAME} -C ${DIST_DIR}/ .
 	mv archive/${HELM_CHART_ARCHIVE_NAME} ${DIST_DIR}/
 	rm -rf archive
-	
+
+.PHONY chart-publish:
+chart-publish:
 	echo "Publishing Helm chart to OCI object storage"
 	export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING=True
-	echo ${HELM_CHART_VERSION} > latest
 	helm repo index --url https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/ ${DIST_DIR}/
 	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/index.yaml --file ${DIST_DIR}/index.yaml
 	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/${HELM_CHART_ARCHIVE_NAME} --file ${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME}
-	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name latest --file latest
+	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name latest --file chart/latest
 	echo "Published Helm chart to https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/${HELM_CHART_ARCHIVE_NAME}"
 	
 	echo "Check and upload release assets to github."
@@ -225,7 +217,6 @@ chart-publish: chart-build
 				echo "Deleted asset with name ${HELM_CHART_ARCHIVE_NAME} for release ${HELM_CHART_VERSION}."; \
 			fi; \
 			echo "Uploading ${HELM_CHART_ARCHIVE_NAME} to release ${HELM_CHART_VERSION}."; \
-			helm repo index --url https://github.com/verrazzano/verrazzano-operator/releases/download ${DIST_DIR}/; \
 			status=$$(curl -s -o /dev/null -w '%{http_code}' --data-binary @"${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME}" -H "Authorization: token ${GITHUB_API_TOKEN}" -H "Content-Type: application/octet-stream" "https://uploads.github.com/repos/verrazzano/verrazzano-operator/releases/$$id/assets?name=${HELM_CHART_ARCHIVE_NAME}"); \
 			if [ "$$status" != "201" ]; then \
 				echo "Unable to upload asset with name ${HELM_CHART_ARCHIVE_NAME} for release ${HELM_CHART_VERSION}, invalid status ${status}, aborting.."; \
@@ -238,23 +229,20 @@ chart-publish: chart-build
 	rm -rf response.txt
 	rm -rf ${DIST_DIR}
 
-.PHONY release:
-release: chart-build
-	if [ ! -z "${RELEASE_VERSION}" ]; then
-		echo "Get the latest release."
-		rm -rf response.txt
-		curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/latest" -o response.txt
-		while [ ! -f response.txt ]; do sleep 1; done;
-		cat response.txt
-	fi
-
+.PHONY release-version:
+release-version:
 	if [ ! -z "${RELEASE_VERSION}" ]; then \
 		version=$$(echo "${RELEASE_VERSION}"); \
 	else \
+		echo "Get the latest release."; \
+		rm -rf response.txt; \
+		curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/latest" -o response.txt; \
+		while [ ! -f response.txt ]; do sleep 1; done; \
+		cat response.txt; \
 		msg=$$(jq -r .message response.txt); \
 		if [ "$$msg" == "Not Found" ]; then \
 			echo "No release found. Creating release with version v0.1.0."; \
-			version="v0.1.0"
+			version="v0.1.0"; \
 		else \
 			latest=$$(jq -r .tag_name response.txt); \
 			if [ -z "$$latest" ]; then \
@@ -262,10 +250,39 @@ release: chart-build
 				exit 1; \
 			else \
 				echo "Version for latest release is $$latest."; \
-				rgx="^((?:[0-9]+\.)*)([0-9]+)($)"; \
-				val=$$(echo -e $$latest | perl -pe 's/^.*'$$rgx'.*$/$2/'); \
-				latest=$$(echo "$$latest" | perl -pe s/$$rgx.*$'/${1}'`printf %0${#val}s $$($$val+1)); \
-				echo "Creating new release with version $$latest."; \
+				rgx="^v((?:[0-9]+\.)*)([0-9]+)($$)"; \
+				val=$$(echo $$latest | perl -pe 's/^.*'$$rgx'.*$$/$$2/'); \
+				version=$$(echo "$$latest" | perl -pe s/$$rgx.*$$'/$${1}'$$(printf %0$${#val}s $$(($$val+1)))/); \
+				echo "New release version $$version."; \
 			fi; \
 		fi; \
-	fi;
+	fi; \
+	echo "$$version" > chart/latest
+
+.PHONY github-release:
+github-release: release-version
+	make chart-build RELEASE_VERSION=`cat chart/latest`
+	touch chart/index.yaml
+	cp chart/index.yaml ${DIST_DIR}/
+	helm repo index --url https://github.com/verrazzano/verrazzano-operator/releases/download ${DIST_DIR}/
+	cp ${DIST_DIR}/index.yaml chart/.
+	RELEASE_VERSION=$(cat chart/latest) && \
+	git config user.email "verrazzano@verrazzano.io" && \
+	git config user.name "verrazzano" && \
+	git add chart/index.yaml && \
+	git add -f chart/latest && \
+	git commit -m "[skip ci] Adding helm chart version $$RELEASE_VERSION" && \
+	git push && \
+	git tag -a $$RELEASE_VERSION -m "Release $$RELEASE_VERSION" && \
+	git push --tags
+
+.PHONY release-image:
+release-image: github-release
+	RELEASE_VERSION=$(cat chart/latest); \
+	docker pull ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}; \
+	docker tag ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:${RELEASE_VERSION}; \
+	docker push ${DOCKER_IMAGE_FULLNAME}:${RELEASE_VERSION};
+
+.PHONY release:
+release: release-image
+	make chart-publish RELEASE_VERSION=`cat chart/latest`
