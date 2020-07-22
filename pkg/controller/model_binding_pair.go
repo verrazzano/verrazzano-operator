@@ -664,7 +664,7 @@ func createDatasourceConfigMap(secret string, url string, datasourceName string)
           <value f:combine-mode="replace">${secret:%s.username}</value>
        </property>
     </properties>
-    <password-encrypted f:combine-mode="replace">${secret:%s.password}</password-encrypted>
+    <password-encrypted f:combine-mode="replace">${secret:%s.password:encrypt}</password-encrypted>
   </jdbc-driver-params>
 </jdbc-data-source>
 `
