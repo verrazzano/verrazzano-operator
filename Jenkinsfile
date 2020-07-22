@@ -141,7 +141,7 @@ pipeline {
         }
 
         stage('Release') {
-            when { expression { return ( params.RELEASE_BRANCH == env.BRANCH_NAME) } }
+            when { branch params.RELEASE_BRANCH }
             steps {
                 sh """
                     make release DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${env.DOCKER_IMAGE_NAME} RELEASE_VERSION=${params.RELEASE_VERSION} RELEASE_DESCRIPTION=${params.RELEASE_DESCRIPTION}
