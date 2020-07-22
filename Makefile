@@ -280,7 +280,7 @@ github-release: release-image
 	git config user.name "verrazzano"; \
 	git add chart/index.yaml; \
 	git add -f chart/latest; \
-	git commit -m "[skip ci] Adding helm chart version $$RELEASE_VERSION"; \
+	git commit -m "[ci skip] Adding helm chart version $$RELEASE_VERSION"; \
 	git push; \
 	echo "Updated index.yaml in github repo."; \
 	echo "Creating release $$RELEASE_VERSION in github."; \
