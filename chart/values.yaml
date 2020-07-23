@@ -37,7 +37,7 @@ monitoringOperator:
   esWaitTargetVersion: 7.6.1
   esImage: docker.elastic.co/elasticsearch/elasticsearch-oss:7.6.1
   esWaitImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.18
-  esInitImage: oraclelinux:7
+  esInitImage: container-registry.oracle.com/os/oraclelinux:7.8@sha256:46fc083cf0250ed5260fa6fe822d7d4c139ca1f7fc38e4a17ba662464bd1df4a
   kibanaImage: docker.elastic.co/kibana/kibana-oss:7.6.1
   monitoringInstanceApiImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.7
   configReloaderImage: phx.ocir.io/stevengreenberginc/bfs/configmap-reload:0.3-81d6423-33
