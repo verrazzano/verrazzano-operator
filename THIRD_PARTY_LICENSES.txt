@@ -1,9 +1,10 @@
 github.com/verrazzano/verrazzano-operator
 -------- Copyrights
 Copyright (c) 2020 Oracle America, Inc. and its affiliates. 
-# Copyright (C) 2020, Oracle Corporation and/or its affiliates.
-// Copyright (C) 2020, Oracle Corporation and/or its affiliates.
-// Copyright (c) 2020, Oracle Corporation and/or its affiliates.
+# Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, Oracle and/or its affiliates.
 
 ======== License
 Copyright (c) 2020 Oracle America, Inc. and its affiliates. 
@@ -994,6 +995,88 @@ modernc.org/golex
 
 ======== License used by Dependencies
 Copyright (c) 2014 The golex Authors. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+   * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+   * Neither the names of the authors nor the names of the
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+======================= Dependencies Grouped by License ============
+-------- Dependency
+github.com/cznic/lex
+-------- Copyrights
+Copyright (c) 2014 The lex Authors. All rights reserved.
+# Copyright (c) 2014 The lex Authors. All rights reserved.
+// Copyright (c) 2014 The lex Authors. All rights reserved.
+
+======== Dependencies Summary
+github.com/cznic/lex
+
+======== License used by Dependencies
+Copyright (c) 2014 The lex Authors. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+   * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+   * Neither the names of the authors nor the names of the
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+======================= Dependencies Grouped by License ============
+-------- Dependency
+github.com/cznic/lexer
+-------- Copyrights
+Copyright (c) 2014 The lexer Authors. All rights reserved.
+Copyright (c) 2009 The Go Authors. All rights reserved.
+// Copyright (c) 2014 The lexer Authors. All rights reserved.
+
+======== Dependencies Summary
+github.com/cznic/lexer
+
+======== License used by Dependencies
+Copyright (c) 2014 The lexer Authors. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -4951,6 +5034,13 @@ github.com/go-openapi/validate
 // Copyright 2018 go-swagger maintainers
 
 -------- Dependency
+github.com/gogo/googleapis
+-------- Copyrights
+   Copyright 2015, Google Inc
+   Copyright 2018, GoGo Authors
+// Copyright (c) 2018, The GoGo Authors.
+
+-------- Dependency
 github.com/golang-sql/civil
 -------- Copyrights
 // Copyright 2016 Google LLC
@@ -5061,6 +5151,10 @@ github.com/jsonnet-bundler/jsonnet-bundler
 github.com/kylelemons/godebug
 -------- Copyrights
 // Copyright 2013 Google Inc.  All rights reserved.
+
+-------- Dependency
+github.com/lyft/protoc-gen-star
+-------- Copyrights
 
 -------- Dependency
 github.com/matttproud/golang_protobuf_extensions
@@ -8007,6 +8101,7 @@ github.com/go-openapi/spec
 github.com/go-openapi/strfmt
 github.com/go-openapi/swag
 github.com/go-openapi/validate
+github.com/gogo/googleapis
 github.com/golang-sql/civil
 github.com/golang/glog
 github.com/golang/groupcache
@@ -8025,6 +8120,7 @@ github.com/grpc-ecosystem/grpc-health-probe
 github.com/jonboulle/clockwork
 github.com/jsonnet-bundler/jsonnet-bundler
 github.com/kylelemons/godebug
+github.com/lyft/protoc-gen-star
 github.com/matttproud/golang_protobuf_extensions
 github.com/mikefarah/yaml/v2
 github.com/minio/minio-go/v6
@@ -8299,6 +8395,16 @@ Copyright (c) 2013 Richard Musiol. All rights reserved.
 // Copyright 2018 The Go Authors. All rights reserved.
 
 -------- Dependency
+github.com/neelance/astrewrite
+-------- Copyrights
+Copyright (c) 2016 Richard Musiol. All rights reserved.
+
+-------- Dependency
+github.com/neelance/sourcemap
+-------- Copyrights
+Copyright (c) 2014 Richard Musiol. All rights reserved.
+
+-------- Dependency
 github.com/yvasiyarov/gorelic
 -------- Copyrights
 Copyright (c) 2013 Yuriy Vasiyarov. All rights reserved.
@@ -8310,6 +8416,8 @@ Copyright (c) 2013 Yuriy Vasiyarov. All rights reserved.
 
 ======== Dependencies Summary
 github.com/gopherjs/gopherjs
+github.com/neelance/astrewrite
+github.com/neelance/sourcemap
 github.com/yvasiyarov/gorelic
 github.com/yvasiyarov/newrelic_platform_go
 
@@ -8609,6 +8717,12 @@ infringement, or inducement of patent infringement, then any patent
 rights granted to you under this License for this implementation of Go
 shall terminate as of the date such litigation is filed.
 
+
+-------- Dependency
+github.com/ianlancetaylor/demangle
+-------- Copyrights
+Copyright (c) 2015 The Go Authors. All rights reserved.
+// Copyright 2015 The Go Authors. All rights reserved.
 
 -------- Dependency
 github.com/imdario/mergo
@@ -9336,6 +9450,7 @@ github.com/googleapis/gax-go/v2
 github.com/gorilla/context
 github.com/gorilla/mux
 github.com/hashicorp/go.net
+github.com/ianlancetaylor/demangle
 github.com/imdario/mergo
 github.com/jessevdk/go-flags
 github.com/kardianos/osext
@@ -9607,6 +9722,14 @@ Copyright (c) 2016 Caleb Spare
 github.com/cespare/xxhash/v2
 -------- Copyrights
 Copyright (c) 2016 Caleb Spare
+
+-------- Dependency
+github.com/chzyer/readline
+-------- Copyrights
+Copyright (c) 2015 Chzyer
+//  Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
+// Copyright 2011 The Go Authors. All rights reserved.
+// Copyright 2013 The Go Authors. All rights reserved.
 
 -------- Dependency
 github.com/client9/misspell
@@ -10458,6 +10581,7 @@ github.com/bugsnag/panicwrap
 github.com/cenkalti/backoff
 github.com/cespare/xxhash
 github.com/cespare/xxhash/v2
+github.com/chzyer/readline
 github.com/client9/misspell
 github.com/codahale/hdrhistogram
 github.com/coreos/bbolt
@@ -11192,8 +11316,14 @@ github.com/go-bindata/go-bindata/v3
 -------- Copyrights
 	return fmt.Sprintf("%s %d.%d.%s (Go runtime %s).\nCopyright (c) 2010-2013, Jim Teeuwen.",
 
+-------- Dependency
+github.com/jteeuwen/go-bindata
+-------- Copyrights
+	return fmt.Sprintf("%s %d.%d.%s (Go runtime %s).\nCopyright (c) 2010-2013, Jim Teeuwen.",
+
 ======== Dependencies Summary
 github.com/go-bindata/go-bindata/v3
+github.com/jteeuwen/go-bindata
 
 ======== License used by Dependencies
 This work is subject to the CC0 1.0 Universal (CC0 1.0) Public Domain Dedication
@@ -11346,4 +11476,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 6bcd4f64ab6a16ebcff449b5c4fb29fb
+License file based on go.mod with md5 sum: a3e19e144d45d66477379b036bb8f680
