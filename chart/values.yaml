@@ -16,8 +16,8 @@ verrazzanoOperator:
   wlsMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.6
   prometheusPusherImage: phx.ocir.io/stevengreenberginc/bfs/prometheus-pusher:1.0.1-ff71638-19
   nodeExporterImage: phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-0f43627-7
-  filebeatImage: phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-c8d475a-5
-  journalbeatImage: phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-c8d475a-5
+  filebeatImage: phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-58a0ddf-6
+  journalbeatImage: phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-58a0ddf-6
   weblogicOperatorImage: oracle/weblogic-kubernetes-operator:2.6.0
   fluentdImage: phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-16
   apiServerRealm: verrazzano-system
