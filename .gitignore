@@ -7,6 +7,6 @@ vendor
 pkg/assets
 dist
 archive
-chart/latest
-chart/index.yaml
+latest
+index.yaml
 
