@@ -2,19 +2,10 @@ module github.com/verrazzano/verrazzano-operator
 
 require (
 	github.com/Jeffail/gabs/v2 v2.3.0
-	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
-	github.com/cznic/lex v0.0.0-20181122101858-ce0fb5e9bb1b // indirect
-	github.com/cznic/lexer v0.0.0-20181122101858-e884d4bd112e // indirect
-	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/gorilla/mux v1.7.3
 	github.com/hashicorp/go-retryablehttp v0.6.6
-	github.com/ianlancetaylor/demangle v0.0.0-20200715173712-053cf528c12f // indirect
-	github.com/jteeuwen/go-bindata v3.0.7+incompatible // indirect
 	github.com/kylelemons/godebug v1.1.0
-	github.com/lyft/protoc-gen-star v0.4.15 // indirect
-	github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86 // indirect
-	github.com/neelance/sourcemap v0.0.0-20200213170602-2833bce08e4c // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.7
