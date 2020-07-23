@@ -25,8 +25,8 @@ ifdef RELEASE_VERSION
 	HELM_CHART_VERSION = ${RELEASE_VERSION}
 	OPERATOR_VERSION = ${RELEASE_VERSION}
 endif
-ifndef BRANCH_NAME
-	BRANCH_NAME=$(shell git rev-parse --abbrev-ref HEAD)
+ifndef RELEASE_BRANCH
+	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
 DIST_DIR:=dist
@@ -278,17 +278,24 @@ github-release: release-image
 	cp chart/index.yaml ${DIST_DIR}/
 	helm repo index --url https://github.com/verrazzano/verrazzano-operator/releases/download ${DIST_DIR}/
 	cp ${DIST_DIR}/index.yaml chart/.
-	@RELEASE_VERSION=$$(cat chart/latest); \
-	echo "Updating index.yaml in github repo."; \
+
+	@echo "Updating index.yaml in github repo."; \
+	git clone -b ${RELEASE_BRANCH} https://github.com/verrazzano/verrazzano-operator; \
+	cp chart/index.yaml verrazzano-operator/chart/index.yaml; \
+	cp chart/latest verrazzano-operator/chart/latest; \
+	cd verrazzano-operator; \
 	git config user.email "verrazzano@verrazzano.io"; \
 	git config user.name "verrazzano"; \
 	git add -f chart/index.yaml; \
 	git add -f chart/latest; \
 	git commit -m "[ci skip] Adding helm chart version $$RELEASE_VERSION"; \
 	git push; \
-	echo "Updated index.yaml in github repo."; \
+	echo "Updated index.yaml in github repo.";
+	rm -rf verrazzano-operator
+	
+	@RELEASE_VERSION=$$(cat chart/latest); \
 	echo "Creating release $$RELEASE_VERSION in github."; \
-	request="{\"tag_name\": \"$$RELEASE_VERSION\",\"target_commitish\": \"${BRANCH_NAME}\",\"name\": \"$$RELEASE_VERSION\",\"body\": \"${RELEASE_DESCRIPTION}\"}"; \
+	request="{\"tag_name\": \"$$RELEASE_VERSION\",\"target_commitish\": \"${RELEASE_BRANCH}\",\"name\": \"$$RELEASE_VERSION\",\"body\": \"${RELEASE_DESCRIPTION}\"}"; \
 	echo $$request; \
 	status=$$(curl -s -o /dev/null -w '%{http_code}' --data "$$request" -H "Authorization: token ${GITHUB_API_TOKEN}" -H "Content-Type: application/json" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases"); \
 	if [ "$$status" != "201" ]; then \
