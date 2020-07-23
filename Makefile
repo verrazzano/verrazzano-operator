@@ -288,11 +288,11 @@ github-release: release-image
 	git config user.name "verrazzano"; \
 	git add -f chart/index.yaml; \
 	git add -f chart/latest; \
-	git commit -m "[ci skip] Adding helm chart version $$RELEASE_VERSION"; \
+	git commit -m "[ci skip] Release $$(cat chart/latest)"; \
 	git push; \
 	echo "Updated index.yaml in github repo.";
 	rm -rf verrazzano-operator
-	
+
 	@RELEASE_VERSION=$$(cat chart/latest); \
 	echo "Creating release $$RELEASE_VERSION in github."; \
 	request="{\"tag_name\": \"$$RELEASE_VERSION\",\"target_commitish\": \"${RELEASE_BRANCH}\",\"name\": \"$$RELEASE_VERSION\",\"body\": \"${RELEASE_DESCRIPTION}\"}"; \
