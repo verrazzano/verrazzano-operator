@@ -12,8 +12,8 @@ verrazzanoOperator:
   imageVersion: OPERATOR_VERSION
   sslVerify: true
   cohMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.7
-  helidonMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.6
-  wlsMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.6
+  helidonMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.7
+  wlsMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.8
   prometheusPusherImage: phx.ocir.io/stevengreenberginc/bfs/prometheus-pusher:1.0.1-ff71638-19
   nodeExporterImage: phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-0f43627-7
   filebeatImage: phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-58a0ddf-6
@@ -25,21 +25,21 @@ verrazzanoOperator:
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-operator
-  imageVersion: v0.0.17
+  imageVersion: v0.0.18
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
   grafanaImage: container-registry.oracle.com/olcne/grafana:v6.4.4
   prometheusImage: container-registry.oracle.com/olcne/prometheus:v2.13.1
-  prometheusInitImage: container-registry.oracle.com/os/oraclelinux:7-slim
+  prometheusInitImage: container-registry.oracle.com/os/oraclelinux:7-slim@sha256:9b86d1332a883ee8f68dd44ba42133de518b2e0ec1cc70257e59fb4da86b1ad3
   prometheusGatewayImage: phx.ocir.io/stevengreenberginc/bfs/pushgateway:1.2.0-6893444-10
   alertManagerImage: prom/alertmanager:v0.16.0
   esWaitTargetVersion: 7.6.1
   esImage: docker.elastic.co/elasticsearch/elasticsearch-oss:7.6.1
-  esWaitImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.17
-  esInitImage: oraclelinux:7
+  esWaitImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.18
+  esInitImage: container-registry.oracle.com/os/oraclelinux:7.8@sha256:46fc083cf0250ed5260fa6fe822d7d4c139ca1f7fc38e4a17ba662464bd1df4a
   kibanaImage: docker.elastic.co/kibana/kibana-oss:7.6.1
-  monitoringInstanceApiImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.6
+  monitoringInstanceApiImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.7
   configReloaderImage: phx.ocir.io/stevengreenberginc/bfs/configmap-reload:0.3-81d6423-33
   nodeExporterImage: phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-0f43627-7
 
