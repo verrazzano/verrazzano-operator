@@ -31,7 +31,7 @@ pipeline {
                 description: 'Brief description for the release.',
                 trim: true)
         string (name: 'RELEASE_BRANCH',
-                defaultValue: 'update-helm-chart-location',
+                defaultValue: 'master',
                 description: 'Branch to create release from, change this to enable release from a non master branch, e.g.\n'+
                 'When the branch being built is master then release will always be created when RELEASE_BRANCH has the default value - master.\n'+
                 'When the branch being built is any non-master branch - release can be created by setting RELEASE_BRANCH to same value as non-master branch, else it is skipped.\n',
@@ -81,6 +81,8 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
+                    echo "branch is ${env.BRANCH_NAME}"
+                    echo "param is ${params.RELEASE_BRANCH}"
                     cd ${GO_REPO_PATH}/verrazzano-operator
                     make push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
                     make chart-build DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME}
@@ -141,7 +143,7 @@ pipeline {
         }
 
         stage('Release') {
-            when { branch params.RELEASE_BRANCH }
+            when { equals expected: env.BRANCH_NAME, actual: params.RELEASE_BRANCH }
             steps {
                 sh """
                     make release DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${env.DOCKER_IMAGE_NAME} RELEASE_VERSION=${params.RELEASE_VERSION} RELEASE_DESCRIPTION=${params.RELEASE_DESCRIPTION}
