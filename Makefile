@@ -181,6 +181,7 @@ chart-build: go-mod
 	tar cvzf archive/${HELM_CHART_ARCHIVE_NAME} -C ${DIST_DIR}/ .
 	mv archive/${HELM_CHART_ARCHIVE_NAME} ${DIST_DIR}/
 	rm -rf archive
+	cp chart/index.yaml ${DIST_DIR}/
 	echo "Helm chart archive created - ${HELM_CHART_ARCHIVE_NAME}."
 
 .PHONY chart-publish:
@@ -188,7 +189,7 @@ chart-publish:
 	echo "Publishing Helm chart to OCI object storage"
 	export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING=True
 	echo "${HELM_CHART_VERSION}" > ${DIST_DIR}/latest
-	helm repo index --merge --url https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/ ${DIST_DIR}/
+	helm repo index --merge "${DIST_DIR}/index.yaml" --url https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/ ${DIST_DIR}/
 	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/index.yaml --file ${DIST_DIR}/index.yaml
 	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/${HELM_CHART_ARCHIVE_NAME} --file ${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME}
 	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name latest --file ${DIST_DIR}/latest
@@ -274,9 +275,7 @@ release-image: release-version
 .PHONY github-release:
 github-release: release-image
 	make chart-build RELEASE_VERSION=`cat chart/latest`
-	touch chart/index.yaml
-	cp chart/index.yaml ${DIST_DIR}/
-	helm repo index --merge --url https://github.com/verrazzano/verrazzano-operator/releases/download ${DIST_DIR}/
+	helm repo index --merge "${DIST_DIR}/index.yaml" --url https://github.com/verrazzano/verrazzano-operator/releases/download ${DIST_DIR}/
 	cp ${DIST_DIR}/index.yaml chart/.
 
 	@echo "Updating index.yaml in github repo."; \
