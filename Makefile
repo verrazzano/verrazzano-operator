@@ -25,6 +25,9 @@ ifdef RELEASE_VERSION
 	HELM_CHART_VERSION = ${RELEASE_VERSION}
 	OPERATOR_VERSION = ${RELEASE_VERSION}
 endif
+ifndef BRANCH_NAME
+	BRANCH_NAME=$(shell git rev-parse --abbrev-ref HEAD)
+endif
 
 DIST_DIR:=dist
 K8S_NAMESPACE:=default
@@ -285,7 +288,7 @@ github-release: release-image
 	git push; \
 	echo "Updated index.yaml in github repo."; \
 	echo "Creating release $$RELEASE_VERSION in github."; \
-	request="{\"tag_name\": \"$$RELEASE_VERSION\",\"target_commitish\": \"$$(git rev-parse --abbrev-ref HEAD)\",\"name\": \"$$RELEASE_VERSION\",\"body\": \"${RELEASE_DESCRIPTION}\"}"; \
+	request="{\"tag_name\": \"$$RELEASE_VERSION\",\"target_commitish\": \"${BRANCH_NAME}\",\"name\": \"$$RELEASE_VERSION\",\"body\": \"${RELEASE_DESCRIPTION}\"}"; \
 	echo $$request; \
 	status=$$(curl -s -o /dev/null -w '%{http_code}' --data "$$request" -H "Authorization: token ${GITHUB_API_TOKEN}" -H "Content-Type: application/json" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases"); \
 	if [ "$$status" != "201" ]; then \
