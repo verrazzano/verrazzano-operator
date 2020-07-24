@@ -35,10 +35,10 @@ monitoringOperator:
   prometheusGatewayImage: phx.ocir.io/stevengreenberginc/bfs/pushgateway:1.2.0-6893444-10
   alertManagerImage: prom/alertmanager:v0.16.0
   esWaitTargetVersion: 7.6.1
-  esImage: docker.elastic.co/elasticsearch/elasticsearch-oss:7.6.1
+  esImage: phx.ocir.io/stevengreenberginc/bfs/elasticsearch:7.6.1-1d68e1a-2
   esWaitImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.18
   esInitImage: container-registry.oracle.com/os/oraclelinux:7.8@sha256:46fc083cf0250ed5260fa6fe822d7d4c139ca1f7fc38e4a17ba662464bd1df4a
-  kibanaImage: docker.elastic.co/kibana/kibana-oss:7.6.1
+  kibanaImage: phx.ocir.io/stevengreenberginc/bfs/kibana:7.6.1-ccfddab-1
   monitoringInstanceApiImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.7
   configReloaderImage: container-registry.oracle.com/verrazzano/configmap-reload:0.3-81d6423-33
   nodeExporterImage: phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-0f43627-7
