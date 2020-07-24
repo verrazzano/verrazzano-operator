@@ -42,7 +42,7 @@ COH_PATH = github.com/verrazzano/verrazzano-coh-cluster-operator
 CRDGEN_PATH = github.com/verrazzano/verrazzano-crd-generator
 CRD_PATH = deploy/crds
 DIST_OBJECT_STORE_NAMESPACE:=stevengreenberginc
-DIST_OBJECT_STORE_BUCKET:=test-helm-chart
+DIST_OBJECT_STORE_BUCKET:=verrazzano-helm-chart
 HELM_CHART_NAME:=verrazzano
 HELM_CHART_ARCHIVE_NAME = ${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz
 
