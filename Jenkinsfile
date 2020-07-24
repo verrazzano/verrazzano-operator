@@ -87,15 +87,17 @@ pipeline {
                     if (result == 0) {
                         echo ("'ci skip' spotted in git commit. Aborting.")
                         params.ciSkip = true
-                        currentBuild.result = 'SUCCESS'
                     }
                     result == 0
                 }
             }
             steps {
-                sh """
-                    echo "ciSkip is ${params.ciSkip}"
-                """
+                try {
+                    sh "exit 0"
+                    currentBuild.result = 'SUCCESS'
+                } catch (Exception err) {
+                    currentBuild.result = 'SUCCESS'
+                }
             }
         }
 
