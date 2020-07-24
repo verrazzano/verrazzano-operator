@@ -42,7 +42,7 @@ COH_PATH = github.com/verrazzano/verrazzano-coh-cluster-operator
 CRDGEN_PATH = github.com/verrazzano/verrazzano-crd-generator
 CRD_PATH = deploy/crds
 DIST_OBJECT_STORE_NAMESPACE:=stevengreenberginc
-DIST_OBJECT_STORE_BUCKET:=verrazzano-helm-chart
+DIST_OBJECT_STORE_BUCKET:=test-helm-chart
 HELM_CHART_NAME:=verrazzano
 HELM_CHART_ARCHIVE_NAME = ${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz
 
@@ -199,17 +199,17 @@ chart-publish:
 	@curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${HELM_CHART_VERSION}" -o response.txt
 	@while [ ! -f response.txt ]; do sleep 1; done;
 	@cat response.txt
-	@set -e; \
-	msg=$$(jq -re .message response.txt); \
+	set -e; \
+	msg=$$(jq -r .message response.txt); \
 	if [ "$$msg" == "Not Found" ]; then \
 		echo "No release found associated with version ${HELM_CHART_VERSION}, skipping uploading release assets."; \
 	else \
-		id=$$(jq -re .id response.txt); \
+		id=$$(jq -r .id response.txt); \
 		if [ -z "$$id" ]; then \
 			echo "Error: Failed to get release id for tag: ${HELM_CHART_VERSION}."; \
 			exit 1; \
 		else \
-			existingAssetId=$$(jq -re '.assets[] | select(.name == ("${HELM_CHART_ARCHIVE_NAME}")) | .id' response.txt); \
+			existingAssetId=$$(jq -r '.assets[] | select(.name == ("${HELM_CHART_ARCHIVE_NAME}")) | .id' response.txt); \
 			if [ ! -z "$$existingAssetId" ]; then \
 				echo "Release asset with name ${HELM_CHART_ARCHIVE_NAME} already exists with ID $$existingAssetId for release ${HELM_CHART_VERSION}. Deleting..."; \
 				status=$$(curl -w '%{http_code}' -s -k -X DELETE -H "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/assets/$$existingAssetId"); \
@@ -246,12 +246,12 @@ release-version:
 		rm -rf response.txt; \
 		curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/tags" -o response.txt; \
 		while [ ! -f response.txt ]; do sleep 1; done; \
-		msg=$$(jq -re 'if type=="array" then "" else .message end' response.txt); \
+		msg=$$(jq -r 'if type=="array" then "" else .message end' response.txt); \
 		if [ "$$msg" == "Not Found" ]; then \
 			echo "No existing tag found. Creating release with version v0.1.0."; \
 			version="v0.1.0"; \
 		else \
-			latest=$$(jq -re '[.[]|.name][0]' response.txt); \
+			latest=$$(jq -r '[.[]|.name][0]' response.txt); \
 			if [ -z "$$latest" ]; then \
 				echo "Error: Failed to get latest tag. Aborting.."; \
 				exit 1; \

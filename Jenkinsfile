@@ -90,7 +90,7 @@ pipeline {
                 script {
                     echo 'Got skip=ci, aborting build'
                     currentBuild.result = 'SUCCESS'
-                    error('Skip-CI')
+                    sh "exit 0"
                 }
             }
         }
