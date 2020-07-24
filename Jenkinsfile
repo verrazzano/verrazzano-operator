@@ -60,11 +60,11 @@ pipeline {
     stages {
         stage('Clean workspace and checkout') {
             steps {
-                scmSkip(deleteBuild: true, skipPattern:'.*\\[automatic helm release\\].*')
                 sh "rm -rf github.com/verrazzano/verrazzano-coh-cluster-operator"
                 sh "rm -rf $GOPATH/pkg/mod/github.com/verrazzano/verrazzano-coh-cluster-operator"
 
                 checkout scm
+                scmSkip(deleteBuild: true, skipPattern:'.*\\[automatic helm release\\].*')
 
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
