@@ -11,7 +11,7 @@ verrazzanoOperator:
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/OPERATOR_IMAGE_NAME
   imageVersion: OPERATOR_VERSION
   sslVerify: true
-  cohMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.7
+  cohMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.8
   helidonMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.7
   wlsMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.8
   prometheusPusherImage: phx.ocir.io/stevengreenberginc/bfs/prometheus-pusher:1.0.1-ff71638-19
@@ -19,7 +19,7 @@ verrazzanoOperator:
   filebeatImage: phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-58a0ddf-6
   journalbeatImage: phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-58a0ddf-6
   weblogicOperatorImage: oracle/weblogic-kubernetes-operator:2.6.0
-  fluentdImage: phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-16
+  fluentdImage: phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-17
   apiServerRealm: verrazzano-system
 
 monitoringOperator:
@@ -46,7 +46,7 @@ monitoringOperator:
 clusterOperator:
   name: verrazzano-cluster-operator
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator
-  imageVersion: v0.0.6
+  imageVersion: v0.0.7
   rancherURL:
   rancherUserName:
   rancherPassword:
@@ -56,7 +56,7 @@ verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller
-  imageVersion: v0.0.10
+  imageVersion: v0.0.11
   caBundle:
 
 # OCI-related values
