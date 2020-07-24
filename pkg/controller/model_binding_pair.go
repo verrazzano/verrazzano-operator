@@ -6,7 +6,6 @@ package controller
 import (
 	"fmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/url"
 	"strings"
 	"sync"
 
@@ -131,9 +130,8 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 							// If this domain has a database connection that targets this database binding...
 							if len(datasourceName) > 0 {
 								// Create config map data for the database binding on this domain
-								escapedUrl := url.QueryEscape(databaseBinding.Url)
 								data[fmt.Sprintf("jdbc-%s.xml", strings.Replace(datasourceName, "/", "2f", -1))] =
-									createDatasourceConfigMap(databaseBinding.Credentials, escapedUrl, datasourceName)
+									createDatasourceConfigMap(databaseBinding.Credentials, databaseBinding.Url, datasourceName)
 								configOverrideSecrets = append(configOverrideSecrets, databaseBinding.Credentials)
 							}
 						}

@@ -8,5 +8,7 @@ pkg/assets
 dist
 archive
 latest
+known_licenses.txt
+no_licenses.txt
+thirdparty_licenses
 index.yaml
-
