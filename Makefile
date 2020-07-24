@@ -199,16 +199,17 @@ chart-publish:
 	@curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${HELM_CHART_VERSION}" -o response.txt
 	@while [ ! -f response.txt ]; do sleep 1; done;
 	@cat response.txt
-	@msg=$$(jq -r .message response.txt); \
+	@set -e; \
+	msg=$$(jq -re .message response.txt); \
 	if [ "$$msg" == "Not Found" ]; then \
 		echo "No release found associated with version ${HELM_CHART_VERSION}, skipping uploading release assets."; \
 	else \
-		id=$$(jq -r .id response.txt); \
+		id=$$(jq -re .id response.txt); \
 		if [ -z "$$id" ]; then \
 			echo "Error: Failed to get release id for tag: ${HELM_CHART_VERSION}."; \
 			exit 1; \
 		else \
-			existingAssetId=$$(jq -r '.assets[] | select(.name == ("${HELM_CHART_ARCHIVE_NAME}")) | .id' response.txt); \
+			existingAssetId=$$(jq -re '.assets[] | select(.name == ("${HELM_CHART_ARCHIVE_NAME}")) | .id' response.txt); \
 			if [ ! -z "$$existingAssetId" ]; then \
 				echo "Release asset with name ${HELM_CHART_ARCHIVE_NAME} already exists with ID $$existingAssetId for release ${HELM_CHART_VERSION}. Deleting..."; \
 				status=$$(curl -w '%{http_code}' -s -k -X DELETE -H "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/assets/$$existingAssetId"); \
@@ -228,13 +229,16 @@ chart-publish:
 			fi; \
 			echo "Uploaded ${HELM_CHART_ARCHIVE_NAME} to release ${HELM_CHART_VERSION}."; \
 		fi; \
-	fi
+	fi; \
+	set +e
+
 	rm -rf response.txt
 	rm -rf ${DIST_DIR}
 
 .PHONY release-version:
 release-version:
-	@if [ ! -z "${RELEASE_VERSION}" ]; then \
+	@set -e; \
+	if [ ! -z "${RELEASE_VERSION}" ]; then \
 		echo "Using input release version ${RELEASE_VERSION}."; \
 		version=$$(echo "${RELEASE_VERSION}"); \
 	else \
@@ -245,10 +249,10 @@ release-version:
 		cat response.txt; \
 		msg=$$(jq -r .message response.txt); \
 		if [ "$$msg" == "Not Found" ]; then \
-			echo "No release found. Creating release with version v0.1.0."; \
+			echo "No existing tag found. Creating release with version v0.1.0."; \
 			version="v0.1.0"; \
 		else \
-			latest=$$(jq '[.[]|.name][0]' response.txt); \
+			latest=$$(jq -re '[.[]|.name][0]' response.txt); \
 			if [ -z "$$latest" ]; then \
 				echo "Error: Failed to get latest tag. Aborting.."; \
 				exit 1; \
@@ -261,6 +265,7 @@ release-version:
 			fi; \
 		fi; \
 	fi; \
+	set +e; \
 	echo "$$version" > chart/latest
 
 .PHONY release-image:
@@ -279,7 +284,8 @@ github-release: release-image
 	helm repo index --merge "${DIST_DIR}/index.yaml" --url https://github.com/verrazzano/verrazzano-operator/releases/download ${DIST_DIR}/
 	cp ${DIST_DIR}/index.yaml chart/.
 
-	@echo "Updating index.yaml in github repo."; \
+	@set -e; \
+	echo "Updating index.yaml in github repo."; \
 	git clone -b ${RELEASE_BRANCH} https://github.com/verrazzano/verrazzano-operator; \
 	cp chart/index.yaml verrazzano-operator/chart/index.yaml; \
 	cp chart/latest verrazzano-operator/chart/latest; \
@@ -290,10 +296,12 @@ github-release: release-image
 	git add -f chart/latest; \
 	git commit -m "[ci skip] Release $$(cat chart/latest)"; \
 	git push; \
+	set +e; \
 	echo "Updated index.yaml in github repo.";
 	rm -rf verrazzano-operator
 
-	@RELEASE_VERSION=$$(cat chart/latest); \
+	@set -e; \
+	RELEASE_VERSION=$$(cat chart/latest); \
 	echo "Creating release $$RELEASE_VERSION in github."; \
 	request="{\"tag_name\": \"$$RELEASE_VERSION\",\"target_commitish\": \"${RELEASE_BRANCH}\",\"name\": \"$$RELEASE_VERSION\",\"body\": \"${RELEASE_DESCRIPTION}\"}"; \
 	echo $$request; \
@@ -303,6 +311,7 @@ github-release: release-image
 		echo "$$status"; \
 		exit 1; \
 	fi; \
+	set +e; \
 	echo "Release $$RELEASE_VERSION created in github.";
 
 .PHONY release:
