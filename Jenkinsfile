@@ -95,6 +95,7 @@ pipeline {
                 sh """
                     echo "ciSkip is ${params.ciSkip}"
                 """
+                setBuildResult('SUCCESS')
             }
         }
 

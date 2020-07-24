@@ -259,7 +259,7 @@ release-version:
 				echo "Version for latest tag is $$latest."; \
 				rgx="^v?((?:[0-9]+\.)*)([0-9]+)($$)"; \
 				val=$$(echo $$latest | perl -pe 's/^.*'$$rgx'.*$$/$$2/'); \
-				version=$$(echo "$$latest" | perl -pe s/$$rgx.*$$'/$${1}'$$(printf %0$${#val}s $$(($$val+1)))/); \
+				version=$$(echo "$$latest" | perl -pe s/$$rgx.*$$'/v$${1}'$$(printf %0$${#val}s $$(($$val+1)))/); \
 				echo "New release version $$version."; \
 			fi; \
 		fi; \
