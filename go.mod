@@ -10,9 +10,9 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.8
 	github.com/verrazzano/verrazzano-crd-generator v0.3.29
-	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.6
+	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.7
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.16
-	github.com/verrazzano/verrazzano-wko-operator v0.0.6
+	github.com/verrazzano/verrazzano-wko-operator v0.0.8
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.2.8
