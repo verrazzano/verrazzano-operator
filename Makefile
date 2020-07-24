@@ -246,7 +246,7 @@ release-version:
 		rm -rf response.txt; \
 		curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/tags" -o response.txt; \
 		while [ ! -f response.txt ]; do sleep 1; done; \
-		msg=$$(jq -re 'if type=="array" then .message else "" end' response.txt); \
+		msg=$$(jq -re 'if type=="array" then "" else .message end' response.txt); \
 		if [ "$$msg" == "Not Found" ]; then \
 			echo "No existing tag found. Creating release with version v0.1.0."; \
 			version="v0.1.0"; \
