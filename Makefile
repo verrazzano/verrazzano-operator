@@ -293,7 +293,7 @@ github-release: release-image
 	git config user.name "${GITHUB_RELEASE_USERID}"; \
 	git add -f chart/index.yaml; \
 	git add -f chart/latest; \
-	git commit -m "[ci skip] Release $$(cat chart/latest)"; \
+	git commit -m "[automatic helm release] Release $$(cat chart/latest)"; \
 	git push; \
 	set +e; \
 	echo "Updated index.yaml in github repo.";

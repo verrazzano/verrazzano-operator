@@ -36,7 +36,6 @@ pipeline {
                 'When the branch being built is master then release will always be created when RELEASE_BRANCH has the default value - master.\n'+
                 'When the branch being built is any non-master branch - release can be created by setting RELEASE_BRANCH to same value as non-master branch, else it is skipped.\n',
                 trim: true)
-        booleanParam(defaultValue: false, description: 'Skip CI?', name: 'ciSkip')
     }
 
     environment {
@@ -80,29 +79,8 @@ pipeline {
             }
         }
 
-        stage("Check Preconditions") {
-            when {
-                expression {
-                    result = sh (script: "git log -1 | grep '.*\\[ci skip\\].*'", returnStatus: true)
-                    if (result == 0) {
-                        echo ("'ci skip' spotted in git commit. Aborting.")
-                        params.ciSkip = true
-                    }
-                    result == 0
-                }
-            }
-            steps {
-                try {
-                    sh "exit 0"
-                    currentBuild.result = 'SUCCESS'
-                } catch (Exception err) {
-                    currentBuild.result = 'SUCCESS'
-                }
-            }
-        }
-
         stage('Build') {
-            when { equals expected: false, actual: params.ciSkip }
+            when { not { buildingTag() } }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -114,7 +92,7 @@ pipeline {
         }
 
         stage('Third Party License Check') {
-            when { equals expected: false, actual: params.ciSkip }
+            when { not { buildingTag() } }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -124,14 +102,14 @@ pipeline {
         }
 
         stage('Copyright Compliance Check') {
-            when { equals expected: false, actual: params.ciSkip }
+            when { not { buildingTag() } }
             steps {
                 copyrightScan "${WORKSPACE}"
             }
         }
 
         stage('Unit Tests') {
-            when { equals expected: false, actual: params.ciSkip }
+            when { not { buildingTag() } }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -150,7 +128,7 @@ pipeline {
         }
 
         stage('Scan Image') {
-            when { equals expected: false, actual: params.ciSkip }
+            when { not { buildingTag() } }
             steps {
                 script {
                     HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
@@ -165,12 +143,7 @@ pipeline {
         }
 
         stage('Release') {
-            when {
-                allOf {
-                    equals expected: env.BRANCH_NAME, actual: params.RELEASE_BRANCH 
-                    equals expected: false, actual: params.ciSkip 
-                }
-            }
+            when { equals expected: env.BRANCH_NAME, actual: params.RELEASE_BRANCH }
             steps {
                 sh """
                     make release DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${env.DOCKER_IMAGE_NAME} RELEASE_VERSION=${params.RELEASE_VERSION} RELEASE_DESCRIPTION=${params.RELEASE_DESCRIPTION} RELEASE_BRANCH=${params.RELEASE_BRANCH}
