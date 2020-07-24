@@ -238,9 +238,9 @@ release-version:
 		echo "Using input release version ${RELEASE_VERSION}."; \
 		version=$$(echo "${RELEASE_VERSION}"); \
 	else \
-		echo "Getting latest release."; \
+		echo "Getting latest tag."; \
 		rm -rf response.txt; \
-		curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/latest" -o response.txt; \
+		curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/tags" -o response.txt; \
 		while [ ! -f response.txt ]; do sleep 1; done; \
 		cat response.txt; \
 		msg=$$(jq -r .message response.txt); \
@@ -248,15 +248,15 @@ release-version:
 			echo "No release found. Creating release with version v0.1.0."; \
 			version="v0.1.0"; \
 		else \
-			latest=$$(jq -r .tag_name response.txt); \
+			latest=$$(jq '[.[]|.name][0]' response.txt); \
 			if [ -z "$$latest" ]; then \
-				echo "Error: Failed to get tag_name for latest release.Aborting.."; \
+				echo "Error: Failed to get latest tag. Aborting.."; \
 				exit 1; \
 			else \
-				echo "Version for latest release is $$latest."; \
-				rgx="^v((?:[0-9]+\.)*)([0-9]+)($$)"; \
+				echo "Version for latest tag is $$latest."; \
+				rgx="^v?((?:[0-9]+\.)*)([0-9]+)($$)"; \
 				val=$$(echo $$latest | perl -pe 's/^.*'$$rgx'.*$$/$$2/'); \
-				version=$$(echo "$$latest" | perl -pe s/$$rgx.*$$'/v$${1}'$$(printf %0$${#val}s $$(($$val+1)))/); \
+				version=$$(echo "$$latest" | perl -pe s/$$rgx.*$$'/$${1}'$$(printf %0$${#val}s $$(($$val+1)))/); \
 				echo "New release version $$version."; \
 			fi; \
 		fi; \
@@ -284,8 +284,8 @@ github-release: release-image
 	cp chart/index.yaml verrazzano-operator/chart/index.yaml; \
 	cp chart/latest verrazzano-operator/chart/latest; \
 	cd verrazzano-operator; \
-	git config user.email "verrazzano@verrazzano.io"; \
-	git config user.name "verrazzano"; \
+	git config user.email "${GITHUB_RELEASE_EMAIL}"; \
+	git config user.name "${GITHUB_RELEASE_USERID}"; \
 	git add -f chart/index.yaml; \
 	git add -f chart/latest; \
 	git commit -m "[ci skip] Release $$(cat chart/latest)"; \

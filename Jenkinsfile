@@ -53,6 +53,8 @@ pipeline {
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
         OCI_CLI_REGION = 'us-phoenix-1'
         GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
+        GITHUB_RELEASE_USERID = credentials('github-userid-release')
+        GITHUB_RELEASE_EMAIL = credentials('github-email-release')
     }
 
     stages {
