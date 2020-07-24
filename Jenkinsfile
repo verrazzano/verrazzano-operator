@@ -79,6 +79,22 @@ pipeline {
             }
         }
 
+        stage("Check Preconditions") {
+            when {
+                expression {
+                    result = sh (script: "git log -1 | grep '.*\\[ci skip\\].*'", returnStatus: true)
+                    result == 0
+                }
+            }
+            steps {
+                script {
+                    echo 'Got skip=ci, aborting build'
+                    currentBuild.result = 'SUCCESS'
+                    error('Skip-CI')
+                }
+            }
+        }
+
         stage('Build') {
             when { not { buildingTag() } }
             steps {
