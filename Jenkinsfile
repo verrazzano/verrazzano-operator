@@ -81,17 +81,25 @@ pipeline {
         }
 
         stage("Check Preconditions") {
-            steps {
-                result = sh (script: "git log -1 | grep '.*\\[ci skip\\].*'", returnStatus: true)
-                if (result == 0) {
-                    echo ("'ci skip' spotted in git commit. Aborting.")
-                    params.ciSkip = true
+            when {
+                expression {
+                    result = sh (script: "git log -1 | grep '.*\\[ci skip\\].*'", returnStatus: true)
+                    if (result == 0) {
+                        echo ("'ci skip' spotted in git commit. Aborting.")
+                        params.ciSkip = true
+                    }
+                    result == 0
                 }
+            }
+            steps {
+                sh """
+                    echo "ciSkip is ${params.ciSkip}"
+                """
             }
         }
 
         stage('Build') {
-            when { not { params.ciSkip } }
+            when { equals expected: false, actual: params.ciSkip }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -103,7 +111,7 @@ pipeline {
         }
 
         stage('Third Party License Check') {
-            when { not { params.ciSkip } }
+            when { equals expected: false, actual: params.ciSkip }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -113,14 +121,14 @@ pipeline {
         }
 
         stage('Copyright Compliance Check') {
-            when { not { params.ciSkip } }
+            when { equals expected: false, actual: params.ciSkip }
             steps {
                 copyrightScan "${WORKSPACE}"
             }
         }
 
         stage('Unit Tests') {
-            when { not { params.ciSkip } }
+            when { equals expected: false, actual: params.ciSkip }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -139,7 +147,7 @@ pipeline {
         }
 
         stage('Scan Image') {
-            when { not { params.ciSkip } }
+            when { equals expected: false, actual: params.ciSkip }
             steps {
                 script {
                     HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
@@ -157,7 +165,7 @@ pipeline {
             when {
                 allOf {
                     equals expected: env.BRANCH_NAME, actual: params.RELEASE_BRANCH 
-                    not { params.ciSkip } 
+                    equals expected: false, actual: params.ciSkip 
                 }
             }
             steps {
