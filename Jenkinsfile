@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def HEAD_COMMIT
+def skipBuild = false 
 
 pipeline {
     options {
@@ -64,6 +65,12 @@ pipeline {
                 sh "rm -rf $GOPATH/pkg/mod/github.com/verrazzano/verrazzano-coh-cluster-operator"
 
                 checkout scm
+                result = sh (script: "git log -1 | grep '.*\\[automatic helm release\\].*'", returnStatus: true) 
+                if (result == 0) {
+                    echo ("'automatic helm release' spotted in git commit. No further stages will be executed.")
+                    skipBuild = true
+                    sh "exit 0"
+                }
 
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
@@ -80,7 +87,7 @@ pipeline {
         }
 
         stage('Build') {
-            when { not { buildingTag() } }
+            when { equals expected: false, actual: skipBuild }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -92,7 +99,7 @@ pipeline {
         }
 
         stage('Third Party License Check') {
-            when { not { buildingTag() } }
+            when { equals expected: false, actual: skipBuild }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -102,14 +109,14 @@ pipeline {
         }
 
         stage('Copyright Compliance Check') {
-            when { not { buildingTag() } }
+            when { equals expected: false, actual: skipBuild }
             steps {
                 copyrightScan "${WORKSPACE}"
             }
         }
 
         stage('Unit Tests') {
-            when { not { buildingTag() } }
+            when { equals expected: false, actual: skipBuild }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -128,7 +135,7 @@ pipeline {
         }
 
         stage('Scan Image') {
-            when { not { buildingTag() } }
+            when { equals expected: false, actual: skipBuild }
             steps {
                 script {
                     HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
@@ -143,7 +150,12 @@ pipeline {
         }
 
         stage('Release') {
-            when { equals expected: env.BRANCH_NAME, actual: params.RELEASE_BRANCH }
+            when {
+                allOf {
+                    equals expected: false, actual: skipBuild
+                    equals expected: env.BRANCH_NAME, actual: params.RELEASE_BRANCH
+                } 
+            }
             steps {
                 sh """
                     make release DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${env.DOCKER_IMAGE_NAME} RELEASE_VERSION=${params.RELEASE_VERSION} RELEASE_DESCRIPTION=${params.RELEASE_DESCRIPTION} RELEASE_BRANCH=${params.RELEASE_BRANCH}
