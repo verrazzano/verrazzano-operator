@@ -63,15 +63,15 @@ pipeline {
             steps {
                 sh "rm -rf github.com/verrazzano/verrazzano-coh-cluster-operator"
                 sh "rm -rf $GOPATH/pkg/mod/github.com/verrazzano/verrazzano-coh-cluster-operator"
-
-                checkout scm
-                result = sh (script: "git log -1 | grep '.*\\[automatic helm release\\].*'", returnStatus: true) 
-                if (result == 0) {
-                    echo ("'automatic helm release' spotted in git commit. No further stages will be executed.")
-                    skipBuild = true
-                    sh "exit 0"
+                script {
+                    checkout scm
+                    result = sh (script: "git log -1 | grep '.*\\[automatic helm release\\].*'", returnStatus: true) 
+                    if (result == 0) {
+                        echo ("'automatic helm release' spotted in git commit. No further stages will be executed.")
+                        skipBuild = true
+                        sh "exit 0"
+                    }
                 }
-
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
