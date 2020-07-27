@@ -1,1 +1,12 @@
 apiVersion: v1
+entries:
+  verrazzano-helm-chart:
+  - apiVersion: v1
+    created: "2020-07-27T08:40:54.342330089Z"
+    description: A Helm chart for Verrazzano
+    digest: b78e3d5868851500cf0265a87d2dfe21aaf7483c089e634260d6d46c6c19adbf
+    name: verrazzano-helm-chart
+    urls:
+    - https://github.com/verrazzano/verrazzano-operator/releases/download/verrazzano-v0.0.66.tgz
+    version: v0.0.66
+generated: "2020-07-27T08:40:54.334758182Z"
