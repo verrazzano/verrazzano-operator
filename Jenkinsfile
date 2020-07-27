@@ -87,7 +87,12 @@ pipeline {
         }
 
         stage('Build') {
-            when { equals expected: false, actual: skipBuild }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -99,7 +104,12 @@ pipeline {
         }
 
         stage('Third Party License Check') {
-            when { equals expected: false, actual: skipBuild }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -109,14 +119,24 @@ pipeline {
         }
 
         stage('Copyright Compliance Check') {
-            when { equals expected: false, actual: skipBuild }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
             steps {
                 copyrightScan "${WORKSPACE}"
             }
         }
 
         stage('Unit Tests') {
-            when { equals expected: false, actual: skipBuild }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
@@ -135,7 +155,12 @@ pipeline {
         }
 
         stage('Scan Image') {
-            when { equals expected: false, actual: skipBuild }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
             steps {
                 script {
                     HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
@@ -152,6 +177,7 @@ pipeline {
         stage('Release') {
             when {
                 allOf {
+                    not { buildingTag() }
                     equals expected: false, actual: skipBuild
                     equals expected: env.BRANCH_NAME, actual: params.RELEASE_BRANCH
                 } 
