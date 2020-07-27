@@ -1,12 +1,3 @@
+# Copyright (c) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: v1
-entries:
-  verrazzano-helm-chart:
-  - apiVersion: v1
-    created: "2020-07-27T11:57:47.357598578Z"
-    description: A Helm chart for Verrazzano
-    digest: 32c2d64233c108eaf56b8dadd6b083025e0cc04997bea330d696704f4020e06c
-    name: verrazzano-helm-chart
-    urls:
-    - https://github.com/verrazzano/verrazzano-operator/releases/download/verrazzano-v0.0.64.tgz
-    version: v0.0.64
-generated: "2020-07-27T11:57:47.349860717Z"
