@@ -69,6 +69,7 @@ pipeline {
                     if (result == 0) {
                         echo ("'automatic helm release' spotted in git commit. No further stages will be executed.")
                         skipBuild = true
+                        currentBuild.description = "[automatic helm release] Build Skipped."
                         sh "exit 0"
                     }
                 }
