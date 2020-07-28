@@ -15,11 +15,11 @@ import (
 )
 
 func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbPair *types.ModelBindingPair,
-	labels map[string]string, configOverrides string, configOverrideSecrets []string) *v8weblogic.Domain {
+	labels map[string]string, datasourceModelConfigMap string, dbSecrets []string) *v8weblogic.Domain {
 	domainCRValues := domainModel.DomainCRValues
 
 	labels["weblogic.resourceVersion"] = "domain-v8"
-	labels["weblogic.domainUID"] = domainModel.Name
+	labels["weblogic.domainUID"] = domainModel.Name // TODO: inconsistent setting of domainUID
 
 	domainCR := &v8weblogic.Domain{
 		ObjectMeta: v1meta.ObjectMeta{
@@ -53,7 +53,7 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 			LogHomeEnabled:           true,
 			Clusters:                 domainCRValues.Clusters,
 			IncludeServerOutInPodLog: domainCRValues.IncludeServerOutInPodLog,
-			DomainHomeInImage:        true,
+			DomainHomeSourceType:     "FromModel",
 			AdminServer: v8weblogic.AdminServer{
 				ServerStartState: func() string {
 					if len(domainCRValues.AdminServer.ServerStartState) > 0 {
@@ -106,6 +106,18 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 					Enabled:       true,
 					ReadinessPort: 8888,
 				},
+				Model: v8weblogic.Model{ // TODO: should we always set this
+					ConfigMap: datasourceModelConfigMap, // TODO: check if specified
+					RuntimeEncryptionSecret: func() string {
+						var secret string
+						if len(domainCRValues.DomainUID) > 0 { // TODO:check use of this logic
+							secret = domainCRValues.DomainUID
+						} else {
+							secret = domainModel.Name
+						}
+						return fmt.Sprintf("%s-runtime-encrypt-secret", secret)
+					}(),
+				},
 			},
 			ServerStartPolicy: func() string {
 				if len(domainCRValues.ServerStartPolicy) > 0 {
@@ -157,17 +169,17 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 		Status: v8weblogic.DomainStatus{},
 	}
 
+	if len(dbSecrets) > 0 {
+		domainCR.Spec.Configuration.Secrets = dbSecrets
+	}
+
 	// ConfigOverrides
-	if len(configOverrides) > 0 {
-		domainCR.Spec.ConfigOverrides = configOverrides
-	} else if len(domainCRValues.ConfigOverrides) > 0 {
+	if len(domainCRValues.ConfigOverrides) > 0 {
 		domainCR.Spec.ConfigOverrides = domainCRValues.ConfigOverrides
 	}
 
 	// ConfigOverrideSecrets
-	if configOverrideSecrets != nil {
-		domainCR.Spec.ConfigOverrideSecrets = configOverrideSecrets
-	} else if domainCRValues.ConfigOverrideSecrets != nil {
+	if domainCRValues.ConfigOverrideSecrets != nil {
 		domainCR.Spec.ConfigOverrideSecrets = domainCRValues.ConfigOverrideSecrets
 	}
 

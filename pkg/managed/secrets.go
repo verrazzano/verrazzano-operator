@@ -5,6 +5,8 @@ package managed
 
 import (
 	"context"
+	"encoding/base64"
+	"math/rand"
 
 	"github.com/golang/glog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
@@ -133,6 +135,32 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 			}
 		}
 	}
+
+	// Each WebLogic domain requires a runtime encryption secret that contains a randomly generated password.
+	// Note: we are assuming that each domain has DomainHomeSourceType is set to FromModel.
+	for _, domain := range managedCluster.WlsDomainCRs {
+		// Find the namespace for this domain in the binding placements
+		err, namespace := util.GetComponentNamespace(domain.Name, binding)
+		if err != nil {
+			glog.Errorf("Getting namespace for domain %s is giving error %s", domain.Name, err)
+			continue
+		}
+
+		data := make(map[string][]byte)
+		data["password"] = []byte(generateRandomString())
+
+		labels := make(map[string]string)
+		labels["weblogic.domainUID"] = domain.Spec.DomainUID
+
+		secretName := domain.Spec.Configuration.Model.RuntimeEncryptionSecret
+		err, secretObj := newSecret(secretName, namespace, kubeClientSet, data, labels)
+		if err != nil {
+			glog.Errorf("Copying secret %s to namespace %s for domain %s is giving error %s", secretName, namespace, domain.Name, err)
+			continue
+		}
+		secrets = append(secrets, secretObj)
+	}
+
 	return secrets
 }
 
@@ -170,4 +198,11 @@ func newSecret(secretName string, namespace string, kubeClientSet kubernetes.Int
 		Type: secretInMgmtCluster.Type,
 	}
 	return nil, secretObj
+}
+
+// generateRandomString returns a base64 encoded generated random string.
+func generateRandomString() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.StdEncoding.EncodeToString(b)
 }

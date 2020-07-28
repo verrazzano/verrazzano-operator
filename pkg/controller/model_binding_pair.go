@@ -5,8 +5,6 @@ package controller
 
 import (
 	"fmt"
-	"net/url"
-	"strings"
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -119,42 +117,45 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						// Create the WlsDomain CR and update the secrets list for the namespace
 						domLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
 
-						// Create a config map with jdbc overrides if there are database bindings
-						configOverrides := ""
-						var configOverrideSecrets []string = nil
-						var data map[string]string
-						data = make(map[string]string)
-						data["version.txt"] = "2.0"
+						// Create a config map with a data source model if there are database bindings
+						datasourceModelConfigMap := ""
+						var dbSecrets []string = nil
 
+						var datasourceName string
 						// For each database binding check to see if there are any corresponding domain connections
 						for _, databaseBinding := range mbPair.Binding.Spec.DatabaseBindings {
-							datasourceName := getDatasourceName(domain, databaseBinding)
+							datasourceName = getDatasourceName(domain, databaseBinding)
 							// If this domain has a database connection that targets this database binding...
 							if len(datasourceName) > 0 {
 								// Create config map data for the database binding on this domain
-								escapedUrl := url.QueryEscape(databaseBinding.Url)
-								data[fmt.Sprintf("jdbc-%s.xml", strings.Replace(datasourceName, "/", "2f", -1))] =
-									createDatasourceConfigMap(databaseBinding.Credentials, escapedUrl, datasourceName)
-								configOverrideSecrets = append(configOverrideSecrets, databaseBinding.Credentials)
+								//								escapedUrl := url.QueryEscape(databaseBinding.Url)
+								//								data[fmt.Sprintf("jdbc-%s.xml", strings.Replace(datasourceName, "/", "2f", -1))] =
+								//									createDatasourceConfigMap(databaseBinding.Credentials, escapedUrl, datasourceName)
+								dbSecrets = append(dbSecrets, databaseBinding.Credentials)
 							}
 						}
-						// If there are overrides then create a config map
-						if len(configOverrideSecrets) > 0 {
+
+						// If there are db bindings then create a config map
+						for _, dbSecret := range dbSecrets {
 							labels := make(map[string]string)
 							labels["weblogic.domainUID"] = domain.Name
+							// TODO: fix to handle multiple jdbc connections per domain by appending
+							modelConfig := createDatasourceModelConfiguration(dbSecret, datasourceName)
+							data := make(map[string]string)
+							data["datasource.yaml"] = modelConfig
 							configMap := &corev1.ConfigMap{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "jdbc-override-cm",
+									Name:      domain.Name + "wdt-config-map",
 									Namespace: namespace.Name,
 									Labels:    labels,
 								},
 								Data: data,
 							}
-							configOverrides = configMap.Name
+							datasourceModelConfigMap = configMap.Name
 							mc.ConfigMaps = append(mc.ConfigMaps, configMap)
 						}
 
-						domainCR := wlsdom.CreateWlsDomainCR(namespace.Name, domain, mbPair, domLabels, configOverrides, configOverrideSecrets)
+						domainCR := wlsdom.CreateWlsDomainCR(namespace.Name, domain, mbPair, domLabels, datasourceModelConfigMap, dbSecrets)
 						if domainCR.Spec.ImagePullSecrets != nil {
 							for _, secret := range domainCR.Spec.ImagePullSecrets {
 								addSecret(mc, secret.Name, namespace.Name)
@@ -670,4 +671,39 @@ func createDatasourceConfigMap(secret string, url string, datasourceName string)
 </jdbc-data-source>
 `
 	return fmt.Sprintf(format, datasourceName, url, secret, secret)
+}
+
+// Create a datasource model configuration for the given db secret and datasource
+func createDatasourceModelConfiguration(dbSecret string, datasourceName string) string {
+
+	// TODO: fix hardcoding of cluster name
+	format := `resources:
+  JDBCSystemResource:
+    %s:
+    Target: 'cluster-1'
+    JdbcResource:
+      JDBCDataSourceParams:
+        JNDIName: [
+	      jdbc/%s
+        ]
+	    GlobalTransactionsProtocol: TwoPhaseCommit
+	  JDBCDriverParams:
+	    DriverName: oracle.jdbc.xa.client.OracleXADataSource
+	    URL: '@@SECRET:%s:url@@'
+        PasswordEncrypted: '@@SECRET:%s:password@@'
+        Properties:
+	      user:
+	        Value: '@@SECRET:%s:username@@'
+          oracle.net.CONNECT_TIMEOUT:
+	        Value: 5000
+	      oracle.jdbc.ReadTimeout:
+	        Value: 30000
+      JDBCConnectionPoolParams:
+          InitialCapacity: 0
+	      MaxCapacity: 1
+	      TestTableName: SQL ISVALID
+	      TestConnectionsOnReserve: true
+`
+
+	return fmt.Sprintf(format, datasourceName, datasourceName, dbSecret, dbSecret, dbSecret)
 }
