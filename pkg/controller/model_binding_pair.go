@@ -124,19 +124,30 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 							if len(datasourceName) > 0 {
 								dbSecrets = append(dbSecrets, databaseBinding.Credentials)
 
-								if strings.Contains(databaseBinding.Url, "jdbc:mysql") {
+								// Create the datasource model configuration for MySql connections.
+								if strings.HasPrefix(strings.TrimSpace(databaseBinding.Url), "jdbc:mysql") {
 									modelConfig := createMysqlDatasourceModelConfig(databaseBinding.Credentials, datasourceName)
 									if cmData == nil {
-										cmData = append(cmData, "resources:\n")
+										cmData = append(cmData, "resources:\n  JDBCSystemResource:\n")
+									}
+									cmData = append(cmData, modelConfig)
+									continue
+								}
+
+								// Create the datasource model configuration for Oracle connections.
+								if strings.HasPrefix(strings.TrimSpace(databaseBinding.Url), "jdbc:oracle") {
+									modelConfig := createOracleDatasourceModelConfig(databaseBinding.Credentials, datasourceName)
+									if cmData == nil {
+										cmData = append(cmData, "resources:\n  JDBCSystemResource:\n")
 									}
 									cmData = append(cmData, modelConfig)
 								}
 							}
 						}
 
+						// Create a config map with all the saved data source model configurations
 						var datasourceModelConfigMap = ""
 						if cmData != nil {
-							// Create a config map with a data source model configuration
 							var configMap *corev1.ConfigMap
 
 							labels := make(map[string]string)
@@ -654,34 +665,10 @@ func getDatasourceName(domain v1beta1v8o.VerrazzanoWebLogicDomain, databaseBindi
 	return ""
 }
 
-// Create a jdbc override config map datasource section for the given datasource, url and secret
-func createDatasourceConfigMap(secret string, url string, datasourceName string) string {
-
-	format := `<?xml version='1.0' encoding='UTF-8'?>
-<jdbc-data-source xmlns="http://xmlns.oracle.com/weblogic/jdbc-data-source"
-                  xmlns:f="http://xmlns.oracle.com/weblogic/jdbc-data-source-fragment"
-                  xmlns:s="http://xmlns.oracle.com/weblogic/situational-config">
-  <name>%s</name>
-  <jdbc-driver-params>
-    <url f:combine-mode="replace">%s</url>
-    <properties>
-       <property>
-          <name>user</name>
-          <value f:combine-mode="replace">${secret:%s.username}</value>
-       </property>
-    </properties>
-    <password-encrypted f:combine-mode="replace">${secret:%s.password}</password-encrypted>
-  </jdbc-driver-params>
-</jdbc-data-source>
-`
-	return fmt.Sprintf(format, datasourceName, url, secret, secret)
-}
-
-// Create a mysql datasource model configuration for the given db secret and datasource
+// Create a MySql datasource model configuration for the given db secret and datasource
 func createMysqlDatasourceModelConfig(dbSecret string, datasourceName string) string {
 
-	format := `  JDBCSystemResource:
-    %s:
+	format := `    %s:
       Target: 'cluster-1'
       JdbcResource:
         JDBCDataSourceParams:
@@ -702,6 +689,38 @@ func createMysqlDatasourceModelConfig(dbSecret string, datasourceName string) st
           MinCapacity: 0
           TestConnectionsOnReserve: true
           TestTableName: SQL SELECT 1
+`
+
+	return fmt.Sprintf(format, datasourceName, datasourceName, dbSecret, dbSecret, dbSecret)
+}
+
+// Create a Oracle datasource model configuration for the given db secret and datasource
+func createOracleDatasourceModelConfig(dbSecret string, datasourceName string) string {
+
+	format := `    %s:
+      Target: 'cluster-1'
+      JdbcResource:
+        JDBCDataSourceParams:
+          JNDIName: [
+            jdbc/%s
+          ]
+          GlobalTransactionsProtocol: TwoPhaseCommit
+        JDBCDriverParams:
+          DriverName: oracle.jdbc.xa.client.OracleXADataSource
+          URL: '@@SECRET:%s:url@@'
+          PasswordEncrypted: '@@SECRET:%s:password@@'
+          Properties:
+            user:
+              Value: '@@SECRET:%s:username@@'
+            oracle.net.CONNECT_TIMEOUT:
+              Value: 5000
+            oracle.jdbc.ReadTimeout:
+              Value: 30000
+        JDBCConnectionPoolParams:
+            InitialCapacity: 0
+            MaxCapacity: 1
+            TestTableName: SQL ISVALID
+            TestConnectionsOnReserve: true
 `
 
 	return fmt.Sprintf(format, datasourceName, datasourceName, dbSecret, dbSecret, dbSecret)
