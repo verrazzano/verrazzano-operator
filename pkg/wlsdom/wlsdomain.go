@@ -107,8 +107,8 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 					Enabled:       true,
 					ReadinessPort: 8888,
 				},
-				Model: v8weblogic.Model{ // TODO: should we always set this
-					ConfigMap: datasourceModelConfigMap, // TODO: check if specified
+				Model: v8weblogic.Model{
+					ConfigMap: datasourceModelConfigMap,
 					RuntimeEncryptionSecret: func() string {
 						var secret string
 						if len(domainCRValues.DomainUID) > 0 { // TODO:check use of this logic

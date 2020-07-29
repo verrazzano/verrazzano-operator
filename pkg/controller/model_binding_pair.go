@@ -5,9 +5,8 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 	"sync"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/golang/glog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
@@ -22,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsdom"
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsopr"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func CreateModelBindingPair(model *v1beta1v8o.VerrazzanoModel, binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, sslVerify bool) *types.ModelBindingPair {
@@ -114,36 +114,38 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						// Have the WebLogic Operator watch the namespace of the domain
 						appendNamespace(&mc.WlsOperator.Spec.DomainNamespaces, namespace.Name)
 
-						// Create the WlsDomain CR and update the secrets list for the namespace
-						domLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
-
-						// Create a config map with a data source model if there are database bindings
-						datasourceModelConfigMap := ""
 						var dbSecrets []string = nil
+						var cmData []string = nil
 
-						var datasourceName string
 						// For each database binding check to see if there are any corresponding domain connections
 						for _, databaseBinding := range mbPair.Binding.Spec.DatabaseBindings {
-							datasourceName = getDatasourceName(domain, databaseBinding)
+							datasourceName := getDatasourceName(domain, databaseBinding)
 							// If this domain has a database connection that targets this database binding...
 							if len(datasourceName) > 0 {
-								// Create config map data for the database binding on this domain
-								//								escapedUrl := url.QueryEscape(databaseBinding.Url)
-								//								data[fmt.Sprintf("jdbc-%s.xml", strings.Replace(datasourceName, "/", "2f", -1))] =
-								//									createDatasourceConfigMap(databaseBinding.Credentials, escapedUrl, datasourceName)
 								dbSecrets = append(dbSecrets, databaseBinding.Credentials)
+
+								if strings.Contains(databaseBinding.Url, "jdbc:mysql") {
+									modelConfig := createMysqlDatasourceModelConfig(databaseBinding.Credentials, datasourceName)
+									if cmData == nil {
+										cmData = append(cmData, "resources:\n")
+									}
+									cmData = append(cmData, modelConfig)
+								}
 							}
 						}
 
-						// If there are db bindings then create a config map
-						for _, dbSecret := range dbSecrets {
+						var datasourceModelConfigMap = ""
+						if cmData != nil {
+							// Create a config map with a data source model configuration
+							var configMap *corev1.ConfigMap
+
 							labels := make(map[string]string)
 							labels["weblogic.domainUID"] = domain.Name
-							// TODO: fix to handle multiple jdbc connections per domain by appending
-							modelConfig := createDatasourceModelConfiguration(dbSecret, datasourceName)
+
 							data := make(map[string]string)
-							data["datasource.yaml"] = modelConfig
-							configMap := &corev1.ConfigMap{
+
+							data["datasource.yaml"] = strings.Join(cmData, "")
+							configMap = &corev1.ConfigMap{
 								ObjectMeta: metav1.ObjectMeta{
 									Name:      domain.Name + "-wdt-config-map",
 									Namespace: namespace.Name,
@@ -155,6 +157,8 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 							mc.ConfigMaps = append(mc.ConfigMaps, configMap)
 						}
 
+						// Create the WlsDomain CR and update the secrets list for the namespace
+						domLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
 						domainCR := wlsdom.CreateWlsDomainCR(namespace.Name, domain, mbPair, domLabels, datasourceModelConfigMap, dbSecrets)
 						if domainCR.Spec.ImagePullSecrets != nil {
 							for _, secret := range domainCR.Spec.ImagePullSecrets {
@@ -673,11 +677,10 @@ func createDatasourceConfigMap(secret string, url string, datasourceName string)
 	return fmt.Sprintf(format, datasourceName, url, secret, secret)
 }
 
-// Create a datasource model configuration for the given db secret and datasource
-func createDatasourceModelConfiguration(dbSecret string, datasourceName string) string {
+// Create a mysql datasource model configuration for the given db secret and datasource
+func createMysqlDatasourceModelConfig(dbSecret string, datasourceName string) string {
 
-	format := `resources:
-  JDBCSystemResource:
+	format := `  JDBCSystemResource:
     %s:
       Target: 'cluster-1'
       JdbcResource:
