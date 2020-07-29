@@ -21,6 +21,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+const wlsRuntimeEncryptionSecret = "wlsRuntimeEncryptionSecret"
+
 // CreateSecrets will go through a ModelBindingPair and find all of the secrets that are needed by
 // components, and it will then check if those secrets exist in the correct namespaces and clusters,
 // and then update or create them as needed
@@ -62,11 +64,13 @@ func createSecrets(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnecti
 		secretNames = append(secretNames, newSecret.Name)
 		existingSecret, err := managedClusterConnection.SecretLister.Secrets(newSecret.Namespace).Get(newSecret.Name)
 		if existingSecret != nil {
-			specDiffs := diff.CompareIgnoreTargetEmpties(existingSecret, newSecret)
-			if specDiffs != "" {
-				glog.V(6).Infof("Secret %s : Spec differences %s", newSecret.Name, specDiffs)
-				glog.V(4).Infof("Updating secret %s:%s in cluster %s", newSecret.Namespace, newSecret.Name, clusterName)
-				_, err = managedClusterConnection.KubeClient.CoreV1().Secrets(newSecret.Namespace).Update(context.TODO(), newSecret, metav1.UpdateOptions{})
+			if existingSecret.Type != wlsRuntimeEncryptionSecret {
+				specDiffs := diff.CompareIgnoreTargetEmpties(existingSecret, newSecret)
+				if specDiffs != "" {
+					glog.V(6).Infof("Secret %s : Spec differences %s", newSecret.Name, specDiffs)
+					glog.V(4).Infof("Updating secret %s:%s in cluster %s", newSecret.Namespace, newSecret.Name, clusterName)
+					_, err = managedClusterConnection.KubeClient.CoreV1().Secrets(newSecret.Namespace).Update(context.TODO(), newSecret, metav1.UpdateOptions{})
+				}
 			}
 		} else {
 			glog.V(4).Infof("Creating secret %s:%s in cluster %s", newSecret.Namespace, newSecret.Name, clusterName)
@@ -160,6 +164,7 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 				Labels:    labels,
 			},
 			Data: data,
+			Type: wlsRuntimeEncryptionSecret,
 		}
 
 		secrets = append(secrets, secretObj)
