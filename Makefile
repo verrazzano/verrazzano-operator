@@ -257,9 +257,11 @@ release-version:
 				exit 1; \
 			else \
 				echo "Version for latest tag is $$latest."; \
-				rgx="^v?((?:[0-9]+\.)*)([0-9]+)($$)"; \
-				val=$$(echo $$latest | perl -pe 's/^.*'$$rgx'.*$$/$$2/'); \
-				version=$$(echo "$$latest" | perl -pe s/$$rgx.*$$'/v$${1}'$$(printf %0$${#val}s $$(($$val+1)))/); \
+				major=$$(echo $$latest | cut -d. -f1); \
+				minor=$$(echo $$latest | cut -d. -f2); \
+				revision=$$(echo $$latest | cut -d. -f3); \
+				revision=$$(expr $$revision + 1); \
+				version=$$(echo "$$major.$$minor.$$revision"); \
 				echo "New release version $$version."; \
 			fi; \
 		fi; \
