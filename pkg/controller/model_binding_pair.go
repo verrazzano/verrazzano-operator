@@ -676,7 +676,6 @@ func createDatasourceConfigMap(secret string, url string, datasourceName string)
 // Create a datasource model configuration for the given db secret and datasource
 func createDatasourceModelConfiguration(dbSecret string, datasourceName string) string {
 
-	// TODO: fix hardcoding of cluster name
 	format := `resources:
   JDBCSystemResource:
     %s:
@@ -686,13 +685,20 @@ func createDatasourceModelConfiguration(dbSecret string, datasourceName string) 
         JNDIName: [
 	      jdbc/%s
         ]
-	  JDBCDriverParams:
-	    DriverName: com.mysql.cj.jdbc.Driver
-	    URL: '@@SECRET:%s:url@@'
+      JDBCDriverParams:
+        DriverName: com.mysql.cj.jdbc.Driver
+        URL: '@@SECRET:%s:url@@'
         PasswordEncrypted: '@@SECRET:%s:password@@'
-	    Properties:
-		  user:
-		    Value: '@@SECRET:%s:username@@'
+        Properties:
+          user:
+            Value: '@@SECRET:%s:username@@'
+      JDBCConnectionPoolParams:
+        ConnectionReserveTimeoutSeconds: 10
+        InitialCapacity: 0
+        MaxCapacity: 5
+        MinCapacity: 0
+        TestConnectionsOnReserve: true
+        TestTableName: SQL SELECT 1
 `
 
 	return fmt.Sprintf(format, datasourceName, datasourceName, dbSecret, dbSecret, dbSecret)
