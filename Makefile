@@ -195,7 +195,7 @@ chart-publish:
 	@curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${HELM_CHART_VERSION}" -o response.txt
 	@while [ ! -f response.txt ]; do sleep 1; done;
 	@cat response.txt
-	set -e; \
+	@set -e; \
 	msg=$$(jq -r .message response.txt); \
 	if [ "$$msg" == "Not Found" ]; then \
 		echo "No release found associated with version ${HELM_CHART_VERSION}, skipping uploading release assets."; \
