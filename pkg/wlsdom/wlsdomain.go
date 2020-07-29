@@ -101,6 +101,7 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 				}
 			}(),
 			Configuration: v8weblogic.Configuration{
+				IntrospectorJobActiveDeadlineSeconds: 300,
 				Istio: v8weblogic.Istio{
 					// Istio is always enabled for WebLogic domains in Verrazzano
 					Enabled:       true,
