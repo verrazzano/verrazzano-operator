@@ -686,23 +686,13 @@ func createDatasourceModelConfiguration(dbSecret string, datasourceName string) 
         JNDIName: [
 	      jdbc/%s
         ]
-	    GlobalTransactionsProtocol: TwoPhaseCommit
 	  JDBCDriverParams:
-	    DriverName: oracle.jdbc.xa.client.OracleXADataSource
+	    DriverName: com.mysql.cj.jdbc.Driver
 	    URL: '@@SECRET:%s:url@@'
         PasswordEncrypted: '@@SECRET:%s:password@@'
-        Properties:
-	      user:
-	        Value: '@@SECRET:%s:username@@'
-          oracle.net.CONNECT_TIMEOUT:
-	        Value: 5000
-	      oracle.jdbc.ReadTimeout:
-	        Value: 30000
-      JDBCConnectionPoolParams:
-          InitialCapacity: 0
-	      MaxCapacity: 1
-	      TestTableName: SQL ISVALID
-	      TestConnectionsOnReserve: true
+	    Properties:
+		  user:
+		    Value: '@@SECRET:%s:username@@'
 `
 
 	return fmt.Sprintf(format, datasourceName, datasourceName, dbSecret, dbSecret, dbSecret)
