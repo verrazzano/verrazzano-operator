@@ -153,11 +153,15 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 		labels["weblogic.domainUID"] = domain.Spec.DomainUID
 
 		secretName := domain.Spec.Configuration.Model.RuntimeEncryptionSecret
-		err, secretObj := newSecret(secretName, namespace, kubeClientSet, data, labels)
-		if err != nil {
-			glog.Errorf("Copying secret %s to namespace %s for domain %s is giving error %s", secretName, namespace, domain.Name, err)
-			continue
+		secretObj := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: namespace,
+				Labels:    labels,
+			},
+			Data: data,
 		}
+
 		secrets = append(secrets, secretObj)
 	}
 

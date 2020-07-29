@@ -145,7 +145,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 							data["datasource.yaml"] = modelConfig
 							configMap := &corev1.ConfigMap{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      domain.Name + "wdt-config-map",
+									Name:      domain.Name + "-wdt-config-map",
 									Namespace: namespace.Name,
 									Labels:    labels,
 								},
@@ -683,7 +683,7 @@ func createDatasourceModelConfiguration(dbSecret string, datasourceName string) 
     JdbcResource:
       JDBCDataSourceParams:
         JNDIName: [
-	      jdbc/%s
+          jdbc/%s
         ]
       JDBCDriverParams:
         DriverName: com.mysql.cj.jdbc.Driver
