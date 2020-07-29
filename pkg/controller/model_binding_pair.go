@@ -151,7 +151,13 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 							var configMap *corev1.ConfigMap
 
 							labels := make(map[string]string)
-							labels["weblogic.domainUID"] = domain.Name
+							labels["weblogic.domainUID"] = func() string {
+								if len(domain.DomainCRValues.DomainUID) > 0 {
+									return domain.DomainCRValues.DomainUID
+								} else {
+									return domain.Name
+								}
+							}()
 
 							data := make(map[string]string)
 

@@ -18,8 +18,15 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 	labels map[string]string, datasourceModelConfigMap string, dbSecrets []string) *v8weblogic.Domain {
 	domainCRValues := domainModel.DomainCRValues
 
+	var domainUID string
+	if len(domainCRValues.DomainUID) > 0 {
+		domainUID = domainCRValues.DomainUID
+	} else {
+		domainUID = domainModel.Name
+	}
+
 	labels["weblogic.resourceVersion"] = "domain-v8"
-	labels["weblogic.domainUID"] = domainModel.Name // TODO: inconsistent setting of domainUID
+	labels["weblogic.domainUID"] = domainUID
 
 	domainCR := &v8weblogic.Domain{
 		ObjectMeta: v1meta.ObjectMeta{
@@ -29,14 +36,8 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 		},
 		Spec: v8weblogic.DomainSpec{
 			DomainHome: domainCRValues.DomainHome,
-			DomainUID: func() string {
-				if len(domainCRValues.DomainUID) > 0 {
-					return domainCRValues.DomainUID
-				} else {
-					return domainModel.Name
-				}
-			}(),
-			Image: domainCRValues.Image,
+			DomainUID:  domainUID,
+			Image:      domainCRValues.Image,
 			ImagePullPolicy: func() string {
 				// ImagePullPolicy
 				if len(domainCRValues.ImagePullPolicy) > 0 {
@@ -49,7 +50,7 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 			WebLogicCredentialsSecret: corev1.SecretReference{
 				Name: domainCRValues.WebLogicCredentialsSecret.Name,
 			},
-			LogHome:                  fmt.Sprintf("/scratch/logs/%s", domainModel.Name),
+			LogHome:                  fmt.Sprintf("/scratch/logs/%s", domainUID),
 			LogHomeEnabled:           true,
 			Clusters:                 domainCRValues.Clusters,
 			IncludeServerOutInPodLog: domainCRValues.IncludeServerOutInPodLog,
@@ -108,16 +109,8 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 					ReadinessPort: 8888,
 				},
 				Model: v8weblogic.Model{
-					ConfigMap: datasourceModelConfigMap,
-					RuntimeEncryptionSecret: func() string {
-						var secret string
-						if len(domainCRValues.DomainUID) > 0 { // TODO:check use of this logic
-							secret = domainCRValues.DomainUID
-						} else {
-							secret = domainModel.Name
-						}
-						return fmt.Sprintf("%s-runtime-encrypt-secret", secret)
-					}(),
+					ConfigMap:               datasourceModelConfigMap,
+					RuntimeEncryptionSecret: fmt.Sprintf("%s-runtime-encrypt-secret", domainUID),
 				},
 			},
 			ServerStartPolicy: func() string {
