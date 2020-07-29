@@ -15,9 +15,8 @@ Current functionality:
 - A `VerrazzanoModel`/`VerrazzanoBinding` pair describes a Verrazzano application and defines which application components should be installed on which VerrazzanoManagedCluster.
 - On creation or update of a `VerrazzanoModel`/`VerrazzanoBinding` pair, the Verrazzano Operator launches:
   - A Verrazzano Monitoring instance.
-  - Custom resources which instruct the various Verrazzano micro-operators about work
-    required to deploy the components.
-  - Agents forwaring logs and metrics to the Verrazzanoe Monitoring Instance.
+  - Custom resources needed to deploy application components.
+  - Agents forwarding logs and metrics to the Verrazzano Monitoring Instance.
 
 - On deletion of a `VerrazzanoBinding`, deletes all related resources deployed above.
 - On updates to the Managed Cluster's objects (deployments, micro-operator custom resources)
