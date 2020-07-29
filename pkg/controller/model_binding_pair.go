@@ -679,26 +679,26 @@ func createDatasourceModelConfiguration(dbSecret string, datasourceName string) 
 	format := `resources:
   JDBCSystemResource:
     %s:
-    Target: 'cluster-1'
-    JdbcResource:
-      JDBCDataSourceParams:
-        JNDIName: [
-          jdbc/%s
-        ]
-      JDBCDriverParams:
-        DriverName: com.mysql.cj.jdbc.Driver
-        URL: '@@SECRET:%s:url@@'
-        PasswordEncrypted: '@@SECRET:%s:password@@'
-        Properties:
-          user:
-            Value: '@@SECRET:%s:username@@'
-      JDBCConnectionPoolParams:
-        ConnectionReserveTimeoutSeconds: 10
-        InitialCapacity: 0
-        MaxCapacity: 5
-        MinCapacity: 0
-        TestConnectionsOnReserve: true
-        TestTableName: SQL SELECT 1
+      Target: 'cluster-1'
+      JdbcResource:
+        JDBCDataSourceParams:
+          JNDIName: [
+            jdbc/%s
+          ]
+        JDBCDriverParams:
+          DriverName: com.mysql.cj.jdbc.Driver
+          URL: '@@SECRET:%s:url@@'
+          PasswordEncrypted: '@@SECRET:%s:password@@'
+          Properties:
+            user:
+              Value: '@@SECRET:%s:username@@'
+        JDBCConnectionPoolParams:
+          ConnectionReserveTimeoutSeconds: 10
+          InitialCapacity: 0
+          MaxCapacity: 5
+          MinCapacity: 0
+          TestConnectionsOnReserve: true
+          TestTableName: SQL SELECT 1
 `
 
 	return fmt.Sprintf(format, datasourceName, datasourceName, dbSecret, dbSecret, dbSecret)
