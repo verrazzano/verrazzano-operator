@@ -3,16 +3,18 @@
 package managed
 
 import (
+	"encoding/base64"
 	"fmt"
+	"math/rand"
 	"strings"
 	"sync"
 	"testing"
 
 	"github.com/Jeffail/gabs/v2"
-	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/stretchr/testify/assert"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v7 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -31,12 +33,13 @@ const (
 	testKeepSourceLabelsRegex     = "my-component-label"
 	testHelidonBindingName        = "my-helidon-binding"
 	testCoherenceBindingName      = "my-coherence-binding"
-	testWeblogicBindingName       = "my-weblogic-binding"
-	testWeblogicCredentialsSecret = "my-weblogic-binding-weblogic-credentials"
-	testWeblogicDomainUseranme    = "weblogic"
-	testWeblogicDomainPassword    = "welcome1"
+	testWebLogicBindingName       = "my-weblogic-binding"
+	testWebLogicCredentialsSecret = "my-weblogic-binding-weblogic-credentials"
+	testWebLogicDomainUseranme    = "weblogic"
 	testScrapeTargetJobName       = "my-job"
 )
+// randomly generated password string used only in this unit test
+var testWebLogicDomainPassword = generateRandomString()
 
 var testScrapeConfigInfo = ScrapeConfigInfo{
 	PrometheusScrapeTargetJobName: testScrapeTargetJobName,
@@ -46,8 +49,8 @@ var testScrapeConfigInfo = ScrapeConfigInfo{
 	BindingName:                   testBindingname,
 	ComponentBindingName:          testComponentBindingName,
 	ManagedClusterName:            testClusterName,
-	Username:                      testWeblogicDomainUseranme,
-	Password:                      testWeblogicDomainPassword,
+	Username:                      testWebLogicDomainUseranme,
+	Password:                      testWebLogicDomainPassword,
 }
 
 var testIstioCMPrometheusYml = map[string]string{PrometheusYml: `
@@ -127,18 +130,18 @@ func TestGetCoherenceScrapeConfigInfoList(t *testing.T) {
 	assert.Equal(t, testBindingname+"_"+testClusterName+"_"+testNamespace+"_"+CoherenceOperatorName, scrapeConfigInfoList[1].PrometheusScrapeTargetJobName, "Wrong Coherence jobname.")
 }
 
-func TestGetWeblogicScrapeConfigInfoList(t *testing.T) {
+func TestGetWebLogicScrapeConfigInfoList(t *testing.T) {
 	pair := getTestModelBindingPair()
-	addTestWeblogicBinding(pair)
-	addTestWeblogicPlacement(pair)
-	addTestWeblogicDomainToModel(pair)
+	addTestWebLogicBinding(pair)
+	addTestWebLogicPlacement(pair)
+	addTestWebLogicDomainToModel(pair)
 	scrapeConfigInfoList, err := getComponentScrapeConfigInfoList(pair, createFakeSecretLister(), testClusterName)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assert.Equal(t, 2, len(scrapeConfigInfoList), "Wrong list count for ScrapeConfigInfoList.")
-	assert.Equal(t, testBindingname+"_"+testClusterName+"_"+testNamespace+"_"+WeblogicName+"_"+testWeblogicBindingName, scrapeConfigInfoList[0].PrometheusScrapeTargetJobName, "Wrong weblogic jobname.")
-	assert.Equal(t, testBindingname+"_"+testClusterName+"_"+WeblogicOperatorName, scrapeConfigInfoList[1].PrometheusScrapeTargetJobName, "Wrong weblogic jobname.")
+	assert.Equal(t, testBindingname+"_"+testClusterName+"_"+testNamespace+"_"+WeblogicName+"_"+testWebLogicBindingName, scrapeConfigInfoList[0].PrometheusScrapeTargetJobName, "Wrong WebLogic jobname.")
+	assert.Equal(t, testBindingname+"_"+testClusterName+"_"+WeblogicOperatorName, scrapeConfigInfoList[1].PrometheusScrapeTargetJobName, "Wrong WebLogic jobname.")
 }
 
 func TestGetComponentScrapeConfigInfo(t *testing.T) {
@@ -150,16 +153,16 @@ func TestGetComponentScrapeConfigInfo(t *testing.T) {
 	assert.Equal(t, testKeepSourceLabelsRegex, componentBindingInfo.KeepSourceLabelsRegex, "Wrong keep source labels regex.")
 }
 
-func TestGetWeblogicDomainCredentials(t *testing.T) {
+func TestGetWebLogicDomainCredentials(t *testing.T) {
 	pair := getTestModelBindingPair()
-	addTestWeblogicBinding(pair)
-	addTestWeblogicDomainToModel(pair)
-	username, password, err := getWeblogicDomainCredentials(pair, createFakeSecretLister(), testWeblogicBindingName)
+	addTestWebLogicBinding(pair)
+	addTestWebLogicDomainToModel(pair)
+	username, password, err := getWeblogicDomainCredentials(pair, createFakeSecretLister(), testWebLogicBindingName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, testWeblogicDomainUseranme, username, "Wrong weblogic username.")
-	assert.Equal(t, testWeblogicDomainPassword, password, "Wrong weblogic password.")
+	assert.Equal(t, testWebLogicDomainUseranme, username, "Wrong WebLogic username.")
+	assert.Equal(t, testWebLogicDomainPassword, password, "Wrong WebLogic password.")
 }
 
 func TestGetPrometheusScrapeConfigJobName(t *testing.T) {
@@ -175,9 +178,9 @@ func TestGetPrometheusScrapeConfigJobName(t *testing.T) {
 
 func TestFakeSecretNamespaceLister(t *testing.T) {
 	secretNamespaceLister := createFakeSecretNamespaceLister()
-	webLogicCredentialsSecret, _ := secretNamespaceLister.Get(testWeblogicCredentialsSecret)
-	assert.Equal(t, testWeblogicDomainUseranme, string(webLogicCredentialsSecret.Data["username"]), "Wrong username.")
-	assert.Equal(t, testWeblogicDomainPassword, string(webLogicCredentialsSecret.Data["password"]), "Wrong password.")
+	webLogicCredentialsSecret, _ := secretNamespaceLister.Get(testWebLogicCredentialsSecret)
+	assert.Equal(t, testWebLogicDomainUseranme, string(webLogicCredentialsSecret.Data["username"]), "Wrong username.")
+	assert.Equal(t, testWebLogicDomainPassword, string(webLogicCredentialsSecret.Data["password"]), "Wrong password.")
 }
 
 // ------------------------------
@@ -198,8 +201,8 @@ func validatePrometheusYml(t *testing.T, prometheusYmlString string) {
 
 	newScrapeConfig := scrapeConfigs[1].Data().(map[string]interface{})
 	assert.Equal(t, testScrapeTargetJobName, newScrapeConfig[PrometheusJobNameLabel], "New scrape job is missing.")
-	assert.Equal(t, testWeblogicDomainUseranme, newScrapeConfig[BasicAuthLabel].(map[string]interface{})[UsernameLabel], "Weblogic username is missing.")
-	assert.Equal(t, testWeblogicDomainPassword, newScrapeConfig[BasicAuthLabel].(map[string]interface{})[PasswordLabel], "Weblogic password is missing.")
+	assert.Equal(t, testWebLogicDomainUseranme, newScrapeConfig[BasicAuthLabel].(map[string]interface{})[UsernameLabel], "WebLogic username is missing.")
+	assert.Equal(t, testWebLogicDomainPassword, newScrapeConfig[BasicAuthLabel].(map[string]interface{})[PasswordLabel], "WebLogic password is missing.")
 	assert.Equal(t, testNamespace, newScrapeConfig["kubernetes_sd_configs"].([]interface{})[0].(map[string]interface{})["namespaces"].(map[string]interface{})["names"].([]interface{})[0], "New scrape job is missing.")
 }
 
@@ -318,36 +321,36 @@ func addTestCoherencePlacement(mbPair *types.ModelBindingPair) {
 	mbPair.Binding.Spec.Placement = append(mbPair.Binding.Spec.Placement, coherencePlacement)
 }
 
-func addTestWeblogicBinding(mbPair *types.ModelBindingPair) {
-	weblogicBinding := &v1beta1v8o.VerrazzanoWeblogicBinding{
-		Name:     testWeblogicBindingName,
+func addTestWebLogicBinding(mbPair *types.ModelBindingPair) {
+	webLogicBinding := &v1beta1v8o.VerrazzanoWeblogicBinding{
+		Name:     testWebLogicBindingName,
 		Replicas: &testReplicas}
-	mbPair.Binding.Spec.WeblogicBindings = append(mbPair.Binding.Spec.WeblogicBindings, *weblogicBinding)
+	mbPair.Binding.Spec.WeblogicBindings = append(mbPair.Binding.Spec.WeblogicBindings, *webLogicBinding)
 }
 
-func addTestWeblogicPlacement(mbPair *types.ModelBindingPair) {
-	weblogicPlacement := v1beta1v8o.VerrazzanoPlacement{
+func addTestWebLogicPlacement(mbPair *types.ModelBindingPair) {
+	webLogicPlacement := v1beta1v8o.VerrazzanoPlacement{
 		Name: testClusterName,
 		Namespaces: []v1beta1v8o.KubernetesNamespace{
 			{
 				Name: testNamespace,
 				Components: []v1beta1v8o.BindingComponent{
 					{
-						Name: testWeblogicBindingName,
+						Name: testWebLogicBindingName,
 					},
 				},
 			},
 		},
 	}
-	mbPair.Binding.Spec.Placement = append(mbPair.Binding.Spec.Placement, weblogicPlacement)
+	mbPair.Binding.Spec.Placement = append(mbPair.Binding.Spec.Placement, webLogicPlacement)
 }
 
-func addTestWeblogicDomainToModel(mbPair *types.ModelBindingPair) {
+func addTestWebLogicDomainToModel(mbPair *types.ModelBindingPair) {
 	webLogicDomain := &v1beta1v8o.VerrazzanoWebLogicDomain{
-		Name: testWeblogicBindingName,
+		Name: testWebLogicBindingName,
 		DomainCRValues: v7.DomainSpec{
 			WebLogicCredentialsSecret: v7.WebLogicSecret{
-				Name: testWeblogicCredentialsSecret,
+				Name: testWebLogicCredentialsSecret,
 			},
 		},
 	}
@@ -376,17 +379,17 @@ func (f fakeSecretNamespaceLister) List(selector labels.Selector) (ret []*apicor
 }
 
 func (f fakeSecretNamespaceLister) Get(name string) (*apicorev1.Secret, error) {
-	if name != testWeblogicCredentialsSecret {
-		return nil, fmt.Errorf("Unexpected weblogic credential secret name. Expected %s, but got %s.", testWeblogicCredentialsSecret, name)
+	if name != testWebLogicCredentialsSecret {
+		return nil, fmt.Errorf("Unexpected WebLogic credential secret name. Expected %s, but got %s.", testWebLogicCredentialsSecret, name)
 	}
 
-	weblogicSecret := &apicorev1.Secret{
+	webLogicSecret := &apicorev1.Secret{
 		Data: map[string][]byte{
-			"username": []byte(testWeblogicDomainUseranme),
-			"password": []byte(testWeblogicDomainPassword),
+			"username": []byte(testWebLogicDomainUseranme),
+			"password": []byte(testWebLogicDomainPassword),
 		},
 	}
-	return weblogicSecret, nil
+	return webLogicSecret, nil
 }
 func createFakeSecretNamespaceLister() corev1listers.SecretNamespaceLister {
 	return fakeSecretNamespaceLister{}
@@ -435,4 +438,11 @@ func (f fakeConfigMapNamespaceLister) Get(name string) (*apicorev1.ConfigMap, er
 
 func createFakeConfigMapNamespaceLister() corev1listers.ConfigMapNamespaceLister {
 	return fakeConfigMapNamespaceLister{}
+}
+
+// generateRandomString returns a base64 encoded generated random string.
+func generateRandomString() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.StdEncoding.EncodeToString(b)
 }

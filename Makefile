@@ -134,10 +134,6 @@ unit-test: go-install
 coverage: unit-test
 	./build/scripts/coverage.sh html
 
-.PHONY: thirdparty-check
-thirdparty-check:
-	./build/scripts/thirdparty_check.sh
-
 .PHONY: integ-test
 integ-test: go-install
 	$(GO) test -v ./test/integ/ -timeout 30m --kubeconfig=${KUBECONFIG} --namespace=${K8S_NAMESPACE} --runid=${INTEG_RUN_ID}
