@@ -5158,7 +5158,7 @@ Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
 // Copyright 2018 The Linux Foundation
 
 -------- Dependency
-github.com/opencontainers/runc
+github.com/opencontainers/runc  [uses Creative Commons license for doc - see CC license at end of file]
 -------- Copyrights
 Copyright (c) 2014 Simon Eskildsen
 // Copyright 2013 The Go Authors. All rights reserved.
