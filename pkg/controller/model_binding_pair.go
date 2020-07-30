@@ -696,7 +696,6 @@ func createMysqlDatasourceModelConfig(dbSecret string, datasourceName string) st
           TestConnectionsOnReserve: true
           TestTableName: SQL SELECT 1
 `
-
 	return fmt.Sprintf(format, datasourceName, datasourceName, dbSecret, dbSecret, dbSecret)
 }
 

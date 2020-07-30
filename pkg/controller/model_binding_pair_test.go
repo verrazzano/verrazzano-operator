@@ -401,14 +401,14 @@ func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair) {
                   xmlns:s="http://xmlns.oracle.com/weblogic/situational-config">
   <name>%s</name>
   <jdbc-driver-params>
-    <url f:combine-mode="replace">jdbc%%3Amysql%%3A%%2F%%2Fmysql.default.svc.cluster.local%%3A3306%%2F%s</url>
+    <url f:combine-mode="replace">jdbc:mysql://mysql.default.svc.cluster.local:3306/%s</url>
     <properties>
        <property>
           <name>user</name>
           <value f:combine-mode="replace">${secret:%s.username}</value>
        </property>
     </properties>
-    <password-encrypted f:combine-mode="replace">${secret:%s.password}</password-encrypted>
+    <password-encrypted f:combine-mode="replace">${secret:%s.password:encrypt}</password-encrypted>
   </jdbc-driver-params>
 </jdbc-data-source>
 `

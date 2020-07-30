@@ -5,14 +5,13 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/gorilla/mux v1.7.3
 	github.com/hashicorp/go-retryablehttp v0.6.6
-	github.com/jteeuwen/go-bindata v3.0.7+incompatible // indirect
 	github.com/kylelemons/godebug v1.1.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
-	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.7
+	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.8
 	github.com/verrazzano/verrazzano-crd-generator v0.3.29-2
-	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.6
-	github.com/verrazzano/verrazzano-monitoring-operator v0.0.16
+	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.7
+	github.com/verrazzano/verrazzano-monitoring-operator v0.0.18
 	github.com/verrazzano/verrazzano-wko-operator v0.0.7
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	gopkg.in/square/go-jose.v2 v2.5.1
