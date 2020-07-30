@@ -149,22 +149,22 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						var datasourceModelConfigMap = ""
 						if cmData != nil {
 							var configMap *corev1.ConfigMap
+							var domainUID string
+
+							if len(domain.DomainCRValues.DomainUID) > 0 {
+								domainUID = domain.DomainCRValues.DomainUID
+							} else {
+								domainUID = domain.Name
+							}
 
 							labels := make(map[string]string)
-							labels["weblogic.domainUID"] = func() string {
-								if len(domain.DomainCRValues.DomainUID) > 0 {
-									return domain.DomainCRValues.DomainUID
-								} else {
-									return domain.Name
-								}
-							}()
+							labels["weblogic.domainUID"] = domainUID
 
 							data := make(map[string]string)
-
 							data["datasource.yaml"] = strings.Join(cmData, "")
 							configMap = &corev1.ConfigMap{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      domain.Name + "-wdt-config-map",
+									Name:      domainUID + "-wdt-config-map",
 									Namespace: namespace.Name,
 									Labels:    labels,
 								},

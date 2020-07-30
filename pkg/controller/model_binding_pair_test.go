@@ -392,49 +392,74 @@ func validateModelBindingPair(t *testing.T,
 	}
 }
 
-// validates that the config map and overrides are created when databaseBindings are specified
+// validates that the datasource model config is created when databaseBindings are specified
 func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair) {
 
-	const configMapXml = `<?xml version='1.0' encoding='UTF-8'?>
-<jdbc-data-source xmlns="http://xmlns.oracle.com/weblogic/jdbc-data-source"
-                  xmlns:f="http://xmlns.oracle.com/weblogic/jdbc-data-source-fragment"
-                  xmlns:s="http://xmlns.oracle.com/weblogic/situational-config">
-  <name>%s</name>
-  <jdbc-driver-params>
-    <url f:combine-mode="replace">jdbc:mysql://mysql.default.svc.cluster.local:3306/%s</url>
-    <properties>
-       <property>
-          <name>user</name>
-          <value f:combine-mode="replace">${secret:%s.username}</value>
-       </property>
-    </properties>
-    <password-encrypted f:combine-mode="replace">${secret:%s.password:encrypt}</password-encrypted>
-  </jdbc-driver-params>
-</jdbc-data-source>
+	const datasourceConfigMap = `resources:
+  JDBCSystemResource:
+    socks:
+      Target: 'cluster-1'
+      JdbcResource:
+        JDBCDataSourceParams:
+          JNDIName: [
+            jdbc/socks
+          ]
+        JDBCDriverParams:
+          DriverName: com.mysql.cj.jdbc.Driver
+          URL: '@@SECRET:mysqlsecret:url@@'
+          PasswordEncrypted: '@@SECRET:mysqlsecret:password@@'
+          Properties:
+            user:
+              Value: '@@SECRET:mysqlsecret:username@@'
+        JDBCConnectionPoolParams:
+          ConnectionReserveTimeoutSeconds: 10
+          InitialCapacity: 0
+          MaxCapacity: 5
+          MinCapacity: 0
+          TestConnectionsOnReserve: true
+          TestTableName: SQL SELECT 1
+    socks2:
+      Target: 'cluster-1'
+      JdbcResource:
+        JDBCDataSourceParams:
+          JNDIName: [
+            jdbc/socks2
+          ]
+        JDBCDriverParams:
+          DriverName: com.mysql.cj.jdbc.Driver
+          URL: '@@SECRET:mysql2secret:url@@'
+          PasswordEncrypted: '@@SECRET:mysql2secret:password@@'
+          Properties:
+            user:
+              Value: '@@SECRET:mysql2secret:username@@'
+        JDBCConnectionPoolParams:
+          ConnectionReserveTimeoutSeconds: 10
+          InitialCapacity: 0
+          MaxCapacity: 5
+          MinCapacity: 0
+          TestConnectionsOnReserve: true
+          TestTableName: SQL SELECT 1
 `
-	var expected = map[string]string{
-		"jdbc-socks.xml":       fmt.Sprintf(configMapXml, "socks", "socks", "mysqlsecret", "mysqlsecret"),
-		"jdbc-jdbc2fsocks.xml": fmt.Sprintf(configMapXml, "jdbc/socks", "socks2", "mysql2secret", "mysql2secret"),
-		"version.txt":          "2.0",
-	}
 
 	managedClusters := mbp.ManagedClusters
 	for _, cluster := range managedClusters {
-		// Look for the config map with the overrides
+		// Look for the config map with the WDT datasource config map
 		for _, configMap := range cluster.ConfigMaps {
-			if configMap.Name == "jdbc-override-cm" {
-				assert.Equal(t, len(expected), len(configMap.Data))
+			if configMap.Name == "wl-frontend-wdt-config-map" {
 				for key, value := range configMap.Data {
-					assert.Equal(t, expected[key], value)
+					assert.Equal(t, "datasource.yaml", key)
+					assert.Equal(t, datasourceConfigMap, value)
 				}
 				break
 			}
 		}
-		// Check that overrides are set on the domain
+		// Check that configurations for WDT model-in-image are set on the domain custom resource
 		for _, cluster := range cluster.WlsDomainCRs {
-			assert.Equal(t, cluster.Spec.ConfigOverrides, "jdbc-override-cm")
-			assert.Contains(t, cluster.Spec.ConfigOverrideSecrets, "mysqlsecret")
-			assert.Contains(t, cluster.Spec.ConfigOverrideSecrets, "mysql2secret")
+			assert.Equal(t, cluster.Spec.Configuration.Model.ConfigMap, "wl-frontend-wdt-config-map")
+			assert.Contains(t, cluster.Spec.Configuration.Secrets, "mysqlsecret")
+			assert.Contains(t, cluster.Spec.Configuration.Secrets, "mysql2secret")
+			assert.Equal(t, cluster.Spec.Configuration.Model.RuntimeEncryptionSecret, "wl-frontend-runtime-encrypt-secret")
+			assert.Equal(t, cluster.Spec.DomainHomeSourceType, "FromModel")
 		}
 	}
 }
