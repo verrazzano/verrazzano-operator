@@ -27,37 +27,25 @@ should be installed on which VerrazzanoManagedCluster.
 triggers a reprocessing of the owning VerrazzanoBinding.  This causes any drift in expecting state to immediately
 be fixed by the Verrazzano Operator.
 
-# Verrazzano Helm Chart
+## Verrazzano Helm Chart
 
 The `chart` directory contains helm chart for Verrazzano that packages together the core elements that will be installed into the Verrazzano Management Cluster - micro operators,
 verrazzano-operator, verrazzano-monitoring-operator, etc - into a single Helm chart.
-
-### Chart helm repos
-
-#### OCI object storage
-https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart
-
-#### Github repo
-Stable - https://raw.githubusercontent.com/verrazzano/helm-charts/master
-Development/Pre-release - https://raw.githubusercontent.com/verrazzano/helm-charts/devel
 
 ### Chart Parameters
 
 See `./chart/values.yaml` for the full list of configurable parameters that can be set using
 `--set parameter=value` when installing the Helm chart.
 
-### Building chart
-`make chart-build OPERATOR_IMAGE_NAME=$image TAG_NAME=$version` will build the chart archive in `dist` directory. The `OPERATOR_IMAGE_NAME` attribute in `values.yaml` of resulting chart will be replaced with version specified by input `image` and `OPERATOR_VERSION` will be replaced by input `version`.
+### Chart helm repo
 
-### Publishing chart
-`make chart-publish OPERATOR_IMAGE_NAME=$image TAG_NAME=$version` will build the chart and publish to chart repository with operator image name specified by input `image` and tag as `version`.
+Helm charts for Verrazzano are published as release assets - see https://github.com/verrazzano/verrazzano-operator/releases for available releases.
 
-## Artifacts
+## Release
 
-On a successful release (which occurs on a Git tag), this repo 
-- publises a Docker image: `container-registry.oracle.com/verrazzano/verrazzano-operator:tag`
-- publishes a new version of Verrazzano-helm-chart at `https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart` and `https://raw.githubusercontent.com/verrazzano/helm-charts/master`
-
+A github release is created on every successful build on the master branch. The release version is obtained by incrementing the minor version of last release by 1. On a successful release, this repo
+- publises a Docker image: `container-registry.oracle.com/verrazzano/verrazzano-operator:<release-version>`
+- publishes a new version of verrazzano-helm-chart at `https://github.com/verrazzano/verrazzano-operator/releases/download/<release-version>/verrazzano-<release-version>.tgz`
 
 ## Building
 
