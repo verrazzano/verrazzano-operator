@@ -278,7 +278,7 @@ github-release: release-image
 	make chart-build RELEASE_VERSION=`cat chart/latest`
 	touch chart/index.yaml
 	cp chart/index.yaml ${DIST_DIR}/
-	helm repo index --merge ${DIST_DIR}/index.yaml --url https://github.com/verrazzano/verrazzano-operator/releases/download ${DIST_DIR}/
+	helm repo index --merge ${DIST_DIR}/index.yaml --url https://github.com/verrazzano/verrazzano-operator/releases/download/`cat chart/latest` ${DIST_DIR}/
 	cp ${DIST_DIR}/index.yaml chart/.
 
 	@set -e; \
