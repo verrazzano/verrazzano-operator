@@ -13,12 +13,12 @@ verrazzanoOperator:
   sslVerify: true
   cohMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.8
   helidonMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.7
-  wlsMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.8
+  wlsMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.9
   prometheusPusherImage: container-registry.oracle.com/verrazzano/prometheus-pusher:1.0.1-ff71638-19
   nodeExporterImage: container-registry.oracle.com/verrazzano/node-exporter:0.18.1-0f43627-7
   filebeatImage: container-registry.oracle.com/verrazzano/filebeat:6.8.3-58a0ddf-6
   journalbeatImage: container-registry.oracle.com/verrazzano/journalbeat:6.8.3-58a0ddf-6
-  weblogicOperatorImage: oracle/weblogic-kubernetes-operator:2.6.0
+  weblogicOperatorImage: oracle/weblogic-kubernetes-operator:3.0.0
   fluentdImage: phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-17
   apiServerRealm: verrazzano-system
 
@@ -56,7 +56,7 @@ verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller
-  imageVersion: v0.0.11
+  imageVersion: v0.0.12
   caBundle:
 
 # OCI-related values
