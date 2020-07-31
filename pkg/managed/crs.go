@@ -15,7 +15,7 @@ import (
 	"github.com/golang/glog"
 	cohoprtypes "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/apis/verrazzano/v1beta1"
 	cohclutypes "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
-	domaintypes "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
+	domaintypes "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
 	cohcluinformers "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/informers/externalversions"
 	dominformers "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/informers/externalversions"
@@ -114,7 +114,7 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 				}
 				if found {
 					domOperatorInformerFactory := dominformers.NewSharedInformerFactory(managedClusterConnection.DomainClientSet, constants.ResyncPeriod)
-					domainInformer := domOperatorInformerFactory.Weblogic().V7().Domains()
+					domainInformer := domOperatorInformerFactory.Weblogic().V8().Domains()
 					managedClusterConnection.DomainInformer = domainInformer.Informer()
 					managedClusterConnection.DomainLister = domainInformer.Lister()
 					go domOperatorInformerFactory.Start(stopCh)
@@ -145,14 +145,14 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 						if err != nil {
 							return err
 						}
-						_, err = managedClusterConnection.DomainClientSet.WeblogicV7().Domains(domainCR.Namespace).Patch(context.TODO(), domainCR.Name, k8sTypes.MergePatchType, domainCRjson, metav1.PatchOptions{})
+						_, err = managedClusterConnection.DomainClientSet.WeblogicV8().Domains(domainCR.Namespace).Patch(context.TODO(), domainCR.Name, k8sTypes.MergePatchType, domainCRjson, metav1.PatchOptions{})
 					}
 
 					// Retain the current status so it can be reported through the UI
 					domainCR.Status = existingCR.Status
 				} else {
 					glog.V(4).Infof("Creating Domain custom resource %s:%s in cluster %s", domainCR.Namespace, domainCR.Name, clusterName)
-					_, err = managedClusterConnection.DomainClientSet.WeblogicV7().Domains(domainCR.Namespace).Create(context.TODO(), domainCR, metav1.CreateOptions{})
+					_, err = managedClusterConnection.DomainClientSet.WeblogicV8().Domains(domainCR.Namespace).Create(context.TODO(), domainCR, metav1.CreateOptions{})
 				}
 				if err != nil {
 					return err
@@ -362,7 +362,7 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 		}
 
 		if err == nil {
-			existingDomainList, err := mc.DomainClientSet.WeblogicV7().Domains("").List(
+			existingDomainList, err := mc.DomainClientSet.WeblogicV8().Domains("").List(
 				context.TODO(),
 				metav1.ListOptions{
 					LabelSelector: constants.VerrazzanoBinding + "=" + mbPair.Binding.Name})
@@ -371,7 +371,7 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 			}
 			for _, domain := range existingDomainList.Items {
 				glog.V(4).Infof("Deleting Domain custom resource %s:%s in cluster %s", domain.Namespace, domain.Name, clusterName)
-				err = mc.DomainClientSet.WeblogicV7().Domains(domain.Namespace).Delete(context.TODO(), domain.Name, metav1.DeleteOptions{})
+				err = mc.DomainClientSet.WeblogicV8().Domains(domain.Namespace).Delete(context.TODO(), domain.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
 				}
@@ -471,7 +471,6 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 	}
 	return nil
 }
-
 func cleanupCoherenceCustomResources(mc *util.ManagedClusterConnection, name string, namespace string, clusterName string) error {
 
 	// First, delete the coherencecluster resource
@@ -647,7 +646,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 		}
 
 		if err == nil {
-			existingDomainList, err := managedClusterConnection.DomainClientSet.WeblogicV7().Domains("").List(
+			existingDomainList, err := managedClusterConnection.DomainClientSet.WeblogicV8().Domains("").List(
 				context.TODO(),
 				metav1.ListOptions{
 					LabelSelector: constants.VerrazzanoBinding + "=" + mbPair.Binding.Name})
@@ -659,7 +658,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 			for _, wlsDomain := range existingDomainList.Items {
 				if !containsWlsDomainCRs(mc.WlsDomainCRs, wlsDomain.Name, wlsDomain.Namespace) {
 					glog.V(4).Infof("Deleting Domain custom resource %s:%s in cluster %s", wlsDomain.Namespace, wlsDomain.Name, clusterName)
-					err := managedClusterConnection.DomainClientSet.WeblogicV7().Domains(wlsDomain.Namespace).Delete(context.TODO(), wlsDomain.Name, metav1.DeleteOptions{})
+					err := managedClusterConnection.DomainClientSet.WeblogicV8().Domains(wlsDomain.Namespace).Delete(context.TODO(), wlsDomain.Name, metav1.DeleteOptions{})
 					if err != nil {
 						return err
 					}
@@ -786,7 +785,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 		}
 
 		if err == nil {
-			domainList, err := managedClusterConnection.DomainClientSet.WeblogicV7().Domains("").List(
+			domainList, err := managedClusterConnection.DomainClientSet.WeblogicV8().Domains("").List(
 				context.TODO(),
 				metav1.ListOptions{
 					LabelSelector: constants.VerrazzanoBinding + "=" + mbPair.Binding.Name})
@@ -797,7 +796,7 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 			// Delete these WLS Domains since none are expected on this cluster
 			for _, domain := range domainList.Items {
 				glog.V(4).Infof("Deleting Domain custom resource %s:%s in cluster %s", domain.Namespace, domain.Name, clusterName)
-				err := managedClusterConnection.DomainClientSet.WeblogicV7().Domains(domain.Namespace).Delete(context.TODO(), domain.Name, metav1.DeleteOptions{})
+				err := managedClusterConnection.DomainClientSet.WeblogicV8().Domains(domain.Namespace).Delete(context.TODO(), domain.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
 				}
@@ -831,7 +830,6 @@ func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableMan
 
 	return nil
 }
-
 func waitForCRDeletion(mc *util.ManagedClusterConnection, crType string, crName string, namespace string, cluster string, timeoutDuration time.Duration, tickDuration time.Duration) error {
 	timeout := time.After(timeoutDuration)
 	tick := time.Tick(tickDuration)
@@ -844,7 +842,7 @@ func waitForCRDeletion(mc *util.ManagedClusterConnection, crType string, crName 
 			glog.V(4).Infof("Waiting for %s %s in namespace %s in managed cluster %s to be removed..", crType, crName, namespace, cluster)
 			switch crType {
 			case "domain":
-				_, err = mc.DomainClientSet.WeblogicV7().Domains(namespace).Get(context.TODO(), crName, metav1.GetOptions{})
+				_, err = mc.DomainClientSet.WeblogicV8().Domains(namespace).Get(context.TODO(), crName, metav1.GetOptions{})
 			case "wlsoperator":
 				_, err = mc.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators(namespace).Get(context.TODO(), crName, metav1.GetOptions{})
 			case "cohcluster":

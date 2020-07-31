@@ -5,6 +5,8 @@ package managed
 
 import (
 	"context"
+	"encoding/base64"
+	"math/rand"
 
 	"github.com/golang/glog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
@@ -18,6 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+const wlsRuntimeEncryptionSecret = "wlsRuntimeEncryptionSecret"
 
 // CreateSecrets will go through a ModelBindingPair and find all of the secrets that are needed by
 // components, and it will then check if those secrets exist in the correct namespaces and clusters,
@@ -60,11 +64,13 @@ func createSecrets(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnecti
 		secretNames = append(secretNames, newSecret.Name)
 		existingSecret, err := managedClusterConnection.SecretLister.Secrets(newSecret.Namespace).Get(newSecret.Name)
 		if existingSecret != nil {
-			specDiffs := diff.CompareIgnoreTargetEmpties(existingSecret, newSecret)
-			if specDiffs != "" {
-				glog.V(6).Infof("Secret %s : Spec differences %s", newSecret.Name, specDiffs)
-				glog.V(4).Infof("Updating secret %s:%s in cluster %s", newSecret.Namespace, newSecret.Name, clusterName)
-				_, err = managedClusterConnection.KubeClient.CoreV1().Secrets(newSecret.Namespace).Update(context.TODO(), newSecret, metav1.UpdateOptions{})
+			if existingSecret.Type != wlsRuntimeEncryptionSecret {
+				specDiffs := diff.CompareIgnoreTargetEmpties(existingSecret, newSecret)
+				if specDiffs != "" {
+					glog.V(6).Infof("Secret %s : Spec differences %s", newSecret.Name, specDiffs)
+					glog.V(4).Infof("Updating secret %s:%s in cluster %s", newSecret.Namespace, newSecret.Name, clusterName)
+					_, err = managedClusterConnection.KubeClient.CoreV1().Secrets(newSecret.Namespace).Update(context.TODO(), newSecret, metav1.UpdateOptions{})
+				}
 			}
 		} else {
 			glog.V(4).Infof("Creating secret %s:%s in cluster %s", newSecret.Namespace, newSecret.Name, clusterName)
@@ -133,6 +139,37 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 			}
 		}
 	}
+
+	// Each WebLogic domain requires a runtime encryption secret that contains a randomly generated password.
+	// Note: we are assuming that each domain has DomainHomeSourceType is set to FromModel.
+	for _, domain := range managedCluster.WlsDomainCRs {
+		// Find the namespace for this domain in the binding placements
+		err, namespace := util.GetComponentNamespace(domain.Name, binding)
+		if err != nil {
+			glog.Errorf("Getting namespace for domain %s is giving error %s", domain.Name, err)
+			continue
+		}
+
+		data := make(map[string][]byte)
+		data["password"] = []byte(generateRandomString())
+
+		labels := make(map[string]string)
+		labels["weblogic.domainUID"] = domain.Spec.DomainUID
+
+		secretName := domain.Spec.Configuration.Model.RuntimeEncryptionSecret
+		secretObj := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: namespace,
+				Labels:    labels,
+			},
+			Data: data,
+			Type: wlsRuntimeEncryptionSecret,
+		}
+
+		secrets = append(secrets, secretObj)
+	}
+
 	return secrets
 }
 
@@ -170,4 +207,11 @@ func newSecret(secretName string, namespace string, kubeClientSet kubernetes.Int
 		Type: secretInMgmtCluster.Type,
 	}
 	return nil, secretObj
+}
+
+// generateRandomString returns a base64 encoded generated random string.
+func generateRandomString() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.StdEncoding.EncodeToString(b)
 }

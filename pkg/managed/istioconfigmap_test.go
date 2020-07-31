@@ -3,9 +3,7 @@
 package managed
 
 import (
-	"encoding/base64"
 	"fmt"
-	"math/rand"
 	"strings"
 	"sync"
 	"testing"
@@ -13,7 +11,7 @@ import (
 	"github.com/Jeffail/gabs/v2"
 	"github.com/stretchr/testify/assert"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	v7 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
+	v8 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,6 +36,7 @@ const (
 	testWebLogicDomainUseranme    = "weblogic"
 	testScrapeTargetJobName       = "my-job"
 )
+
 // randomly generated password string used only in this unit test
 var testWebLogicDomainPassword = generateRandomString()
 
@@ -348,8 +347,8 @@ func addTestWebLogicPlacement(mbPair *types.ModelBindingPair) {
 func addTestWebLogicDomainToModel(mbPair *types.ModelBindingPair) {
 	webLogicDomain := &v1beta1v8o.VerrazzanoWebLogicDomain{
 		Name: testWebLogicBindingName,
-		DomainCRValues: v7.DomainSpec{
-			WebLogicCredentialsSecret: v7.WebLogicSecret{
+		DomainCRValues: v8.DomainSpec{
+			WebLogicCredentialsSecret: apicorev1.SecretReference{
 				Name: testWebLogicCredentialsSecret,
 			},
 		},
@@ -438,11 +437,4 @@ func (f fakeConfigMapNamespaceLister) Get(name string) (*apicorev1.ConfigMap, er
 
 func createFakeConfigMapNamespaceLister() corev1listers.ConfigMapNamespaceLister {
 	return fakeConfigMapNamespaceLister{}
-}
-
-// generateRandomString returns a base64 encoded generated random string.
-func generateRandomString() string {
-	b := make([]byte, 32)
-	rand.Read(b)
-	return base64.StdEncoding.EncodeToString(b)
 }

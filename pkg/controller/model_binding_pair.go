@@ -5,13 +5,12 @@ package controller
 
 import (
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"sync"
 
 	"github.com/golang/glog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	v7weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v7"
+	v8weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/cohcluster"
 	"github.com/verrazzano/verrazzano-operator/pkg/cohoperator"
@@ -22,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsdom"
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsopr"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func CreateModelBindingPair(model *v1beta1v8o.VerrazzanoModel, binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, sslVerify bool) *types.ModelBindingPair {
@@ -114,44 +114,69 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						// Have the WebLogic Operator watch the namespace of the domain
 						appendNamespace(&mc.WlsOperator.Spec.DomainNamespaces, namespace.Name)
 
-						// Create the WlsDomain CR and update the secrets list for the namespace
-						domLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
-
-						// Create a config map with jdbc overrides if there are database bindings
-						configOverrides := ""
-						var configOverrideSecrets []string = nil
-						var data map[string]string
-						data = make(map[string]string)
-						data["version.txt"] = "2.0"
+						var dbSecrets []string = nil
+						var cmData []string = nil
 
 						// For each database binding check to see if there are any corresponding domain connections
 						for _, databaseBinding := range mbPair.Binding.Spec.DatabaseBindings {
 							datasourceName := getDatasourceName(domain, databaseBinding)
 							// If this domain has a database connection that targets this database binding...
 							if len(datasourceName) > 0 {
-								// Create config map data for the database binding on this domain
-								data[fmt.Sprintf("jdbc-%s.xml", strings.Replace(datasourceName, "/", "2f", -1))] =
-									createDatasourceConfigMap(databaseBinding.Credentials, databaseBinding.Url, datasourceName)
-								configOverrideSecrets = append(configOverrideSecrets, databaseBinding.Credentials)
+								dbSecrets = append(dbSecrets, databaseBinding.Credentials)
+
+								// Create the datasource model configuration for MySql connections.
+								if strings.HasPrefix(strings.TrimSpace(databaseBinding.Url), "jdbc:mysql") {
+									modelConfig := createMysqlDatasourceModelConfig(databaseBinding.Credentials, datasourceName)
+									if cmData == nil {
+										cmData = append(cmData, "resources:\n  JDBCSystemResource:\n")
+									}
+									cmData = append(cmData, modelConfig)
+									continue
+								}
+
+								// Create the datasource model configuration for Oracle connections.
+								if strings.HasPrefix(strings.TrimSpace(databaseBinding.Url), "jdbc:oracle") {
+									modelConfig := createOracleDatasourceModelConfig(databaseBinding.Credentials, datasourceName)
+									if cmData == nil {
+										cmData = append(cmData, "resources:\n  JDBCSystemResource:\n")
+									}
+									cmData = append(cmData, modelConfig)
+								}
 							}
 						}
-						// If there are overrides then create a config map
-						if len(configOverrideSecrets) > 0 {
+
+						// Create a config map with all the saved data source model configurations
+						var datasourceModelConfigMap = ""
+						if cmData != nil {
+							var configMap *corev1.ConfigMap
+							var domainUID string
+
+							if len(domain.DomainCRValues.DomainUID) > 0 {
+								domainUID = domain.DomainCRValues.DomainUID
+							} else {
+								domainUID = domain.Name
+							}
+
 							labels := make(map[string]string)
-							labels["weblogic.domainUID"] = domain.Name
-							configMap := &corev1.ConfigMap{
+							labels["weblogic.domainUID"] = domainUID
+
+							data := make(map[string]string)
+							data["datasource.yaml"] = strings.Join(cmData, "")
+							configMap = &corev1.ConfigMap{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "jdbc-override-cm",
+									Name:      domainUID + "-wdt-config-map",
 									Namespace: namespace.Name,
 									Labels:    labels,
 								},
 								Data: data,
 							}
-							configOverrides = configMap.Name
+							datasourceModelConfigMap = configMap.Name
 							mc.ConfigMaps = append(mc.ConfigMaps, configMap)
 						}
 
-						domainCR := wlsdom.CreateWlsDomainCR(namespace.Name, domain, mbPair, domLabels, configOverrides, configOverrideSecrets)
+						// Create the WlsDomain CR and update the secrets list for the namespace
+						domLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
+						domainCR := wlsdom.CreateWlsDomainCR(namespace.Name, domain, mbPair, domLabels, datasourceModelConfigMap, dbSecrets)
 						if domainCR.Spec.ImagePullSecrets != nil {
 							for _, secret := range domainCR.Spec.ImagePullSecrets {
 								addSecret(mc, secret.Name, namespace.Name)
@@ -335,7 +360,7 @@ func addSecret(mc *types.ManagedCluster, secretName string, namespace string) {
 }
 
 // Add the name of an ingress to the array of ingresses in a managed cluster
-func addIngress(mc *types.ManagedCluster, ingressConn v1beta1v8o.VerrazzanoIngressConnection, namespace string, domainCR *v7weblogic.Domain, destinationHost string, virtualSerivceDestinationPort int) {
+func addIngress(mc *types.ManagedCluster, ingressConn v1beta1v8o.VerrazzanoIngressConnection, namespace string, domainCR *v8weblogic.Domain, destinationHost string, virtualSerivceDestinationPort int) {
 	var domainName = ""
 	if domainCR != nil {
 		domainName = domainCR.Spec.DomainUID
@@ -435,7 +460,7 @@ func addRemoteRest(mc *types.ManagedCluster, restName string, localNamespace str
 	})
 }
 
-func processIngressConnections(mc *types.ManagedCluster, connections []v1beta1v8o.VerrazzanoConnections, namespace string, domainCR *v7weblogic.Domain, destinationHost string, virtualSerivceDestinationPort int, ingressBindings *[]v1beta1v8o.VerrazzanoIngressBinding) {
+func processIngressConnections(mc *types.ManagedCluster, connections []v1beta1v8o.VerrazzanoConnections, namespace string, domainCR *v8weblogic.Domain, destinationHost string, virtualSerivceDestinationPort int, ingressBindings *[]v1beta1v8o.VerrazzanoIngressBinding) {
 	for _, connection := range connections {
 		for _, ingress := range connection.Ingress {
 			inBindings := []v1beta1v8o.VerrazzanoIngressBinding{}
@@ -611,7 +636,7 @@ func getSourcePlacement(compName string, binding *v1beta1v8o.VerrazzanoBinding) 
 }
 
 // Utility function to generate the destination host name for a domain
-func getDomainDestinationHost(domain *v7weblogic.Domain) string {
+func getDomainDestinationHost(domain *v8weblogic.Domain) string {
 	return fmt.Sprintf("%s-cluster-%s.%s.svc.cluster.local", domain.Spec.DomainUID, domain.Spec.Clusters[0].ClusterName, domain.Namespace)
 }
 
@@ -646,25 +671,62 @@ func getDatasourceName(domain v1beta1v8o.VerrazzanoWebLogicDomain, databaseBindi
 	return ""
 }
 
-// Create a jdbc override config map datasource section for the given datasource, url and secret
-func createDatasourceConfigMap(secret string, url string, datasourceName string) string {
+// Create a MySql datasource model configuration for the given db secret and datasource
+func createMysqlDatasourceModelConfig(dbSecret string, datasourceName string) string {
 
-	format := `<?xml version='1.0' encoding='UTF-8'?>
-<jdbc-data-source xmlns="http://xmlns.oracle.com/weblogic/jdbc-data-source"
-                  xmlns:f="http://xmlns.oracle.com/weblogic/jdbc-data-source-fragment"
-                  xmlns:s="http://xmlns.oracle.com/weblogic/situational-config">
-  <name>%s</name>
-  <jdbc-driver-params>
-    <url f:combine-mode="replace">%s</url>
-    <properties>
-       <property>
-          <name>user</name>
-          <value f:combine-mode="replace">${secret:%s.username}</value>
-       </property>
-    </properties>
-    <password-encrypted f:combine-mode="replace">${secret:%s.password:encrypt}</password-encrypted>
-  </jdbc-driver-params>
-</jdbc-data-source>
+	format := `    %s:
+      Target: 'cluster-1'
+      JdbcResource:
+        JDBCDataSourceParams:
+          JNDIName: [
+            jdbc/%s
+          ]
+        JDBCDriverParams:
+          DriverName: com.mysql.cj.jdbc.Driver
+          URL: '@@SECRET:%s:url@@'
+          PasswordEncrypted: '@@SECRET:%s:password@@'
+          Properties:
+            user:
+              Value: '@@SECRET:%s:username@@'
+        JDBCConnectionPoolParams:
+          ConnectionReserveTimeoutSeconds: 10
+          InitialCapacity: 0
+          MaxCapacity: 5
+          MinCapacity: 0
+          TestConnectionsOnReserve: true
+          TestTableName: SQL SELECT 1
 `
-	return fmt.Sprintf(format, datasourceName, url, secret, secret)
+	return fmt.Sprintf(format, datasourceName, datasourceName, dbSecret, dbSecret, dbSecret)
+}
+
+// Create a Oracle datasource model configuration for the given db secret and datasource
+func createOracleDatasourceModelConfig(dbSecret string, datasourceName string) string {
+
+	format := `    %s:
+      Target: 'cluster-1'
+      JdbcResource:
+        JDBCDataSourceParams:
+          JNDIName: [
+            jdbc/%s
+          ]
+          GlobalTransactionsProtocol: TwoPhaseCommit
+        JDBCDriverParams:
+          DriverName: oracle.jdbc.xa.client.OracleXADataSource
+          URL: '@@SECRET:%s:url@@'
+          PasswordEncrypted: '@@SECRET:%s:password@@'
+          Properties:
+            user:
+              Value: '@@SECRET:%s:username@@'
+            oracle.net.CONNECT_TIMEOUT:
+              Value: 5000
+            oracle.jdbc.ReadTimeout:
+              Value: 30000
+        JDBCConnectionPoolParams:
+            InitialCapacity: 0
+            MaxCapacity: 1
+            TestTableName: SQL ISVALID
+            TestConnectionsOnReserve: true
+`
+
+	return fmt.Sprintf(format, datasourceName, datasourceName, dbSecret, dbSecret, dbSecret)
 }
