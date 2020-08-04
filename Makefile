@@ -41,8 +41,6 @@ HELIDON_PATH = github.com/verrazzano/verrazzano-helidon-app-operator
 COH_PATH = github.com/verrazzano/verrazzano-coh-cluster-operator
 CRDGEN_PATH = github.com/verrazzano/verrazzano-crd-generator
 CRD_PATH = deploy/crds
-DIST_OBJECT_STORE_NAMESPACE:=stevengreenberginc
-DIST_OBJECT_STORE_BUCKET:=verrazzano-helm-chart
 HELM_CHART_NAME:=verrazzano
 HELM_CHART_ARCHIVE_NAME = ${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz
 
@@ -181,15 +179,6 @@ chart-build: go-mod
 
 .PHONY chart-publish:
 chart-publish:
-	echo "Publishing Helm chart to OCI object storage"
-	export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING=True
-	echo ${HELM_CHART_VERSION} > latest
-	helm repo index --url https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/ ${DIST_DIR}/
-	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/index.yaml --file ${DIST_DIR}/index.yaml
-	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/${HELM_CHART_ARCHIVE_NAME} --file ${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME}
-	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name latest --file latest
-	echo "Published Helm chart to https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/${HELM_CHART_ARCHIVE_NAME}"
-	
 	echo "Check and upload release assets to github."
 	@rm -rf response.txt
 	@curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${HELM_CHART_VERSION}" -o response.txt
@@ -299,8 +288,13 @@ github-release: release-image
 
 	@set -e; \
 	RELEASE_VERSION=$$(cat chart/latest); \
+	prerelease=false; \
+	if [ "${RELEASE_BRANCH}" != "master" ]; then \
+		prerelease=true; \
+		echo "Non master branch ${RELEASE_BRANCH}. A pre-release will be created."; \
+	fi; \
 	echo "Creating release $$RELEASE_VERSION in github."; \
-	request="{\"tag_name\": \"$$RELEASE_VERSION\",\"target_commitish\": \"${RELEASE_BRANCH}\",\"name\": \"$$RELEASE_VERSION\",\"body\": \"${RELEASE_DESCRIPTION}\"}"; \
+	request="{\"tag_name\": \"$$RELEASE_VERSION\",\"target_commitish\": \"${RELEASE_BRANCH}\",\"name\": \"$$RELEASE_VERSION\",\"body\": \"${RELEASE_DESCRIPTION}\",\"prerelease\": $$prerelease}"; \
 	echo $$request; \
 	status=$$(curl -s -o /dev/null -w '%{http_code}' --data "$$request" -H "Authorization: token ${GITHUB_API_TOKEN}" -H "Content-Type: application/json" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases"); \
 	if [ "$$status" != "201" ]; then \
