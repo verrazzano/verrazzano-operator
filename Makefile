@@ -16,6 +16,9 @@ ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),push release))
 	ifndef DOCKER_NAMESPACE
 		$(error DOCKER_NAMESPACE must be defined as the name of the docker namespace where image will be pushed)
 	endif
+	ifndef DOCKER_IMAGE_NAME
+		$(error DOCKER_IMAGE_NAME must be defined as the name of the docker image to be pushed)
+	endif
 	DOCKER_IMAGE_FULLNAME = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}
 endif
 
