@@ -132,7 +132,7 @@ func createFilebeatDaemonSet(namespace string, name string, verrazzanoUri string
 								},
 								{
 									Name:  "ES_URL",
-									Value: "http://elasticsearch.ingress-nginx.svc.cluster.local",
+									Value: "http://vmi-system-es-ingest.verrazzano-system.svc.cluster.local",
 								},
 								{
 									Name: "ES_USER",
@@ -316,7 +316,7 @@ func createJournalbeatDaemonSet(namespace string, name string, verrazzanoUri str
 								},
 								{
 									Name:  "ES_URL",
-									Value: "http://elasticsearch.ingress-nginx.svc.cluster.local",
+									Value: "http://vmi-system-es-ingest.verrazzano-system.svc.cluster.local",
 								},
 								{
 									Name: "ES_USER",
