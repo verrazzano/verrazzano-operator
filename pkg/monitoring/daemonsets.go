@@ -132,7 +132,7 @@ func createFilebeatDaemonSet(namespace string, name string, verrazzanoUri string
 								},
 								{
 									Name:  "ES_URL",
-									Value: "https://elasticsearch." + util.GetVmiUri(constants.VmiSystemBindingName, verrazzanoUri) + ":443",
+									Value: "http://elasticsearch.ingress-nginx.svc.cluster.local",
 								},
 								{
 									Name: "ES_USER",
@@ -316,7 +316,7 @@ func createJournalbeatDaemonSet(namespace string, name string, verrazzanoUri str
 								},
 								{
 									Name:  "ES_URL",
-									Value: "https://elasticsearch." + util.GetVmiUri(constants.VmiSystemBindingName, verrazzanoUri) + ":443",
+									Value: "http://elasticsearch.ingress-nginx.svc.cluster.local",
 								},
 								{
 									Name: "ES_USER",
