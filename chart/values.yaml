@@ -19,7 +19,7 @@ verrazzanoOperator:
   filebeatImage: container-registry.oracle.com/verrazzano/filebeat:6.8.3-58a0ddf-6
   journalbeatImage: container-registry.oracle.com/verrazzano/journalbeat:6.8.3-58a0ddf-6
   weblogicOperatorImage: oracle/weblogic-kubernetes-operator:3.0.0
-  fluentdImage: container-registry-admin.oraclecorp.com/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-17
+  fluentdImage: container-registry.oracle.com/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-17
   apiServerRealm: verrazzano-system
 
 monitoringOperator:
