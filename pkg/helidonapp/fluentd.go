@@ -124,7 +124,7 @@ func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v
 			},
 			{
 				Name:  "ELASTICSEARCH_PORT",
-				Value: "80",
+				Value: "9200",
 			},
 			{
 				Name: "ELASTICSEARCH_USER",

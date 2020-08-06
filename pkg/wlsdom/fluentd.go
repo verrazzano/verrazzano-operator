@@ -58,7 +58,7 @@ func createFluentdContainer(domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbP
 			},
 			{
 				Name:  "ELASTICSEARCH_PORT",
-				Value: "80",
+				Value: "9200",
 			},
 			{
 				Name: "ELASTICSEARCH_USER",
