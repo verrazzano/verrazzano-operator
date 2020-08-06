@@ -78,9 +78,7 @@ func CreateFluentdConfigMap(app *v1beta1v8o.VerrazzanoHelidon, namespace string,
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "#{ENV['APPLICATION_NAME']}"
-  scheme https
-  ssl_version TLSv1_2
-  ssl_verify "#{ENV['ELASTICSEARCH_SSL_VERIFY']}"
+  scheme http
   include_timestamp true
   flush_interval 10s
 </match>
@@ -127,10 +125,6 @@ func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v
 			{
 				Name:  "ELASTICSEARCH_PORT",
 				Value: "80",
-			},
-			{
-				Name:  "ELASTICSEARCH_SSL_VERIFY",
-				Value: "false",
 			},
 			{
 				Name: "ELASTICSEARCH_USER",

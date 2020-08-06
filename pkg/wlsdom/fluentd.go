@@ -61,10 +61,6 @@ func createFluentdContainer(domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbP
 				Value: "80",
 			},
 			{
-				Name:  "ELASTICSEARCH_SSL_VERIFY",
-				Value: "false",
-			},
-			{
 				Name: "ELASTICSEARCH_USER",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
@@ -204,9 +200,7 @@ func CreateFluentdConfigMap(namespace string, labels map[string]string) *corev1.
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "#{ENV['DOMAIN_UID']}"
-  scheme https
-  ssl_version TLSv1_2
-  ssl_verify "#{ENV['ELASTICSEARCH_SSL_VERIFY']}"
+  scheme http
   key_name timestamp 
   types timestamp:time
   include_timestamp true
