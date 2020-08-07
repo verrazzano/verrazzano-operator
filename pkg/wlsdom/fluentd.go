@@ -54,7 +54,7 @@ func createFluentdContainer(domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbP
 			},
 			{
 				Name:  "ELASTICSEARCH_HOST",
-				Value: fmt.Sprintf("vmi-%s-es-ingest.verrazzano-system.svc.cluster.local", mbPair.Binding.Name),
+				Value: fmt.Sprintf("vmi-%s-es-ingest.%s.svc.cluster.local", mbPair.Binding.Name, constants.VerrazzanoNamespace),
 			},
 			{
 				Name:  "ELASTICSEARCH_PORT",

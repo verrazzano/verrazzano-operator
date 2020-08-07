@@ -125,7 +125,7 @@ func checkFluentdEnabled(t *testing.T, helidonApp *v1helidonapp.HelidonApp, appN
 	name = "/u01/data/docker/containers"
 	assert.Equal(t, name, helidonApp.Spec.Containers[0].VolumeMounts[2].MountPath, fmt.Sprintf("Expect volume mount path to be %s", name))
 	assert.Equal(t, true, helidonApp.Spec.Containers[0].VolumeMounts[2].ReadOnly, "Expect volume mount to be readOnly")
-	assert.Equal(t, 8, len(helidonApp.Spec.Containers[0].Env), "Expected env count to be 8")
+	assert.Equal(t, 7, len(helidonApp.Spec.Containers[0].Env), "Expected env count to be 7")
 	es_username := findEnv(helidonApp.Spec.Containers[0].Env, "ELASTICSEARCH_USER")
 	es_password := findEnv(helidonApp.Spec.Containers[0].Env, "ELASTICSEARCH_PASSWORD")
 	assert.NotNil(t, es_username)

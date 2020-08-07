@@ -120,7 +120,7 @@ func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v
 			},
 			{
 				Name:  "ELASTICSEARCH_HOST",
-				Value: fmt.Sprintf("vmi-%s-es-ingest.verrazzano-system.svc.cluster.local", binding.Name),
+				Value: fmt.Sprintf("vmi-%s-es-ingest.%s.svc.cluster.local", binding.Name, constants.VerrazzanoNamespace),
 			},
 			{
 				Name:  "ELASTICSEARCH_PORT",

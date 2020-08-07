@@ -5,6 +5,7 @@ package monitoring
 
 import (
 	"fmt"
+
 	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
@@ -62,8 +63,9 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 									Value: "http://prometheus.istio-system.svc.cluster.local:9090/federate?" + payload,
 								},
 								{
-									Name:  "PUSHGATEWAY_URL",
-									Value: "https://prometheus-gw." + util.GetVmiUri(bindingName, verrazzanoUri),
+									Name: "PUSHGATEWAY_URL",
+
+									Value: fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local", bindingName, constants.VerrazzanoNamespace),
 								},
 								{
 									Name:  "PUSHGATEWAY_USER",
@@ -92,21 +94,21 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 								{
 									Name:  "PROM_CERT",
 									Value: "/verrazzano/certs/ca.crt",
-								},							},
+								}},
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports:           []corev1.ContainerPort{{Name: "master", ContainerPort: int32(9091)}},
-							VolumeMounts: []corev1.VolumeMount {
+							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name: "cert-vol",
+									Name:      "cert-vol",
 									MountPath: "/verrazzano/certs",
 								},
 							},
 						},
 					},
 					TerminationGracePeriodSeconds: new64Val(1),
-					Volumes: []corev1.Volume {
+					Volumes: []corev1.Volume{
 						{
-							Name:         "cert-vol",
+							Name: "cert-vol",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
 									SecretName:  "system-tls",

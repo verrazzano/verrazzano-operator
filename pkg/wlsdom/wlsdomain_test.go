@@ -71,7 +71,7 @@ func checkDomainModel(t *testing.T, weblogicDomain *v8weblogic.Domain, domainNam
 	name = "/scratch"
 	assert.Equal(t, name, containers[0].VolumeMounts[1].MountPath, fmt.Sprintf("Expect volume mount path to be %s", name))
 	assert.Equal(t, true, containers[0].VolumeMounts[1].ReadOnly, "Expect volume mount to be readOnly")
-	assert.Equal(t, 10, len(containers[0].Env), "Expected env count to be 10")
+	assert.Equal(t, 9, len(containers[0].Env), "Expected env count to be 9")
 
 	assert.Equal(t, 2, len(volumes), "Expected volumes count to be 2")
 	name = "weblogic-domain-storage-volume"
