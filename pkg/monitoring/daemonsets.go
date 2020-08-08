@@ -160,7 +160,7 @@ func createFilebeatDaemonSet(namespace string, name string, verrazzanoUri string
 								},
 								{
 									Name:  "ES_PORT",
-									Value: "19200",
+									Value: "9200",
 								},
 								{
 									Name: "INDEX_NAME",
@@ -344,7 +344,7 @@ func createJournalbeatDaemonSet(namespace string, name string, verrazzanoUri str
 								},
 								{
 									Name:  "ES_PORT",
-									Value: "19200",
+									Value: "9200",
 								},
 								{
 									Name: "INDEX_NAME",

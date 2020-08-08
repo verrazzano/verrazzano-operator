@@ -65,7 +65,7 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 								{
 									Name: "PUSHGATEWAY_URL",
 
-									Value: fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local", bindingName, constants.VerrazzanoNamespace),
+									Value: fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", bindingName, constants.VerrazzanoNamespace),
 								},
 								{
 									Name:  "PUSHGATEWAY_USER",
