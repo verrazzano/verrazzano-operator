@@ -48,6 +48,11 @@ pipeline {
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('ocir-pull-and-push-account')
         NETRC_FILE = credentials('netrc')
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OCI_CLI_REGION = 'us-phoenix-1'
         GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
@@ -93,7 +98,9 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
                     make push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-                """
+                    make chart-build DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME}
+                    make chart-publish 
+                   """
             }
         }
 
@@ -175,7 +182,7 @@ pipeline {
             }
             steps {
                 sh """
-                    make release DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${env.DOCKER_IMAGE_NAME} RELEASE_VERSION=${params.RELEASE_VERSION} RELEASE_DESCRIPTION="${params.RELEASE_DESCRIPTION}" RELEASE_BRANCH=${params.RELEASE_BRANCH}
+                    make release DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${env.DOCKER_IMAGE_NAME} RELEASE_VERSION=${params.RELEASE_VERSION} RELEASE_DESCRIPTION=${params.RELEASE_DESCRIPTION} RELEASE_BRANCH=${params.RELEASE_BRANCH}
                 """
             }
         }
