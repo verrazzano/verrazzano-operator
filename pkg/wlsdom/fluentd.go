@@ -5,7 +5,6 @@ package wlsdom
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 
@@ -55,15 +54,11 @@ func createFluentdContainer(domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbP
 			},
 			{
 				Name:  "ELASTICSEARCH_HOST",
-				Value: fmt.Sprintf("elasticsearch.vmi.%s.%s", mbPair.Binding.Name, mbPair.VerrazzanoUri),
+				Value: fmt.Sprintf("vmi-%s-es-ingest.%s.svc.cluster.local", mbPair.Binding.Name, constants.VerrazzanoNamespace),
 			},
 			{
 				Name:  "ELASTICSEARCH_PORT",
-				Value: "443",
-			},
-			{
-				Name:  "ELASTICSEARCH_SSL_VERIFY",
-				Value: strconv.FormatBool(mbPair.SslVerify),
+				Value: "9200",
 			},
 			{
 				Name: "ELASTICSEARCH_USER",
@@ -205,9 +200,7 @@ func CreateFluentdConfigMap(namespace string, labels map[string]string) *corev1.
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "#{ENV['DOMAIN_UID']}"
-  scheme https
-  ssl_version TLSv1_2
-  ssl_verify "#{ENV['ELASTICSEARCH_SSL_VERIFY']}"
+  scheme http
   key_name timestamp 
   types timestamp:time
   include_timestamp true

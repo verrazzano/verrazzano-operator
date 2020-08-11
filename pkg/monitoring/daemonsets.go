@@ -4,6 +4,8 @@
 package monitoring
 
 import (
+	"fmt"
+
 	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/resources"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
@@ -132,7 +134,7 @@ func createFilebeatDaemonSet(namespace string, name string, verrazzanoUri string
 								},
 								{
 									Name:  "ES_URL",
-									Value: "https://elasticsearch." + util.GetVmiUri(constants.VmiSystemBindingName, verrazzanoUri) + ":443",
+									Value: fmt.Sprintf("http://vmi-system-es-ingest.%s.svc.cluster.local", constants.VerrazzanoNamespace),
 								},
 								{
 									Name: "ES_USER",
@@ -158,7 +160,7 @@ func createFilebeatDaemonSet(namespace string, name string, verrazzanoUri string
 								},
 								{
 									Name:  "ES_PORT",
-									Value: "19200",
+									Value: "9200",
 								},
 								{
 									Name: "INDEX_NAME",
@@ -316,7 +318,7 @@ func createJournalbeatDaemonSet(namespace string, name string, verrazzanoUri str
 								},
 								{
 									Name:  "ES_URL",
-									Value: "https://elasticsearch." + util.GetVmiUri(constants.VmiSystemBindingName, verrazzanoUri) + ":443",
+									Value: fmt.Sprintf("http://vmi-system-es-ingest.%s.svc.cluster.local", constants.VerrazzanoNamespace),
 								},
 								{
 									Name: "ES_USER",
@@ -342,7 +344,7 @@ func createJournalbeatDaemonSet(namespace string, name string, verrazzanoUri str
 								},
 								{
 									Name:  "ES_PORT",
-									Value: "19200",
+									Value: "9200",
 								},
 								{
 									Name: "INDEX_NAME",

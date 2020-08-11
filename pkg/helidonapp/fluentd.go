@@ -5,7 +5,6 @@ package helidonapp
 
 import (
 	"fmt"
-	"strconv"
 
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
@@ -79,9 +78,7 @@ func CreateFluentdConfigMap(app *v1beta1v8o.VerrazzanoHelidon, namespace string,
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "#{ENV['APPLICATION_NAME']}"
-  scheme https
-  ssl_version TLSv1_2
-  ssl_verify "#{ENV['ELASTICSEARCH_SSL_VERIFY']}"
+  scheme http
   include_timestamp true
   flush_interval 10s
 </match>
@@ -123,15 +120,11 @@ func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v
 			},
 			{
 				Name:  "ELASTICSEARCH_HOST",
-				Value: fmt.Sprintf("elasticsearch.vmi.%s.%s", binding.Name, verrazzanoUri),
+				Value: fmt.Sprintf("vmi-%s-es-ingest.%s.svc.cluster.local", binding.Name, constants.VerrazzanoNamespace),
 			},
 			{
 				Name:  "ELASTICSEARCH_PORT",
-				Value: "443",
-			},
-			{
-				Name:  "ELASTICSEARCH_SSL_VERIFY",
-				Value: strconv.FormatBool(sslVerify),
+				Value: "9200",
 			},
 			{
 				Name: "ELASTICSEARCH_USER",
