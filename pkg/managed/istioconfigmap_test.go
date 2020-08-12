@@ -106,7 +106,7 @@ func TestGetPrometheusScrapeConfig(t *testing.T) {
 
 func TestGetHelidonScrapeConfigInfoList(t *testing.T) {
 	pair := getTestModelBindingPair()
-	addTestHelidonBinding(pair)
+	addTestHelidonAppToModel(pair)
 	addTestHelidonPlacement(pair)
 	scrapeConfigInfoList, err := getComponentScrapeConfigInfoList(pair, createFakeSecretLister(), testClusterName)
 	if err != nil {
@@ -118,7 +118,7 @@ func TestGetHelidonScrapeConfigInfoList(t *testing.T) {
 
 func TestGetCoherenceScrapeConfigInfoList(t *testing.T) {
 	pair := getTestModelBindingPair()
-	addTestCoherenceBinding(pair)
+	addTestCoherenceClusterToModel(pair)
 	addTestCoherencePlacement(pair)
 	scrapeConfigInfoList, err := getComponentScrapeConfigInfoList(pair, createFakeSecretLister(), testClusterName)
 	if err != nil {
@@ -131,7 +131,6 @@ func TestGetCoherenceScrapeConfigInfoList(t *testing.T) {
 
 func TestGetWebLogicScrapeConfigInfoList(t *testing.T) {
 	pair := getTestModelBindingPair()
-	addTestWebLogicBinding(pair)
 	addTestWebLogicPlacement(pair)
 	addTestWebLogicDomainToModel(pair)
 	scrapeConfigInfoList, err := getComponentScrapeConfigInfoList(pair, createFakeSecretLister(), testClusterName)
@@ -272,13 +271,6 @@ func getTestModelBindingPair() *types.ModelBindingPair {
 	}
 }
 
-func addTestHelidonBinding(mbPair *types.ModelBindingPair) {
-	helidonBinding := &v1beta1v8o.VerrazzanoHelidonBinding{
-		Name:     testHelidonBindingName,
-		Replicas: &testReplicas}
-	mbPair.Binding.Spec.HelidonBindings = append(mbPair.Binding.Spec.HelidonBindings, *helidonBinding)
-}
-
 func addTestHelidonPlacement(mbPair *types.ModelBindingPair) {
 	helidonPlacement := v1beta1v8o.VerrazzanoPlacement{
 		Name: testClusterName,
@@ -294,13 +286,6 @@ func addTestHelidonPlacement(mbPair *types.ModelBindingPair) {
 		},
 	}
 	mbPair.Binding.Spec.Placement = append(mbPair.Binding.Spec.Placement, helidonPlacement)
-}
-
-func addTestCoherenceBinding(mbPair *types.ModelBindingPair) {
-	coherenceBinding := &v1beta1v8o.VerrazzanoCoherenceBinding{
-		Name:     testCoherenceBindingName,
-		Replicas: &testReplicas}
-	mbPair.Binding.Spec.CoherenceBindings = append(mbPair.Binding.Spec.CoherenceBindings, *coherenceBinding)
 }
 
 func addTestCoherencePlacement(mbPair *types.ModelBindingPair) {
@@ -342,6 +327,20 @@ func addTestWebLogicPlacement(mbPair *types.ModelBindingPair) {
 		},
 	}
 	mbPair.Binding.Spec.Placement = append(mbPair.Binding.Spec.Placement, webLogicPlacement)
+}
+
+func addTestHelidonAppToModel(mbPair *types.ModelBindingPair) {
+	helidonApp := &v1beta1v8o.VerrazzanoHelidon{
+		Name: testHelidonBindingName,
+	}
+	mbPair.Model.Spec.HelidonApplications = append(mbPair.Model.Spec.HelidonApplications, *helidonApp)
+}
+
+func addTestCoherenceClusterToModel(mbPair *types.ModelBindingPair) {
+	coherenceCluster := &v1beta1v8o.VerrazzanoCoherenceCluster{
+		Name: testCoherenceBindingName,
+	}
+	mbPair.Model.Spec.CoherenceClusters = append(mbPair.Model.Spec.CoherenceClusters, *coherenceCluster)
 }
 
 func addTestWebLogicDomainToModel(mbPair *types.ModelBindingPair) {
