@@ -4,3 +4,4 @@ pkg/assets/assets.go
 chart/NOTES.txt
 chart/index.yaml
 chart/latest
+LICENSES-OLCNE.pdf
