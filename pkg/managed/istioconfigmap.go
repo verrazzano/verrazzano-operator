@@ -275,17 +275,17 @@ func getComponentScrapeConfigInfoList(mbPair *types.ModelBindingPair, secretList
 
 	// Get all weblogic bindings info
 	hasWeblogicBinding := false
-	for _, componentBinding := range mbPair.Binding.Spec.WeblogicBindings {
+	for _, component := range mbPair.Model.Spec.WeblogicDomains {
 		// Get the common binding info
-		componnentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, componentBinding.Name, clusterName, WeblogicName, WeblogicKeepSourceLabels,
-			strings.Replace(WeblogicKeepSourceLabelsRegex, ComponentBindingNameHolder, componentBinding.Name, -1))
+		componnentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, component.Name, clusterName, WeblogicName, WeblogicKeepSourceLabels,
+			strings.Replace(WeblogicKeepSourceLabelsRegex, ComponentBindingNameHolder, component.Name, -1))
 		if err != nil {
 			return nil, err
 		}
 
 		if componnentBindingInfo.BindingName != "" {
 			// Get username and password for the weblogic doamin
-			username, password, err := getWeblogicDomainCredentials(mbPair, secretLister, componentBinding.Name)
+			username, password, err := getWeblogicDomainCredentials(mbPair, secretLister, component.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -312,10 +312,10 @@ func getComponentScrapeConfigInfoList(mbPair *types.ModelBindingPair, secretList
 
 	// Get all coherence bindings info
 	var coherenceNamespaces []string
-	for _, componentBinding := range mbPair.Binding.Spec.CoherenceBindings {
+	for _, component := range mbPair.Model.Spec.CoherenceClusters {
 		// Get the common binding info
-		componnentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, componentBinding.Name, clusterName, CoherenceName, CoherenceKeepSourceLabels,
-			strings.Replace(CoherenceKeepSourceLabelsRegex, ComponentBindingNameHolder, componentBinding.Name, -1))
+		componnentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, component.Name, clusterName, CoherenceName, CoherenceKeepSourceLabels,
+			strings.Replace(CoherenceKeepSourceLabelsRegex, ComponentBindingNameHolder, component.Name, -1))
 		if err != nil {
 			return nil, err
 		}
@@ -352,10 +352,10 @@ func getComponentScrapeConfigInfoList(mbPair *types.ModelBindingPair, secretList
 	}
 
 	// Get all helidon bindings info
-	for _, componentBinding := range mbPair.Binding.Spec.HelidonBindings {
+	for _, component := range mbPair.Model.Spec.HelidonApplications {
 		// Get the common binding info
-		componnentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, componentBinding.Name, clusterName, HelidonName, HelidonKeepSourceLabels,
-			strings.Replace(HelidonKeepSourceLabelsRegex, ComponentBindingNameHolder, componentBinding.Name, -1))
+		componnentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, component.Name, clusterName, HelidonName, HelidonKeepSourceLabels,
+			strings.Replace(HelidonKeepSourceLabelsRegex, ComponentBindingNameHolder, component.Name, -1))
 		if err != nil {
 			return nil, err
 		}
