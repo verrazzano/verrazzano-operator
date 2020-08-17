@@ -711,6 +711,8 @@ func newAuthorizationPolicies(mbPair *types.ModelBindingPair, mc *types.ManagedC
 	componentNameSpaces := make(map[string]string)
 	// map of namespaces to set of connected component namespaces
 	namespaceSources := make(map[string]map[string]struct{})
+	// map of namespaces to set of connected Coherence component namespaces
+	cohNamespaceSources := make(map[string]map[string]struct{})
 
 	// map all of the model components to their namespaces
 	mapComponentNamespaces(mbPair, componentNameSpaces, namespaceSources)
@@ -725,20 +727,33 @@ func newAuthorizationPolicies(mbPair *types.ModelBindingPair, mc *types.ManagedC
 		mapNamespaceSources(helidon.Name, helidon.Connections, componentNameSpaces, namespaceSources)
 	}
 
+	// map the connected namespace sources for each Coherence component
+	for _, coherence := range mbPair.Model.Spec.CoherenceClusters {
+		mapNamespaceSources(coherence.Name, coherence.Connections, componentNameSpaces, cohNamespaceSources)
+	}
+
 	// create an authorization policy for each binding namespace in the given cluster
 	for _, ns := range mc.Namespaces {
-		if namespaceSources[ns] != nil {
+		if namespaceSources[ns] != nil || cohNamespaceSources[ns] != nil {
 			// get the ips for all the pods connected to this namespace
 			podIPs := getIpsOfNamespacePods(ns, pods)
+			// add the ips for pods in all namespaces that have a Coherence connection to this namespace
+			// Note: for Coherence connections we need to add the ips since Coherence pods are not part of the mesh
+			for cohNamespaceSource := range cohNamespaceSources[ns] {
+				podIPs = append(podIPs, getIpsOfNamespacePods(cohNamespaceSource, pods)...)
+			}
 			systemPrometheusPodIp := getIpOfSystemPrometheusPod(pods)
 			if systemPrometheusPodIp != "" {
 				podIPs = append(podIPs, systemPrometheusPodIp)
 			}
 			// allow traffic from any of the binding namespaces that are connected to components in this namespace
+			namespaceValues := GetNamespaceValues(namespaceSources, ns)
+			namespaceValues = append(namespaceValues, GetNamespaceValues(cohNamespaceSources, ns)...)
+			namespaceValues = append(namespaceValues, IstioSystemNamespace)
 			fromRules := []*istiosecv1beta1.Rule_From{
 				{
 					Source: &istiosecv1beta1.Source{
-						Namespaces: append(GetNamespaceValues(namespaceSources, ns), IstioSystemNamespace),
+						Namespaces: namespaceValues,
 					},
 				},
 			}
