@@ -192,7 +192,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						// Add secret for binding to the namespace, it contains the credentials fluentd needs for ElasticSearch
 						addSecret(mc, constants.VmiSecretName, namespace.Name)
 
-						virtualSerivceDestinationPort := 8001
+						virtualSerivceDestinationPort := int(getDomainDestinationPort(domainCR))
 						processIngressConnections(mc, domain.Connections, namespace.Name, domainCR, getDomainDestinationHost(domainCR), virtualSerivceDestinationPort, &mbPair.Binding.Spec.IngressBindings)
 					}
 				}
@@ -444,7 +444,7 @@ func addRemoteRest(mc *types.ManagedCluster, restName string, localNamespace str
 			if remoteType == types.Wls {
 				for _, domain := range remoteMc.WlsDomainCRs {
 					if restName == domain.Name {
-						name = fmt.Sprintf("%s-cluster-%s", restName, domain.Spec.Clusters[0].ClusterName)
+						name = getDomainHostPrefix(domain)
 						break
 					}
 				}
@@ -557,7 +557,7 @@ func getRestConnectionEnvVars(mbPair *types.ModelBindingPair, connections []v1be
 			if targetType == types.Wls {
 				for _, domain := range remoteMc.WlsDomainCRs {
 					if restConnection.Target == domain.Name {
-						env.Value = fmt.Sprintf("%s-cluster-%s.%s.global", restConnection.Target, domain.Spec.Clusters[0].ClusterName, targetNamespace)
+						env.Value = fmt.Sprintf("%s.%s.global", getDomainHostPrefix(domain), targetNamespace)
 						break
 					}
 				}
@@ -568,7 +568,7 @@ func getRestConnectionEnvVars(mbPair *types.ModelBindingPair, connections []v1be
 			if targetType == types.Wls {
 				for _, domain := range remoteMc.WlsDomainCRs {
 					if restConnection.Target == domain.Name {
-						env.Value = fmt.Sprintf("%s-cluster-%s.%s.svc.cluster.local", restConnection.Target, domain.Spec.Clusters[0].ClusterName, targetNamespace)
+						env.Value = fmt.Sprintf("%s.%s.svc.cluster.local", getDomainHostPrefix(domain), targetNamespace)
 						break
 					}
 				}
@@ -601,7 +601,7 @@ func getTargetNamespacePlacement(restTarget string, binding *v1beta1v8o.Verrazza
 func getTargetTypePort(managedCluster *types.ManagedCluster, target string) (types.ComponentType, uint32, error) {
 	for _, wls := range managedCluster.WlsDomainCRs {
 		if wls.Name == target {
-			return types.Wls, 8001, nil
+			return types.Wls, getDomainDestinationPort(wls), nil
 		}
 	}
 
@@ -637,7 +637,24 @@ func getSourcePlacement(compName string, binding *v1beta1v8o.VerrazzanoBinding) 
 
 // Utility function to generate the destination host name for a domain
 func getDomainDestinationHost(domain *v8weblogic.Domain) string {
-	return fmt.Sprintf("%s-cluster-%s.%s.svc.cluster.local", domain.Spec.DomainUID, domain.Spec.Clusters[0].ClusterName, domain.Namespace)
+	return fmt.Sprintf("%s.%s.svc.cluster.local", getDomainHostPrefix(domain), domain.Namespace)
+}
+
+func getDomainHostPrefix(domain *v8weblogic.Domain) string {
+	if len(domain.Spec.Clusters) == 0 {
+		return fmt.Sprintf("%s-adminserver", domain.Spec.DomainUID)
+	} else {
+		return fmt.Sprintf("%s-cluster-%s", domain.Spec.DomainUID, domain.Spec.Clusters[0].ClusterName)
+	}
+}
+
+// Utility function to generate the destination port number for a domain
+func getDomainDestinationPort(domain *v8weblogic.Domain) uint32 {
+	if len(domain.Spec.Clusters) == 0 {
+		return 7001
+	} else {
+		return 8001
+	}
 }
 
 // Utility function to generate the destination host name for a helidon app
