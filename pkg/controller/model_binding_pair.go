@@ -124,9 +124,11 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 							if len(datasourceName) > 0 {
 								dbSecrets = append(dbSecrets, databaseBinding.Credentials)
 
+								dataSourceTarget := getDataSourceTarget(&domain.DomainCRValues)
+
 								// Create the datasource model configuration for MySql connections.
 								if strings.HasPrefix(strings.TrimSpace(databaseBinding.Url), "jdbc:mysql") {
-									modelConfig := createMysqlDatasourceModelConfig(databaseBinding.Credentials, datasourceName)
+									modelConfig := createMysqlDatasourceModelConfig(databaseBinding.Credentials, datasourceName, dataSourceTarget)
 									if cmData == nil {
 										cmData = append(cmData, "resources:\n  JDBCSystemResource:\n")
 									}
@@ -136,7 +138,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 
 								// Create the datasource model configuration for Oracle connections.
 								if strings.HasPrefix(strings.TrimSpace(databaseBinding.Url), "jdbc:oracle") {
-									modelConfig := createOracleDatasourceModelConfig(databaseBinding.Credentials, datasourceName)
+									modelConfig := createOracleDatasourceModelConfig(databaseBinding.Credentials, datasourceName, dataSourceTarget)
 									if cmData == nil {
 										cmData = append(cmData, "resources:\n  JDBCSystemResource:\n")
 									}
@@ -657,6 +659,14 @@ func getDomainDestinationPort(domain *v8weblogic.Domain) uint32 {
 	}
 }
 
+func getDataSourceTarget(domainSpec *v8weblogic.DomainSpec) string {
+	if len(domainSpec.Clusters) == 0 {
+		return "AdminServer"
+	} else {
+		return domainSpec.Clusters[0].ClusterName
+	}
+}
+
 // Utility function to generate the destination host name for a helidon app
 func getHelidonDestinationHost(app *v1helidonapp.HelidonApp) string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local", app.Name, app.Namespace)
@@ -689,10 +699,10 @@ func getDatasourceName(domain v1beta1v8o.VerrazzanoWebLogicDomain, databaseBindi
 }
 
 // Create a MySql datasource model configuration for the given db secret and datasource
-func createMysqlDatasourceModelConfig(dbSecret string, datasourceName string) string {
+func createMysqlDatasourceModelConfig(dbSecret string, datasourceName string, dataSourceTarget string) string {
 
 	format := `    %s:
-      Target: 'cluster-1'
+      Target: '%s'
       JdbcResource:
         JDBCDataSourceParams:
           JNDIName: [
@@ -713,14 +723,14 @@ func createMysqlDatasourceModelConfig(dbSecret string, datasourceName string) st
           TestConnectionsOnReserve: true
           TestTableName: SQL SELECT 1
 `
-	return fmt.Sprintf(format, datasourceName, datasourceName, dbSecret, dbSecret, dbSecret)
+	return fmt.Sprintf(format, datasourceName, dataSourceTarget, datasourceName, dbSecret, dbSecret, dbSecret)
 }
 
 // Create a Oracle datasource model configuration for the given db secret and datasource
-func createOracleDatasourceModelConfig(dbSecret string, datasourceName string) string {
+func createOracleDatasourceModelConfig(dbSecret string, datasourceName string, dataSourceTarget string) string {
 
 	format := `    %s:
-      Target: 'cluster-1'
+      Target: '%s'
       JdbcResource:
         JDBCDataSourceParams:
           JNDIName: [
@@ -745,5 +755,5 @@ func createOracleDatasourceModelConfig(dbSecret string, datasourceName string) s
             TestConnectionsOnReserve: true
 `
 
-	return fmt.Sprintf(format, datasourceName, datasourceName, dbSecret, dbSecret, dbSecret)
+	return fmt.Sprintf(format, datasourceName, dataSourceTarget, datasourceName, dbSecret, dbSecret, dbSecret)
 }
