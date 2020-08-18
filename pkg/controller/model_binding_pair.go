@@ -644,7 +644,7 @@ func getDomainDestinationHost(domain *v8weblogic.Domain) string {
 
 func getDomainHostPrefix(domain *v8weblogic.Domain) string {
 	if len(domain.Spec.Clusters) == 0 {
-		return fmt.Sprintf("%s-adminserver", domain.Spec.DomainUID)
+		return fmt.Sprintf("%s-AdminServer", domain.Spec.DomainUID)
 	} else {
 		return fmt.Sprintf("%s-cluster-%s", domain.Spec.DomainUID, domain.Spec.Clusters[0].ClusterName)
 	}
