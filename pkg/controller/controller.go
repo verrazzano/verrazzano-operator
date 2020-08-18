@@ -781,6 +781,19 @@ func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 	}
 }
 
+type KubeDeployment struct {
+	kubeClientSet kubernetes.Interface
+}
+
+func (me *KubeDeployment) DeleteDeployment(namespace, name string) error {
+	dep, err := me.kubeClientSet.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if dep != nil {
+		return me.kubeClientSet.AppsV1().Deployments(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	} else {
+		return err
+	}
+}
+
 // Process a removal of a VerrazzanoBinding
 func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	binding := cluster.(*v1beta1v8o.VerrazzanoBinding)
@@ -843,6 +856,11 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	if err != nil {
 		glog.Errorf("Failed to delete cluster roles for binding %s: %v", mbPair.Binding.Name, err)
 		return
+	}
+
+	err = monitoring.DeletePomPusher(binding.Name, &KubeDeployment{kubeClientSet: c.kubeClientSet})
+	if err != nil {
+		glog.Errorf("Failed to delete prometheus-pusher for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Delete Namespaces - this will also cleanup any deployments, Ingresses,

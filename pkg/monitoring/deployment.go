@@ -29,6 +29,14 @@ func GetSystemDeployments(managedClusterName, verrazzanoUri string, sec Secrets)
 	return deployments
 }
 
+func DeletePomPusher(binding string, heler util.DeploymentHelper) error {
+	return heler.DeleteDeployment(constants.MonitoringNamespace, pomPusherName(binding))
+}
+
+func pomPusherName(bindingName string) string {
+	return fmt.Sprintf("prom-pusher-%s", bindingName)
+}
+
 // Create prometheus pusher deployment on all clusters, based on a VerrazzanoApplicationBinding
 func CreateDeployment(namespace string, bindingName string, labels map[string]string, verrazzanoUri string, sec Secrets) *appsv1.Deployment {
 	payload := "match%5B%5D=%7Bjob%3D~%22" + bindingName + "%2E%2A%22%7D" // URL encoded : match[]={job=~"binding-name.*"}
@@ -40,7 +48,7 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 	pusherDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:    labels,
-			Name:      fmt.Sprintf("prom-pusher-%s", bindingName),
+			Name:      pomPusherName(bindingName),
 			Namespace: namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
