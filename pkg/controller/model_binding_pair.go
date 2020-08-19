@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/cohoperator"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/helidonapp"
+	"github.com/verrazzano/verrazzano-operator/pkg/managed"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsdom"
@@ -446,7 +447,7 @@ func addRemoteRest(mc *types.ManagedCluster, restName string, localNamespace str
 			if remoteType == types.Wls {
 				for _, domain := range remoteMc.WlsDomainCRs {
 					if restName == domain.Name {
-						name = getDomainHostPrefix(domain)
+						name = getDomainServiceName(domain)
 						break
 					}
 				}
@@ -559,7 +560,7 @@ func getRestConnectionEnvVars(mbPair *types.ModelBindingPair, connections []v1be
 			if targetType == types.Wls {
 				for _, domain := range remoteMc.WlsDomainCRs {
 					if restConnection.Target == domain.Name {
-						env.Value = fmt.Sprintf("%s.%s.global", getDomainHostPrefix(domain), targetNamespace)
+						env.Value = fmt.Sprintf("%s.%s.global", getDomainServiceName(domain), targetNamespace)
 						break
 					}
 				}
@@ -570,7 +571,7 @@ func getRestConnectionEnvVars(mbPair *types.ModelBindingPair, connections []v1be
 			if targetType == types.Wls {
 				for _, domain := range remoteMc.WlsDomainCRs {
 					if restConnection.Target == domain.Name {
-						env.Value = fmt.Sprintf("%s.%s.svc.cluster.local", getDomainHostPrefix(domain), targetNamespace)
+						env.Value = fmt.Sprintf("%s.%s.svc.cluster.local", getDomainServiceName(domain), targetNamespace)
 						break
 					}
 				}
@@ -639,14 +640,14 @@ func getSourcePlacement(compName string, binding *v1beta1v8o.VerrazzanoBinding) 
 
 // Utility function to generate the destination host name for a domain
 func getDomainDestinationHost(domain *v8weblogic.Domain) string {
-	return fmt.Sprintf("%s.%s.svc.cluster.local", getDomainHostPrefix(domain), domain.Namespace)
+	return fmt.Sprintf("%s.%s.svc.cluster.local", getDomainServiceName(domain), domain.Namespace)
 }
 
-func getDomainHostPrefix(domain *v8weblogic.Domain) string {
+func getDomainServiceName(domain *v8weblogic.Domain) string {
 	if len(domain.Spec.Clusters) == 0 {
-		return fmt.Sprintf("%s-AdminServer", domain.Spec.DomainUID)
+		return getDomainAdminServerServiceName(&domain.Spec)
 	} else {
-		return fmt.Sprintf("%s-cluster-%s", domain.Spec.DomainUID, domain.Spec.Clusters[0].ClusterName)
+		return getDomainClusterServiceName(&domain.Spec)
 	}
 }
 
@@ -661,10 +662,18 @@ func getDomainDestinationPort(domain *v8weblogic.Domain) uint32 {
 
 func getDataSourceTarget(domainSpec *v8weblogic.DomainSpec) string {
 	if len(domainSpec.Clusters) == 0 {
-		return "AdminServer"
+		return managed.GetDomainAdminServerNameAsInTarget()
 	} else {
 		return domainSpec.Clusters[0].ClusterName
 	}
+}
+
+func getDomainClusterServiceName(domainSpec *v8weblogic.DomainSpec) string {
+	return fmt.Sprintf("%s-cluster-%s", domainSpec.DomainUID, domainSpec.Clusters[0].ClusterName)
+}
+
+func getDomainAdminServerServiceName(domainSpec *v8weblogic.DomainSpec) string {
+	return fmt.Sprintf("%s-%s", domainSpec.DomainUID, managed.GetDomainAdminServerNameAsInAddress())
 }
 
 // Utility function to generate the destination host name for a helidon app

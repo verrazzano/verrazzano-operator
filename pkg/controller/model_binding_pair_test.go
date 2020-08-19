@@ -318,7 +318,7 @@ func TestCreateModelBindingPairNoCluster(t *testing.T) {
 
 	validateDatabaseBindings(t, mbp, "AdminServer")
 
-	validateIngressBindings(t, mbp, cluster, namespace, "wl-frontend-AdminServer.sockshop.svc.cluster.local", 7001)
+	validateIngressBindings(t, mbp, cluster, namespace, "wl-frontend-adminserver.sockshop.svc.cluster.local", 7001)
 }
 
 // TestUpdateModelBindingPair tests the updating of a ModelBindingPair.
