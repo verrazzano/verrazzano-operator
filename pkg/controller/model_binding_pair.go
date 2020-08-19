@@ -124,9 +124,11 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 							if len(datasourceName) > 0 {
 								dbSecrets = append(dbSecrets, databaseBinding.Credentials)
 
+								dataSourceTarget := getDataSourceTarget(&domain.DomainCRValues)
+
 								// Create the datasource model configuration for MySql connections.
 								if strings.HasPrefix(strings.TrimSpace(databaseBinding.Url), "jdbc:mysql") {
-									modelConfig := createMysqlDatasourceModelConfig(databaseBinding.Credentials, datasourceName)
+									modelConfig := createMysqlDatasourceModelConfig(databaseBinding.Credentials, datasourceName, dataSourceTarget)
 									if cmData == nil {
 										cmData = append(cmData, "resources:\n  JDBCSystemResource:\n")
 									}
@@ -136,7 +138,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 
 								// Create the datasource model configuration for Oracle connections.
 								if strings.HasPrefix(strings.TrimSpace(databaseBinding.Url), "jdbc:oracle") {
-									modelConfig := createOracleDatasourceModelConfig(databaseBinding.Credentials, datasourceName)
+									modelConfig := createOracleDatasourceModelConfig(databaseBinding.Credentials, datasourceName, dataSourceTarget)
 									if cmData == nil {
 										cmData = append(cmData, "resources:\n  JDBCSystemResource:\n")
 									}
@@ -192,7 +194,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						// Add secret for binding to the namespace, it contains the credentials fluentd needs for ElasticSearch
 						addSecret(mc, constants.VmiSecretName, namespace.Name)
 
-						virtualSerivceDestinationPort := 8001
+						virtualSerivceDestinationPort := int(getDomainDestinationPort(domainCR))
 						processIngressConnections(mc, domain.Connections, namespace.Name, domainCR, getDomainDestinationHost(domainCR), virtualSerivceDestinationPort, &mbPair.Binding.Spec.IngressBindings)
 					}
 				}
@@ -444,7 +446,7 @@ func addRemoteRest(mc *types.ManagedCluster, restName string, localNamespace str
 			if remoteType == types.Wls {
 				for _, domain := range remoteMc.WlsDomainCRs {
 					if restName == domain.Name {
-						name = fmt.Sprintf("%s-cluster-%s", restName, domain.Spec.Clusters[0].ClusterName)
+						name = getDomainHostPrefix(domain)
 						break
 					}
 				}
@@ -557,7 +559,7 @@ func getRestConnectionEnvVars(mbPair *types.ModelBindingPair, connections []v1be
 			if targetType == types.Wls {
 				for _, domain := range remoteMc.WlsDomainCRs {
 					if restConnection.Target == domain.Name {
-						env.Value = fmt.Sprintf("%s-cluster-%s.%s.global", restConnection.Target, domain.Spec.Clusters[0].ClusterName, targetNamespace)
+						env.Value = fmt.Sprintf("%s.%s.global", getDomainHostPrefix(domain), targetNamespace)
 						break
 					}
 				}
@@ -568,7 +570,7 @@ func getRestConnectionEnvVars(mbPair *types.ModelBindingPair, connections []v1be
 			if targetType == types.Wls {
 				for _, domain := range remoteMc.WlsDomainCRs {
 					if restConnection.Target == domain.Name {
-						env.Value = fmt.Sprintf("%s-cluster-%s.%s.svc.cluster.local", restConnection.Target, domain.Spec.Clusters[0].ClusterName, targetNamespace)
+						env.Value = fmt.Sprintf("%s.%s.svc.cluster.local", getDomainHostPrefix(domain), targetNamespace)
 						break
 					}
 				}
@@ -601,7 +603,7 @@ func getTargetNamespacePlacement(restTarget string, binding *v1beta1v8o.Verrazza
 func getTargetTypePort(managedCluster *types.ManagedCluster, target string) (types.ComponentType, uint32, error) {
 	for _, wls := range managedCluster.WlsDomainCRs {
 		if wls.Name == target {
-			return types.Wls, 8001, nil
+			return types.Wls, getDomainDestinationPort(wls), nil
 		}
 	}
 
@@ -637,7 +639,32 @@ func getSourcePlacement(compName string, binding *v1beta1v8o.VerrazzanoBinding) 
 
 // Utility function to generate the destination host name for a domain
 func getDomainDestinationHost(domain *v8weblogic.Domain) string {
-	return fmt.Sprintf("%s-cluster-%s.%s.svc.cluster.local", domain.Spec.DomainUID, domain.Spec.Clusters[0].ClusterName, domain.Namespace)
+	return fmt.Sprintf("%s.%s.svc.cluster.local", getDomainHostPrefix(domain), domain.Namespace)
+}
+
+func getDomainHostPrefix(domain *v8weblogic.Domain) string {
+	if len(domain.Spec.Clusters) == 0 {
+		return fmt.Sprintf("%s-AdminServer", domain.Spec.DomainUID)
+	} else {
+		return fmt.Sprintf("%s-cluster-%s", domain.Spec.DomainUID, domain.Spec.Clusters[0].ClusterName)
+	}
+}
+
+// Utility function to generate the destination port number for a domain
+func getDomainDestinationPort(domain *v8weblogic.Domain) uint32 {
+	if len(domain.Spec.Clusters) == 0 {
+		return 7001
+	} else {
+		return 8001
+	}
+}
+
+func getDataSourceTarget(domainSpec *v8weblogic.DomainSpec) string {
+	if len(domainSpec.Clusters) == 0 {
+		return "AdminServer"
+	} else {
+		return domainSpec.Clusters[0].ClusterName
+	}
 }
 
 // Utility function to generate the destination host name for a helidon app
@@ -672,10 +699,10 @@ func getDatasourceName(domain v1beta1v8o.VerrazzanoWebLogicDomain, databaseBindi
 }
 
 // Create a MySql datasource model configuration for the given db secret and datasource
-func createMysqlDatasourceModelConfig(dbSecret string, datasourceName string) string {
+func createMysqlDatasourceModelConfig(dbSecret string, datasourceName string, dataSourceTarget string) string {
 
 	format := `    %s:
-      Target: 'cluster-1'
+      Target: '%s'
       JdbcResource:
         JDBCDataSourceParams:
           JNDIName: [
@@ -696,14 +723,14 @@ func createMysqlDatasourceModelConfig(dbSecret string, datasourceName string) st
           TestConnectionsOnReserve: true
           TestTableName: SQL SELECT 1
 `
-	return fmt.Sprintf(format, datasourceName, datasourceName, dbSecret, dbSecret, dbSecret)
+	return fmt.Sprintf(format, datasourceName, dataSourceTarget, datasourceName, dbSecret, dbSecret, dbSecret)
 }
 
 // Create a Oracle datasource model configuration for the given db secret and datasource
-func createOracleDatasourceModelConfig(dbSecret string, datasourceName string) string {
+func createOracleDatasourceModelConfig(dbSecret string, datasourceName string, dataSourceTarget string) string {
 
 	format := `    %s:
-      Target: 'cluster-1'
+      Target: '%s'
       JdbcResource:
         JDBCDataSourceParams:
           JNDIName: [
@@ -728,5 +755,5 @@ func createOracleDatasourceModelConfig(dbSecret string, datasourceName string) s
             TestConnectionsOnReserve: true
 `
 
-	return fmt.Sprintf(format, datasourceName, datasourceName, dbSecret, dbSecret, dbSecret)
+	return fmt.Sprintf(format, datasourceName, dataSourceTarget, datasourceName, dbSecret, dbSecret, dbSecret)
 }

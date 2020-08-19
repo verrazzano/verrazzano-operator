@@ -112,11 +112,21 @@ func TestSockShopIngressBindings(t *testing.T) {
 	vzUri := "Verrazzano.Uri"
 	sslVerify := true
 	pair := CreateModelBindingPair(model, binding, vzUri, sslVerify)
-	assert.Equal(t, 2, len(pair.ManagedClusters[cluster].Ingresses[namespace]), "Expected 1 Ingress")
-	ingress := getIngress(t, cluster, namespace, "sockshop-frontend-ingress", pair)
-	assert.Equal(t, 1, len(ingress.Destination), "Expected 1 IngressDestination")
-	assert.Equal(t, 8088, ingress.Destination[0].Port, "Expected IngressDestination Port")
-	userApp := getVerrazzanoHelidon(t, "user", pair)
+
+	validateIngressBindings(t, pair, cluster, namespace, "wl-frontend-cluster-cluster-1.sockshop.svc.cluster.local", 8001)
+}
+
+func validateIngressBindings(t *testing.T, mbp *types.ModelBindingPair, cluster string, namespace string,
+	exptectedWlsHost string, expectedWlsPort int) {
+	assert.Equal(t, 2, len(mbp.ManagedClusters[cluster].Ingresses[namespace]), "Expected 1 Ingress")
+	frontendIngress := getIngress(t, cluster, namespace, "sockshop-frontend-ingress", mbp)
+	assert.Equal(t, 1, len(frontendIngress.Destination), "Expected 1 IngressDestination")
+	assert.Equal(t, 8088, frontendIngress.Destination[0].Port, "Expected IngressDestination Port")
+	wlIngress := getIngress(t, cluster, namespace, "wl-ingress", mbp)
+	assert.Equal(t, 1, len(wlIngress.Destination), "Expected 1 IngressDestination")
+	assert.Equal(t, exptectedWlsHost, wlIngress.Destination[0].Host, "Expected IngressDestination Host")
+	assert.Equal(t, expectedWlsPort, wlIngress.Destination[0].Port, "Expected IngressDestination Port")
+	userApp := getVerrazzanoHelidon(t, "user", mbp)
 	assert.Equal(t, uint(80), userApp.Port, "Expected user Port")
 	assert.Equal(t, uint(7001), userApp.TargetPort, "Expected user targetPort")
 	expectedMatch := []KvPair{
@@ -131,12 +141,12 @@ func TestSockShopIngressBindings(t *testing.T) {
 		{k: "prefix", v: "/img"},
 		{k: "regex", v: "^.*\\.(ico|png|jpg|html)$"},
 	}
-	assertMatch(t, ingress.Destination[0].Match, expectedMatch...)
-	assert.Equal(t, 8, len(pair.ManagedClusters[cluster].HelidonApps), "Expected 8 HelidonApps")
-	assertPorts(t, pair, cluster, namespace, "frontend", 8088, 8079)
-	assertPorts(t, pair, cluster, namespace, "carts", 8080, 8080)
-	assertPorts(t, pair, cluster, namespace, "catalogue", 8080, 8080)
-	assertPorts(t, pair, cluster, namespace, "user", 80, 7001)
+	assertMatch(t, frontendIngress.Destination[0].Match, expectedMatch...)
+	assert.Equal(t, 8, len(mbp.ManagedClusters[cluster].HelidonApps), "Expected 8 HelidonApps")
+	assertPorts(t, mbp, cluster, namespace, "frontend", 8088, 8079)
+	assertPorts(t, mbp, cluster, namespace, "carts", 8080, 8080)
+	assertPorts(t, mbp, cluster, namespace, "catalogue", 8080, 8080)
+	assertPorts(t, mbp, cluster, namespace, "user", 80, 7001)
 }
 
 func TestSockShopSimpleModelBinding(t *testing.T) {
@@ -270,6 +280,47 @@ func TestCreateModelBindingPair(t *testing.T) {
 	validateModelBindingPair(t, mbp, expectedValues)
 }
 
+func TestCreateModelBindingPairNoCluster(t *testing.T) {
+	model, err := ReadModel("testdata/sockshop-model-no-cluster.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	binding, err := ReadBinding("testdata/sockshop-binding.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ingressBindings := binding.Spec.IngressBindings
+	assert.Equal(t, 2, len(ingressBindings), "Expected 2 IngressBinding's")
+	cluster := "cluster1"
+	namespace := "sockshop"
+	vzUri := "/my/verrazzano/url"
+	sslVerify := true
+	mbp := CreateModelBindingPair(model, binding, vzUri, sslVerify)
+
+	// gather expected state
+	expectedClusterHelidonApps := map[string]map[string]struct{}{"cluster1": {"frontend": {}, "carts": {},
+		"catalogue": {}, "orders": {}, "payment": {}, "shipping": {}, "user": {}, "swagger": {}}}
+	expectedClusterNamespaces := map[string]map[string]struct{}{"cluster1": {"verrazzano-system": {}, "sockshop": {}, "verrazzano-sock-shop-binding": {}}}
+	wlsDomain := &wls.Domain{ObjectMeta: metav1.ObjectMeta{Name: "wl-frontend", Namespace: "sockshop"},
+		Spec: wls.DomainSpec{Image: util.GetTestWlsFrontendImage(), LogHome: "/u01/oracle/user_projects/domains/wl-frontend/logs"}}
+
+	expectedValues := MbpExpectedValues{
+		Binding:     binding,
+		Model:       model,
+		HelidonApps: expectedClusterHelidonApps,
+		Namespaces:  expectedClusterNamespaces,
+		WlsDomains:  map[string]map[string]*wls.Domain{"cluster1": {"wl-frontend": wlsDomain}},
+		Uri:         "/my/verrazzano/url",
+		SslVerify:   true,
+	}
+
+	validateModelBindingPair(t, mbp, expectedValues)
+
+	validateDatabaseBindings(t, mbp, "AdminServer")
+
+	validateIngressBindings(t, mbp, cluster, namespace, "wl-frontend-AdminServer.sockshop.svc.cluster.local", 7001)
+}
+
 // TestUpdateModelBindingPair tests the updating of a ModelBindingPair.
 // A test model and binding located in testdata are used to create a model and a binding.
 // A new ModelBindingPair is created using the above test model/binding.
@@ -338,7 +389,7 @@ func TestDatabaseBindings(t *testing.T) {
 	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url", true)
 
 	// validate the returned mbp
-	validateDatabaseBindings(t, mbp)
+	validateDatabaseBindings(t, mbp, "cluster-1")
 }
 
 // MbpExpectedValues is a struct of expected ModelBindingPair state used in assertions
@@ -393,12 +444,12 @@ func validateModelBindingPair(t *testing.T,
 }
 
 // validates that the datasource model config is created when databaseBindings are specified
-func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair) {
+func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair, expectedTarget string) {
 
 	const datasourceConfigMap = `resources:
   JDBCSystemResource:
     socks:
-      Target: 'cluster-1'
+      Target: '%s'
       JdbcResource:
         JDBCDataSourceParams:
           JNDIName: [
@@ -419,7 +470,7 @@ func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair) {
           TestConnectionsOnReserve: true
           TestTableName: SQL SELECT 1
     socks2:
-      Target: 'cluster-1'
+      Target: '%s'
       JdbcResource:
         JDBCDataSourceParams:
           JNDIName: [
@@ -448,7 +499,7 @@ func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair) {
 			if configMap.Name == "wl-frontend-wdt-config-map" {
 				for key, value := range configMap.Data {
 					assert.Equal(t, "datasource.yaml", key)
-					assert.Equal(t, datasourceConfigMap, value)
+					assert.Equal(t, fmt.Sprintf(datasourceConfigMap, expectedTarget, expectedTarget), value)
 				}
 				break
 			}

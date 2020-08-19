@@ -19,7 +19,6 @@ import (
 
 type Domain struct {
 	Id                 string    `json:"id"`
-	Cluster            string    `json:"cluster"`
 	Style              string    `json:"style"`
 	AdminServerAddress string    `json:"adminServerAddress"`
 	T3Address          string    `json:"t3Address"`
@@ -70,7 +69,6 @@ func refreshDomains() {
 			for _, domain := range mc.WlsDomainCRs {
 				Domains = append(Domains, Domain{
 					Id:      domain.Name,
-					Cluster: domain.Spec.Clusters[0].ClusterName,
 					Style: func() string {
 						if domain.Spec.DomainHomeInImage == true {
 							return "domain-in-image"
