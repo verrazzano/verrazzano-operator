@@ -29,8 +29,8 @@ func GetSystemDeployments(managedClusterName, verrazzanoUri string, sec Secrets)
 	return deployments
 }
 
-func DeletePomPusher(binding string, heler util.DeploymentHelper) error {
-	return heler.DeleteDeployment(constants.MonitoringNamespace, pomPusherName(binding))
+func DeletePomPusher(binding string, helper util.DeploymentHelper) error {
+	return helper.DeleteDeployment(constants.MonitoringNamespace, pomPusherName(binding))
 }
 
 func pomPusherName(bindingName string) string {
