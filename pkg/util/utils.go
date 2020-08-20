@@ -98,6 +98,10 @@ type Manifest struct {
 	CohClusterOperatorCrd   string `json:"cohClusterOperatorCrd"`
 }
 
+type DeploymentHelper interface {
+	DeleteDeployment(namespace, name string) error
+}
+
 func GetManagedBindingLabels(binding *v1beta1v8o.VerrazzanoBinding, managedClusterName string) map[string]string {
 	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoBinding: binding.Name, constants.VerrazzanoCluster: managedClusterName}
 }
