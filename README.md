@@ -88,21 +88,11 @@ kubectl apply -f vendor/github.com/verrazzano/verrazzano-crd-generator/deploy/cr
 ### Running locally
 
 While developing, it's usually most efficient to run the Verrazzano Operator as an out-of-cluster process,
-pointing it to your Kubernetes cluster (See chart/values.yaml for latest images):
+pointing it to your Kubernetes cluster:
 
 ```
 export KUBECONFIG=<your_kubeconfig>
-
-COH_MICRO_IMAGE=phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.8 \
-HELIDON_MICRO_IMAGE=phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.7 \
-WLS_MICRO_IMAGE=phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.9 \
-PROMETHEUS_PUSHER_IMAGE=container-registry.oracle.com/verrazzano/prometheus-pusher:1.0.1-ff71638-19 \
-NODE_EXPORTER_IMAGE=container-registry.oracle.com/verrazzano/node-exporter:0.18.1-0f43627-7 \
-FILEBEAT_IMAGE=container-registry.oracle.com/verrazzano/filebeat:6.8.3-58a0ddf-6 \
-JOURNALBEAT_IMAGE=container-registry.oracle.com/verrazzano/journalbeat:6.8.3-58a0ddf-6 \
-WEBLOGIC_OPERATOR_IMAGE=oracle/weblogic-kubernetes-operator:3.0.0 \
-FLUENTD_IMAGE=container-registry.oracle.com/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-17 \
-go run cmd/verrazzano-operator/main.go --kubeconfig=${KUBECONFIG} --v=5 --watchNamespace="" 
+make go-run
 ```
 
 ### Running in a Kubernetes Cluster
