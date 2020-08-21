@@ -6,10 +6,12 @@ NAME:=verrazzano-operator
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
 TAG=$(shell git rev-parse HEAD)
 DOCKER_IMAGE_TAG = ${TAG}
+SHORT_COMMIT_HASH=$(shell git rev-parse --short HEAD)
+PUBLISH_IMAGE_TAG = ${TAG_NAME}-${SHORT_COMMIT_HASH}-${BUILD_NUMBER}
 
 CREATE_LATEST_TAG=0
 
-ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),push release))
+ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),push push-tag release))
 	ifndef DOCKER_REPO
 		$(error DOCKER_REPO must be defined as the name of the docker repository where image will be pushed)
 	endif
@@ -122,6 +124,12 @@ push: build
 		docker tag ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:latest; \
 		docker push ${DOCKER_IMAGE_FULLNAME}:latest; \
 	fi
+
+.PHONY: push-tag
+push-tag:
+	docker pull ${DOCKER_IMAGE_FULLNAME_OPERATOR}:${DOCKER_IMAGE_TAG}
+	docker tag ${DOCKER_IMAGE_FULLNAME_OPERATOR}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME_OPERATOR}:${PUBLISH_IMAGE_TAG}
+	docker push ${DOCKER_IMAGE_FULLNAME_OPERATOR}:${PUBLISH_IMAGE_TAG}
 
 #
 # Tests-related tasks
