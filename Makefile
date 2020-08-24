@@ -154,6 +154,83 @@ k8s-deploy:
 	kubectl delete -f ${DIST_DIR}/manifests
 	kubectl apply -f ${DIST_DIR}/manifests
 
+.PHONY chart-build:
+chart-build: go-mod
+	echo "Creating helm chart archive."
+	rm -rf ${DIST_DIR}
+	mkdir ${DIST_DIR}
+	mkdir ${DIST_DIR}/charts
+	mkdir ${DIST_DIR}/crds
+	cp -r chart/Chart.yaml $(DIST_DIR)/
+	cp -r chart/templates $(DIST_DIR)/
+	cp -r vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanobindings_crd.yaml ${DIST_DIR}/crds/verrazzano.io_verrazzanobindings_crd.yaml
+	cp -r vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomodels_crd.yaml ${DIST_DIR}/crds/verrazzano.io_verrazzanomodels_crd.yaml
+	cp -r vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml ${DIST_DIR}/crds/verrazzano.io_verrazzanomanagedclusters_crd.yaml
+	cp -r chart/NOTES.txt  $(DIST_DIR)/
+	cp -r chart/values.yaml  $(DIST_DIR)/
+	# Fill in tag version that's being built
+	sed -i.bak -e "s/latest/${HELM_CHART_VERSION}/g" $(DIST_DIR)/Chart.yaml
+	sed -i.bak -e "s/OPERATOR_VERSION/${OPERATOR_VERSION}/g" -e "s/OPERATOR_IMAGE_NAME/${DOCKER_IMAGE_NAME}/g" $(DIST_DIR)/values.yaml
+
+	rm -rf archive
+	mkdir archive
+	tar cvzf archive/${HELM_CHART_ARCHIVE_NAME} -C ${DIST_DIR}/ .
+	mv archive/${HELM_CHART_ARCHIVE_NAME} ${DIST_DIR}/
+	rm -rf archive
+	echo "Helm chart archive created - ${HELM_CHART_ARCHIVE_NAME}."
+
+.PHONY chart-publish:
+chart-publish:
+	echo "Publishing Helm chart to OCI object storage"
+	export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING=True
+	echo ${HELM_CHART_VERSION} > latest
+	helm repo index --url https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/ ${DIST_DIR}/
+	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/index.yaml --file ${DIST_DIR}/index.yaml
+	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/${HELM_CHART_ARCHIVE_NAME} --file ${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME}
+	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name latest --file latest
+	echo "Published Helm chart to https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/${HELM_CHART_ARCHIVE_NAME}"
+	
+	echo "Check and upload release assets to github."
+	@rm -rf response.txt
+	@curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${HELM_CHART_VERSION}" -o response.txt
+	@while [ ! -f response.txt ]; do sleep 1; done;
+	@cat response.txt
+	@set -e; \
+	msg=$$(jq -r .message response.txt); \
+	if [ "$$msg" == "Not Found" ]; then \
+		echo "No release found associated with version ${HELM_CHART_VERSION}, skipping uploading release assets."; \
+	else \
+		id=$$(jq -r .id response.txt); \
+		if [ -z "$$id" ]; then \
+			echo "Error: Failed to get release id for tag: ${HELM_CHART_VERSION}."; \
+			exit 1; \
+		else \
+			existingAssetId=$$(jq -r '.assets[] | select(.name == ("${HELM_CHART_ARCHIVE_NAME}")) | .id' response.txt); \
+			if [ ! -z "$$existingAssetId" ]; then \
+				echo "Release asset with name ${HELM_CHART_ARCHIVE_NAME} already exists with ID $$existingAssetId for release ${HELM_CHART_VERSION}. Deleting..."; \
+				status=$$(curl -w '%{http_code}' -s -k -X DELETE -H "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/assets/$$existingAssetId"); \
+				if [ "$$status" != "204" ]; then \
+					echo "Unable to delete existing asset with name ${HELM_CHART_ARCHIVE_NAME} for release ${HELM_CHART_VERSION}, invalid status ${status}, aborting.."; \
+					echo "$$status"; \
+					exit 1; \
+				fi; \
+				echo "Deleted asset with name ${HELM_CHART_ARCHIVE_NAME} for release ${HELM_CHART_VERSION}."; \
+			fi; \
+			echo "Uploading ${HELM_CHART_ARCHIVE_NAME} to release ${HELM_CHART_VERSION}."; \
+			status=$$(curl -s -o /dev/null -w '%{http_code}' --data-binary @"${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME}" -H "Authorization: token ${GITHUB_API_TOKEN}" -H "Content-Type: application/octet-stream" "https://uploads.github.com/repos/verrazzano/verrazzano-operator/releases/$$id/assets?name=${HELM_CHART_ARCHIVE_NAME}"); \
+			if [ "$$status" != "201" ]; then \
+				echo "Unable to upload asset with name ${HELM_CHART_ARCHIVE_NAME} for release ${HELM_CHART_VERSION}, invalid status ${status}, aborting.."; \
+				echo "$$status"; \
+				exit 1; \
+			fi; \
+			echo "Uploaded ${HELM_CHART_ARCHIVE_NAME} to release ${HELM_CHART_VERSION}."; \
+		fi; \
+	fi; \
+	set +e
+
+	rm -rf response.txt
+	rm -rf ${DIST_DIR}
+
 .PHONY release-version:
 release-version:
 	@set -e; \
