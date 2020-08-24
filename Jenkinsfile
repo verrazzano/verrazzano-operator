@@ -98,8 +98,6 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
                     make push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-                    make chart-build DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME}
-                    make chart-publish 
                    """
             }
         }
