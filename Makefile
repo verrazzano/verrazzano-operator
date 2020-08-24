@@ -5,7 +5,7 @@ NAME:=verrazzano-operator
 
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
 TAG=$(shell git rev-parse HEAD)
-SHORT_COMMIT_HASH=$(shell git rev-parse --short HEAD
+SHORT_COMMIT_HASH=$(shell git rev-parse --short HEAD)
 DOCKER_IMAGE_TAG = ${TAG}
 
 CREATE_LATEST_TAG=0
