@@ -33,9 +33,9 @@ type Error struct {
 }
 
 func HttpError(w http.ResponseWriter, statusCode int, code, message string) {
-	error := Error{Code: code, Message: message}
+	errObject := Error{Code: code, Message: message}
 	errMsg := message
-	bytes, err := json.Marshal(&error)
+	bytes, err := json.Marshal(&errObject)
 	if err == nil || (bytes != nil && len(bytes) > 0) {
 		errMsg = string(bytes)
 	}
