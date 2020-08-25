@@ -586,7 +586,7 @@ func httpRoutes(namespace string, ingress *types.Ingress) []istiocrd.HttpRoute {
 				Route: []istiocrd.HTTPRouteDestination{
 					{
 						Destination: istiocrd.Destination{
-							Host: fmt.Sprintf("%s-admin-server.%s.svc.cluster.local", destination.DomainName, namespace),
+							Host: fmt.Sprintf("%s-%s.%s.svc.cluster.local", destination.DomainName, GetDomainAdminServerNameAsInAddress(), namespace),
 							Port: istiocrd.PortSelector{
 								Number: 7001,
 							},
@@ -597,6 +597,14 @@ func httpRoutes(namespace string, ingress *types.Ingress) []istiocrd.HttpRoute {
 		}
 	}
 	return routes
+}
+
+func GetDomainAdminServerNameAsInAddress() string {
+	return strings.ToLower(GetDomainAdminServerNameAsInTarget())
+}
+
+func GetDomainAdminServerNameAsInTarget() string {
+	return "AdminServer"
 }
 
 func addMatch(matches []istiocrd.MatchRequest, key, value string) []istiocrd.MatchRequest {

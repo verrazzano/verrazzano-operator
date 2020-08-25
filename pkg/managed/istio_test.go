@@ -66,7 +66,7 @@ func TestNewIngresses(t *testing.T) {
 	assertRoute(t, vs[0].Spec.Http[0].Route,
 		Dest{Port: 8001, Host: destHost})
 	assertRoute(t, vs[0].Spec.Http[1].Route,
-		Dest{Port: 7001, Host: "bobs-bookstore-admin-server.bob.svc.cluster.local"})
+		Dest{Port: 7001, Host: "bobs-bookstore-adminserver.bob.svc.cluster.local"})
 	assert.Equal(t, "bobs-ingress-gateway", vs[0].Spec.Gateways[0], "Expected VirtualService.Gateway")
 	assert.Equal(t, "*", vs[0].Spec.Hosts[0], "Expected VirtualService.Host")
 }

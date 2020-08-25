@@ -5,6 +5,7 @@ package domains
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
+	"github.com/verrazzano/verrazzano-operator/pkg/managed"
 )
 
 // This file is very similar to applications.go - please see comments there
@@ -68,7 +70,7 @@ func refreshDomains() {
 			// grab all of the domains
 			for _, domain := range mc.WlsDomainCRs {
 				Domains = append(Domains, Domain{
-					Id:      domain.Name,
+					Id: domain.Name,
 					Style: func() string {
 						if domain.Spec.DomainHomeInImage == true {
 							return "domain-in-image"
@@ -79,7 +81,7 @@ func refreshDomains() {
 					AdminServerAddress: func() string {
 						for _, channel := range domain.Spec.AdminServer.AdminService.Channels {
 							if channel.ChannelName == "default" {
-								return "http://" + domain.Name + "-admin-server:" + strconv.FormatInt(int64(channel.NodePort), 10)
+								return fmt.Sprintf("http://%s-%s:%s)", domain.Name, managed.GetDomainAdminServerNameAsInAddress(), strconv.FormatInt(int64(channel.NodePort), 10))
 							}
 						}
 						return ""
@@ -87,7 +89,7 @@ func refreshDomains() {
 					T3Address: func() string {
 						for _, channel := range domain.Spec.AdminServer.AdminService.Channels {
 							if channel.ChannelName == "T3Channel" {
-								return "t3://" + domain.Name + "-admin-server:" + strconv.FormatInt(int64(channel.NodePort), 10)
+								return fmt.Sprintf("t3://%s-%s:%s", domain.Name, managed.GetDomainAdminServerNameAsInAddress(), strconv.FormatInt(int64(channel.NodePort), 10))
 							}
 						}
 						return ""
