@@ -98,8 +98,6 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
                     make push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-                    make chart-build DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME}
-                    make chart-publish 
                    """
             }
         }
@@ -172,17 +170,12 @@ pipeline {
             }
         }
 
-        stage('Release') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    equals expected: false, actual: skipBuild
-                    equals expected: env.BRANCH_NAME, actual: params.RELEASE_BRANCH
-                } 
-            }
+        stage('Publish Image') {
+            when { buildingTag() }
             steps {
                 sh """
-                    make release DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${env.DOCKER_IMAGE_NAME} RELEASE_VERSION=${params.RELEASE_VERSION} RELEASE_DESCRIPTION=${params.RELEASE_DESCRIPTION} RELEASE_BRANCH=${params.RELEASE_BRANCH}
+                    cd ${GO_REPO_PATH}/verrazzano-operator
+                    make push-tag DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${env.DOCKER_IMAGE_NAME} DOCKER_PUBLISH_IMAGE_NAME=${env.DOCKER_PUBLISH_IMAGE_NAME}
                 """
             }
         }

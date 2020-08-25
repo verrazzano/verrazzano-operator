@@ -5,11 +5,12 @@ NAME:=verrazzano-operator
 
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
 TAG=$(shell git rev-parse HEAD)
+SHORT_COMMIT_HASH=$(shell git rev-parse --short HEAD)
 DOCKER_IMAGE_TAG = ${TAG}
 
 CREATE_LATEST_TAG=0
 
-ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),push release))
+ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),push push-tag))
 	ifndef DOCKER_REPO
 		$(error DOCKER_REPO must be defined as the name of the docker repository where image will be pushed)
 	endif
@@ -154,163 +155,11 @@ k8s-deploy:
 	kubectl delete -f ${DIST_DIR}/manifests
 	kubectl apply -f ${DIST_DIR}/manifests
 
-.PHONY chart-build:
-chart-build: go-mod
-	echo "Creating helm chart archive."
-	rm -rf ${DIST_DIR}
-	mkdir ${DIST_DIR}
-	mkdir ${DIST_DIR}/charts
-	mkdir ${DIST_DIR}/crds
-	cp -r chart/Chart.yaml $(DIST_DIR)/
-	cp -r chart/templates $(DIST_DIR)/
-	cp -r vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanobindings_crd.yaml ${DIST_DIR}/crds/verrazzano.io_verrazzanobindings_crd.yaml
-	cp -r vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomodels_crd.yaml ${DIST_DIR}/crds/verrazzano.io_verrazzanomodels_crd.yaml
-	cp -r vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml ${DIST_DIR}/crds/verrazzano.io_verrazzanomanagedclusters_crd.yaml
-	cp -r chart/NOTES.txt  $(DIST_DIR)/
-	cp -r chart/values.yaml  $(DIST_DIR)/
-	# Fill in tag version that's being built
-	sed -i.bak -e "s/latest/${HELM_CHART_VERSION}/g" $(DIST_DIR)/Chart.yaml
-	sed -i.bak -e "s/OPERATOR_VERSION/${OPERATOR_VERSION}/g" -e "s/OPERATOR_IMAGE_NAME/${DOCKER_IMAGE_NAME}/g" $(DIST_DIR)/values.yaml
-
-	rm -rf archive
-	mkdir archive
-	tar cvzf archive/${HELM_CHART_ARCHIVE_NAME} -C ${DIST_DIR}/ .
-	mv archive/${HELM_CHART_ARCHIVE_NAME} ${DIST_DIR}/
-	rm -rf archive
-	echo "Helm chart archive created - ${HELM_CHART_ARCHIVE_NAME}."
-
-.PHONY chart-publish:
-chart-publish:
-	echo "Publishing Helm chart to OCI object storage"
-	export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING=True
-	echo ${HELM_CHART_VERSION} > latest
-	helm repo index --url https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/ ${DIST_DIR}/
-	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/index.yaml --file ${DIST_DIR}/index.yaml
-	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name ${HELM_CHART_VERSION}/${HELM_CHART_ARCHIVE_NAME} --file ${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME}
-	oci os object put --force --namespace ${DIST_OBJECT_STORE_NAMESPACE} -bn ${DIST_OBJECT_STORE_BUCKET} --name latest --file latest
-	echo "Published Helm chart to https://objectstorage.us-phoenix-1.oraclecloud.com/n/${DIST_OBJECT_STORE_NAMESPACE}/b/${DIST_OBJECT_STORE_BUCKET}/o/${HELM_CHART_VERSION}/${HELM_CHART_ARCHIVE_NAME}"
-	
-	echo "Check and upload release assets to github."
-	@rm -rf response.txt
-	@curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${HELM_CHART_VERSION}" -o response.txt
-	@while [ ! -f response.txt ]; do sleep 1; done;
-	@cat response.txt
-	@set -e; \
-	msg=$$(jq -r .message response.txt); \
-	if [ "$$msg" == "Not Found" ]; then \
-		echo "No release found associated with version ${HELM_CHART_VERSION}, skipping uploading release assets."; \
-	else \
-		id=$$(jq -r .id response.txt); \
-		if [ -z "$$id" ]; then \
-			echo "Error: Failed to get release id for tag: ${HELM_CHART_VERSION}."; \
-			exit 1; \
-		else \
-			existingAssetId=$$(jq -r '.assets[] | select(.name == ("${HELM_CHART_ARCHIVE_NAME}")) | .id' response.txt); \
-			if [ ! -z "$$existingAssetId" ]; then \
-				echo "Release asset with name ${HELM_CHART_ARCHIVE_NAME} already exists with ID $$existingAssetId for release ${HELM_CHART_VERSION}. Deleting..."; \
-				status=$$(curl -w '%{http_code}' -s -k -X DELETE -H "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/assets/$$existingAssetId"); \
-				if [ "$$status" != "204" ]; then \
-					echo "Unable to delete existing asset with name ${HELM_CHART_ARCHIVE_NAME} for release ${HELM_CHART_VERSION}, invalid status ${status}, aborting.."; \
-					echo "$$status"; \
-					exit 1; \
-				fi; \
-				echo "Deleted asset with name ${HELM_CHART_ARCHIVE_NAME} for release ${HELM_CHART_VERSION}."; \
-			fi; \
-			echo "Uploading ${HELM_CHART_ARCHIVE_NAME} to release ${HELM_CHART_VERSION}."; \
-			status=$$(curl -s -o /dev/null -w '%{http_code}' --data-binary @"${DIST_DIR}/${HELM_CHART_ARCHIVE_NAME}" -H "Authorization: token ${GITHUB_API_TOKEN}" -H "Content-Type: application/octet-stream" "https://uploads.github.com/repos/verrazzano/verrazzano-operator/releases/$$id/assets?name=${HELM_CHART_ARCHIVE_NAME}"); \
-			if [ "$$status" != "201" ]; then \
-				echo "Unable to upload asset with name ${HELM_CHART_ARCHIVE_NAME} for release ${HELM_CHART_VERSION}, invalid status ${status}, aborting.."; \
-				echo "$$status"; \
-				exit 1; \
-			fi; \
-			echo "Uploaded ${HELM_CHART_ARCHIVE_NAME} to release ${HELM_CHART_VERSION}."; \
-		fi; \
-	fi; \
-	set +e
-
-	rm -rf response.txt
-	rm -rf ${DIST_DIR}
-
-.PHONY release-version:
-release-version:
-	@set -e; \
-	if [ ! -z "${RELEASE_VERSION}" ]; then \
-		echo "Using input release version ${RELEASE_VERSION}."; \
-		version=$$(echo "${RELEASE_VERSION}"); \
-	else \
-		echo "Getting latest tag."; \
-		rm -rf response.txt; \
-		curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/tags" -o response.txt; \
-		while [ ! -f response.txt ]; do sleep 1; done; \
-		msg=$$(jq -r 'if type=="array" then "" else .message end' response.txt); \
-		if [ "$$msg" == "Not Found" ]; then \
-			echo "No existing tag found. Creating release with version v0.1.0."; \
-			version="v0.1.0"; \
-		else \
-			latest=$$(jq -r '[.[]|.name][0]' response.txt); \
-			if [ -z "$$latest" ]; then \
-				echo "Error: Failed to get latest tag. Aborting.."; \
-				exit 1; \
-			else \
-				echo "Version for latest tag is $$latest."; \
-				major=$$(echo $$latest | cut -d. -f1); \
-				minor=$$(echo $$latest | cut -d. -f2); \
-				revision=$$(echo $$latest | cut -d. -f3); \
-				revision=$$(expr $$revision + 1); \
-				version=$$(echo "$$major.$$minor.$$revision"); \
-				echo "New release version $$version."; \
-			fi; \
-		fi; \
-	fi; \
-	set +e; \
-	echo "$$version" > chart/latest
-
-.PHONY release-image:
-release-image: release-version
-	RELEASE_VERSION=$$(cat chart/latest); \
-	echo "Tagging and pushing image ${DOCKER_IMAGE_FULLNAME}:$$RELEASE_VERSION"; \
-	docker pull ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}; \
-	docker tag ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:$$RELEASE_VERSION; \
-	docker push ${DOCKER_IMAGE_FULLNAME}:$$RELEASE_VERSION;
-
-.PHONY github-release:
-github-release: release-image
-	make chart-build RELEASE_VERSION=`cat chart/latest`
-	touch chart/index.yaml
-	cp chart/index.yaml ${DIST_DIR}/
-	helm repo index --merge ${DIST_DIR}/index.yaml --url https://github.com/verrazzano/verrazzano-operator/releases/download/`cat chart/latest` ${DIST_DIR}/
-	cp ${DIST_DIR}/index.yaml chart/.
-
-	@set -e; \
-	echo "Updating index.yaml in github repo."; \
-	git clone -b ${RELEASE_BRANCH} https://github.com/verrazzano/verrazzano-operator; \
-	cp chart/index.yaml verrazzano-operator/chart/index.yaml; \
-	cp chart/latest verrazzano-operator/chart/latest; \
-	cd verrazzano-operator; \
-	git config user.email "${GITHUB_RELEASE_EMAIL}"; \
-	git config user.name "${GITHUB_RELEASE_USERID}"; \
-	git add -f chart/index.yaml; \
-	git add -f chart/latest; \
-	git commit -m "[automatic helm release] Release $$(cat chart/latest)"; \
-	git push; \
-	set +e; \
-	echo "Updated index.yaml in github repo.";
-	rm -rf verrazzano-operator
-
-	@set -e; \
-	RELEASE_VERSION=$$(cat chart/latest); \
-	echo "Creating release $$RELEASE_VERSION in github."; \
-	request="{\"tag_name\": \"$$RELEASE_VERSION\",\"target_commitish\": \"${RELEASE_BRANCH}\",\"name\": \"$$RELEASE_VERSION\",\"body\": \"${RELEASE_DESCRIPTION}\"}"; \
-	echo $$request; \
-	status=$$(curl -s -o /dev/null -w '%{http_code}' --data "$$request" -H "Authorization: token ${GITHUB_API_TOKEN}" -H "Content-Type: application/json" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases"); \
-	if [ "$$status" != "201" ]; then \
-		echo "Unable to create release with name $$RELEASE_VERSION, invalid status ${status}, aborting.."; \
-		echo "$$status"; \
-		exit 1; \
-	fi; \
-	set +e; \
-	echo "Release $$RELEASE_VERSION created in github.";
-
-.PHONY release:
-release: github-release
-	make chart-publish RELEASE_VERSION=`cat chart/latest`
+.PHONY: push-tag
+push-tag:
+	PUBLISH_NAME="${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_PUBLISH_IMAGE_NAME}"; \
+	PUBLISH_TAG="${TAG_NAME}-${SHORT_COMMIT_HASH}-${BUILD_NUMBER}"; \
+	echo "Tagging and pushing image $$PUBLISH_NAME:$$PUBLISH_TAG"; \
+	docker pull "${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}"; \
+	docker tag "${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}" "$$PUBLISH_NAME:$$PUBLISH_TAG"; \
+	docker push "$$PUBLISH_NAME:$$PUBLISH_TAG"
