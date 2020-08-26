@@ -4,6 +4,7 @@
 package cohcluster
 
 import (
+	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	v1coh "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
@@ -66,6 +67,19 @@ func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, 
 						Image: &applicationImage,
 					},
 				},
+				// Set the optional ports
+				Ports: func() []v1coh.NamedPortSpec{
+					glog.V(4).Info("mackin - checking for ports" )
+					var portSpecs  []v1coh.NamedPortSpec
+					for i,_ := range cluster.Ports {
+
+						glog.V(4).Info("mackin - port found" )
+
+						newPort := cluster.Ports[i].DeepCopy()
+						portSpecs = append(portSpecs, *newPort)
+					}
+					return portSpecs
+				}(),
 			},
 			// Add any imagePullSecrets that were specified
 			ImagePullSecrets: func() []v1coh.LocalObjectReference {
