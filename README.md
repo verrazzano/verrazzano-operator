@@ -1,31 +1,8 @@
-[![pipeline status](https://github.com/verrazzano/verrazzano-operator/badges/master/pipeline.svg)](https://github.com/verrazzano/verrazzano-operator/commits/master)
-[![coverage report](https://github.com/verrazzano/verrazzano-operator/badges/master/coverage.svg)](https://github.com/verrazzano/verrazzano-operator/commits/master)
+
 # Verrazzano Operator
 
-The Verrazzano Operator is the Kubernetes operator that runs in the Verrazzano Management Cluster, 
+The Verrazzano Operator is the Kubernetes operator that runs in the Verrazzano Management Cluster,
 watches local CRDs for models/bindings, and launches micro operators into Verrazzano Managed Clusters.
-
-## Project Status
-
-Current functionality:
-- Learns about Managed Clusters through a "VerrazzanoManagedCluster" CR, and creates k8s clients and watchers to those
-clusters.
-- Watches the local k8s cluster for VerrazzanoModel and VerrazzanoBinding CRs.
-- A VerrazzanoModel/VerrazzanoBinding pair describes a Verrazzano application and defines which application components
-should be installed on which VerrazzanoManagedCluster.
-- On creation or update of a VerrazzanoModel/VerrazzanoBinding pair, the Verrazzano Operator launches:
-  - Into the Management Cluster:
-    - A Verrazzano Monitoring instance.
-  - Into the Managed Cluster for each "component":
-    - TBD - Need to add more details here.  A WeblogicApplication CR.  This is also just a dummy CR for now.  This would get replaced by one of the real, eventual CRs that the
-  micro-operators will act on.
-    - TBD - Need to mention other micro operators.
-    - Agents forwarding logs and metrics to the VerrazzanoMonitoringInstance. 
-
-- On deletion of a VerrazzanoBinding, deletes all related resources deployed above.
-- On updates to the Managed Cluster's objects (deployments, WeblogicApplication CRs) created by the Verrazzano Operator,
-triggers a reprocessing of the owning VerrazzanoBinding.  This causes any drift in expecting state to immediately
-be fixed by the Verrazzano Operator.
 
 ## Release
 
