@@ -11,6 +11,7 @@ import (
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	v1meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strconv"
 )
 
 const Kind = "CoherenceCluster"
@@ -19,6 +20,8 @@ const ApiVersion = "coherenceclusters.coherence.oracle.com/v1"
 func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, cohBinding *v1beta1v8o.VerrazzanoCoherenceBinding, labels map[string]string) *v1coh.CoherenceCluster {
 	applicationImage := cluster.Image
 	cacheConfig := cluster.CacheConfig
+	glog.Info("mackin in CreateCR ...")
+
 	coherenceCluster := v1coh.CoherenceCluster{
 		TypeMeta: v1meta.TypeMeta{
 			Kind:       Kind,
@@ -69,11 +72,12 @@ func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, 
 				},
 				// Set the optional ports
 				Ports: func() []v1coh.NamedPortSpec{
-					glog.V(4).Info("mackin - checking for ports" )
+					glog.Info("mackin checking for ports: count " + strconv.Itoa(len(cluster.Ports)))
+
 					var portSpecs  []v1coh.NamedPortSpec
 					for i,_ := range cluster.Ports {
 
-						glog.V(4).Info("mackin - port found" )
+						glog.Info("mackin port found " )
 
 						newPort := cluster.Ports[i].DeepCopy()
 						portSpecs = append(portSpecs, *newPort)
