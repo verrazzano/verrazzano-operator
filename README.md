@@ -17,15 +17,14 @@ Current functionality:
   - Custom resources needed to deploy application components.
   - Agents forwarding logs and metrics to the Verrazzano Monitoring Instance.
 
-- On deletion of a `VerrazzanoBinding`, deletes all related resources deployed above.
-- On updates to the Managed Cluster's objects (deployments, micro-operator custom resources)
+- On deletion of a `VerrazzanoBinding`, deletes all related resources deployed.
+- On updates to the Managed Cluster's objects (deployments, micro operator custom resources)
   created by the Verrazzano Operator, triggers a reprocessing of the owning `VerrazzanoBinding`.
   This causes any drift in expecting state to immediately be fixed by the Verrazzano Operator.
 
 ## Artifacts
 
-On a successful release (which occurs on a Git tag), this repo 
-- publishes a Docker image: `container-registry.oracle.com/verrazzano/verrazzano-operator:tag`
+On a successful release (which occurs on a Git tag), this repo publishes a Docker image: `container-registry.oracle.com/verrazzano/verrazzano-operator:tag`
 
 ## Building
 
