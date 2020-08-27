@@ -102,17 +102,6 @@ pipeline {
             }
         }
 
-        stage('Third Party License Check') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    equals expected: false, actual: skipBuild
-                }
-            }
-            steps {
-                thirdpartyCheck()
-            }
-        }
 
         stage('Copyright Compliance Check') {
             when {
