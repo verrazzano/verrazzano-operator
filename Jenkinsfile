@@ -46,7 +46,9 @@ pipeline {
         CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        DOCKER_CREDS = credentials('ocir-pull-and-push-account')
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_REPO = 'docker.pkg.github.com'
+        DOCKER_NAMESPACE = 'verrazzano/verrazzano-operator'
         NETRC_FILE = credentials('netrc')
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
