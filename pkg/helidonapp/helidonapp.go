@@ -90,19 +90,23 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 				// Only override if the ENV var is not explicitly defined in the model
 				if cohCluster != nil {
 					var env corev1.EnvVar
-					if _, ok := envSet[env.Name]; !ok {
-						env.Name = "COH_CLUSTER"
+					const COH_CLUSTER = "COH_CLUSTER"
+					const COH_CACHE_CONFIG = "COH_CACHE_CONFIG"
+					const COH_POF_CONFIG = "COH_POF_CONFIG"
+
+					if _, ok := envSet[COH_CLUSTER]; !ok {
+						env.Name = COH_CLUSTER
 						env.Value = cohConnection.Target
 						envs = append(envs, env)
 					}
-					if _, ok := envSet[env.Name]; !ok {
-						env.Name = "COH_CACHE_CONFIG"
+					if _, ok := envSet[COH_CACHE_CONFIG]; !ok {
+						env.Name = COH_CACHE_CONFIG
 						env.Value = cohCluster.CacheConfig
 						envs = append(envs, env)
 
 					}
-					if _, ok := envSet[env.Name]; !ok {
-						env.Name = "COH_POF_CONFIG"
+					if _, ok := envSet[COH_POF_CONFIG]; !ok {
+						env.Name = COH_POF_CONFIG
 						env.Value = cohCluster.PofConfig
 						envs = append(envs, env)
 					}
