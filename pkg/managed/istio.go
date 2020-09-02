@@ -692,8 +692,8 @@ func newDestinationRules(mbPair *types.ModelBindingPair, mc *types.ManagedCluste
 
 	// get all the namespaces from the binding
 	for _, placement := range mbPair.Binding.Spec.Placement {
-		for _, namespace := range placement.Namespaces {
-			namespaceMap[namespace.Name] = &namespace
+		for i, namespace := range placement.Namespaces {
+			namespaceMap[namespace.Name] = &placement.Namespaces[i]
 		}
 	}
 
