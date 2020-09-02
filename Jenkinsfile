@@ -47,7 +47,7 @@ pipeline {
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
-        DOCKER_REPO = 'docker.pkg.github.com'
+        DOCKER_REPO = 'ghcr.io'
         DOCKER_NAMESPACE = 'verrazzano/verrazzano-operator'
         NETRC_FILE = credentials('netrc')
         GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
