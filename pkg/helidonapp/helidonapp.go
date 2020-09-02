@@ -61,7 +61,7 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 	// Add the ENV vars specified in the model file
 	var envs []corev1.EnvVar
 	var envSet = make(map[string]bool)
-	for _, v := range app.Envs{
+	for _, v := range app.Env{
 		e := corev1.EnvVar{
 			Name:      v.Name,
 			Value:     v.Value,
