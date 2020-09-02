@@ -34,7 +34,7 @@ func TestCreateStorageOption(t *testing.T) {
 func TestNewVmiSecrets(t *testing.T) {
 	binding := v1beta1v8o.VerrazzanoBinding{}
 	binding.Name = "TestNewVmiSecrets"
-	vmi := newVMIs(&binding, "v8o.uri", "")
+	vmi := newVMIs(&binding, "v8o.uri", "", true)
 	assert.Equal(t, constants.VerrazzanoNamespace, vmi[0].Namespace, "right Namespace")
 	assert.Equal(t, constants.VmiSecretName, vmi[0].Spec.SecretsName, "right SecretsName")
 }
