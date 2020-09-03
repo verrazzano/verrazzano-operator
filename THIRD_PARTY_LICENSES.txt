@@ -1844,9 +1844,8 @@ Copyright (c) 2020 Oracle America, Inc. and its affiliates.
 github.com/verrazzano/verrazzano-crd-generator
 -------- Copyrights
 Copyright (c) 2020 Oracle America, Inc. and its affiliates. 
-# Copyright (c) 2020, Oracle Corporation and/or its affiliates.
-// Copyright (c) 2020, Oracle Corporation and/or its affiliates.
- * Copyright (c) 2020, Oracle Corporation and/or its affiliates.
+# Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, Oracle and/or its affiliates.
 
 -------- Dependency
 github.com/verrazzano/verrazzano-helidon-app-operator
@@ -11194,8 +11193,14 @@ github.com/go-bindata/go-bindata/v3
 -------- Copyrights
 	return fmt.Sprintf("%s %d.%d.%s (Go runtime %s).\nCopyright (c) 2010-2013, Jim Teeuwen.",
 
+-------- Dependency
+github.com/jteeuwen/go-bindata
+-------- Copyrights
+	return fmt.Sprintf("%s %d.%d.%s (Go runtime %s).\nCopyright (c) 2010-2013, Jim Teeuwen.",
+
 ======== Dependencies Summary
 github.com/go-bindata/go-bindata/v3
+github.com/jteeuwen/go-bindata
 
 ======== License used by Dependencies
 This work is subject to the CC0 1.0 Universal (CC0 1.0) Public Domain Dedication
@@ -11345,7 +11350,6 @@ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 
 ======== Creative Commons License
 
@@ -11777,4 +11781,4 @@ Creative Commons may be contacted at creativecommons.org.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 1f64f7a66435f3e8677f22935620eaa4
+License file based on go.mod with md5 sum: 4af97541f1a3f1a3a295eca4ddb2fd7e

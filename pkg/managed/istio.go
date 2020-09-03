@@ -677,17 +677,36 @@ func newServiceEntries(mbPair *types.ModelBindingPair, mc *types.ManagedCluster,
 // issues with WebLogic managed server communication with the admin server.
 func newDestinationRules(mbPair *types.ModelBindingPair, mc *types.ManagedCluster, pods []*v1.Pod) ([]*v1alpha3.DestinationRule, error) {
 	var rules []*v1alpha3.DestinationRule
-	namespaceMap := make(map[string]struct{})
+	namespaceMap := make(map[string]*v1beta1v8o.KubernetesNamespace)
+
+	// Get all the coherence extend ports for each coherence component.
+	// create a map of coherence ports, key is coherence component name
+	var cohPortMap = make(map[string][]uint32)
+	for _, cohCluster := range mbPair.Model.Spec.CoherenceClusters {
+		var ports []uint32
+		for _, p := range cohCluster.Ports {
+			ports = append(ports, uint32(p.Port))
+		}
+		cohPortMap[cohCluster.Name] = ports
+	}
 
 	// get all the namespaces from the binding
 	for _, placement := range mbPair.Binding.Spec.Placement {
-		for _, namespace := range placement.Namespaces {
-			namespaceMap[namespace.Name] = struct{}{}
+		for i, namespace := range placement.Namespaces {
+			namespaceMap[namespace.Name] = &placement.Namespaces[i]
 		}
 	}
-	// create an destination rule for each binding namespace in the given cluster
+
+	// create a destination rule for each binding namespace in the given cluster
 	for _, namespace := range mc.Namespaces {
-		if _, ok := namespaceMap[namespace]; ok {
+		if ns, ok := namespaceMap[namespace]; ok {
+			// If this namespace has a coherence component then get the ports from the map
+			var cohPorts []uint32
+			for _, comp := range ns.Components {
+				if ports, ok := cohPortMap[comp.Name]; ok {
+					cohPorts = ports
+				}
+			}
 			// create a destination rule spec that enables MTLS for the namespace
 			rules = append(rules, &v1alpha3.DestinationRule{
 				ObjectMeta: metav1.ObjectMeta{
@@ -700,12 +719,31 @@ func newDestinationRules(mbPair *types.ModelBindingPair, mc *types.ManagedCluste
 						Tls: &istio.ClientTLSSettings{
 							Mode: istio.ClientTLSSettings_ISTIO_MUTUAL,
 						},
+						PortLevelSettings: getCohTrafficPolicy(cohPorts),
 					},
 				},
 			})
 		}
 	}
 	return rules, nil
+}
+
+// Construct the traffice policy needed for Coherence extend ports.  These
+// ports need TLS disabled.
+func getCohTrafficPolicy(cohPorts []uint32) []*istio.TrafficPolicy_PortTrafficPolicy {
+	var tps []*istio.TrafficPolicy_PortTrafficPolicy
+	for _, port := range cohPorts{
+		tp := istio.TrafficPolicy_PortTrafficPolicy{
+			Port: &istio.PortSelector{
+				Number:               port,
+			},
+			Tls: &istio.ClientTLSSettings{
+				Mode: istio.ClientTLSSettings_DISABLE,
+			},
+		}
+		tps = append(tps, &tp)
+	}
+	return tps
 }
 
 // Construct the necessary Istio AuthorizationPolicy objects
