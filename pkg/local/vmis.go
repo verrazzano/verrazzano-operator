@@ -21,12 +21,12 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-func CreateVmis(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoUri string, enableMonitoringStorage string, productionMonitoring bool) error {
+func CreateVmis(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoUri string, enableMonitoringStorage string) error {
 
 	glog.V(6).Infof("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the set of expected VMIs
-	newVMIs := newVMIs(binding, verrazzanoUri, enableMonitoringStorage, productionMonitoring)
+	newVMIs := newVMIs(binding, verrazzanoUri, enableMonitoringStorage)
 
 	// Create or update VMIs
 	var vmiNames = []string{}
@@ -102,7 +102,7 @@ func createStorageOption(enableMonitoringStorage string) vmov1.Storage {
 }
 
 // Constructs the necessary VMI for the given VerrazzanoBinding
-func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enableMonitoringStorage string, productionMonitoring bool) []*vmov1.VerrazzanoMonitoringInstance {
+func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enableMonitoringStorage string) []*vmov1.VerrazzanoMonitoringInstance {
 	bindingLabels := util.GetLocalBindingLabels(binding)
 
 	if verrazzanoUri == "" {
@@ -126,7 +126,7 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 					Storage:             storageOption,
 					DashboardsConfigMap: util.GetVmiNameForBinding(binding.Name) + "-dashboards",
 					Resources: vmov1.Resources{
-						RequestMemory: getGrafanaRequestMemory(productionMonitoring),
+						RequestMemory: getGrafanaRequestMemory(),
 					},
 				},
 				IngressTargetDNSName: fmt.Sprintf("verrazzano-ingress.%s", verrazzanoUri),
@@ -134,7 +134,7 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 					Enabled: true,
 					Storage: storageOption,
 					Resources: vmov1.Resources{
-						RequestMemory: getPrometheusRequestMemory(productionMonitoring),
+						RequestMemory: getPrometheusRequestMemory(),
 					},
 				},
 				Elasticsearch: vmov1.Elasticsearch{
@@ -143,26 +143,26 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 					IngestNode: vmov1.ElasticsearchNode{
 						Replicas: 1,
 						Resources: vmov1.Resources{
-							RequestMemory: getElasticsearchIngestNodeRequestMemory(productionMonitoring),
+							RequestMemory: getElasticsearchIngestNodeRequestMemory(),
 						},
 					},
 					MasterNode: vmov1.ElasticsearchNode{
-						Replicas: getElasticsearchMasterNodeReplicas(productionMonitoring),
+						Replicas: 3,
 						Resources: vmov1.Resources{
-							RequestMemory: getElasticsearchMasterNodeRequestMemory(productionMonitoring),
+							RequestMemory: getElasticsearchMasterNodeRequestMemory(),
 						},
 					},
 					DataNode: vmov1.ElasticsearchNode{
 						Replicas: 2,
 						Resources: vmov1.Resources{
-							RequestMemory: getElasticsearchDataNodeRequestMemory(productionMonitoring),
+							RequestMemory: getElasticsearchDataNodeRequestMemory(),
 						},
 					},
 				},
 				Kibana: vmov1.Kibana{
 					Enabled: true,
 					Resources: vmov1.Resources{
-						RequestMemory: getKibanaRequestMemory(productionMonitoring),
+						RequestMemory: getKibanaRequestMemory(),
 					},
 				},
 				ServiceType: "ClusterIP",
@@ -171,58 +171,26 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 	}
 }
 
-func getElasticsearchMasterNodeReplicas(productionMonitoring bool) int32 {
-	if productionMonitoring {
-		return 3
-	} else {
-		return 1
-	}
+func getElasticsearchMasterNodeRequestMemory() string {
+	return "1.9Gi"
 }
 
-func getElasticsearchMasterNodeRequestMemory(productionMonitoring bool) string {
-	if productionMonitoring {
-		return "1.9Gi"
-	} else {
-		return "1.3Gi"
-	}
+func getElasticsearchIngestNodeRequestMemory() string {
+	return "3.4Gi"
 }
 
-func getElasticsearchIngestNodeRequestMemory(productionMonitoring bool) string {
-	if productionMonitoring {
-		return "3.4Gi"
-	} else {
-		return "2.3Gi"
-	}
+func getElasticsearchDataNodeRequestMemory() string {
+	return "6.5Gi"
 }
 
-func getElasticsearchDataNodeRequestMemory(productionMonitoring bool) string {
-	if productionMonitoring {
-		return "6.5Gi"
-	} else {
-		return "4.4Gi"
-	}
+func getGrafanaRequestMemory() string {
+	return "48Mi"
 }
 
-func getGrafanaRequestMemory(productionMonitoring bool) string {
-	if productionMonitoring {
-		return "48Mi"
-	} else {
-		return "32Mi"
-	}
+func getPrometheusRequestMemory() string {
+	return "72Mi"
 }
 
-func getPrometheusRequestMemory(productionMonitoring bool) string {
-	if productionMonitoring {
-		return "512Mi"
-	} else {
-		return "48Mi"
-	}
-}
-
-func getKibanaRequestMemory(productionMonitoring bool) string {
-	if productionMonitoring {
-		return "192Mi"
-	} else {
-		return "128Mi"
-	}
+func getKibanaRequestMemory() string {
+	return "192Mi"
 }

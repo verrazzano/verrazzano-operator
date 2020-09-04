@@ -35,7 +35,6 @@ var (
 	helidonAppOperatorDeployment string
 	enableMonitoringStorage      string
 	sslVerify                    bool
-	productionMonitoring         bool
 	apiServerRealm               string
 )
 
@@ -125,7 +124,7 @@ func main() {
 		glog.V(6).Info("helidonAppOperatorDeployment Disabled")
 		manifest.HelidonAppOperatorImage = ""
 	}
-	controller, err := pkgverrazzanooperator.NewController(kubeconfig, manifest, masterURL, watchNamespace, verrazzanoUri, enableMonitoringStorage, sslVerify, productionMonitoring)
+	controller, err := pkgverrazzanooperator.NewController(kubeconfig, manifest, masterURL, watchNamespace, verrazzanoUri, enableMonitoringStorage, sslVerify)
 	if err != nil {
 		glog.Fatalf("Error creating the controller: %s", err.Error())
 	}
@@ -169,6 +168,5 @@ func init() {
 	flag.StringVar(&helidonAppOperatorDeployment, "helidonAppOperatorDeployment", "", "--helidonAppOperatorDeployment=false disables helidonAppOperatorDeployment")
 	flag.StringVar(&enableMonitoringStorage, "enableMonitoringStorage", "", "Enable storage for monitoring.  The default is true. 'false' means monitoring storage is disabled.")
 	flag.BoolVar(&sslVerify, "sslVerify", true, "When set to 'false' some HTTPS connections will be allowed without Certs. The default is 'true'.")
-	flag.BoolVar(&productionMonitoring, "productionMonitoring", true, "When set to 'false' monitoring pods scale less. The default is 'true'.")
 	flag.StringVar(&apiServerRealm, "apiServerRealm", "", "API Server Realm on Keycloak")
 }

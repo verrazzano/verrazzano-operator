@@ -56,7 +56,6 @@ type Controller struct {
 	verrazzanoUri               string
 	enableMonitoringStorage     string
 	sslVerify                   bool
-	productionMonitoring        bool
 
 	// Local cluster listers and informers
 	secretLister                     corev1listers.SecretLister
@@ -117,7 +116,7 @@ func (c *Controller) ListerSet() Listers {
 }
 
 // NewController returns a new Verrazzano Operator controller
-func NewController(kubeconfig string, manifest *util.Manifest, masterURL string, watchNamespace string, verrazzanoUri string, enableMonitoringStorage string, sslVerify bool, productionMonitoring bool) (*Controller, error) {
+func NewController(kubeconfig string, manifest *util.Manifest, masterURL string, watchNamespace string, verrazzanoUri string, enableMonitoringStorage string, sslVerify bool) (*Controller, error) {
 	//
 	// Instantiate connection and clients to local k8s cluster
 	//
@@ -198,7 +197,6 @@ func NewController(kubeconfig string, manifest *util.Manifest, masterURL string,
 		verrazzanoUri:                    verrazzanoUri,
 		enableMonitoringStorage:          enableMonitoringStorage,
 		sslVerify:                        sslVerify,
-		productionMonitoring:             productionMonitoring,
 		kubeClientSet:                    kubeClientSet,
 		verrazzanoOperatorClientSet:      verrazzanoOperatorClientSet,
 		vmoClientSet:                     vmoClientSet,
@@ -259,7 +257,7 @@ func (c *Controller) CreateUpdateGlobalEntities() error {
 	}
 	glog.V(4).Info("Configuring System VMI...")
 	for {
-		err := local.CreateVmis(systemBinding, c.vmoClientSet, c.vmiLister, c.verrazzanoUri, c.enableMonitoringStorage, c.productionMonitoring)
+		err := local.CreateVmis(systemBinding, c.vmoClientSet, c.vmiLister, c.verrazzanoUri, c.enableMonitoringStorage)
 		if err != nil {
 			glog.Errorf("Failed to create System VMI %s: %v", constants.VmiSystemBindingName, err)
 		}
@@ -671,7 +669,7 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 	 * Create Artifacts in the Local Cluster
 	 **********************/
 	// Create VMIs
-	err = local.CreateVmis(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoUri, c.enableMonitoringStorage, c.productionMonitoring)
+	err = local.CreateVmis(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoUri, c.enableMonitoringStorage)
 	if err != nil {
 		glog.Errorf("Failed to create VMIs for binding %s: %v", binding.Name, err)
 	}
