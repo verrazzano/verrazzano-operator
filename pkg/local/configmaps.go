@@ -14,7 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -30,9 +30,18 @@ func CreateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 		return err
 	}
 	configMapNames := []string{newConfigMap.Name}
-	existingConfigMap, err := configMapLister.ConfigMaps(newConfigMap.Namespace).Get(newConfigMap.Name)
+	existingConfigMap, err := kubeClientSet.CoreV1().ConfigMaps(newConfigMap.Namespace).Get(context.TODO(), newConfigMap.Name, metav1.GetOptions{})
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return err
+	}
 
-	if existingConfigMap != nil {
+	if k8serrors.IsNotFound(err) {
+		glog.V(4).Infof("Creating ConfigMap %s", newConfigMap.Name)
+		_, err = kubeClientSet.CoreV1().ConfigMaps(newConfigMap.Namespace).Create(context.TODO(), newConfigMap, metav1.CreateOptions{})
+		if err != nil {
+			return err
+		}
+	} else if existingConfigMap != nil {
 		if !reflect.DeepEqual(existingConfigMap.Data, newConfigMap.Data) {
 			// Don't mess with owner references or labels - VMO makes itself the "owner" of this object
 			newConfigMap.OwnerReferences = existingConfigMap.OwnerReferences
@@ -43,18 +52,12 @@ func CreateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 				return err
 			}
 		}
-	} else {
-		glog.V(4).Infof("Creating ConfigMap %s", newConfigMap.Name)
-		_, err = kubeClientSet.CoreV1().ConfigMaps(newConfigMap.Namespace).Create(context.TODO(), newConfigMap, metav1.CreateOptions{})
-		if err != nil {
-			return err
-		}
 	}
 
 	// Delete ConfigMaps that shouldn't exist
 	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
 	existingConfigMapsList, err := configMapLister.ConfigMaps(constants.VerrazzanoNamespace).List(selector)
-	if err != nil && !k8sErrors.IsNotFound(err) {
+	if err != nil {
 		return err
 	}
 	for _, existingConfigMap := range existingConfigMapsList {
