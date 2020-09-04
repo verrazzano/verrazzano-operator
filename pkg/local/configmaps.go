@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -53,7 +54,7 @@ func CreateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 	// Delete ConfigMaps that shouldn't exist
 	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
 	existingConfigMapsList, err := configMapLister.ConfigMaps(constants.VerrazzanoNamespace).List(selector)
-	if err != nil {
+	if err != nil && !k8sErrors.IsNotFound(err) {
 		return err
 	}
 	for _, existingConfigMap := range existingConfigMapsList {
