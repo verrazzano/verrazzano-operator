@@ -176,11 +176,11 @@ func getElasticsearchMasterNodeRequestMemory() string {
 }
 
 func getElasticsearchIngestNodeRequestMemory() string {
-	return "3.4Gi"
+	return "2.5Gi"
 }
 
 func getElasticsearchDataNodeRequestMemory() string {
-	return "6.5Gi"
+	return "4.8Gi"
 }
 
 func getGrafanaRequestMemory() string {
