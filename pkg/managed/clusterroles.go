@@ -211,8 +211,13 @@ func newClusterRoles(binding *v1beta1v8o.VerrazzanoBinding, clusterName string) 
 			},
 			{
 				APIGroups: []string{"rbac.authorization.k8s.io"},
-				Resources: []string{"clusterroles", "clusterrolebindings", "roles", "rolebindings"},
+				Resources: []string{"clusterroles", "roles"},
 				Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
+			},
+			{
+				APIGroups: []string{"rbac.authorization.k8s.io"},
+				Resources: []string{"clusterrolebindings", "rolebindings"},
+				Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "patch"},
 			},
 			{
 				APIGroups: []string{"weblogic.oracle"},
