@@ -188,7 +188,7 @@ func getGrafanaRequestMemory() string {
 }
 
 func getPrometheusRequestMemory() string {
-	return "72Mi"
+	return "128Mi"
 }
 
 func getKibanaRequestMemory() string {
