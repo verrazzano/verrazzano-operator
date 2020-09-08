@@ -21,7 +21,7 @@ import (
 )
 
 func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
-	glog.V(6).Infof("Creating/updating Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
+	glog.V(6).Infof("Updating Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the set of expected configMap - this currently consists of the ConfigMap that contains the default Grafana dashboard definitions
 	newConfigMap, err := newConfigMap(binding)
