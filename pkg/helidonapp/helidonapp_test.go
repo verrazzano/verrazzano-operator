@@ -46,7 +46,6 @@ func TestFluentdEnabledDefault(t *testing.T) {
 			Spec: vz.VerrazzanoBindingSpec{},
 		},
 		VerrazzanoUri: "test.v8o.xyz.com",
-		SslVerify:     true,
 	}
 	mbPair.Binding.Spec.HelidonBindings = []vz.VerrazzanoHelidonBinding{{Name: appName}}
 	labels := make(map[string]string)
@@ -67,7 +66,6 @@ func TestFluentdEnabledExplicitly(t *testing.T) {
 			Spec: vz.VerrazzanoBindingSpec{},
 		},
 		VerrazzanoUri: "test.v8o.xyz.com",
-		SslVerify:     true,
 	}
 	mbPair.Binding.Spec.HelidonBindings = []vz.VerrazzanoHelidonBinding{{Name: appName}}
 	labels := make(map[string]string)
@@ -88,7 +86,6 @@ func TestFluentdDisabled(t *testing.T) {
 			Spec: vz.VerrazzanoBindingSpec{},
 		},
 		VerrazzanoUri: "test.v8o.xyz.com",
-		SslVerify:     true,
 	}
 	mbPair.Binding.Spec.HelidonBindings = []vz.VerrazzanoHelidonBinding{{Name: appName}}
 	labels := make(map[string]string)
