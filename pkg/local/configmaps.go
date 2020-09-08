@@ -14,14 +14,13 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 )
 
-func CreateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	glog.V(6).Infof("Creating/updating Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the set of expected configMap - this currently consists of the ConfigMap that contains the default Grafana dashboard definitions
@@ -40,21 +39,6 @@ func CreateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 			glog.V(4).Infof("Updating ConfigMap %s", newConfigMap.Name)
 			_, err = kubeClientSet.CoreV1().ConfigMaps(newConfigMap.Namespace).Update(context.TODO(), newConfigMap, metav1.UpdateOptions{})
 			if err != nil {
-				return err
-			}
-		}
-	} else {
-		// Before creating the configmap make sure the configmap was not already been created by the
-		// verrazzano-monitoring-operator.
-		_, err = kubeClientSet.CoreV1().ConfigMaps(newConfigMap.Namespace).Get(context.TODO(), newConfigMap.Name, metav1.GetOptions{})
-		if err != nil {
-			if k8sErrors.IsNotFound(err) {
-				glog.V(4).Infof("Creating ConfigMap %s", newConfigMap.Name)
-				_, err = kubeClientSet.CoreV1().ConfigMaps(newConfigMap.Namespace).Create(context.TODO(), newConfigMap, metav1.CreateOptions{})
-				if err != nil {
-					return err
-				}
-			} else {
 				return err
 			}
 		}

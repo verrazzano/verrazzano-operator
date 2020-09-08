@@ -269,7 +269,7 @@ func (c *Controller) CreateUpdateGlobalEntities() error {
 		}
 
 		// create config maps for system vmi
-		err = local.CreateConfigMaps(systemBinding, c.kubeClientSet, c.configMapLister)
+		err = local.UpdateConfigMaps(systemBinding, c.kubeClientSet, c.configMapLister)
 		if err != nil {
 			glog.Errorf("Failed to create ConfigMaps for binding %s: %v", systemBinding.Name, err)
 		}
@@ -681,7 +681,7 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 	}
 
 	// Create ConfigMaps
-	err = local.CreateConfigMaps(binding, c.kubeClientSet, c.configMapLister)
+	err = local.UpdateConfigMaps(binding, c.kubeClientSet, c.configMapLister)
 	if err != nil {
 		glog.Errorf("Failed to create ConfigMaps for binding %s: %v", binding.Name, err)
 	}
