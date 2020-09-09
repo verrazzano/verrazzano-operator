@@ -9,9 +9,9 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 
 	"github.com/golang/glog"
+	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -124,7 +124,7 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 	// Include fluentd needed resource if fluentd integration is enabled
 	if IsFluentdEnabled(app) {
 		// Add fluentd container
-		helidonApp.Spec.Containers = append(helidonApp.Spec.Containers, createFluentdContainer(mbPair.Binding, app, mbPair.VerrazzanoUri, mbPair.SslVerify))
+		helidonApp.Spec.Containers = append(helidonApp.Spec.Containers, createFluentdContainer(mbPair.Binding, app, mbPair.VerrazzanoUri))
 
 		// Add fluentd volumes
 		volumes := createFluentdVolHostPaths()

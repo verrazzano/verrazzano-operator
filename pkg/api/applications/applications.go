@@ -12,8 +12,8 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
-	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 	v1beta1 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/labels"
 )

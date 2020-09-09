@@ -115,5 +115,4 @@ type ModelBindingPair struct {
 	Lock sync.RWMutex
 
 	VerrazzanoUri string
-	SslVerify     bool
 }
