@@ -7,8 +7,8 @@ import (
 	"fmt"
 
 	v1cohcluster "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	v1betav8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

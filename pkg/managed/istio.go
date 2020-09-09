@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-const PrometheusPodPrefix  = "prometheus-"
+const PrometheusPodPrefix = "prometheus-"
 const IstioSystemNamespace = "istio-system"
 
 func CreateIngresses(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
