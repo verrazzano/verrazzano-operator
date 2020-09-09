@@ -172,7 +172,7 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 }
 
 func getElasticsearchMasterNodeRequestMemory() string {
-	return "1.9Gi"
+	return "1.4Gi"
 }
 
 func getElasticsearchIngestNodeRequestMemory() string {
