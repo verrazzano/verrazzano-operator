@@ -266,10 +266,10 @@ func (c *Controller) CreateUpdateGlobalEntities() error {
 			glog.Errorf("Failed to create secrets for binding %s: %v", systemBinding.Name, err)
 		}
 
-		// create config maps for system vmi
-		err = local.CreateConfigMaps(systemBinding, c.kubeClientSet, c.configMapLister)
+		// Update config maps for system vmi
+		err = local.UpdateConfigMaps(systemBinding, c.kubeClientSet, c.configMapLister)
 		if err != nil {
-			glog.Errorf("Failed to create ConfigMaps for binding %s: %v", systemBinding.Name, err)
+			glog.Errorf("Failed to update ConfigMaps for binding %s: %v", systemBinding.Name, err)
 		}
 
 		<-time.After(60 * time.Second)
@@ -678,10 +678,10 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 		glog.Errorf("Failed to create secrets for binding %s: %v", binding.Name, err)
 	}
 
-	// Create ConfigMaps
-	err = local.CreateConfigMaps(binding, c.kubeClientSet, c.configMapLister)
+	// Update ConfigMaps
+	err = local.UpdateConfigMaps(binding, c.kubeClientSet, c.configMapLister)
 	if err != nil {
-		glog.Errorf("Failed to create ConfigMaps for binding %s: %v", binding.Name, err)
+		glog.Errorf("Failed to update ConfigMaps for binding %s: %v", binding.Name, err)
 	}
 
 	// Update the "bring your own DNS" credentials?
