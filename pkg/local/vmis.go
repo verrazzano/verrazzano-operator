@@ -147,7 +147,7 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 						},
 					},
 					MasterNode: vmov1.ElasticsearchNode{
-						Replicas: 3,
+						Replicas: util.GetElasticsearchMasterNodeReplicas(),
 						Resources: vmov1.Resources{
 							RequestMemory: util.GetElasticsearchMasterNodeRequestMemory(),
 						},

@@ -2,7 +2,11 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package util
 
-import "os"
+import (
+	"github.com/golang/glog"
+	"os"
+	"strconv"
+)
 
 // This file contains all of the env vars used by the Verrazzano Operator
 // Define the ENV vars
@@ -25,6 +29,7 @@ const esDataNodeRequestMemory = "ES_DATA_NODE_REQUEST_MEMORY"
 const grafanaRequestMemory = "GRAFANA_REQUEST_MEMORY"
 const prometheusRequestMemory = "PROMETHEUS_REQUEST_MEMORY"
 const kibanaRequestMemory = "KIBANA_REQUEST_MEMORY"
+const esMasterNodeReplicas = "ES_MASTER_NODE_REPLICAS"
 
 func getCohMicroImage() string {
 	return os.Getenv(cohMicroImage)
@@ -100,4 +105,17 @@ func GetPrometheusRequestMemory() string {
 
 func GetKibanaRequestMemory() string {
 	return os.Getenv(kibanaRequestMemory)
+}
+
+func GetElasticsearchMasterNodeReplicas() int32 {
+	value := os.Getenv(esMasterNodeReplicas)
+	if len(value) != 0 {
+		count, err := strconv.ParseInt(value, 10, 32)
+		if err != nil {
+			glog.V(5).Infof("%v is invalid.  The default value of 3 will be used as replicas of ES master node.", value)
+		} else {
+			return int32(count)
+		}
+	}
+	return 3
 }
