@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -67,6 +68,11 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 							Image:           image,
 							ImagePullPolicy: corev1.PullPolicy(corev1.PullIfNotPresent),
 							Command:         []string{microOperatorName},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse(util.GetCohMicroRequestMemory()),
+								},
+							},
 							Env: []corev1.EnvVar{
 								{
 									Name:  "WATCH_NAMESPACE",

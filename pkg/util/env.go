@@ -16,6 +16,9 @@ const filebeatImage = "FILEBEAT_IMAGE"
 const journalbeatImage = "JOURNALBEAT_IMAGE"
 const weblogicOperatorImage = "WEBLOGIC_OPERATOR_IMAGE"
 const fluentdImage = "FLUENTD_IMAGE"
+const cohMicroRequestMemory = "COH_MICRO_REQUEST_MEMORY"
+const helidonMicroRequestMemory = "HELIDON_MICRO_REQUEST_MEMORY"
+const wlsMicroRequestMemory = "WLS_MICRO_REQUEST_MEMORY"
 
 func getCohMicroImage() string {
 	return os.Getenv(cohMicroImage)
@@ -55,4 +58,16 @@ func GetWeblogicOperatorImage() string {
 
 func GetFluentdImage() string {
 	return os.Getenv(fluentdImage)
+}
+
+func GetCohMicroRequestMemory() string {
+	return os.Getenv(cohMicroRequestMemory)
+}
+
+func GetHelidonMicroRequestMemory() string {
+	return os.Getenv(helidonMicroRequestMemory)
+}
+
+func GetWlsMicroRequestMemory() string {
+	return os.Getenv(wlsMicroRequestMemory)
 }

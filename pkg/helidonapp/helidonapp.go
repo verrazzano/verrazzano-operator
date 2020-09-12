@@ -5,6 +5,7 @@ package helidonapp
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 
@@ -164,6 +165,11 @@ func CreateDeployment(namespace string, labels map[string]string, image string) 
 							Image:           image,
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Command:         []string{microOperatorName},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse(util.GetHelidonMicroRequestMemory()),
+								},
+							},
 							Env: []corev1.EnvVar{
 								{
 									Name:  "WATCH_NAMESPACE",
