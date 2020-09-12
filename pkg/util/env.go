@@ -19,6 +19,12 @@ const fluentdImage = "FLUENTD_IMAGE"
 const cohMicroRequestMemory = "COH_MICRO_REQUEST_MEMORY"
 const helidonMicroRequestMemory = "HELIDON_MICRO_REQUEST_MEMORY"
 const wlsMicroRequestMemory = "WLS_MICRO_REQUEST_MEMORY"
+const esMasterNodeRequestMemory = "ES_MASTER_NODE_REQUEST_MEMORY"
+const esIngestNodeRequestMemory = "ES_INGEST_NODE_REQUEST_MEMORY"
+const esDataNodeRequestMemory = "ES_DATA_NODE_REQUEST_MEMORY"
+const grafanaRequestMemory = "GRAFANA_REQUEST_MEMORY"
+const prometheusRequestMemory = "PROMETHEUS_REQUEST_MEMORY"
+const kibanaRequestMemory = "KIBANA_REQUEST_MEMORY"
 
 func getCohMicroImage() string {
 	return os.Getenv(cohMicroImage)
@@ -70,4 +76,28 @@ func GetHelidonMicroRequestMemory() string {
 
 func GetWlsMicroRequestMemory() string {
 	return os.Getenv(wlsMicroRequestMemory)
+}
+
+func GetElasticsearchMasterNodeRequestMemory() string {
+	return os.Getenv(esMasterNodeRequestMemory)
+}
+
+func GetElasticsearchIngestNodeRequestMemory() string {
+	return os.Getenv(esIngestNodeRequestMemory)
+}
+
+func GetElasticsearchDataNodeRequestMemory() string {
+	return os.Getenv(esDataNodeRequestMemory)
+}
+
+func GetGrafanaRequestMemory() string {
+	return os.Getenv(grafanaRequestMemory)
+}
+
+func GetPrometheusRequestMemory() string {
+	return os.Getenv(prometheusRequestMemory)
+}
+
+func GetKibanaRequestMemory() string {
+	return os.Getenv(kibanaRequestMemory)
 }
