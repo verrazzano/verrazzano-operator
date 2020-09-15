@@ -126,7 +126,7 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 					Storage:             storageOption,
 					DashboardsConfigMap: util.GetVmiNameForBinding(binding.Name) + "-dashboards",
 					Resources: vmov1.Resources{
-						RequestMemory: getGrafanaRequestMemory(),
+						RequestMemory: util.GetGrafanaRequestMemory(),
 					},
 				},
 				IngressTargetDNSName: fmt.Sprintf("verrazzano-ingress.%s", verrazzanoUri),
@@ -134,7 +134,7 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 					Enabled: true,
 					Storage: storageOption,
 					Resources: vmov1.Resources{
-						RequestMemory: getPrometheusRequestMemory(),
+						RequestMemory: util.GetPrometheusRequestMemory(),
 					},
 				},
 				Elasticsearch: vmov1.Elasticsearch{
@@ -143,54 +143,30 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 					IngestNode: vmov1.ElasticsearchNode{
 						Replicas: 1,
 						Resources: vmov1.Resources{
-							RequestMemory: getElasticsearchIngestNodeRequestMemory(),
+							RequestMemory: util.GetElasticsearchIngestNodeRequestMemory(),
 						},
 					},
 					MasterNode: vmov1.ElasticsearchNode{
-						Replicas: 3,
+						Replicas: util.GetElasticsearchMasterNodeReplicas(),
 						Resources: vmov1.Resources{
-							RequestMemory: getElasticsearchMasterNodeRequestMemory(),
+							RequestMemory: util.GetElasticsearchMasterNodeRequestMemory(),
 						},
 					},
 					DataNode: vmov1.ElasticsearchNode{
 						Replicas: 2,
 						Resources: vmov1.Resources{
-							RequestMemory: getElasticsearchDataNodeRequestMemory(),
+							RequestMemory: util.GetElasticsearchDataNodeRequestMemory(),
 						},
 					},
 				},
 				Kibana: vmov1.Kibana{
 					Enabled: true,
 					Resources: vmov1.Resources{
-						RequestMemory: getKibanaRequestMemory(),
+						RequestMemory: util.GetKibanaRequestMemory(),
 					},
 				},
 				ServiceType: "ClusterIP",
 			},
 		},
 	}
-}
-
-func getElasticsearchMasterNodeRequestMemory() string {
-	return "1.4Gi"
-}
-
-func getElasticsearchIngestNodeRequestMemory() string {
-	return "2.5Gi"
-}
-
-func getElasticsearchDataNodeRequestMemory() string {
-	return "4.8Gi"
-}
-
-func getGrafanaRequestMemory() string {
-	return "48Mi"
-}
-
-func getPrometheusRequestMemory() string {
-	return "128Mi"
-}
-
-func getKibanaRequestMemory() string {
-	return "192Mi"
 }
