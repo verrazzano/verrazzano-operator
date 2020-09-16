@@ -46,13 +46,10 @@ pipeline {
         CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        DOCKER_CREDS = credentials('ocir-pull-and-push-account')
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_REPO = 'ghcr.io'
+        DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
-        OCI_CLI_TENANCY = credentials('oci-tenancy')
-        OCI_CLI_USER = credentials('oci-user-ocid')
-        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
-        OCI_CLI_KEY_FILE = credentials('oci-api-key')
-        OCI_CLI_REGION = 'us-phoenix-1'
         GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
@@ -189,3 +186,4 @@ pipeline {
         }
     }
 }
+
