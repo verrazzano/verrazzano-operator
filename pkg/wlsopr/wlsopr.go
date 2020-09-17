@@ -4,10 +4,10 @@
 package wlsopr
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-wko-operator/pkg/apis/verrazzano/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,30 +17,51 @@ import (
 const microOperatorName = "verrazzano-wko-operator"
 const operatorName = "wls-operator"
 
-// Create a WlsOperator CR
-func CreateWlsOperatorCR(binding *v1beta1v8o.VerrazzanoBinding, managedClusterName string, domainNamespace string, labels map[string]string) *v1beta1.WlsOperator {
+// WlsOperatorCRConfig provides the parameters to construct the new WlsOperatorCR
+type WlsOperatorCRConfig struct {
+	BindingName        string
+	ManagedClusterName string
+	BindingNamespace   string
+	DomainNamespace    string
+	Labels             map[string]string
+	WlsOperatorImage   string
+}
 
-	return &v1beta1.WlsOperator{
+// NewWlsOperatorCR creates a new WlsOperator CR
+func NewWlsOperatorCR(cr WlsOperatorCRConfig) (*v1beta1.WlsOperator, error) {
+
+	if cr.ManagedClusterName == "" {
+		return nil, errors.New("ManagedClusterName is required")
+	}
+	if cr.DomainNamespace == "" {
+		return nil, errors.New("DomainNamespace is required")
+	}
+	if cr.BindingNamespace == "" {
+		return nil, errors.New("BindingNamespace is required")
+	}
+
+	wlsopr := &v1beta1.WlsOperator{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "WlsOperator",
 			APIVersion: "verrazzano.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      operatorName,
-			Namespace: util.GetManagedNamespaceForBinding(binding),
-			Labels:    labels,
+			Namespace: cr.BindingNamespace,
+			Labels:    cr.Labels,
 		},
 		Spec: v1beta1.WlsOperatorSpec{
-			Description:      fmt.Sprintf("WebLogic Operator for managed cluster %s using binding %s", managedClusterName, binding.Name),
-			Name:             fmt.Sprintf("%s-%s", operatorName, binding.Name),
-			Namespace:        util.GetManagedNamespaceForBinding(binding),
+			Description:      fmt.Sprintf("WebLogic Operator for managed cluster %s using binding %s", cr.ManagedClusterName, cr.BindingName),
+			Name:             fmt.Sprintf("%s-%s", operatorName, cr.BindingName),
+			Namespace:        cr.BindingNamespace,
 			ServiceAccount:   operatorName,
-			Image:            util.GetWeblogicOperatorImage(),
+			Image:            cr.WlsOperatorImage,
 			ImagePullPolicy:  "IfNotPresent",
-			DomainNamespaces: []string{domainNamespace},
+			DomainNamespaces: []string{cr.DomainNamespace},
 		},
 		Status: v1beta1.WlsOperatorStatus{},
 	}
+	return wlsopr, nil
 }
 
 // Create a deployment for the verrazzano-wko-operator
