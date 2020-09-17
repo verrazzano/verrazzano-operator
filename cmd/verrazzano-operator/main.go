@@ -35,6 +35,8 @@ var (
 	helidonAppOperatorDeployment string
 	enableMonitoringStorage      string
 	apiServerRealm               string
+	startAPIServer               bool
+	startController              bool
 )
 
 // homePage provides a default handler for unmatched patterns
@@ -44,7 +46,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleRequests registers the routes and handlers
-func handleRequests() {
+func handleRequests(apiServerFinished chan bool) {
 	myRouter := mux.NewRouter().StrictSlash(true)
 
 	myRouter.HandleFunc("/", homePage)
@@ -61,7 +63,6 @@ func handleRequests() {
 
 	myRouter.Path("/clusters").Methods("GET").HandlerFunc(clusters.ReturnAllClusters)
 	myRouter.Path("/clusters/{id}").Methods("GET").HandlerFunc(clusters.ReturnSingleCluster)
-
 	myRouter.Path("/domains").Methods("GET").HandlerFunc(domains.ReturnAllDomains)
 	myRouter.Path("/domains/{id}").Methods("GET").HandlerFunc(domains.ReturnSingleDomain)
 
@@ -92,6 +93,7 @@ func handleRequests() {
 		glog.Warning("Bearer token verification is disabled as apiServerRealm is not specified")
 	}
 	glog.Fatal(http.ListenAndServe(":3456", apiserver.CORSHandler(apiserver.AuthHandler(myRouter))))
+	apiServerFinished <- true
 }
 
 func main() {
@@ -128,35 +130,41 @@ func main() {
 		glog.Fatalf("Error creating the controller: %s", err.Error())
 	}
 
-	//
-	// start the REST API Server (for web ui)
-	//
+	apiServerExited := make(chan bool)
 
+	// start the REST API Server (for web ui)
+	if startAPIServer {
+		startRestAPIServer(controller.ListerSet(), apiServerExited)
+	}
+
+	if startController {
+		// start the controller
+		if err = controller.Run(2); err != nil {
+			glog.Fatalf("Error running controller: %s", err.Error())
+		}
+	}
+	glog.Info("Waiting for api server to exit")
+	<-apiServerExited
+
+}
+
+func startRestAPIServer(listerSet pkgverrazzanooperator.Listers, apiServerFinished chan bool) {
 	// give the handlers access to the informers
-	applications.Init(controller.ListerSet())
-	clusters.Init(controller.ListerSet())
-	domains.Init(controller.ListerSet())
-	grids.Init(controller.ListerSet())
+	applications.Init(listerSet)
+	clusters.Init(listerSet)
+	domains.Init(listerSet)
+	grids.Init(listerSet)
 	images.Init()
 	jobs.Init()
-	microservices.Init(controller.ListerSet())
-	operators.Init(controller.ListerSet())
-	secrets.Init(controller.ListerSet())
-	apiserver.Init(controller.ListerSet())
+	microservices.Init(listerSet)
+	operators.Init(listerSet)
+	secrets.Init(listerSet)
+	apiserver.Init(listerSet)
 
 	instance.SetVerrazzanoURI(verrazzanoURI)
 	apiserver.SetRealm(apiServerRealm)
 	// start REST handlers
-	go handleRequests()
-
-	//
-	// start the controller
-	//
-
-	if err = controller.Run(2); err != nil {
-		glog.Fatalf("Error running controller: %s", err.Error())
-	}
-
+	go handleRequests(apiServerFinished)
 }
 
 func init() {
@@ -167,4 +175,6 @@ func init() {
 	flag.StringVar(&helidonAppOperatorDeployment, "helidonAppOperatorDeployment", "", "--helidonAppOperatorDeployment=false disables helidonAppOperatorDeployment")
 	flag.StringVar(&enableMonitoringStorage, "enableMonitoringStorage", "", "Enable storage for monitoring.  The default is true. 'false' means monitoring storage is disabled.")
 	flag.StringVar(&apiServerRealm, "apiServerRealm", "", "API Server Realm on Keycloak")
+	flag.BoolVar(&startAPIServer, "startApiServer", true, "Whether to start the API server (true by default)")
+	flag.BoolVar(&startController, "startController", true, "Whether to start the Kubernetes controller (true by default)")
 }
