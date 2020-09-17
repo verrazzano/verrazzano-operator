@@ -4,11 +4,8 @@
 package cohoperator
 
 import (
-	//"errors"
-	//"fmt"
-	//v1cohcluster "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/apis/verrazzano/v1beta1"
-	//	v1cohcluster "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/apis/verrazzano/v1beta1"
 	v1betav8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -17,7 +14,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vz "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	//	wlsv1beta "github.com/verrazzano/verrazzano-wko-operator/pkg/apis/verrazzano/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -37,6 +33,7 @@ func TestCreateCR(t *testing.T) {
 	}
 	labels := map[string]string{"label1":"val1", "label2":"val2"}
 	cohCluster := CreateCR("cohOp", "testNS", vzCluster, labels)
+	assert.NotNil(cohCluster, "CreateCR returned nil")
 
 	assert.Equal("CohCluster", cohCluster.TypeMeta.Kind)
 	assert.Equal("verrazzano.io/v1beta1", cohCluster.TypeMeta.APIVersion)
@@ -63,13 +60,13 @@ func TestCreateDeployment(t *testing.T) {
 
 	labels := map[string]string{"label1":"val1", "label2":"val2"}
 	dep := CreateDeployment("testNs","testBinding",labels, "testImage")
+	assert.NotNil(dep, "CreateDeployment returned nil")
 
 	assert.Equal(microOperatorName, dep.ObjectMeta.Name)
 	assert.Equal("testNs", dep.ObjectMeta.Namespace)
 	assert.Equal(2, len(dep.ObjectMeta.Labels))
 	assert.Equal("val1", dep.ObjectMeta.Labels["label1"])
 	assert.Equal("val2", dep.ObjectMeta.Labels["label2"])
-
 
 	assert.Equal(int32(1), *dep.Spec.Replicas)
 	assert.Equal(appsv1.RecreateDeploymentStrategyType, dep.Spec.Strategy.Type)
@@ -92,47 +89,6 @@ func TestCreateDeployment(t *testing.T) {
 	assert.Equal("metadata.name", dep.Spec.Template.Spec.Containers[0].Env[1].ValueFrom.FieldRef.FieldPath)
 	assert.Equal("OPERATOR_NAME", dep.Spec.Template.Spec.Containers[0].Env[2].Name)
 	assert.Equal(microOperatorName, dep.Spec.Template.Spec.Containers[0].Env[2].Value)
+	assert.Equal(int64(1), *dep.Spec.Template.Spec.TerminationGracePeriodSeconds)
+	assert.Equal(constants.VerrazzanoSystem, dep.Spec.Template.Spec.ServiceAccountName)
 }
-
-//
-//// Create a deployment for the coh-cluster-operator
-//func CreateDeployment(namespace string, bindingName string, labels map[string]string, image string) *appsv1.Deployment {
-//	deployment := &appsv1.Deployment{
-
-//		Spec: appsv1.DeploymentSpec{
-
-//			Template: corev1.PodTemplateSpec{
-//				Spec: corev1.PodSpec{
-//					Containers: []corev1.Container{
-//						{
-
-//							Env: []corev1.EnvVar{
-//								{
-//									Name:  "WATCH_NAMESPACE",
-//									Value: "",
-//								},
-//								{
-//									Name: "POD_NAME",
-//									ValueFrom: &corev1.EnvVarSource{
-//										FieldRef: &corev1.ObjectFieldSelector{
-//											FieldPath: "metadata.name",
-//										},
-//									},
-//								},
-//								{
-//									Name:  "OPERATOR_NAME",
-//									Value: microOperatorName,
-//								},
-//							},
-//						},
-//					},
-//					TerminationGracePeriodSeconds: util.New64Val(1),
-//					ServiceAccountName:            util.GetServiceAccountNameForSystem(),
-//				},
-//			},
-//		},
-//	}
-//
-//	return deployment
-//}
-//
