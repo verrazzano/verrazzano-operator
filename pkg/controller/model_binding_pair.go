@@ -104,7 +104,14 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						// The managed cluster needs a WebLogic Operator for the domain
 						if mc.WlsOperator == nil {
 							oprLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
-							mc.WlsOperator = wlsopr.CreateWlsOperatorCR(mbPair.Binding, mc.Name, namespace.Name, oprLabels)
+							mc.WlsOperator, _ = wlsopr.NewWlsOperatorCR(wlsopr.WlsOperatorCRConfig{
+								BindingName:        mbPair.Binding.Name,
+								BindingNamespace:   util.GetManagedNamespaceForBinding(mbPair.Binding),
+								DomainNamespace:    namespace.Name,
+								Labels:             oprLabels,
+								ManagedClusterName: mc.Name,
+								WlsOperatorImage:   util.GetWeblogicOperatorImage(),
+							})
 							appendNamespace(&mc.Namespaces, mc.WlsOperator.Spec.Namespace)
 							if len(mc.WlsOperator.Spec.ImagePullSecret) > 0 {
 								addSecret(mc, mc.WlsOperator.Spec.ImagePullSecret, namespace.Name)
