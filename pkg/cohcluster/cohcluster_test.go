@@ -1,18 +1,16 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
-// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
-package cohoperator
+package cohcluster
 
 import (
-	v1betav8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano-operator/pkg/constants"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	"os"
-	"testing"
+)
 
-	"github.com/stretchr/testify/assert"
+var (
+	emptyBinding = &vz.VerrazzanoBinding{
+		TypeMeta:   v1.TypeMeta{},
+		ObjectMeta: v1.ObjectMeta{},
+		Spec:       vz.VerrazzanoBindingSpec{},
+		Status:     vz.VerrazzanoBindingStatus{},
+	}
 )
 
 func TestCreateCR(t *testing.T) {
@@ -81,3 +79,4 @@ func TestCreateDeployment(t *testing.T) {
 	assert.Equal(int64(1), *dep.Spec.Template.Spec.TerminationGracePeriodSeconds)
 	assert.Equal(constants.VerrazzanoSystem, dep.Spec.Template.Spec.ServiceAccountName)
 }
+
