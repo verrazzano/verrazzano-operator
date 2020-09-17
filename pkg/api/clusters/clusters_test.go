@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
-	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 )

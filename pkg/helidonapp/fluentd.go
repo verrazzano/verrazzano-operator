@@ -99,7 +99,7 @@ func CreateFluentdConfigMap(app *v1beta1v8o.VerrazzanoHelidon, namespace string,
 }
 
 // Create the Fluentd sidecar container
-func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v8o.VerrazzanoHelidon, verrazzanoUri string, sslVerify bool) corev1.Container {
+func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v8o.VerrazzanoHelidon, verrazzanoUri string) corev1.Container {
 	container := corev1.Container{
 		Name:            "fluentd",
 		Args:            []string{"-c", "/etc/fluent.conf"},

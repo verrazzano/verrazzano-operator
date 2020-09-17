@@ -125,27 +125,45 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 					Enabled:             true,
 					Storage:             storageOption,
 					DashboardsConfigMap: util.GetVmiNameForBinding(binding.Name) + "-dashboards",
+					Resources: vmov1.Resources{
+						RequestMemory: util.GetGrafanaRequestMemory(),
+					},
 				},
 				IngressTargetDNSName: fmt.Sprintf("verrazzano-ingress.%s", verrazzanoUri),
 				Prometheus: vmov1.Prometheus{
 					Enabled: true,
 					Storage: storageOption,
+					Resources: vmov1.Resources{
+						RequestMemory: util.GetPrometheusRequestMemory(),
+					},
 				},
 				Elasticsearch: vmov1.Elasticsearch{
 					Enabled: true,
 					Storage: storageOption,
 					IngestNode: vmov1.ElasticsearchNode{
 						Replicas: 1,
+						Resources: vmov1.Resources{
+							RequestMemory: util.GetElasticsearchIngestNodeRequestMemory(),
+						},
 					},
 					MasterNode: vmov1.ElasticsearchNode{
-						Replicas: 1,
+						Replicas: util.GetElasticsearchMasterNodeReplicas(),
+						Resources: vmov1.Resources{
+							RequestMemory: util.GetElasticsearchMasterNodeRequestMemory(),
+						},
 					},
 					DataNode: vmov1.ElasticsearchNode{
 						Replicas: 2,
+						Resources: vmov1.Resources{
+							RequestMemory: util.GetElasticsearchDataNodeRequestMemory(),
+						},
 					},
 				},
 				Kibana: vmov1.Kibana{
 					Enabled: true,
+					Resources: vmov1.Resources{
+						RequestMemory: util.GetKibanaRequestMemory(),
+					},
 				},
 				ServiceType: "ClusterIP",
 			},

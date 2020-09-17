@@ -4,10 +4,10 @@
 package cohcluster
 
 import (
-	"github.com/verrazzano/verrazzano-operator/pkg/types"
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	v1coh "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	v1meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -66,6 +66,22 @@ func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, 
 						Image: &applicationImage,
 					},
 				},
+				// Set the optional ports
+				Ports: func() []v1coh.NamedPortSpec{
+					var portSpecs  []v1coh.NamedPortSpec
+					for _,v := range cluster.Ports {
+						ps := v1coh.NamedPortSpec{
+							Name: v.Name,
+							PortSpec: v1coh.PortSpec{
+								Port:     v.PortSpec.Port,
+								Protocol: v.PortSpec.Protocol,
+								Service:  v.PortSpec.Service,
+							},
+						}
+						portSpecs = append(portSpecs, ps)
+					}
+					return portSpecs
+				}(),
 			},
 			// Add any imagePullSecrets that were specified
 			ImagePullSecrets: func() []v1coh.LocalObjectReference {

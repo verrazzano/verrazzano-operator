@@ -158,7 +158,7 @@ func (kc *KeyCloak) GetPublicKey(kid string) (*rsa.PublicKey, error) {
 	if err == nil {
 		publicKey, ok := cert.PublicKey.(*rsa.PublicKey)
 		if !ok {
-			return nil, errors.New(fmt.Sprintf("Invalid public key: %T is not a valid RSA public key",cert.PublicKey))
+			return nil, errors.New(fmt.Sprintf("Invalid public key: %T is not a valid RSA public key", cert.PublicKey))
 		}
 		return publicKey, nil
 	} else {

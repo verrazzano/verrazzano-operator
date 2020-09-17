@@ -6,6 +6,7 @@ package wlsopr
 import (
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-wko-operator/pkg/apis/verrazzano/v1beta1"
@@ -91,6 +92,11 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 							Image:           image,
 							ImagePullPolicy: corev1.PullPolicy(corev1.PullIfNotPresent),
 							Command:         []string{"verrazzano-wko-operator"},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse(util.GetWlsMicroRequestMemory()),
+								},
+							},
 							Env: []corev1.EnvVar{
 								{
 									Name:  "WATCH_NAMESPACE",

@@ -20,8 +20,8 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 )
 
-func CreateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
-	glog.V(6).Infof("Creating/updating Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
+func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+	glog.V(6).Infof("Updating Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the set of expected configMap - this currently consists of the ConfigMap that contains the default Grafana dashboard definitions
 	newConfigMap, err := newConfigMap(binding)
@@ -41,12 +41,6 @@ func CreateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 			if err != nil {
 				return err
 			}
-		}
-	} else {
-		glog.V(4).Infof("Creating ConfigMap %s", newConfigMap.Name)
-		_, err = kubeClientSet.CoreV1().ConfigMaps(newConfigMap.Namespace).Create(context.TODO(), newConfigMap, metav1.CreateOptions{})
-		if err != nil {
-			return err
 		}
 	}
 

@@ -110,8 +110,7 @@ func TestSockShopIngressBindings(t *testing.T) {
 	cluster := "cluster1"
 	namespace := "sockshop"
 	vzUri := "Verrazzano.Uri"
-	sslVerify := true
-	pair := CreateModelBindingPair(model, binding, vzUri, sslVerify)
+	pair := CreateModelBindingPair(model, binding, vzUri)
 
 	validateIngressBindings(t, pair, cluster, namespace, "wl-frontend-cluster-cluster-1.sockshop.svc.cluster.local", 8001)
 }
@@ -161,8 +160,7 @@ func TestSockShopSimpleModelBinding(t *testing.T) {
 	cluster := "local"
 	namespace := "sockshop"
 	vzUri := "Verrazzano.Uri"
-	sslVerify := true
-	pair := CreateModelBindingPair(model, binding, vzUri, sslVerify)
+	pair := CreateModelBindingPair(model, binding, vzUri)
 
 	assertPorts(t, pair, cluster, namespace, "frontend", 8080, 8079)
 	assertPorts(t, pair, cluster, namespace, "carts", 80, 7001)
@@ -178,7 +176,7 @@ func TestSockShopSimpleModelBinding(t *testing.T) {
 		apps = append(apps, helidon)
 	}
 	model.Spec.HelidonApplications = apps
-	pair = CreateModelBindingPair(model, binding, vzUri, sslVerify)
+	pair = CreateModelBindingPair(model, binding, vzUri)
 	assertPorts(t, pair, cluster, namespace, "frontend", 8080, 8080)
 	assertPorts(t, pair, cluster, namespace, "carts", 8080, 8080)
 	assertPorts(t, pair, cluster, namespace, "user", 8080, 8080)
@@ -258,7 +256,7 @@ func TestCreateModelBindingPair(t *testing.T) {
 	assert.NotEmpty(t, binding.Name)
 
 	// create a new ModelBindingPair
-	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url", true)
+	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url")
 
 	// gather expected state
 	expectedClusterHelidonApps := map[string]map[string]struct{}{"cluster1": {"frontend": {}, "carts": {},
@@ -274,7 +272,6 @@ func TestCreateModelBindingPair(t *testing.T) {
 		Namespaces:  expectedClusterNamespaces,
 		WlsDomains:  map[string]map[string]*wls.Domain{"cluster1": {"wl-frontend": wlsDomain}},
 		Uri:         "/my/verrazzano/url",
-		SslVerify:   true,
 	}
 	// validate the returned mbp
 	validateModelBindingPair(t, mbp, expectedValues)
@@ -294,8 +291,7 @@ func TestCreateModelBindingPairNoCluster(t *testing.T) {
 	cluster := "cluster1"
 	namespace := "sockshop"
 	vzUri := "/my/verrazzano/url"
-	sslVerify := true
-	mbp := CreateModelBindingPair(model, binding, vzUri, sslVerify)
+	mbp := CreateModelBindingPair(model, binding, vzUri)
 
 	// gather expected state
 	expectedClusterHelidonApps := map[string]map[string]struct{}{"cluster1": {"frontend": {}, "carts": {},
@@ -311,7 +307,6 @@ func TestCreateModelBindingPairNoCluster(t *testing.T) {
 		Namespaces:  expectedClusterNamespaces,
 		WlsDomains:  map[string]map[string]*wls.Domain{"cluster1": {"wl-frontend": wlsDomain}},
 		Uri:         "/my/verrazzano/url",
-		SslVerify:   true,
 	}
 
 	validateModelBindingPair(t, mbp, expectedValues)
@@ -339,7 +334,7 @@ func TestUpdateModelBindingPair(t *testing.T) {
 	assert.NotEmpty(t, binding2.Name)
 
 	// create a new ModelBindingPair
-	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url", false)
+	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url")
 
 	// gather expected state
 	expectedClusterHelidonApps := map[string]map[string]struct{}{"cluster1": {"frontend": {}, "carts": {}, "catalogue": {},
@@ -354,13 +349,12 @@ func TestUpdateModelBindingPair(t *testing.T) {
 		Namespaces:  expectedClusterNamespaces,
 		WlsDomains:  map[string]map[string]*wls.Domain{"cluster1": {"wl-frontend": wlsDomain}},
 		Uri:         "/my/verrazzano/url",
-		SslVerify:   false,
 	}
 	// validate create mbp
 	validateModelBindingPair(t, mbp, expectedValues)
 
 	// invoke update function that we are testing
-	UpdateModelBindingPair(mbp, model2, binding2, "/my/verrazzano/url/updated", true)
+	UpdateModelBindingPair(mbp, model2, binding2, "/my/verrazzano/url/updated")
 
 	// gather updated state
 	expectedClusterHelidonApps = map[string]map[string]struct{}{"cluster1": {"frontend": {}, "orders": {}},
@@ -375,7 +369,6 @@ func TestUpdateModelBindingPair(t *testing.T) {
 		Namespaces:  expectedClusterNamespaces,
 		WlsDomains:  map[string]map[string]*wls.Domain{},
 		Uri:         "/my/verrazzano/url/updated",
-		SslVerify:   true,
 	}
 	// validate updated mbp
 	validateModelBindingPair(t, mbp, expectedValues)
@@ -386,7 +379,7 @@ func TestDatabaseBindings(t *testing.T) {
 	binding, _ := ReadBinding("testdata/sockshop-binding.yaml")
 
 	// create a new ModelBindingPair
-	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url", true)
+	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url")
 
 	// validate the returned mbp
 	validateDatabaseBindings(t, mbp, "cluster-1")
@@ -400,7 +393,6 @@ type MbpExpectedValues struct {
 	Namespaces  map[string]map[string]struct{}
 	WlsDomains  map[string]map[string]*wls.Domain
 	Uri         string
-	SslVerify   bool
 }
 
 // validateModelBindingPair validates a ModelBindingPair
@@ -409,7 +401,6 @@ func validateModelBindingPair(t *testing.T,
 	expectedValues MbpExpectedValues) {
 
 	assert.Equal(t, expectedValues.Uri, mbp.VerrazzanoUri)
-	assert.Equal(t, expectedValues.SslVerify, mbp.SslVerify)
 	assert.True(t, reflect.DeepEqual(expectedValues.Model, mbp.Model), "Models should be equal")
 	assert.True(t, reflect.DeepEqual(expectedValues.Binding, mbp.Binding), "Bindings should be equal")
 	managedClusters := mbp.ManagedClusters
