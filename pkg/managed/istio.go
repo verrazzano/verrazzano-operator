@@ -173,13 +173,16 @@ func CreateServiceEntries(mbPair *types.ModelBindingPair, availableManagedCluste
 }
 
 func CreateDestinationRules(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Creating/updating DestinationRules for VerrazzanoBinding %s", mbPair.Binding.Name)
-
 	// Parse out the managed clusters that this binding applies to
 	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
 	if err != nil {
 		return err
 	}
+	return createDestinationRules(mbPair, filteredConnections)
+}
+
+func createDestinationRules(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	glog.V(6).Infof("Creating/updating DestinationRules for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Construct istio destination rules for each ManagedCluster
 	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
@@ -227,13 +230,17 @@ func CreateDestinationRules(mbPair *types.ModelBindingPair, availableManagedClus
 }
 
 func CreateAuthorizationPolicies(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Creating/updating AuthorizationPolicies for VerrazzanoBinding %s", mbPair.Binding.Name)
-
 	// Parse out the managed clusters that this binding applies to
 	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
 	if err != nil {
 		return err
 	}
+
+	return createAuthorizationPolicies(mbPair, filteredConnections)
+}
+
+func createAuthorizationPolicies(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	glog.V(6).Infof("Creating/updating AuthorizationPolicies for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Construct istio authorization policies for each ManagedCluster
 	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
@@ -728,14 +735,14 @@ func newDestinationRules(mbPair *types.ModelBindingPair, mc *types.ManagedCluste
 	return rules, nil
 }
 
-// Construct the traffice policy needed for Coherence extend ports.  These
+// Construct the traffic policy needed for Coherence extend ports.  These
 // ports need TLS disabled.
 func getCohTrafficPolicy(cohPorts []uint32) []*istio.TrafficPolicy_PortTrafficPolicy {
 	var tps []*istio.TrafficPolicy_PortTrafficPolicy
-	for _, port := range cohPorts{
+	for _, port := range cohPorts {
 		tp := istio.TrafficPolicy_PortTrafficPolicy{
 			Port: &istio.PortSelector{
-				Number:               port,
+				Number: port,
 			},
 			Tls: &istio.ClientTLSSettings{
 				Mode: istio.ClientTLSSettings_DISABLE,

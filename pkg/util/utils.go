@@ -38,7 +38,7 @@ import (
 
 // Structure maintaining the connection details to a ManagedCluster
 type ManagedClusterConnection struct {
-	KubeClient                  *kubernetes.Clientset
+	KubeClient                  kubernetes.Interface
 	KubeExtClientSet            apiextensionsclient.Interface
 	VerrazzanoOperatorClientSet clientset.Interface
 	WlsOprClientSet             wlsoprclientset.Interface
