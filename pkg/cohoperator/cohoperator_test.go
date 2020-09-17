@@ -13,17 +13,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	vz "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-var (
-	emptyBinding = &vz.VerrazzanoBinding{
-		TypeMeta:   v1.TypeMeta{},
-		ObjectMeta: v1.ObjectMeta{},
-		Spec:       vz.VerrazzanoBindingSpec{},
-		Status:     vz.VerrazzanoBindingStatus{},
-	}
 )
 
 func TestCreateCR(t *testing.T) {
