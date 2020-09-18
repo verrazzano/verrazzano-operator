@@ -55,7 +55,7 @@ type Controller struct {
 	vmoClientSet                vmoclientset.Interface
 	verrazzanoUri               string
 	enableMonitoringStorage     string
-	imagePullSecret             string
+	imagePullSecrets            []corev1.LocalObjectReference
 
 	// Local cluster listers and informers
 	secretLister                     corev1listers.SecretLister
@@ -116,7 +116,7 @@ func (c *Controller) ListerSet() Listers {
 }
 
 // NewController returns a new Verrazzano Operator controller
-func NewController(kubeconfig string, manifest *util.Manifest, masterURL string, watchNamespace string, verrazzanoUri string, enableMonitoringStorage string, imagePullSecret string) (*Controller, error) {
+func NewController(kubeconfig string, manifest *util.Manifest, masterURL string, watchNamespace string, verrazzanoUri string, enableMonitoringStorage string) (*Controller, error) {
 	//
 	// Instantiate connection and clients to local k8s cluster
 	//
@@ -195,7 +195,6 @@ func NewController(kubeconfig string, manifest *util.Manifest, masterURL string,
 	controller := &Controller{
 		watchNamespace:                   watchNamespace,
 		verrazzanoUri:                    verrazzanoUri,
-		imagePullSecret:                  imagePullSecret,
 		enableMonitoringStorage:          enableMonitoringStorage,
 		kubeClientSet:                    kubeClientSet,
 		verrazzanoOperatorClientSet:      verrazzanoOperatorClientSet,
@@ -327,6 +326,14 @@ func (c *Controller) startLocalWatchers() {
 
 // Process a change to a VerrazzanoManagedCluster
 func (c *Controller) processManagedCluster(cluster interface{}) {
+	// Obtain the optional list of imagePullSecrets from the verrazzano-operator service account
+	sa, err := c.kubeClientSet.CoreV1().ServiceAccounts(constants.DefaultNamespace).Get(context.TODO(), constants.VerrazzanoOperatorServiceAccount, metav1.GetOptions{})
+	if err != nil {
+		glog.Errorf("")
+		return
+	}
+	c.imagePullSecrets = sa.ImagePullSecrets
+
 	// A synthetic binding will be constructed and passed to the managed clusters
 	systemBinding := &v1beta1v8o.VerrazzanoBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -342,7 +349,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	}
 
 	// A synthetic Model binding pair will be constructed and passed to the managed clusters
-	mbPair := CreateModelBindingPair(systemModel, systemBinding, c.verrazzanoUri, c.imagePullSecret)
+	mbPair := CreateModelBindingPair(systemModel, systemBinding, c.verrazzanoUri, c.imagePullSecrets)
 
 	managedCluster := cluster.(*v1beta1v8o.VerrazzanoManagedCluster)
 	secret, err := c.secretLister.Secrets(managedCluster.Namespace).Get(managedCluster.Spec.KubeconfigSecret)
@@ -543,7 +550,7 @@ func (c *Controller) processApplicationModelAdded(cluster interface{}) {
 		if mbPair, ok := c.modelBindingPairs[binding.Name]; !ok {
 			if model.Name == binding.Spec.ModelName {
 				glog.Infof("Adding model/binding pair during add model for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-				mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.imagePullSecret)
+				mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.imagePullSecrets)
 				c.modelBindingPairs[binding.Name] = mbPair
 				break
 			}
@@ -589,7 +596,7 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 				// During restart of the operator a delete can happen before a model/binding is created so create one now.
 				if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
 					glog.Infof("Adding model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-					mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.imagePullSecret)
+					mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.imagePullSecrets)
 					c.modelBindingPairs[binding.Name] = mbPair
 				}
 			}
@@ -642,14 +649,14 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 		// If a model exists for this binding, then create the model/binding pair
 		if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
 			glog.Infof("Adding new model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-			mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.imagePullSecret)
+			mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.imagePullSecrets)
 			c.modelBindingPairs[binding.Name] = mbPair
 			mbPairExists = true
 		}
 	} else {
 		// Rebuild the existing model/binding pair
 		if existingModel, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-			UpdateModelBindingPair(mbPair, existingModel, binding, c.verrazzanoUri, c.imagePullSecret)
+			UpdateModelBindingPair(mbPair, existingModel, binding, c.verrazzanoUri, c.imagePullSecrets)
 		}
 
 	}

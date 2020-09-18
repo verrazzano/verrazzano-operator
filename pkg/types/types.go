@@ -116,6 +116,6 @@ type ModelBindingPair struct {
 
 	VerrazzanoUri string
 
-	// Optional image pull secret to add to service accounts created by the operator
-	ImagePullSecret string
+	// Optional list of image pull secrets to add to service accounts created by the operator
+	ImagePullSecrets []corev1.LocalObjectReference
 }

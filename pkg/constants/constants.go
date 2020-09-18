@@ -25,6 +25,7 @@ const VerrazzanoPrefix = "verrazzano"
 const VerrazzanoSystem = "verrazzano-system"
 const VerrazzanoSystemAdmin = VerrazzanoSystem + "-admin"
 const VerrazzanoNamespace = VerrazzanoSystem
+const VerrazzanoOperatorServiceAccount = "verrazzano-operator"
 
 const ManifestFile = "manifest.json"
 
