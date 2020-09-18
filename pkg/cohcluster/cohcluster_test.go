@@ -1,82 +1,125 @@
+// Copyright (C) 2020, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package cohcluster
 
 import (
+	v1coh "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
+	v1betav8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-)
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"testing"
 
-var (
-	emptyBinding = &vz.VerrazzanoBinding{
-		TypeMeta:   v1.TypeMeta{},
-		ObjectMeta: v1.ObjectMeta{},
-		Spec:       vz.VerrazzanoBindingSpec{},
-		Status:     vz.VerrazzanoBindingStatus{},
-	}
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateCR(t *testing.T) {
 	assert := assert.New(t)
+
+	serviceSpec := &v1coh.ServiceSpec{}
+	protocol := "tcp"
+	serviceSpec2 := &v1coh.ServiceSpec{}
+	protocol2 := "udp"
+
 	vzCluster := &v1betav8o.VerrazzanoCoherenceCluster{
-		ImagePullSecrets: []corev1.LocalObjectReference{ {Name: "secret1"}},
+		Name:             "clusterName",
+		Image:            "testImage",
+		CacheConfig:      "cacheConfig",
+		PofConfig:        "pofConfig",
+		ImagePullSecrets: []corev1.LocalObjectReference{{Name: "secret1"}},
+		Ports: []v1coh.NamedPortSpec{
+			{Name: "port1",
+				PortSpec: v1coh.PortSpec{
+					Port:     5000,
+					Protocol: &protocol,
+					Service:  serviceSpec,
+				}},
+			{Name: "port2",
+				PortSpec: v1coh.PortSpec{
+					Port:     5001,
+					Protocol: &protocol2,
+					Service:  serviceSpec2,
+				}},
+		}}
+
+	binding := &v1betav8o.VerrazzanoCoherenceBinding{
+		Name:     "testBinding",
+		Replicas: util.NewVal(5),
 	}
-	labels := map[string]string{"label1":"val1", "label2":"val2"}
-	cohCluster := CreateCR("cohOp", "testNS", vzCluster, labels)
-	assert.NotNil(cohCluster, "CreateCR returned nil")
+	labels := map[string]string{"label1": "val1", "label2": "val2"}
+	cluster := CreateCR("testNS", vzCluster, binding, labels)
+	assert.NotNil(cluster, "CreateCR returned nil")
 
-	assert.Equal("CohCluster", cohCluster.TypeMeta.Kind)
-	assert.Equal("verrazzano.io/v1beta1", cohCluster.TypeMeta.APIVersion)
+	assert.Equal("CoherenceCluster", cluster.TypeMeta.Kind)
+	assert.Equal("coherenceclusters.coherence.oracle.com/v1", cluster.TypeMeta.APIVersion)
 
-	assert.Equal("testNS-coherence-operator", cohCluster.ObjectMeta.Name)
-	assert.Equal("testNS", cohCluster.ObjectMeta.Namespace)
-	assert.Equal(2, len(cohCluster.ObjectMeta.Labels))
-	assert.Equal("val1", cohCluster.ObjectMeta.Labels["label1"])
-	assert.Equal("val2", cohCluster.ObjectMeta.Labels["label2"])
+	assert.Equal("clusterName", cluster.ObjectMeta.Name)
+	assert.Equal("testNS", cluster.ObjectMeta.Namespace)
+	assert.Equal(2, len(cluster.ObjectMeta.Labels))
+	assert.Equal("val1", cluster.ObjectMeta.Labels["label1"])
+	assert.Equal("val2", cluster.ObjectMeta.Labels["label2"])
 
-	assert.Equal("Coherence operator for managed cluster cohOp", cohCluster.Spec.Description, )
-	assert.Equal("testNS-coherence-operator", cohCluster.Spec.Name, )
-	assert.Equal("testNS", cohCluster.Spec.Namespace, )
-	assert.Equal("testNS-coherence-operator", cohCluster.Spec.ServiceAccount, )
-	assert.Equal(1, len(cohCluster.Spec.ImagePullSecrets))
-	assert.Equal("secret1", cohCluster.Spec.ImagePullSecrets[0].Name)
+	assert.Equal(int32(5), *cluster.Spec.CoherenceRoleSpec.Replicas)
+
+	assert.Equal("false", cluster.Spec.Annotations["sidecar.istio.io/inject"])
+	assert.Equal("/metrics", cluster.Spec.Annotations["prometheus.io/path"])
+	assert.Equal("9612", cluster.Spec.Annotations["prometheus.io/port"])
+	assert.Equal("true", cluster.Spec.Annotations["prometheus.io/scrape"])
+
+	assert.Equal("cacheConfig", *cluster.Spec.Coherence.CacheConfig)
+	assert.True(*cluster.Spec.Coherence.Metrics.Enabled)
+	assert.Equal(int32(9612), *cluster.Spec.Coherence.Metrics.Port)
+
+	assert.Equal(1, len(cluster.Spec.JVM.Args))
+	assert.Equal("-Dcoherence.pof.config=pofConfig", cluster.Spec.JVM.Args[0])
+
+	assert.Equal("testImage", *cluster.Spec.Application.ImageSpec.Image)
+
+	assert.Equal(int32(5000), cluster.Spec.Ports[0].Port)
+	assert.Equal("port1", cluster.Spec.Ports[0].Name)
+	assert.Equal(int32(5000), cluster.Spec.Ports[0].PortSpec.Port)
+	assert.Equal(serviceSpec, cluster.Spec.Ports[0].PortSpec.Service)
+	assert.Equal(&protocol, cluster.Spec.Ports[0].PortSpec.Protocol)
+	assert.Equal(int32(5001), cluster.Spec.Ports[1].Port)
+	assert.Equal("port2", cluster.Spec.Ports[1].Name)
+	assert.Equal(int32(5001), cluster.Spec.Ports[1].PortSpec.Port)
+	assert.Equal(serviceSpec2, cluster.Spec.Ports[1].PortSpec.Service)
+	assert.Equal(&protocol2, cluster.Spec.Ports[1].PortSpec.Protocol)
+
+	assert.Equal("secret1", cluster.Spec.ImagePullSecrets[0].Name)
+
+	// Check default replica
+	binding.Replicas = nil
+	cluster2 := CreateCR("testNS", vzCluster, binding, labels)
+	assert.Equal(int32(3), *cluster2.Spec.CoherenceRoleSpec.Replicas)
 }
 
-func TestCreateDeployment(t *testing.T) {
+func TestUpdateEnvVars(t *testing.T) {
 	assert := assert.New(t)
 
-	// needed by CreateDeployment
-	os.Setenv("COH_MICRO_REQUEST_MEMORY", "50Mi")
+	const cohComp = "coh"
+	const wlsComp = "wls"
 
-	labels := map[string]string{"label1":"val1", "label2":"val2"}
-	dep := CreateDeployment("testNs","testBinding",labels, "testImage")
-	assert.NotNil(dep, "CreateDeployment returned nil")
+	mc := types.ManagedCluster{
+		CohClusterCRs: []*v1coh.CoherenceCluster{
+			{ObjectMeta: v1.ObjectMeta{Name: cohComp},},
+			{ObjectMeta: v1.ObjectMeta{Name: wlsComp},},
+		},
+	}
 
-	assert.Equal(microOperatorName, dep.ObjectMeta.Name)
-	assert.Equal("testNs", dep.ObjectMeta.Namespace)
-	assert.Equal(2, len(dep.ObjectMeta.Labels))
-	assert.Equal("val1", dep.ObjectMeta.Labels["label1"])
-	assert.Equal("val2", dep.ObjectMeta.Labels["label2"])
+	envSrc := &corev1.EnvVarSource{}
+	envs := []corev1.EnvVar{
+		{Name: "key1", Value: "val1"},
+		{Name: "key2", ValueFrom: envSrc},
+	}
+	UpdateEnvVars(&mc, "coh", &envs)
 
-	assert.Equal(int32(1), *dep.Spec.Replicas)
-	assert.Equal(appsv1.RecreateDeploymentStrategyType, dep.Spec.Strategy.Type)
-	assert.Equal(2, len(dep.Spec.Selector.MatchLabels))
-	assert.Equal("val1", dep.Spec.Selector.MatchLabels["label1"])
-	assert.Equal("val2", dep.Spec.Selector.MatchLabels["label2"])
-
-	assert.Equal(2, len(dep.Spec.Template.ObjectMeta.Labels))
-	assert.Equal("val1", dep.Spec.Template.ObjectMeta.Labels["label1"])
-	assert.Equal("val2", dep.Spec.Template.ObjectMeta.Labels["label2"])
-	assert.Equal(microOperatorName, dep.Spec.Template.Spec.Containers[0].Name)
-	assert.Equal("testImage", dep.Spec.Template.Spec.Containers[0].Image)
-	assert.Equal(corev1.PullIfNotPresent, dep.Spec.Template.Spec.Containers[0].ImagePullPolicy)
-	assert.Equal(microOperatorName, dep.Spec.Template.Spec.Containers[0].Command[0])
-	assert.Equal(resource.MustParse("50Mi"), dep.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory])
-	assert.Equal(3, len(dep.Spec.Template.Spec.Containers[0].Env))
-	assert.Equal("WATCH_NAMESPACE", dep.Spec.Template.Spec.Containers[0].Env[0].Name)
-	assert.Equal("", dep.Spec.Template.Spec.Containers[0].Env[0].Value)
-	assert.Equal("POD_NAME", dep.Spec.Template.Spec.Containers[0].Env[1].Name)
-	assert.Equal("metadata.name", dep.Spec.Template.Spec.Containers[0].Env[1].ValueFrom.FieldRef.FieldPath)
-	assert.Equal("OPERATOR_NAME", dep.Spec.Template.Spec.Containers[0].Env[2].Name)
-	assert.Equal(microOperatorName, dep.Spec.Template.Spec.Containers[0].Env[2].Value)
-	assert.Equal(int64(1), *dep.Spec.Template.Spec.TerminationGracePeriodSeconds)
-	assert.Equal(constants.VerrazzanoSystem, dep.Spec.Template.Spec.ServiceAccountName)
+	assert.Equal(2, len(mc.CohClusterCRs[0].Spec.Env))
+	assert.Equal("key1", mc.CohClusterCRs[0].Spec.Env[0].Name)
+	assert.Equal("val1", mc.CohClusterCRs[0].Spec.Env[0].Value)
+	assert.Equal("key2", mc.CohClusterCRs[0].Spec.Env[1].Name)
+	assert.Equal(envSrc, mc.CohClusterCRs[0].Spec.Env[1].ValueFrom)
+	assert.Equal(0, len(mc.CohClusterCRs[1].Spec.Env))
 }
-
