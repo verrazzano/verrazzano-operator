@@ -327,9 +327,9 @@ func (c *Controller) startLocalWatchers() {
 // Process a change to a VerrazzanoManagedCluster
 func (c *Controller) processManagedCluster(cluster interface{}) {
 	// Obtain the optional list of imagePullSecrets from the verrazzano-operator service account
-	sa, err := c.kubeClientSet.CoreV1().ServiceAccounts(constants.DefaultNamespace).Get(context.TODO(), constants.VerrazzanoOperatorServiceAccount, metav1.GetOptions{})
+	sa, err := c.kubeClientSet.CoreV1().ServiceAccounts(constants.VerrazzanoSystem).Get(context.TODO(), constants.VerrazzanoOperatorServiceAccount, metav1.GetOptions{})
 	if err != nil {
-		glog.Errorf("")
+		glog.Errorf("Can't find ServiceAccount %s in namespace %s", constants.VerrazzanoOperatorServiceAccount, constants.VerrazzanoSystem)
 		return
 	}
 	c.imagePullSecrets = sa.ImagePullSecrets
