@@ -35,6 +35,7 @@ var (
 	helidonAppOperatorDeployment string
 	enableMonitoringStorage      string
 	apiServerRealm               string
+	imagePullSecret              string
 )
 
 // homePage provides a default handler for unmatched patterns
@@ -123,7 +124,7 @@ func main() {
 		glog.V(6).Info("helidonAppOperatorDeployment Disabled")
 		manifest.HelidonAppOperatorImage = ""
 	}
-	controller, err := pkgverrazzanooperator.NewController(kubeconfig, manifest, masterURL, watchNamespace, verrazzanoUri, enableMonitoringStorage)
+	controller, err := pkgverrazzanooperator.NewController(kubeconfig, manifest, masterURL, watchNamespace, verrazzanoUri, enableMonitoringStorage, imagePullSecret)
 	if err != nil {
 		glog.Fatalf("Error creating the controller: %s", err.Error())
 	}
@@ -167,4 +168,5 @@ func init() {
 	flag.StringVar(&helidonAppOperatorDeployment, "helidonAppOperatorDeployment", "", "--helidonAppOperatorDeployment=false disables helidonAppOperatorDeployment")
 	flag.StringVar(&enableMonitoringStorage, "enableMonitoringStorage", "", "Enable storage for monitoring.  The default is true. 'false' means monitoring storage is disabled.")
 	flag.StringVar(&apiServerRealm, "apiServerRealm", "", "API Server Realm on Keycloak")
+	flag.StringVar(&imagePullSecret, "imagePullSecret", "", "Optional imagePullSecret to add to service accounts created by the operator")
 }

@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateModelBindingPair(model *v1beta1v8o.VerrazzanoModel, binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string) *types.ModelBindingPair {
+func CreateModelBindingPair(model *v1beta1v8o.VerrazzanoModel, binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, imagePullSecret string) *types.ModelBindingPair {
 
 	mbPair := &types.ModelBindingPair{
 		Model:           model,
@@ -33,6 +33,7 @@ func CreateModelBindingPair(model *v1beta1v8o.VerrazzanoModel, binding *v1beta1v
 		ManagedClusters: map[string]*types.ManagedCluster{},
 		Lock:            sync.RWMutex{},
 		VerrazzanoUri:   verrazzanoUri,
+		ImagePullSecret: imagePullSecret,
 	}
 	return buildModelBindingPair(mbPair)
 }
@@ -46,8 +47,8 @@ func releaseLock(mbPair *types.ModelBindingPair) {
 }
 
 // Update a model/binding pair by rebuilding it
-func UpdateModelBindingPair(mbPair *types.ModelBindingPair, model *v1beta1v8o.VerrazzanoModel, binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string) {
-	newMBPair := CreateModelBindingPair(model, binding, verrazzanoUri)
+func UpdateModelBindingPair(mbPair *types.ModelBindingPair, model *v1beta1v8o.VerrazzanoModel, binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, imagePullSecret string) {
+	newMBPair := CreateModelBindingPair(model, binding, verrazzanoUri, imagePullSecret)
 	lock := mbPair.Lock
 	lock.Lock()
 	defer lock.Unlock()

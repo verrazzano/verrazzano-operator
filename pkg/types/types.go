@@ -114,5 +114,6 @@ type ModelBindingPair struct {
 	// Lock for synchronizing write access
 	Lock sync.RWMutex
 
-	VerrazzanoUri string
+	VerrazzanoUri   string
+	ImagePullSecret string
 }
