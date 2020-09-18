@@ -110,7 +110,8 @@ func TestSockShopIngressBindings(t *testing.T) {
 	cluster := "cluster1"
 	namespace := "sockshop"
 	vzUri := "Verrazzano.Uri"
-	pair := CreateModelBindingPair(model, binding, vzUri)
+	optImagePullSecret := ""
+	pair := CreateModelBindingPair(model, binding, vzUri, optImagePullSecret)
 
 	validateIngressBindings(t, pair, cluster, namespace, "wl-frontend-cluster-cluster-1.sockshop.svc.cluster.local", 8001)
 }
@@ -160,7 +161,8 @@ func TestSockShopSimpleModelBinding(t *testing.T) {
 	cluster := "local"
 	namespace := "sockshop"
 	vzUri := "Verrazzano.Uri"
-	pair := CreateModelBindingPair(model, binding, vzUri)
+	optImagePullSecret := ""
+	pair := CreateModelBindingPair(model, binding, vzUri, optImagePullSecret)
 
 	assertPorts(t, pair, cluster, namespace, "frontend", 8080, 8079)
 	assertPorts(t, pair, cluster, namespace, "carts", 80, 7001)
@@ -169,14 +171,14 @@ func TestSockShopSimpleModelBinding(t *testing.T) {
 	assertPorts(t, pair, cluster, namespace, "swagger", 80, 8080)
 
 	//Test default ports
-	apps := []v8o.VerrazzanoHelidon{}
+	var apps []v8o.VerrazzanoHelidon
 	for _, helidon := range model.Spec.HelidonApplications {
 		helidon.Port = 0
 		helidon.TargetPort = 0
 		apps = append(apps, helidon)
 	}
 	model.Spec.HelidonApplications = apps
-	pair = CreateModelBindingPair(model, binding, vzUri)
+	pair = CreateModelBindingPair(model, binding, vzUri, optImagePullSecret)
 	assertPorts(t, pair, cluster, namespace, "frontend", 8080, 8080)
 	assertPorts(t, pair, cluster, namespace, "carts", 8080, 8080)
 	assertPorts(t, pair, cluster, namespace, "user", 8080, 8080)
@@ -256,7 +258,8 @@ func TestCreateModelBindingPair(t *testing.T) {
 	assert.NotEmpty(t, binding.Name)
 
 	// create a new ModelBindingPair
-	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url")
+	optImagePullSecret := ""
+	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url", optImagePullSecret)
 
 	// gather expected state
 	expectedClusterHelidonApps := map[string]map[string]struct{}{"cluster1": {"frontend": {}, "carts": {},
@@ -266,12 +269,13 @@ func TestCreateModelBindingPair(t *testing.T) {
 		Spec: wls.DomainSpec{Image: util.GetTestWlsFrontendImage(), LogHome: "/u01/oracle/user_projects/domains/wl-frontend/logs"}}
 
 	expectedValues := MbpExpectedValues{
-		Binding:     binding,
-		Model:       model,
-		HelidonApps: expectedClusterHelidonApps,
-		Namespaces:  expectedClusterNamespaces,
-		WlsDomains:  map[string]map[string]*wls.Domain{"cluster1": {"wl-frontend": wlsDomain}},
-		Uri:         "/my/verrazzano/url",
+		Binding:         binding,
+		Model:           model,
+		HelidonApps:     expectedClusterHelidonApps,
+		Namespaces:      expectedClusterNamespaces,
+		WlsDomains:      map[string]map[string]*wls.Domain{"cluster1": {"wl-frontend": wlsDomain}},
+		Uri:             "/my/verrazzano/url",
+		ImagePullSecret: optImagePullSecret,
 	}
 	// validate the returned mbp
 	validateModelBindingPair(t, mbp, expectedValues)
@@ -291,7 +295,8 @@ func TestCreateModelBindingPairNoCluster(t *testing.T) {
 	cluster := "cluster1"
 	namespace := "sockshop"
 	vzUri := "/my/verrazzano/url"
-	mbp := CreateModelBindingPair(model, binding, vzUri)
+	optImagePullSecret := "testSecret"
+	mbp := CreateModelBindingPair(model, binding, vzUri, optImagePullSecret)
 
 	// gather expected state
 	expectedClusterHelidonApps := map[string]map[string]struct{}{"cluster1": {"frontend": {}, "carts": {},
@@ -301,12 +306,13 @@ func TestCreateModelBindingPairNoCluster(t *testing.T) {
 		Spec: wls.DomainSpec{Image: util.GetTestWlsFrontendImage(), LogHome: "/u01/oracle/user_projects/domains/wl-frontend/logs"}}
 
 	expectedValues := MbpExpectedValues{
-		Binding:     binding,
-		Model:       model,
-		HelidonApps: expectedClusterHelidonApps,
-		Namespaces:  expectedClusterNamespaces,
-		WlsDomains:  map[string]map[string]*wls.Domain{"cluster1": {"wl-frontend": wlsDomain}},
-		Uri:         "/my/verrazzano/url",
+		Binding:         binding,
+		Model:           model,
+		HelidonApps:     expectedClusterHelidonApps,
+		Namespaces:      expectedClusterNamespaces,
+		WlsDomains:      map[string]map[string]*wls.Domain{"cluster1": {"wl-frontend": wlsDomain}},
+		Uri:             "/my/verrazzano/url",
+		ImagePullSecret: optImagePullSecret,
 	}
 
 	validateModelBindingPair(t, mbp, expectedValues)
@@ -334,7 +340,8 @@ func TestUpdateModelBindingPair(t *testing.T) {
 	assert.NotEmpty(t, binding2.Name)
 
 	// create a new ModelBindingPair
-	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url")
+	optImagePullSecret := "testSecret"
+	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url", optImagePullSecret)
 
 	// gather expected state
 	expectedClusterHelidonApps := map[string]map[string]struct{}{"cluster1": {"frontend": {}, "carts": {}, "catalogue": {},
@@ -343,18 +350,20 @@ func TestUpdateModelBindingPair(t *testing.T) {
 	wlsDomain := &wls.Domain{ObjectMeta: metav1.ObjectMeta{Name: "wl-frontend", Namespace: "sockshop"},
 		Spec: wls.DomainSpec{Image: util.GetTestWlsFrontendImage(), LogHome: "/u01/oracle/user_projects/domains/wl-frontend/logs"}}
 	expectedValues := MbpExpectedValues{
-		Binding:     binding,
-		Model:       model,
-		HelidonApps: expectedClusterHelidonApps,
-		Namespaces:  expectedClusterNamespaces,
-		WlsDomains:  map[string]map[string]*wls.Domain{"cluster1": {"wl-frontend": wlsDomain}},
-		Uri:         "/my/verrazzano/url",
+		Binding:         binding,
+		Model:           model,
+		HelidonApps:     expectedClusterHelidonApps,
+		Namespaces:      expectedClusterNamespaces,
+		WlsDomains:      map[string]map[string]*wls.Domain{"cluster1": {"wl-frontend": wlsDomain}},
+		Uri:             "/my/verrazzano/url",
+		ImagePullSecret: optImagePullSecret,
 	}
 	// validate create mbp
 	validateModelBindingPair(t, mbp, expectedValues)
 
 	// invoke update function that we are testing
-	UpdateModelBindingPair(mbp, model2, binding2, "/my/verrazzano/url/updated")
+	optImagePullSecretUpdated := "testSecretUpdated"
+	UpdateModelBindingPair(mbp, model2, binding2, "/my/verrazzano/url/updated", optImagePullSecretUpdated)
 
 	// gather updated state
 	expectedClusterHelidonApps = map[string]map[string]struct{}{"cluster1": {"frontend": {}, "orders": {}},
@@ -363,12 +372,13 @@ func TestUpdateModelBindingPair(t *testing.T) {
 		"cluster2": {"verrazzano-system": {}, "sockshop2": {}}}
 
 	expectedValues = MbpExpectedValues{
-		Binding:     binding2,
-		Model:       model2,
-		HelidonApps: expectedClusterHelidonApps,
-		Namespaces:  expectedClusterNamespaces,
-		WlsDomains:  map[string]map[string]*wls.Domain{},
-		Uri:         "/my/verrazzano/url/updated",
+		Binding:         binding2,
+		Model:           model2,
+		HelidonApps:     expectedClusterHelidonApps,
+		Namespaces:      expectedClusterNamespaces,
+		WlsDomains:      map[string]map[string]*wls.Domain{},
+		Uri:             "/my/verrazzano/url/updated",
+		ImagePullSecret: optImagePullSecretUpdated,
 	}
 	// validate updated mbp
 	validateModelBindingPair(t, mbp, expectedValues)
@@ -379,7 +389,8 @@ func TestDatabaseBindings(t *testing.T) {
 	binding, _ := ReadBinding("testdata/sockshop-binding.yaml")
 
 	// create a new ModelBindingPair
-	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url")
+	optImagePullSecret := ""
+	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url", optImagePullSecret)
 
 	// validate the returned mbp
 	validateDatabaseBindings(t, mbp, "cluster-1")
@@ -387,12 +398,13 @@ func TestDatabaseBindings(t *testing.T) {
 
 // MbpExpectedValues is a struct of expected ModelBindingPair state used in assertions
 type MbpExpectedValues struct {
-	Binding     *v8o.VerrazzanoBinding
-	Model       *v8o.VerrazzanoModel
-	HelidonApps map[string]map[string]struct{}
-	Namespaces  map[string]map[string]struct{}
-	WlsDomains  map[string]map[string]*wls.Domain
-	Uri         string
+	Binding         *v8o.VerrazzanoBinding
+	Model           *v8o.VerrazzanoModel
+	HelidonApps     map[string]map[string]struct{}
+	Namespaces      map[string]map[string]struct{}
+	WlsDomains      map[string]map[string]*wls.Domain
+	Uri             string
+	ImagePullSecret string
 }
 
 // validateModelBindingPair validates a ModelBindingPair
@@ -401,6 +413,7 @@ func validateModelBindingPair(t *testing.T,
 	expectedValues MbpExpectedValues) {
 
 	assert.Equal(t, expectedValues.Uri, mbp.VerrazzanoUri)
+	assert.Equal(t, expectedValues.ImagePullSecret, mbp.ImagePullSecret)
 	assert.True(t, reflect.DeepEqual(expectedValues.Model, mbp.Model), "Models should be equal")
 	assert.True(t, reflect.DeepEqual(expectedValues.Binding, mbp.Binding), "Bindings should be equal")
 	managedClusters := mbp.ManagedClusters
