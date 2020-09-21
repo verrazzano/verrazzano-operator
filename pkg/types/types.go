@@ -115,4 +115,7 @@ type ModelBindingPair struct {
 	Lock sync.RWMutex
 
 	VerrazzanoUri string
+
+	// Optional list of image pull secrets to add to service accounts created by the operator
+	ImagePullSecrets []corev1.LocalObjectReference
 }

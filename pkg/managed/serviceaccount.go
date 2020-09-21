@@ -37,10 +37,10 @@ func CreateServiceAccounts(mbPair *types.ModelBindingPair, availableManagedClust
 		if mbPair.Binding.Name == constants.VmiSystemBindingName {
 			// Add add the service accounts needed for monitoring and logging
 			for _, serviceAccountName := range monitoring.GetMonitoringComponents() {
-				serviceAccounts = append(serviceAccounts, newServiceAccounts(mbPair.Binding, managedClusterObj, serviceAccountName, monitoring.GetMonitoringComponentLabels(clusterName, serviceAccountName), monitoring.GetMonitoringNamespace(serviceAccountName))...)
+				serviceAccounts = append(serviceAccounts, newServiceAccounts(mbPair.Binding, managedClusterObj, serviceAccountName, monitoring.GetMonitoringComponentLabels(clusterName, serviceAccountName), monitoring.GetMonitoringNamespace(serviceAccountName), mbPair.ImagePullSecrets)...)
 			}
 		} else {
-			serviceAccounts = newServiceAccounts(mbPair.Binding, managedClusterObj, util.GetServiceAccountNameForSystem(), util.GetManagedLabelsNoBinding(clusterName), "")
+			serviceAccounts = newServiceAccounts(mbPair.Binding, managedClusterObj, util.GetServiceAccountNameForSystem(), util.GetManagedLabelsNoBinding(clusterName), "", mbPair.ImagePullSecrets)
 		}
 
 		// Create/Update ServiceAccount
@@ -79,7 +79,7 @@ func createServiceAccount(binding *v1beta1v8o.VerrazzanoBinding, managedClusterC
 }
 
 // Constructs the necessary ServiceAccounts for the specified ManagedCluster in the given VerrazzanoBinding
-func newServiceAccounts(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.ManagedCluster, name string, labels map[string]string, namespaceName string) []*corev1.ServiceAccount {
+func newServiceAccounts(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.ManagedCluster, name string, labels map[string]string, namespaceName string, imagePullSecerts []corev1.LocalObjectReference) []*corev1.ServiceAccount {
 	var serviceAccounts []*corev1.ServiceAccount
 
 	for _, namespace := range managedCluster.Namespaces {
@@ -96,6 +96,7 @@ func newServiceAccounts(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *t
 				}(),
 				Labels: labels,
 			},
+			ImagePullSecrets: imagePullSecerts,
 		}
 		serviceAccounts = append(serviceAccounts, serviceAccount)
 		// Only add service account resource once in case of system binding
