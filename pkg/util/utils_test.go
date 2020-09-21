@@ -238,3 +238,10 @@ func TestGetComponentNamespace(t *testing.T) {
 	err, ns = GetComponentNamespace(compname3, binding)
 	assert.Error(err, "Error finding component in GetComponentNamespace. Component should not be found")
 }
+
+func TestLoadManifest(t *testing.T) {
+	assert := assert.New(t)
+	manifest, err := LoadManifest()
+	assert.NotNil(manifest, "LoadManifiest returned nil")
+	assert.Error(err, "Error loading manifest")
+}
