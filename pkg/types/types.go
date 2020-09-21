@@ -112,7 +112,7 @@ type ModelBindingPair struct {
 	ManagedClusters map[string]*ManagedCluster
 
 	// Lock for synchronizing write access
-	Lock sync.RWMutex
+	Lock *sync.RWMutex
 
 	VerrazzanoUri string
 

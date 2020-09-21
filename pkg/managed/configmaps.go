@@ -39,14 +39,17 @@ func CreateConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterCon
 			}
 			for _, newConfigMap := range newConfigMaps {
 				err = createUpdateConfigMaps(managedClusterConnection, newConfigMap, clusterName)
+				if err != nil {
+					return err
+				}
 			}
 		} else {
 			for _, newConfigMap := range managedClusterObj.ConfigMaps {
 				err = createUpdateConfigMaps(managedClusterConnection, newConfigMap, clusterName)
+				if err != nil {
+					return err
+				}
 			}
-		}
-		if err != nil {
-			return err
 		}
 	}
 	return nil

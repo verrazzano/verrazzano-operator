@@ -146,6 +146,9 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 							return err
 						}
 						_, err = managedClusterConnection.DomainClientSet.WeblogicV8().Domains(domainCR.Namespace).Patch(context.TODO(), domainCR.Name, k8sTypes.MergePatchType, domainCRjson, metav1.PatchOptions{})
+						if err != nil {
+							return err
+						}
 					}
 
 					// Retain the current status so it can be reported through the UI
@@ -874,7 +877,7 @@ func isContainersEqual(existing []corev1.Container, target []corev1.Container) b
 		return false
 	}
 
-	for i, _ := range existing {
+	for i := range existing {
 		if !reflect.DeepEqual(existing[i], target[i]) {
 			return false
 		}
@@ -888,7 +891,7 @@ func isVolumesEqual(existing []corev1.Volume, target []corev1.Volume) bool {
 		return false
 	}
 
-	for i, _ := range existing {
+	for i := range existing {
 		if !reflect.DeepEqual(existing[i], target[i]) {
 			return false
 		}

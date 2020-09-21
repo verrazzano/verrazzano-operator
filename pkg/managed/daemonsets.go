@@ -32,7 +32,7 @@ func CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterCon
 	}
 
 	// Construct deployments for each ManagedCluster
-	for clusterName, _ := range mbPair.ManagedClusters {
+	for clusterName := range mbPair.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()

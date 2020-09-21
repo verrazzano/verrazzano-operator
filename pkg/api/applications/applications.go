@@ -93,8 +93,7 @@ func refreshApplications() error {
 	// be empty.
 	for _, model := range modelMap {
 		if model.BindingMatch == false {
-			modelYaml := []byte{}
-			modelYaml, _ = yaml.Marshal(model.Model)
+			modelYaml, _ := yaml.Marshal(model.Model)
 			Applications = append(Applications, Application{
 				Id:          strconv.Itoa(i),
 				Name:        "",

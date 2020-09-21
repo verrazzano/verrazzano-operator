@@ -87,10 +87,16 @@ func saltedHash(sec *corev1.Secret) *corev1.Secret {
 
 func CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets Secrets) error {
 	vmiSecret, err := secrets.Get(constants.VmiSecretName)
+	if err != nil {
+		return err
+	}
 
 	if vmiSecret == nil {
 		vmiSecret = NewVmiSecret(binding)
 		vmiSecret, err = secrets.Create(vmiSecret)
+		if err != nil {
+			return err
+		}
 	} else {
 		updated := false
 		if vmiSecret.Data["username"] == nil || vmiSecret.Data["password"] == nil {
@@ -103,6 +109,9 @@ func CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets Secrets) er
 		}
 		if updated {
 			vmiSecret, err = secrets.Update(vmiSecret)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

@@ -134,6 +134,9 @@ func DeleteAppBinding(f *framework.Framework, bindingName string) error {
 func ReadModel(path string) (*v1beta1v8o.VerrazzanoModel, error) {
 	filename, _ := filepath.Abs(path)
 	yamlFile, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
 	var vmodel v1beta1v8o.VerrazzanoModel
 	err = yaml.Unmarshal(yamlFile, &vmodel)
 	return &vmodel, err
@@ -143,6 +146,9 @@ func ReadModel(path string) (*v1beta1v8o.VerrazzanoModel, error) {
 func ReadBinding(path string) (*v1beta1v8o.VerrazzanoBinding, error) {
 	filename, _ := filepath.Abs(path)
 	yamlFile, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
 	var vbnd v1beta1v8o.VerrazzanoBinding
 	err = yaml.Unmarshal(yamlFile, &vbnd)
 	return &vbnd, err
@@ -152,6 +158,9 @@ func ReadBinding(path string) (*v1beta1v8o.VerrazzanoBinding, error) {
 func WriteYmal(path string, obj interface{}) (string, error) {
 	fileout, _ := filepath.Abs(path)
 	bytes, err := ToYmal(obj)
+	if err != nil {
+		return "", err
+	}
 	err = ioutil.WriteFile(fileout, bytes, 0644)
 	return fileout, err
 }

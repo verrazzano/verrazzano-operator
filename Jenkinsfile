@@ -99,6 +99,36 @@ pipeline {
             }
         }
 
+        stage('gofmt Check') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano-monitoring-instance-api
+                    make go-fmt
+                """
+            }
+        }
+
+        stage('go vet Check') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano-monitoring-instance-api
+                    make go-vet
+                """
+            }
+        }
+
+        stage('ineffassign Check') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano-monitoring-instance-api
+                    make go-ineffassign
+                """
+            }
+        }
+
         stage('Third Party License Check') {
             when {
                 allOf {
