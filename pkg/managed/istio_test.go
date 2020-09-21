@@ -6,9 +6,11 @@ package managed
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
+  "k8s.io/apimachinery/pkg/labels"
+  "testing"
 
 	istio "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
 	istio2 "istio.io/api/networking/v1alpha3"
@@ -19,24 +21,305 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 )
 
+func TestGetUniqueServiceEntryAddress(t *testing.T) {
+	clusterConnections := getManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+	var startIPIndex = 1
+
+	address, err := getUniqueServiceEntryAddress(clusterConnection, &startIPIndex)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get unique ServiceEntry address: %v", err))
+	}
+	assert.Equal(t, "240.0.0.1", address)
+
+	entry := istio.ServiceEntry{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+		},
+		Spec: istio2.ServiceEntry{
+			Addresses: []string{
+				"240.0.0.1",
+				"240.0.0.2",
+				"240.0.0.3",
+			},
+		},
+	}
+	_, err = clusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Create(context.TODO(), &entry, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create ServiceEntry: %v", err))
+	}
+
+	address, err = getUniqueServiceEntryAddress(clusterConnection, &startIPIndex)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get unique ServiceEntry address: %v", err))
+	}
+	assert.Equal(t, "240.0.0.4", address)
+}
+
+func TestGetIstioGateways(t *testing.T) {
+	modelBindingPair := getModelBindingPair()
+	clusterConnections := getManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster2"]
+
+	gatewayAddress := getIstioGateways(modelBindingPair, clusterConnections, "cluster2")
+
+	assert.Equal(t, "123.45.0.1", gatewayAddress)
+
+	service, err := clusterConnection.KubeClient.CoreV1().Services(IstioSystemNamespace).Get(context.TODO(), "istio-ingressgateway", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't delete istio-ingressgateway service: %v", err))
+	}
+	service.Status.LoadBalancer.Ingress = nil
+	_, err = clusterConnection.KubeClient.CoreV1().Services(IstioSystemNamespace).Update(context.TODO(), service, metav1.UpdateOptions{})
+
+	gatewayAddress = getIstioGateways(modelBindingPair, clusterConnections, "cluster2")
+	assert.Equal(t, "", gatewayAddress)
+
+	err = clusterConnection.KubeClient.CoreV1().Services(IstioSystemNamespace).Delete(context.TODO(), "istio-ingressgateway", metav1.DeleteOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't delete istio-ingressgateway service: %v", err))
+	}
+	gatewayAddress = getIstioGateways(modelBindingPair, clusterConnections, "cluster2")
+	assert.Equal(t, "", gatewayAddress)
+}
+
+func TestCleanupOrphanedServiceEntries(t *testing.T) {
+	modelBindingPair := getModelBindingPair()
+	clusterConnections := getManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+	clusterConnection2 := clusterConnections["cluster3"]
+
+	se := istio.ServiceEntry{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+		},
+	}
+	_, err := clusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Create(context.TODO(), &se, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create service entry: %v", err))
+	}
+	_, err = clusterConnection2.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Create(context.TODO(), &se, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create service entry: %v", err))
+	}
+
+	// clean up the service entries
+	err = CleanupOrphanedServiceEntries(modelBindingPair, clusterConnections)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't cleanup orphaned service entries: %v", err))
+	}
+
+  _, err = clusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Get(context.TODO(), "foo", metav1.GetOptions{})
+  if err == nil {
+    t.Fatal("expected service entry to be cleaned up")
+  }
+  _, err = clusterConnection2.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Get(context.TODO(), "foo", metav1.GetOptions{})
+  if err == nil {
+    t.Fatal("expected service entry to be cleaned up")
+  }
+}
+
+func TestCleanupOrphanedIngresses(t *testing.T) {
+	modelBindingPair := getModelBindingPair()
+	clusterConnections := getManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+	clusterConnection2 := clusterConnections["cluster3"]
+
+	gw := istio.Gateway{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+		},
+	}
+	_, err := clusterConnection.IstioClientSet.NetworkingV1alpha3().Gateways("test").Create(context.TODO(), &gw, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create gateway: %v", err))
+	}
+	_, err = clusterConnection2.IstioClientSet.NetworkingV1alpha3().Gateways("test").Create(context.TODO(), &gw, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create gateway: %v", err))
+	}
+
+	vs := istio.VirtualService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bar",
+			Namespace: "test",
+		},
+	}
+	_, err = clusterConnection.IstioClientSet.NetworkingV1alpha3().VirtualServices("test").Create(context.TODO(), &vs, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create gateway: %v", err))
+	}
+	_, err = clusterConnection2.IstioClientSet.NetworkingV1alpha3().VirtualServices("test").Create(context.TODO(), &vs, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create gateway: %v", err))
+	}
+
+	// clean up the ingresses
+	err = CleanupOrphanedIngresses(modelBindingPair, clusterConnections)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't cleanup orphaned ingresses: %v", err))
+	}
+
+  _, err = clusterConnection.IstioClientSet.NetworkingV1alpha3().VirtualServices("test").Get(context.TODO(), "foo", metav1.GetOptions{})
+  if err == nil {
+    t.Fatal("expected ingress to be cleaned up")
+  }
+  _, err = clusterConnection2.IstioClientSet.NetworkingV1alpha3().VirtualServices("test").Get(context.TODO(), "foo", metav1.GetOptions{})
+  if err == nil {
+    t.Fatal("expected ingress to be cleaned up")
+  }
+}
+
+func TestCreateServiceEntries(t *testing.T) {
+	modelBindingPair := getModelBindingPair()
+	clusterConnections := getManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	// create the service entries
+	err := CreateServiceEntries(modelBindingPair, clusterConnections, clusterConnections)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create service entries: %v", err))
+	}
+	assertCreateServiceEntries(t, clusterConnection)
+
+	// change the remote namespace
+	modelBindingPair.ManagedClusters["cluster1"].RemoteRests["test"][0].RemoteNamespace = "test3"
+
+	// create the service entries
+	err = CreateServiceEntries(modelBindingPair, clusterConnections, clusterConnections)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create service entries: %v", err))
+	}
+	assertCreateServiceEntries(t, clusterConnection)
+
+	// get the service entry created above and set the addresses to nil so that getUniqueServiceEntryAddress is called
+	entry, err := clusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Get(context.TODO(), "test-remote", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get service entry: %v", err))
+	}
+	entry.Spec.Addresses = nil
+	_, err = clusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Update(context.TODO(), entry, metav1.UpdateOptions{})
+
+	// create the service entries
+	err = CreateServiceEntries(modelBindingPair, clusterConnections, clusterConnections)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create service entries: %v", err))
+	}
+	assertCreateServiceEntries(t, clusterConnection)
+
+	modelBindingPair.Binding.Name = constants.VmiSystemBindingName
+	// create the service entries
+	err = CreateServiceEntries(modelBindingPair, clusterConnections, clusterConnections)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create service entries: %v", err))
+	}
+}
+
+func assertCreateServiceEntries(t *testing.T, clusterConnection *util.ManagedClusterConnection) {
+  list, err := clusterConnection.IstioServiceEntryLister.ServiceEntries("test").List(labels.Everything())
+  if err != nil {
+    t.Fatal(fmt.Sprintf("expected to find ServiceEntries in test namespace: %v", err))
+  }
+  assert.Equal(t, 2, len(list), "should be 2 ServiceEntry in test namespace")
+
+  entry, err := clusterConnection.IstioServiceEntryLister.ServiceEntries("test").Get("test-remote")
+  if err != nil {
+    t.Fatal(fmt.Sprintf("expected to find ServiceEntry test-remote: %v", err))
+  }
+  assert.Equal(t, "test-remote", entry.Name)
+  assert.Equal(t, "test", entry.Namespace)
+  assert.Equal(t, 1, len(entry.Spec.Ports))
+  assert.Equal(t, 8182, int(entry.Spec.Ports[0].Number))
+  assert.Equal(t, 1, len(entry.Spec.Addresses))
+  assert.Equal(t, "240.0.0.1", entry.Spec.Addresses[0])
+
+  entry, err = clusterConnection.IstioServiceEntryLister.ServiceEntries("test").Get("test2-remote")
+  if err != nil {
+    t.Fatal(fmt.Sprintf("expected to find ServiceEntry test2-remote: %v", err))
+  }
+  assert.Equal(t, "test2-remote", entry.Name)
+  assert.Equal(t, "test", entry.Namespace)
+  assert.Equal(t, 1, len(entry.Spec.Ports))
+  assert.Equal(t, 8183, int(entry.Spec.Ports[0].Number))
+  assert.Equal(t, 1, len(entry.Spec.Addresses))
+  assert.Equal(t, "240.0.0.2", entry.Spec.Addresses[0])
+}
+
+func TestCreateIngresses(t *testing.T) {
+	modelBindingPair := getModelBindingPair()
+	clusterConnections := getManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	// create the ingresses
+	err := CreateIngresses(modelBindingPair, clusterConnections)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create ingresses: %v", err))
+	}
+	assertCreateIngresses(t, clusterConnection, "*")
+
+	// change the ingress dns name in the binding
+	modelBindingPair.Binding.Spec.IngressBindings[0].DnsName = "foo"
+	// create the ingresses
+	err = CreateIngresses(modelBindingPair, clusterConnections)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create ingresses: %v", err))
+	}
+	assertCreateIngresses(t, clusterConnection, "foo")
+
+	modelBindingPair.Binding.Name = constants.VmiSystemBindingName
+	err = CreateIngresses(modelBindingPair, clusterConnections)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create ingresses: %v", err))
+	}
+}
+
+func assertCreateIngresses(t *testing.T, clusterConnection *util.ManagedClusterConnection, dnsName string) {
+  list, err := clusterConnection.IstioGatewayLister.Gateways("test").List(labels.Everything())
+  if err != nil {
+    t.Fatal(fmt.Sprintf("expected to find Gateways in test namespace: %v", err))
+  }
+  assert.Equal(t, 1, len(list), "should be 1 Gateways in test namespace")
+
+  gateway, err := clusterConnection.IstioGatewayLister.Gateways("test").Get("test-ingress-gateway")
+  if err != nil {
+    t.Fatal(fmt.Sprintf("expected to find Gateway test-ingress-gateway: %v", err))
+  }
+  assert.Equal(t, "test-ingress-gateway", gateway.Name)
+
+  list2, err := clusterConnection.IstioVirtualServiceLister.VirtualServices("test").List(labels.Everything())
+  if err != nil {
+    t.Fatal(fmt.Sprintf("expected to find VirtualServices in test namespace: %v", err))
+  }
+  assert.Equal(t, 1, len(list2), "should be 1 VirtualServices in test namespace")
+
+  service, err := clusterConnection.IstioVirtualServiceLister.VirtualServices("test").Get("test-ingress-virtualservice")
+  if err != nil {
+    t.Fatal(fmt.Sprintf("expected to find VirtualService test-ingress-virtualservice: %v", err))
+  }
+  assert.Equal(t, "test-ingress-virtualservice", service.Name)
+}
+
 func TestCreateDestinationRules(t *testing.T) {
 	modelBindingPair := getModelBindingPair()
 	clusterConnections := getManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
 	// create the destination rules
-	err := createDestinationRules(modelBindingPair, clusterConnections)
+	err := CreateDestinationRules(modelBindingPair, clusterConnections)
 	if err != nil {
-		t.Fatal("can't create destination rules")
+		t.Fatal(fmt.Sprintf("can't create destination rules: %v", err))
 	}
 	assertCreateDestinationRules(t, clusterConnection, 9000)
 
 	// change the coherence extend port in the model
 	modelBindingPair.Model.Spec.CoherenceClusters[0].Ports[0].Port = 9001
 	// create the destination rules
-	err = createDestinationRules(modelBindingPair, clusterConnections)
+	err = CreateDestinationRules(modelBindingPair, clusterConnections)
 	if err != nil {
-		t.Fatal("can't create destination rules")
+		t.Fatal(fmt.Sprintf("can't create destination rules: %v", err))
 	}
 	assertCreateDestinationRules(t, clusterConnection, 9001)
 }
@@ -45,12 +328,12 @@ func assertCreateDestinationRules(t *testing.T, clusterConnection *util.ManagedC
 	// test-destination-rule
 	list, err := clusterConnection.IstioAuthClientSet.NetworkingV1alpha3().DestinationRules("test").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		t.Fatal("expected to find DestinationRules in test namespace")
+		t.Fatal(fmt.Sprintf("expected to find DestinationRules in test namespace: %v", err))
 	}
-	assert.Equal(t, 1, len(list.Items), "should only be 1 DestinationRule in test namespace")
+	assert.Equal(t, 1, len(list.Items), "should be 1 DestinationRule in test namespace")
 	rule, err := clusterConnection.IstioAuthClientSet.NetworkingV1alpha3().DestinationRules("test").Get(context.TODO(), "test-destination-rule", metav1.GetOptions{})
 	if err != nil {
-		t.Fatal("expected to find DestinationRule test-destination-rule")
+		t.Fatal(fmt.Sprintf("expected to find DestinationRule test-destination-rule: %v", err))
 	}
 	assert.Equal(t, "test", rule.Namespace)
 	assert.Equal(t, istio2.ClientTLSSettings_ISTIO_MUTUAL, rule.Spec.TrafficPolicy.Tls.Mode)
@@ -61,12 +344,12 @@ func assertCreateDestinationRules(t *testing.T, clusterConnection *util.ManagedC
 	// test2-destination-rule
 	list, err = clusterConnection.IstioAuthClientSet.NetworkingV1alpha3().DestinationRules("test2").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		t.Fatal("expected to find DestinationRules in test2 namespace")
+		t.Fatal(fmt.Sprintf("expected to find DestinationRules in test2 namespace: %v", err))
 	}
-	assert.Equal(t, 1, len(list.Items), "should only be 1 DestinationRule in test2 namespace")
+	assert.Equal(t, 1, len(list.Items), "should be 1 DestinationRule in test2 namespace")
 	rule, err = clusterConnection.IstioAuthClientSet.NetworkingV1alpha3().DestinationRules("test2").Get(context.TODO(), "test2-destination-rule", metav1.GetOptions{})
 	if err != nil {
-		t.Fatal("expected to find DestinationRule test2-destination-rule")
+		t.Fatal(fmt.Sprintf("expected to find DestinationRule test2-destination-rule: %v", err))
 	}
 	assert.Equal(t, "test2", rule.Namespace)
 	assert.Equal(t, istio2.ClientTLSSettings_ISTIO_MUTUAL, rule.Spec.TrafficPolicy.Tls.Mode)
@@ -75,12 +358,12 @@ func assertCreateDestinationRules(t *testing.T, clusterConnection *util.ManagedC
 	// test3-destination-rule
 	list, err = clusterConnection.IstioAuthClientSet.NetworkingV1alpha3().DestinationRules("test3").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		t.Fatal("expected to find DestinationRules in test2 namespace")
+		t.Fatal(fmt.Sprintf("expected to find DestinationRules in test2 namespace: %v", err))
 	}
-	assert.Equal(t, 1, len(list.Items), "should only be 1 DestinationRule in test3 namespace")
+	assert.Equal(t, 1, len(list.Items), "should be 1 DestinationRule in test3 namespace")
 	rule, err = clusterConnection.IstioAuthClientSet.NetworkingV1alpha3().DestinationRules("test3").Get(context.TODO(), "test3-destination-rule", metav1.GetOptions{})
 	if err != nil {
-		t.Fatal("expected to find DestinationRule test3-destination-rule")
+		t.Fatal(fmt.Sprintf("expected to find DestinationRule test3-destination-rule: %v", err))
 	}
 	assert.Equal(t, "test3", rule.Namespace)
 	assert.Equal(t, istio2.ClientTLSSettings_ISTIO_MUTUAL, rule.Spec.TrafficPolicy.Tls.Mode)
@@ -93,9 +376,9 @@ func TestCreateAuthorizationPolicies(t *testing.T) {
 	clusterConnection := clusterConnections["cluster1"]
 
 	// create the authorization policies
-	err := createAuthorizationPolicies(modelBindingPair, clusterConnections)
+	err := CreateAuthorizationPolicies(modelBindingPair, clusterConnections)
 	if err != nil {
-		t.Fatal("can't create authorization policies")
+		t.Fatal(fmt.Sprintf("can't create authorization policies: %v", err))
 	}
 	assertCreateAuthorizationPolicies(t, clusterConnection, true)
 
@@ -103,73 +386,73 @@ func TestCreateAuthorizationPolicies(t *testing.T) {
 	modelBindingPair.Model.Spec.WeblogicDomains[0].Connections = nil
 
 	// recreate the authorization policies
-	err = createAuthorizationPolicies(modelBindingPair, clusterConnections)
+	err = CreateAuthorizationPolicies(modelBindingPair, clusterConnections)
 	if err != nil {
-		t.Fatal(" should not raise an error")
+		t.Fatal(fmt.Sprintf(" should not raise an error: %v", err))
 	}
 	assertCreateAuthorizationPolicies(t, clusterConnection, false)
 }
 
 func assertCreateAuthorizationPolicies(t *testing.T, clusterConnection *util.ManagedClusterConnection, wlsHasConn bool) {
-  
+
 	// test-authorization-policy
 	list, err := clusterConnection.IstioAuthClientSet.SecurityV1beta1().AuthorizationPolicies("test").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		t.Fatal("expected to find AuthorizationPolicies in test namespace")
+		t.Fatal(fmt.Sprintf("expected to find AuthorizationPolicies in test namespace: %v", err))
 	}
-	assert.Equal(t, 1, len(list.Items), "should only be 1 AuthorizationPolicy in test namespace")
+	assert.Equal(t, 1, len(list.Items), "should be 1 AuthorizationPolicy in test namespace")
 	policy, err := clusterConnection.IstioAuthClientSet.SecurityV1beta1().AuthorizationPolicies("test").Get(context.TODO(), "test-authorization-policy", metav1.GetOptions{})
 	if err != nil {
-		t.Fatal("expected to find AuthorizationPolicy test-authorization-policy")
+		t.Fatal(fmt.Sprintf("expected to find AuthorizationPolicy test-authorization-policy: %v", err))
 	}
 	assert.Equal(t, "test", policy.Namespace)
 	assert.Equal(t, 1, len(policy.Spec.Rules))
 	assert.Equal(t, 2, len(policy.Spec.Rules[0].From))
 	assert.Equal(t, 2, len(policy.Spec.Rules[0].From[0].Source.Namespaces))
-	assert.Equal(t, "test", policy.Spec.Rules[0].From[0].Source.Namespaces[0])
-	assert.Equal(t, "istio-system", policy.Spec.Rules[0].From[0].Source.Namespaces[1])
+	assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test"))
+	assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "istio-system"))
 
 	// test2-authorization-policy
 	list, err = clusterConnection.IstioAuthClientSet.SecurityV1beta1().AuthorizationPolicies("test2").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		t.Fatal("expected to find AuthorizationPolicies in test2 namespace")
+		t.Fatal(fmt.Sprintf("expected to find AuthorizationPolicies in test2 namespace: %v", err))
 	}
-	assert.Equal(t, 1, len(list.Items), "should only be 1 AuthorizationPolicy in test2 namespace")
+	assert.Equal(t, 1, len(list.Items), "should be 1 AuthorizationPolicy in test2 namespace")
 	policy, err = clusterConnection.IstioAuthClientSet.SecurityV1beta1().AuthorizationPolicies("test2").Get(context.TODO(), "test2-authorization-policy", metav1.GetOptions{})
 	if err != nil {
-		t.Fatal("expected to find AuthorizationPolicy test2-authorization-policy")
+		t.Fatal(fmt.Sprintf("expected to find AuthorizationPolicy test2-authorization-policy: %v", err))
 	}
 	assert.Equal(t, "test2", policy.Namespace)
 	assert.Equal(t, 1, len(policy.Spec.Rules))
 	assert.Equal(t, 2, len(policy.Spec.Rules[0].From))
 	if wlsHasConn {
 		assert.Equal(t, 3, len(policy.Spec.Rules[0].From[0].Source.Namespaces))
-		assert.Equal(t, "test2", policy.Spec.Rules[0].From[0].Source.Namespaces[0])
-		assert.Equal(t, "test3", policy.Spec.Rules[0].From[0].Source.Namespaces[1])
-		assert.Equal(t, "istio-system", policy.Spec.Rules[0].From[0].Source.Namespaces[2])
+		assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test2"))
+		assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test3"))
+		assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "istio-system"))
 	} else {
 		assert.Equal(t, 2, len(policy.Spec.Rules[0].From[0].Source.Namespaces))
-		assert.Equal(t, "test2", policy.Spec.Rules[0].From[0].Source.Namespaces[0])
-		assert.Equal(t, "istio-system", policy.Spec.Rules[0].From[0].Source.Namespaces[1])
+		assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test2"))
+		assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "istio-system"))
 	}
 
 	// test3-authorization-policy
 	list, err = clusterConnection.IstioAuthClientSet.SecurityV1beta1().AuthorizationPolicies("test3").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		t.Fatal("expected to find AuthorizationPolicies in test3 namespace")
+		t.Fatal(fmt.Sprintf("expected to find AuthorizationPolicies in test3 namespace: %v", err))
 	}
-	assert.Equal(t, 1, len(list.Items), "should only be 1 AuthorizationPolicy in test3 namespace")
+	assert.Equal(t, 1, len(list.Items), "should be 1 AuthorizationPolicy in test3 namespace")
 	policy, err = clusterConnection.IstioAuthClientSet.SecurityV1beta1().AuthorizationPolicies("test3").Get(context.TODO(), "test3-authorization-policy", metav1.GetOptions{})
 	if err != nil {
-		t.Fatal("expected find AuthorizationPolicy test3-authorization-policy")
+		t.Fatal(fmt.Sprintf("expected find AuthorizationPolicy test3-authorization-policy: %v", err))
 	}
 	assert.Equal(t, "test3", policy.Namespace)
 	assert.Equal(t, 1, len(policy.Spec.Rules))
 	assert.Equal(t, 2, len(policy.Spec.Rules[0].From))
 	assert.Equal(t, 3, len(policy.Spec.Rules[0].From[0].Source.Namespaces))
-	assert.Equal(t, "test3", policy.Spec.Rules[0].From[0].Source.Namespaces[0])
-	assert.Equal(t, "test", policy.Spec.Rules[0].From[0].Source.Namespaces[1])
-	assert.Equal(t, "istio-system", policy.Spec.Rules[0].From[0].Source.Namespaces[2])
+	assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test"))
+	assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test3"))
+	assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "istio-system"))
 }
 
 func TestNewIngresses(t *testing.T) {

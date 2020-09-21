@@ -423,11 +423,11 @@ func (c *Controller) startManagedClusterWatchers(managedClusterName string, mbPa
 // update the Istio destination rules and authorization policies for the given model/binding whenever a pod is added or deleted
 func (c *Controller) updateIstioPolicies(mbPair *types.ModelBindingPair, pod *corev1.Pod, action string) {
 	glog.V(4).Infof("Pod %s : %s %s.", pod.Name, pod.Status.PodIP, action)
-	err := managed.CreateDestinationRules(mbPair, c.managedClusterConnections)
+	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to update destination rules for binding %s after pod %s: %v", mbPair.Binding.Name, action, err)
+		glog.Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
 	}
-	err = managed.CreateAuthorizationPolicies(mbPair, c.managedClusterConnections)
+	err = managed.CreateAuthorizationPolicies(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to update authorization policies for binding %s after pod %s: %v", mbPair.Binding.Name, action, err)
 	}
@@ -435,8 +435,13 @@ func (c *Controller) updateIstioPolicies(mbPair *types.ModelBindingPair, pod *co
 
 // Create managed resources on clusters depending upon the binding
 func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.ModelBindingPair) {
+	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
+	if err != nil {
+		glog.Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
+	}
+
 	// Create Namespaces
-	err := managed.CreateNamespaces(mbPair, c.managedClusterConnections)
+	err = managed.CreateNamespaces(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to create namespaces for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -472,13 +477,13 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create Ingresses
-	err = managed.CreateIngresses(mbPair, c.managedClusterConnections)
+	err = managed.CreateIngresses(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create ingresses for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create istio ServiceEntries for each remote rest connection
-	err = managed.CreateServiceEntries(mbPair, c.managedClusterConnections)
+	err = managed.CreateServiceEntries(mbPair, filteredConnections, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to create service entries for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -514,13 +519,13 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create DestinationRules
-	err = managed.CreateDestinationRules(mbPair, c.managedClusterConnections)
+	err = managed.CreateDestinationRules(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create destination rules for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create AuthorizationPolicies
-	err = managed.CreateAuthorizationPolicies(mbPair, c.managedClusterConnections)
+	err = managed.CreateAuthorizationPolicies(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create authorization policies for binding %s: %v", mbPair.Binding.Name, err)
 	}

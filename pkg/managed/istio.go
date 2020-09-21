@@ -30,20 +30,13 @@ import (
 const PrometheusPodPrefix = "prometheus-"
 const IstioSystemNamespace = "istio-system"
 
-func CreateIngresses(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-
+func CreateIngresses(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Creating/updating Ingresses for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// In case of System binding, skip creating ingresses
 	if mbPair.Binding.Name == constants.VmiSystemBindingName {
 		glog.V(6).Infof("Skip creating Ingresses for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
 		return nil
-	}
-
-	// Parse out the managed clusters that this binding applies to
-	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return err
 	}
 
 	// Construct ingresses for each ManagedCluster
@@ -103,19 +96,13 @@ func CreateIngresses(mbPair *types.ModelBindingPair, availableManagedClusterConn
 	return nil
 }
 
-func CreateServiceEntries(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func CreateServiceEntries(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Creating/updating istio serviceentries for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// In case of System binding, skip creating Service Entries
 	if mbPair.Binding.Name == constants.VmiSystemBindingName {
 		glog.V(6).Infof("Skip creating Service Entries for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
 		return nil
-	}
-
-	// Parse out the managed clusters that this binding applies to
-	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return err
 	}
 
 	// Construct istio serviceentries for each ManagedCluster
@@ -172,16 +159,7 @@ func CreateServiceEntries(mbPair *types.ModelBindingPair, availableManagedCluste
 	return nil
 }
 
-func CreateDestinationRules(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	// Parse out the managed clusters that this binding applies to
-	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return err
-	}
-	return createDestinationRules(mbPair, filteredConnections)
-}
-
-func createDestinationRules(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func CreateDestinationRules(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Creating/updating DestinationRules for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Construct istio destination rules for each ManagedCluster
@@ -190,14 +168,8 @@ func createDestinationRules(mbPair *types.ModelBindingPair, filteredConnections 
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(map[string]string{})
-		pods, err := managedClusterConnection.PodLister.List(selector)
-		if err != nil {
-			return err
-		}
-
 		// Construct the set of expected isto destination rules
-		newRules, err := newDestinationRules(mbPair, managedClusterObj, pods)
+		newRules, err := newDestinationRules(mbPair, managedClusterObj)
 		if err != nil {
 			return err
 		}
@@ -229,17 +201,7 @@ func createDestinationRules(mbPair *types.ModelBindingPair, filteredConnections 
 	return nil
 }
 
-func CreateAuthorizationPolicies(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	// Parse out the managed clusters that this binding applies to
-	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return err
-	}
-
-	return createAuthorizationPolicies(mbPair, filteredConnections)
-}
-
-func createAuthorizationPolicies(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func CreateAuthorizationPolicies(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Creating/updating AuthorizationPolicies for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Construct istio authorization policies for each ManagedCluster
@@ -682,7 +644,7 @@ func newServiceEntries(mbPair *types.ModelBindingPair, mc *types.ManagedCluster,
 // Destination rules are created for each namespace named in the binding placement.  Each destination rule enables
 // MTLS for the entire namespace with one exception... MTLS is disabled for traffic on the WebLogic admin port to avoid
 // issues with WebLogic managed server communication with the admin server.
-func newDestinationRules(mbPair *types.ModelBindingPair, mc *types.ManagedCluster, pods []*v1.Pod) ([]*v1alpha3.DestinationRule, error) {
+func newDestinationRules(mbPair *types.ModelBindingPair, mc *types.ManagedCluster) ([]*v1alpha3.DestinationRule, error) {
 	var rules []*v1alpha3.DestinationRule
 	namespaceMap := make(map[string]*v1beta1v8o.KubernetesNamespace)
 
@@ -899,16 +861,6 @@ func GetNamespaceValues(nsMap map[string]map[string]struct{}, ns string) []strin
 		}
 	}
 	return values
-}
-
-// Determine whether a value is set for a given namespace
-func NamespaceContainsValue(nsMap map[string]map[string]struct{}, ns string, value string) bool {
-	if nsMap[ns] != nil {
-		if _, ok := nsMap[ns][value]; ok {
-			return true
-		}
-	}
-	return false
 }
 
 func getIstioGateways(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, remoteClusterName string) string {
