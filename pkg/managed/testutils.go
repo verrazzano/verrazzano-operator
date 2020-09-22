@@ -84,6 +84,63 @@ func (s simplePodNamespaceLister) Get(name string) (*v1.Pod, error) {
 	return s.kubeClient.CoreV1().Pods(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
+// ----- simpleSecretLister
+// Simple secret sister implementation.
+type simpleSecretLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// List all secrets
+func (s *simpleSecretLister) List(selector labels.Selector) (ret []*v1.Secret, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var secrets []*v1.Secret
+	for _, namespace := range namespaces.Items {
+		list, err := s.Secrets(namespace.Name).List(selector)
+		if err != nil {
+			return nil, err
+		}
+		secrets = append(secrets, list...)
+	}
+	return secrets, nil
+}
+
+// Returns an object that can list and get secrets for the given namespace
+func (s *simpleSecretLister) Secrets(namespace string) corelistersv1.SecretNamespaceLister {
+	return simpleSecretNamespaceLister{
+		namespace:  namespace,
+		kubeClient: s.kubeClient,
+	}
+}
+
+// Simple secret namespace lister implementation.
+type simpleSecretNamespaceLister struct {
+	namespace  string
+	kubeClient kubernetes.Interface
+}
+
+// List all secret for a given namespace
+func (s simpleSecretNamespaceLister) List(selector labels.Selector) (ret []*v1.Secret, err error) {
+
+	list, err := s.kubeClient.CoreV1().Secrets(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var secrets []*v1.Secret = nil
+	var items []v1.Secret = list.Items
+	for i := 0; i < len(items); i++ {
+		secrets = append(secrets, &items[i])
+	}
+	return secrets, nil
+}
+
+// Retrieves the secret for a given namespace and name
+func (s simpleSecretNamespaceLister) Get(name string) (*v1.Secret, error) {
+	return s.kubeClient.CoreV1().Secrets(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
 // ----- simpleGatewayLister
 // simple GatewayLister implementation
 type simpleGatewayLister struct {
@@ -256,7 +313,7 @@ func (s simpleServiceEntryNamespaceLister) Get(name string) (*v1alpha3.ServiceEn
 }
 
 // Get a test map of managed cluster connections that uses fake client sets
-func getManagedClusterConnections() map[string]*util.ManagedClusterConnection {
+func GetManagedClusterConnections() map[string]*util.ManagedClusterConnection {
 	return map[string]*util.ManagedClusterConnection{
 		"cluster1": getManagedClusterConnection(),
 		"cluster2": getManagedClusterConnection(),
@@ -278,6 +335,10 @@ func getManagedClusterConnection() *util.ManagedClusterConnection {
 	}
 	// set a fake pod lister on the cluster connection
 	clusterConnection.PodLister = &simplePodLister{
+		kubeClient: clusterConnection.KubeClient,
+	}
+
+	clusterConnection.SecretLister = &simpleSecretLister{
 		kubeClient: clusterConnection.KubeClient,
 	}
 

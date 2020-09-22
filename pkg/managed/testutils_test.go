@@ -22,7 +22,7 @@ func TestContains(t *testing.T) {
 }
 
 func TestSimplePodLister(t *testing.T) {
-	clusterConnections := getManagedClusterConnections()
+	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
 	l := simplePodLister{
@@ -52,7 +52,7 @@ func TestSimplePodLister(t *testing.T) {
 }
 
 func TestSimpleGatewayLister(t *testing.T) {
-	clusterConnections := getManagedClusterConnections()
+	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
 	gw := istio.Gateway{
@@ -94,7 +94,7 @@ func TestSimpleGatewayLister(t *testing.T) {
 }
 
 func TestSimpleVirtualServiceLister(t *testing.T) {
-	clusterConnections := getManagedClusterConnections()
+	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
 	vs := istio.VirtualService{
@@ -136,7 +136,7 @@ func TestSimpleVirtualServiceLister(t *testing.T) {
 }
 
 func TestSimpleServiceEntryLister(t *testing.T) {
-	clusterConnections := getManagedClusterConnections()
+	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
 	se := istio.ServiceEntry{
