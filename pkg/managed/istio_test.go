@@ -6,11 +6,12 @@ package managed
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-  "k8s.io/apimachinery/pkg/labels"
-  "testing"
+	"k8s.io/apimachinery/pkg/labels"
 
 	istio "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
 	istio2 "istio.io/api/networking/v1alpha3"
@@ -68,10 +69,13 @@ func TestGetIstioGateways(t *testing.T) {
 
 	service, err := clusterConnection.KubeClient.CoreV1().Services(IstioSystemNamespace).Get(context.TODO(), "istio-ingressgateway", metav1.GetOptions{})
 	if err != nil {
-		t.Fatal(fmt.Sprintf("can't delete istio-ingressgateway service: %v", err))
+		t.Fatal(fmt.Sprintf("can't get istio-ingressgateway service: %v", err))
 	}
 	service.Status.LoadBalancer.Ingress = nil
 	_, err = clusterConnection.KubeClient.CoreV1().Services(IstioSystemNamespace).Update(context.TODO(), service, metav1.UpdateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't update istio-ingressgateway service: %v", err))
+	}
 
 	gatewayAddress = getIstioGateways(modelBindingPair, clusterConnections, "cluster2")
 	assert.Equal(t, "", gatewayAddress)
@@ -111,14 +115,14 @@ func TestCleanupOrphanedServiceEntries(t *testing.T) {
 		t.Fatal(fmt.Sprintf("can't cleanup orphaned service entries: %v", err))
 	}
 
-  _, err = clusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Get(context.TODO(), "foo", metav1.GetOptions{})
-  if err == nil {
-    t.Fatal("expected service entry to be cleaned up")
-  }
-  _, err = clusterConnection2.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Get(context.TODO(), "foo", metav1.GetOptions{})
-  if err == nil {
-    t.Fatal("expected service entry to be cleaned up")
-  }
+	_, err = clusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Get(context.TODO(), "foo", metav1.GetOptions{})
+	if err == nil {
+		t.Fatal("expected service entry to be cleaned up")
+	}
+	_, err = clusterConnection2.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Get(context.TODO(), "foo", metav1.GetOptions{})
+	if err == nil {
+		t.Fatal("expected service entry to be cleaned up")
+	}
 }
 
 func TestCleanupOrphanedIngresses(t *testing.T) {
@@ -163,14 +167,14 @@ func TestCleanupOrphanedIngresses(t *testing.T) {
 		t.Fatal(fmt.Sprintf("can't cleanup orphaned ingresses: %v", err))
 	}
 
-  _, err = clusterConnection.IstioClientSet.NetworkingV1alpha3().VirtualServices("test").Get(context.TODO(), "foo", metav1.GetOptions{})
-  if err == nil {
-    t.Fatal("expected ingress to be cleaned up")
-  }
-  _, err = clusterConnection2.IstioClientSet.NetworkingV1alpha3().VirtualServices("test").Get(context.TODO(), "foo", metav1.GetOptions{})
-  if err == nil {
-    t.Fatal("expected ingress to be cleaned up")
-  }
+	_, err = clusterConnection.IstioClientSet.NetworkingV1alpha3().VirtualServices("test").Get(context.TODO(), "foo", metav1.GetOptions{})
+	if err == nil {
+		t.Fatal("expected ingress to be cleaned up")
+	}
+	_, err = clusterConnection2.IstioClientSet.NetworkingV1alpha3().VirtualServices("test").Get(context.TODO(), "foo", metav1.GetOptions{})
+	if err == nil {
+		t.Fatal("expected ingress to be cleaned up")
+	}
 }
 
 func TestCreateServiceEntries(t *testing.T) {
@@ -202,6 +206,9 @@ func TestCreateServiceEntries(t *testing.T) {
 	}
 	entry.Spec.Addresses = nil
 	_, err = clusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Update(context.TODO(), entry, metav1.UpdateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't update service entry: %v", err))
+	}
 
 	// create the service entries
 	err = CreateServiceEntries(modelBindingPair, clusterConnections, clusterConnections)
@@ -219,33 +226,33 @@ func TestCreateServiceEntries(t *testing.T) {
 }
 
 func assertCreateServiceEntries(t *testing.T, clusterConnection *util.ManagedClusterConnection) {
-  list, err := clusterConnection.IstioServiceEntryLister.ServiceEntries("test").List(labels.Everything())
-  if err != nil {
-    t.Fatal(fmt.Sprintf("expected to find ServiceEntries in test namespace: %v", err))
-  }
-  assert.Equal(t, 2, len(list), "should be 2 ServiceEntry in test namespace")
+	list, err := clusterConnection.IstioServiceEntryLister.ServiceEntries("test").List(labels.Everything())
+	if err != nil {
+		t.Fatal(fmt.Sprintf("expected to find ServiceEntries in test namespace: %v", err))
+	}
+	assert.Equal(t, 2, len(list), "should be 2 ServiceEntry in test namespace")
 
-  entry, err := clusterConnection.IstioServiceEntryLister.ServiceEntries("test").Get("test-remote")
-  if err != nil {
-    t.Fatal(fmt.Sprintf("expected to find ServiceEntry test-remote: %v", err))
-  }
-  assert.Equal(t, "test-remote", entry.Name)
-  assert.Equal(t, "test", entry.Namespace)
-  assert.Equal(t, 1, len(entry.Spec.Ports))
-  assert.Equal(t, 8182, int(entry.Spec.Ports[0].Number))
-  assert.Equal(t, 1, len(entry.Spec.Addresses))
-  assert.Equal(t, "240.0.0.1", entry.Spec.Addresses[0])
+	entry, err := clusterConnection.IstioServiceEntryLister.ServiceEntries("test").Get("test-remote")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("expected to find ServiceEntry test-remote: %v", err))
+	}
+	assert.Equal(t, "test-remote", entry.Name)
+	assert.Equal(t, "test", entry.Namespace)
+	assert.Equal(t, 1, len(entry.Spec.Ports))
+	assert.Equal(t, 8182, int(entry.Spec.Ports[0].Number))
+	assert.Equal(t, 1, len(entry.Spec.Addresses))
+	assert.Equal(t, "240.0.0.1", entry.Spec.Addresses[0])
 
-  entry, err = clusterConnection.IstioServiceEntryLister.ServiceEntries("test").Get("test2-remote")
-  if err != nil {
-    t.Fatal(fmt.Sprintf("expected to find ServiceEntry test2-remote: %v", err))
-  }
-  assert.Equal(t, "test2-remote", entry.Name)
-  assert.Equal(t, "test", entry.Namespace)
-  assert.Equal(t, 1, len(entry.Spec.Ports))
-  assert.Equal(t, 8183, int(entry.Spec.Ports[0].Number))
-  assert.Equal(t, 1, len(entry.Spec.Addresses))
-  assert.Equal(t, "240.0.0.2", entry.Spec.Addresses[0])
+	entry, err = clusterConnection.IstioServiceEntryLister.ServiceEntries("test").Get("test2-remote")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("expected to find ServiceEntry test2-remote: %v", err))
+	}
+	assert.Equal(t, "test2-remote", entry.Name)
+	assert.Equal(t, "test", entry.Namespace)
+	assert.Equal(t, 1, len(entry.Spec.Ports))
+	assert.Equal(t, 8183, int(entry.Spec.Ports[0].Number))
+	assert.Equal(t, 1, len(entry.Spec.Addresses))
+	assert.Equal(t, "240.0.0.2", entry.Spec.Addresses[0])
 }
 
 func TestCreateIngresses(t *testing.T) {
@@ -277,29 +284,29 @@ func TestCreateIngresses(t *testing.T) {
 }
 
 func assertCreateIngresses(t *testing.T, clusterConnection *util.ManagedClusterConnection, dnsName string) {
-  list, err := clusterConnection.IstioGatewayLister.Gateways("test").List(labels.Everything())
-  if err != nil {
-    t.Fatal(fmt.Sprintf("expected to find Gateways in test namespace: %v", err))
-  }
-  assert.Equal(t, 1, len(list), "should be 1 Gateways in test namespace")
+	list, err := clusterConnection.IstioGatewayLister.Gateways("test").List(labels.Everything())
+	if err != nil {
+		t.Fatal(fmt.Sprintf("expected to find Gateways in test namespace: %v", err))
+	}
+	assert.Equal(t, 1, len(list), "should be 1 Gateways in test namespace")
 
-  gateway, err := clusterConnection.IstioGatewayLister.Gateways("test").Get("test-ingress-gateway")
-  if err != nil {
-    t.Fatal(fmt.Sprintf("expected to find Gateway test-ingress-gateway: %v", err))
-  }
-  assert.Equal(t, "test-ingress-gateway", gateway.Name)
+	gateway, err := clusterConnection.IstioGatewayLister.Gateways("test").Get("test-ingress-gateway")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("expected to find Gateway test-ingress-gateway: %v", err))
+	}
+	assert.Equal(t, "test-ingress-gateway", gateway.Name)
 
-  list2, err := clusterConnection.IstioVirtualServiceLister.VirtualServices("test").List(labels.Everything())
-  if err != nil {
-    t.Fatal(fmt.Sprintf("expected to find VirtualServices in test namespace: %v", err))
-  }
-  assert.Equal(t, 1, len(list2), "should be 1 VirtualServices in test namespace")
+	list2, err := clusterConnection.IstioVirtualServiceLister.VirtualServices("test").List(labels.Everything())
+	if err != nil {
+		t.Fatal(fmt.Sprintf("expected to find VirtualServices in test namespace: %v", err))
+	}
+	assert.Equal(t, 1, len(list2), "should be 1 VirtualServices in test namespace")
 
-  service, err := clusterConnection.IstioVirtualServiceLister.VirtualServices("test").Get("test-ingress-virtualservice")
-  if err != nil {
-    t.Fatal(fmt.Sprintf("expected to find VirtualService test-ingress-virtualservice: %v", err))
-  }
-  assert.Equal(t, "test-ingress-virtualservice", service.Name)
+	service, err := clusterConnection.IstioVirtualServiceLister.VirtualServices("test").Get("test-ingress-virtualservice")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("expected to find VirtualService test-ingress-virtualservice: %v", err))
+	}
+	assert.Equal(t, "test-ingress-virtualservice", service.Name)
 }
 
 func TestCreateDestinationRules(t *testing.T) {
@@ -473,7 +480,7 @@ func TestNewIngresses(t *testing.T) {
 	mc.Ingresses = map[string][]*types.Ingress{namespace: {{
 		Name: ingressName,
 		Destination: []*types.IngressDestination{
-			&types.IngressDestination{
+			{
 				Host:       destHost,
 				Port:       8001,
 				DomainName: domainName,
@@ -535,10 +542,10 @@ func TestSockshopVirtualService(t *testing.T) {
 		{k: "prefix", v: "/img"},
 		{k: "regex", v: "^.*\\.(ico|png|jpg|html)$"},
 	}
-	mc.Ingresses = map[string][]*types.Ingress{namespace: []*types.Ingress{&types.Ingress{
+	mc.Ingresses = map[string][]*types.Ingress{namespace: {{
 		Name: ingressName,
 		Destination: []*types.IngressDestination{
-			&types.IngressDestination{
+			{
 				Host: destHost,
 				Port: 8001,
 				Match: []types.MatchRequest{

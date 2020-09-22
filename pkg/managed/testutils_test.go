@@ -6,12 +6,13 @@ package managed
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	istio "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"testing"
 )
 
 func TestContains(t *testing.T) {
@@ -50,6 +51,27 @@ func TestSimplePodLister(t *testing.T) {
 	}
 	assert.Equal(t, "test-pod", pod.Name)
 	assert.Equal(t, "test", pod.Namespace)
+}
+
+func TestSimpleNamespaceLister(t *testing.T) {
+	clusterConnections := GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	l := simpleNamespaceLister{
+		clusterConnection.KubeClient,
+	}
+	s := labels.Everything()
+	namespaces, err := l.List(s)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get namespaces: %v", err))
+	}
+	assert.Equal(t, 4, len(namespaces))
+
+	namespace, err := l.Get("test")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get namespace: %v", err))
+	}
+	assert.Equal(t, "test", namespace.Name)
 }
 
 func TestSimpleGatewayLister(t *testing.T) {
@@ -184,42 +206,42 @@ func TestSimpleSecretLister(t *testing.T) {
 	clusterConnection := clusterConnections["cluster1"]
 
 	testNamespace1 := corev1.Namespace{
-		TypeMeta:   metav1.TypeMeta{},
+		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "",
 			Name:      "test-namespace-1",
 		},
-		Spec:       corev1.NamespaceSpec{},
-		Status:     corev1.NamespaceStatus{},
+		Spec:   corev1.NamespaceSpec{},
+		Status: corev1.NamespaceStatus{},
 	}
 
 	testSecret1 := corev1.Secret{
-		TypeMeta:   metav1.TypeMeta{},
+		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-namespace-1",
 			Name:      "test-secret-1"},
-		Immutable:  nil,
-		Data:       nil,
+		Immutable: nil,
+		Data:      nil,
 		StringData: map[string]string{
 			"test-secret-data-key-1": "test-secret-data-value-1",
 		},
-		Type:       "test-secret-type",
+		Type: "test-secret-type",
 	}
 
 	testSecret2 := corev1.Secret{
-		TypeMeta:   metav1.TypeMeta{},
+		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-namespace-1",
 			Name:      "test-secret-2"},
-		Immutable:  nil,
-		Data:       nil,
+		Immutable: nil,
+		Data:      nil,
 		StringData: map[string]string{
 			"test-secret-data-key-2": "test-secret-data-value-2",
 		},
-		Type:       "test-secret-type",
+		Type: "test-secret-type",
 	}
 
-	namespace, err := clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(),&testNamespace1, metav1.CreateOptions{})
+	namespace, err := clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace1, metav1.CreateOptions{})
 	assert.NoError(t, err, "Should not err creating namespace.")
 	assert.Equal(t, &testNamespace1, namespace, "Created namespace should match original.")
 
@@ -255,12 +277,12 @@ func TestSimpleSecretNamespaceLister(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-namespace-1",
 			Name:      "test-secret-1"},
-		Immutable:  nil,
-		Data:       nil,
+		Immutable: nil,
+		Data:      nil,
 		StringData: map[string]string{
 			"test-secret-data-key-1": "test-secret-data-value-1",
 		},
-		Type:       "test-secret-type",
+		Type: "test-secret-type",
 	}
 
 	secrets, err := clusterConnection.SecretLister.Secrets("test-namespace-1").List(labels.Everything())

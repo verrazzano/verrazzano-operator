@@ -31,7 +31,7 @@ func CreateModelBindingPair(model *v1beta1v8o.VerrazzanoModel, binding *v1beta1v
 		Model:            model,
 		Binding:          binding,
 		ManagedClusters:  map[string]*types.ManagedCluster{},
-		Lock:             sync.RWMutex{},
+		Lock:             &sync.RWMutex{},
 		VerrazzanoUri:    verrazzanoUri,
 		ImagePullSecrets: imagePullSecrets,
 	}

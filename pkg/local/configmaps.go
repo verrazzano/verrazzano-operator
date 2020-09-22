@@ -29,7 +29,7 @@ func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 		return err
 	}
 	configMapNames := []string{newConfigMap.Name}
-	existingConfigMap, err := configMapLister.ConfigMaps(newConfigMap.Namespace).Get(newConfigMap.Name)
+	existingConfigMap, _ := configMapLister.ConfigMaps(newConfigMap.Namespace).Get(newConfigMap.Name)
 
 	if existingConfigMap != nil {
 		if !reflect.DeepEqual(existingConfigMap.Data, newConfigMap.Data) {

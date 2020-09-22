@@ -4,13 +4,14 @@
 package cohcluster
 
 import (
+	"testing"
+
 	v1coh "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
 	v1betav8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -104,8 +105,8 @@ func TestUpdateEnvVars(t *testing.T) {
 
 	mc := types.ManagedCluster{
 		CohClusterCRs: []*v1coh.CoherenceCluster{
-			{ObjectMeta: v1.ObjectMeta{Name: cohComp},},
-			{ObjectMeta: v1.ObjectMeta{Name: wlsComp},},
+			{ObjectMeta: v1.ObjectMeta{Name: cohComp}},
+			{ObjectMeta: v1.ObjectMeta{Name: wlsComp}},
 		},
 	}
 

@@ -267,7 +267,7 @@ func getTestModelBindingPair() *types.ModelBindingPair {
 		Model:           vznoModel,
 		Binding:         vznoBinding,
 		ManagedClusters: map[string]*types.ManagedCluster{},
-		Lock:            sync.RWMutex{},
+		Lock:            &sync.RWMutex{},
 	}
 }
 

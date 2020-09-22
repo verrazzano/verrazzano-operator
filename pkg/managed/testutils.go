@@ -6,6 +6,7 @@ package managed
 
 import (
 	"context"
+
 	v13 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
@@ -18,7 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	istioAuthClientset "istio.io/client-go/pkg/clientset/versioned/fake"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -73,8 +74,11 @@ func (s simplePodNamespaceLister) List(selector labels.Selector) (ret []*v1.Pod,
 	if err != nil {
 		return nil, err
 	}
-	for _, pod := range list.Items {
-		pods = append(pods, &pod)
+	for i, _ := range list.Items {
+		pod := list.Items[i]
+		if selector.Matches(labels.Set(pod.Labels)) {
+			pods = append(pods, &pod)
+		}
 	}
 	return pods, nil
 }
@@ -141,6 +145,33 @@ func (s simpleSecretNamespaceLister) Get(name string) (*v1.Secret, error) {
 	return s.kubeClient.CoreV1().Secrets(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
+// ----- simpleNamespaceLister
+// simple NamespaceLister implementation
+type simpleNamespaceLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// list all Namespaces
+func (s *simpleNamespaceLister) List(selector labels.Selector) (ret []*v1.Namespace, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var list []*v1.Namespace
+	for i, _ := range namespaces.Items {
+		namespace := namespaces.Items[i]
+		if selector.Matches(labels.Set(namespace.Labels)) {
+			list = append(list, &namespace)
+		}
+	}
+	return list, nil
+}
+
+// retrieves the Namespace for a given name
+func (s *simpleNamespaceLister) Get(name string) (*v1.Namespace, error) {
+	return s.kubeClient.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
+}
+
 // ----- simpleGatewayLister
 // simple GatewayLister implementation
 type simpleGatewayLister struct {
@@ -187,8 +218,11 @@ func (s simpleGatewayNamespaceLister) List(selector labels.Selector) (ret []*v1a
 	if err != nil {
 		return nil, err
 	}
-	for _, gateway := range list.Items {
-		gateways = append(gateways, &gateway)
+	for i, _ := range list.Items {
+		gateway := list.Items[i]
+		if selector.Matches(labels.Set(gateway.Labels)) {
+			gateways = append(gateways, &gateway)
+		}
 	}
 	return gateways, nil
 }
@@ -244,8 +278,11 @@ func (s simpleVirtualServiceNamespaceLister) List(selector labels.Selector) (ret
 	if err != nil {
 		return nil, err
 	}
-	for _, service := range list.Items {
-		services = append(services, &service)
+	for i, _ := range list.Items {
+		service := list.Items[i]
+		if selector.Matches(labels.Set(service.Labels)) {
+			services = append(services, &service)
+		}
 	}
 	return services, nil
 }
@@ -301,7 +338,8 @@ func (s simpleServiceEntryNamespaceLister) List(selector labels.Selector) (ret [
 	if err != nil {
 		return nil, err
 	}
-	for _, entry := range list.Items {
+	for i, _ := range list.Items {
+		entry := list.Items[i]
 		entries = append(entries, &entry)
 	}
 	return entries, nil
@@ -315,14 +353,14 @@ func (s simpleServiceEntryNamespaceLister) Get(name string) (*v1alpha3.ServiceEn
 // Get a test map of managed cluster connections that uses fake client sets
 func GetManagedClusterConnections() map[string]*util.ManagedClusterConnection {
 	return map[string]*util.ManagedClusterConnection{
-		"cluster1": getManagedClusterConnection(),
-		"cluster2": getManagedClusterConnection(),
-		"cluster3": getManagedClusterConnection(),
+		"cluster1": getManagedClusterConnection("cluster1"),
+		"cluster2": getManagedClusterConnection("cluster2"),
+		"cluster3": getManagedClusterConnection("cluster3"),
 	}
 }
 
 // Get a managed cluster connection that uses fake client sets
-func getManagedClusterConnection() *util.ManagedClusterConnection {
+func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnection {
 	// create a ManagedClusterConnection that uses client set fakes
 	clusterConnection := &util.ManagedClusterConnection{
 		KubeClient:                  fake.NewSimpleClientset(),
@@ -335,6 +373,10 @@ func getManagedClusterConnection() *util.ManagedClusterConnection {
 	}
 	// set a fake pod lister on the cluster connection
 	clusterConnection.PodLister = &simplePodLister{
+		kubeClient: clusterConnection.KubeClient,
+	}
+
+	clusterConnection.NamespaceLister = &simpleNamespaceLister{
 		kubeClient: clusterConnection.KubeClient,
 	}
 
@@ -358,12 +400,7 @@ func getManagedClusterConnection() *util.ManagedClusterConnection {
 	}
 
 	for _, pod := range getPods() {
-		namespace := v1.Namespace{
-			ObjectMeta: v12.ObjectMeta{
-				Name: pod.Namespace,
-			},
-		}
-		clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &namespace, metav1.CreateOptions{})
+		clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace(pod.Namespace, clusterName), metav1.CreateOptions{})
 		clusterConnection.KubeClient.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	}
 
@@ -386,6 +423,26 @@ func getManagedClusterConnection() *util.ManagedClusterConnection {
 		}, metav1.CreateOptions{})
 
 	return clusterConnection
+}
+
+func getNamespace(name string, clusterName string) *v1.Namespace {
+	if name == "istio-system" || name == "verrazzano-system" {
+		return &v1.Namespace{
+			ObjectMeta: v12.ObjectMeta{
+				Name: name,
+			},
+		}
+	} else {
+		return &v1.Namespace{
+			ObjectMeta: v12.ObjectMeta{
+				Name: name,
+				Labels: map[string]string{
+					"verrazzano.binding": "testBinding",
+					"verrazzano.cluster": clusterName,
+				},
+			},
+		}
+	}
 }
 
 // Get a pod for testing that is populated with the given name, namespace and IP.
@@ -535,7 +592,7 @@ func getModelBindingPair() *types.ModelBindingPair {
 		ManagedClusters: map[string]*types.ManagedCluster{
 			"cluster1": {
 				Name:       "cluster1",
-				Namespaces: []string{"default", "test", "test2", "test3"},
+				Namespaces: []string{"default", "test", "test2", "test3", "istio-system", "verrazzano-system"},
 				Ingresses: map[string][]*types.Ingress{
 					"test": {
 						{

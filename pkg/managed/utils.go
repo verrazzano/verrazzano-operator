@@ -36,6 +36,9 @@ func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan stru
 
 	// Create a temporary kubeconfig file on disk
 	tmpFile, err := ioutil.TempFile("/tmp", "kubeconfig")
+	if err != nil {
+		return nil, err
+	}
 	err = ioutil.WriteFile(tmpFile.Name(), kubeConfigContents, 0777)
 	defer os.Remove(tmpFile.Name())
 	if err != nil {
