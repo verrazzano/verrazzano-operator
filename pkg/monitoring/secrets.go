@@ -86,10 +86,7 @@ func saltedHash(sec *corev1.Secret) *corev1.Secret {
 }
 
 func CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets Secrets) error {
-	vmiSecret, err := secrets.Get(constants.VmiSecretName)
-	if err != nil {
-		return err
-	}
+	vmiSecret, _ := secrets.Get(constants.VmiSecretName)
 
 	if vmiSecret == nil {
 		vmiSecret = NewVmiSecret(binding)
