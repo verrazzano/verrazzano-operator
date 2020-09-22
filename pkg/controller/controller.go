@@ -441,7 +441,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create Namespaces
-	err = managed.CreateNamespaces(mbPair, filteredConnections)
+	err = managed.CreateNamespaces(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to create namespaces for binding %s: %v", mbPair.Binding.Name, err)
 	}
