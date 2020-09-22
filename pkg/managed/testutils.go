@@ -6,6 +6,7 @@ package managed
 
 import (
 	"context"
+
 	v13 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
@@ -76,7 +77,6 @@ func (s simplePodNamespaceLister) List(selector labels.Selector) (ret []*v1.Pod,
 	for _, pod := range list.Items {
 		pods = append(pods, &pod)
 	}
-		}
 	return pods, nil
 }
 
@@ -140,33 +140,6 @@ func (s simpleSecretNamespaceLister) List(selector labels.Selector) (ret []*v1.S
 // Retrieves the secret for a given namespace and name
 func (s simpleSecretNamespaceLister) Get(name string) (*v1.Secret, error) {
 	return s.kubeClient.CoreV1().Secrets(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
-}
-
-// ----- simpleNamespaceLister
-// simple NamespaceLister implementation
-type simpleNamespaceLister struct {
-	kubeClient kubernetes.Interface
-}
-
-// list all Namespaces
-func (s *simpleNamespaceLister) List(selector labels.Selector) (ret []*v1.Namespace, err error) {
-	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-	var list []*v1.Namespace
-	for i := range namespaces.Items {
-		namespace := namespaces.Items[i]
-		if selector.Matches(labels.Set(namespace.Labels)) {
-			list = append(list, &namespace)
-		}
-	}
-	return list, nil
-}
-
-// retrieves the Namespace for a given name
-func (s *simpleNamespaceLister) Get(name string) (*v1.Namespace, error) {
-	return s.kubeClient.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 // ----- simpleGatewayLister
@@ -363,10 +336,6 @@ func getManagedClusterConnection() *util.ManagedClusterConnection {
 	}
 	// set a fake pod lister on the cluster connection
 	clusterConnection.PodLister = &simplePodLister{
-		kubeClient: clusterConnection.KubeClient,
-	}
-
-	clusterConnection.NamespaceLister = &simpleNamespaceLister{
 		kubeClient: clusterConnection.KubeClient,
 	}
 
