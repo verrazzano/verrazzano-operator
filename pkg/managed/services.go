@@ -33,7 +33,7 @@ func CreateServices(mbPair *types.ModelBindingPair, availableManagedClusterConne
 	}
 
 	// Construct services for each ManagedCluster
-	for clusterName, _ := range mbPair.ManagedClusters {
+	for clusterName := range mbPair.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()

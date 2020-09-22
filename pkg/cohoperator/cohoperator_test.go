@@ -4,13 +4,14 @@
 package cohoperator
 
 import (
+	"os"
+	"testing"
+
 	v1betav8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"os"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -18,9 +19,9 @@ import (
 func TestCreateCR(t *testing.T) {
 	assert := assert.New(t)
 	vzCluster := &v1betav8o.VerrazzanoCoherenceCluster{
-		ImagePullSecrets: []corev1.LocalObjectReference{ {Name: "secret1"}},
+		ImagePullSecrets: []corev1.LocalObjectReference{{Name: "secret1"}},
 	}
-	labels := map[string]string{"label1":"val1", "label2":"val2"}
+	labels := map[string]string{"label1": "val1", "label2": "val2"}
 	cohCluster := CreateCR("cohOp", "testNS", vzCluster, labels)
 	assert.NotNil(cohCluster, "CreateCR returned nil")
 
@@ -33,10 +34,10 @@ func TestCreateCR(t *testing.T) {
 	assert.Equal("val1", cohCluster.ObjectMeta.Labels["label1"])
 	assert.Equal("val2", cohCluster.ObjectMeta.Labels["label2"])
 
-	assert.Equal("Coherence operator for managed cluster cohOp", cohCluster.Spec.Description, )
-	assert.Equal("testNS-coherence-operator", cohCluster.Spec.Name, )
-	assert.Equal("testNS", cohCluster.Spec.Namespace, )
-	assert.Equal("testNS-coherence-operator", cohCluster.Spec.ServiceAccount, )
+	assert.Equal("Coherence operator for managed cluster cohOp", cohCluster.Spec.Description)
+	assert.Equal("testNS-coherence-operator", cohCluster.Spec.Name)
+	assert.Equal("testNS", cohCluster.Spec.Namespace)
+	assert.Equal("testNS-coherence-operator", cohCluster.Spec.ServiceAccount)
 	assert.Equal(1, len(cohCluster.Spec.ImagePullSecrets))
 	assert.Equal("secret1", cohCluster.Spec.ImagePullSecrets[0].Name)
 }
@@ -47,8 +48,8 @@ func TestCreateDeployment(t *testing.T) {
 	// needed by CreateDeployment
 	os.Setenv("COH_MICRO_REQUEST_MEMORY", "50Mi")
 
-	labels := map[string]string{"label1":"val1", "label2":"val2"}
-	dep := CreateDeployment("testNs","testBinding",labels, "testImage")
+	labels := map[string]string{"label1": "val1", "label2": "val2"}
+	dep := CreateDeployment("testNs", "testBinding", labels, "testImage")
 	assert.NotNil(dep, "CreateDeployment returned nil")
 
 	assert.Equal(microOperatorName, dep.ObjectMeta.Name)

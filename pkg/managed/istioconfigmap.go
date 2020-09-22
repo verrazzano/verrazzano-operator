@@ -55,7 +55,7 @@ func UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair *types.ModelBindingPa
 	}
 
 	// Construct services for each ManagedCluster
-	for clusterName, _ := range mbPair.ManagedClusters {
+	for clusterName := range mbPair.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
@@ -110,7 +110,7 @@ func UpdateIstioPrometheusConfigMapsForBinding(mbPair *types.ModelBindingPair, s
 	}
 
 	// Construct prometheus.yml configMaps for each managed cluster
-	for clusterName, _ := range mbPair.ManagedClusters {
+	for clusterName := range mbPair.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
@@ -144,7 +144,7 @@ func updateIstioPrometheusConfigMap(clusterName string, managedClusterConnection
 	}
 
 	// Create a new istio prometheus configmap if necessary
-	existingcm, err := managedClusterConnection.ConfigMapLister.ConfigMaps(IstioNamespace).Get(IstioPrometheusCMName)
+	existingcm, _ := managedClusterConnection.ConfigMapLister.ConfigMaps(IstioNamespace).Get(IstioPrometheusCMName)
 	if existingcm == nil {
 		glog.V(4).Infof("Creating Configmaps %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
 		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newPrometheusConfigMap.Namespace).Create(context.TODO(), newPrometheusConfigMap, metav1.CreateOptions{})
@@ -160,6 +160,9 @@ func updateIstioPrometheusConfigMap(clusterName string, managedClusterConnection
 		glog.V(6).Infof("ConfigMap %s : Spec differences %s", newPrometheusConfigMap.Name, specDiffs)
 		glog.V(4).Infof("Updating ConfigMap %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
 		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newPrometheusConfigMap.Namespace).Update(context.TODO(), newPrometheusConfigMap, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
 		// Bounce Prometheus Pod
 		istioPodName, err := managedClusterConnection.KubeClient.CoreV1().Pods(IstioNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: PrometheusLabel})
 		for _, pod := range istioPodName.Items {

@@ -67,9 +67,9 @@ func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, 
 					},
 				},
 				// Set the optional ports
-				Ports: func() []v1coh.NamedPortSpec{
-					var portSpecs  []v1coh.NamedPortSpec
-					for _,v := range cluster.Ports {
+				Ports: func() []v1coh.NamedPortSpec {
+					var portSpecs []v1coh.NamedPortSpec
+					for _, v := range cluster.Ports {
 						ps := v1coh.NamedPortSpec{
 							Name: v.Name,
 							PortSpec: v1coh.PortSpec{

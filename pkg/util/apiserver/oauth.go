@@ -308,6 +308,9 @@ func verifyJsonWebToken(auth string) (*jwt.JSONWebToken, error) {
 		return nil, errors.New("Invalid JSONWebToken headers")
 	}
 	publicKey, err := keyRepo.GetPublicKey(header.KeyID)
+	if err != nil {
+		return nil, err
+	}
 	var claims jwt.Claims
 	err = joseToken.Claims(publicKey, &claims)
 	if err == nil {
