@@ -53,6 +53,7 @@ func TestSimplePodLister(t *testing.T) {
 	assert.Equal(t, "test", pod.Namespace)
 }
 
+<<<<<<< HEAD
 func TestSimpleNamespaceLister(t *testing.T) {
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
@@ -74,6 +75,8 @@ func TestSimpleNamespaceLister(t *testing.T) {
 	assert.Equal(t, "test", namespace.Name)
 }
 
+=======
+>>>>>>> master
 func TestSimpleGatewayLister(t *testing.T) {
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]

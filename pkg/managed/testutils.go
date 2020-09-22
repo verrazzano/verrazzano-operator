@@ -6,7 +6,6 @@ package managed
 
 import (
 	"context"
-
 	v13 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
@@ -74,12 +73,10 @@ func (s simplePodNamespaceLister) List(selector labels.Selector) (ret []*v1.Pod,
 	if err != nil {
 		return nil, err
 	}
-	for i := range list.Items {
-		pod := list.Items[i]
-		if selector.Matches(labels.Set(pod.Labels)) {
-			pods = append(pods, &pod)
-		}
+	for _, pod := range list.Items {
+		pods = append(pods, &pod)
 	}
+		}
 	return pods, nil
 }
 
@@ -218,11 +215,8 @@ func (s simpleGatewayNamespaceLister) List(selector labels.Selector) (ret []*v1a
 	if err != nil {
 		return nil, err
 	}
-	for i := range list.Items {
-		gateway := list.Items[i]
-		if selector.Matches(labels.Set(gateway.Labels)) {
-			gateways = append(gateways, &gateway)
-		}
+	for _, gateway := range list.Items {
+		gateways = append(gateways, &gateway)
 	}
 	return gateways, nil
 }
@@ -278,11 +272,8 @@ func (s simpleVirtualServiceNamespaceLister) List(selector labels.Selector) (ret
 	if err != nil {
 		return nil, err
 	}
-	for i := range list.Items {
-		service := list.Items[i]
-		if selector.Matches(labels.Set(service.Labels)) {
-			services = append(services, &service)
-		}
+	for _, service := range list.Items {
+		services = append(services, &service)
 	}
 	return services, nil
 }
@@ -338,8 +329,7 @@ func (s simpleServiceEntryNamespaceLister) List(selector labels.Selector) (ret [
 	if err != nil {
 		return nil, err
 	}
-	for i := range list.Items {
-		entry := list.Items[i]
+	for _, entry := range list.Items {
 		entries = append(entries, &entry)
 	}
 	return entries, nil
@@ -353,14 +343,14 @@ func (s simpleServiceEntryNamespaceLister) Get(name string) (*v1alpha3.ServiceEn
 // Get a test map of managed cluster connections that uses fake client sets
 func GetManagedClusterConnections() map[string]*util.ManagedClusterConnection {
 	return map[string]*util.ManagedClusterConnection{
-		"cluster1": getManagedClusterConnection("cluster1"),
-		"cluster2": getManagedClusterConnection("cluster2"),
-		"cluster3": getManagedClusterConnection("cluster3"),
+		"cluster1": getManagedClusterConnection(),
+		"cluster2": getManagedClusterConnection(),
+		"cluster3": getManagedClusterConnection(),
 	}
 }
 
 // Get a managed cluster connection that uses fake client sets
-func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnection {
+func getManagedClusterConnection() *util.ManagedClusterConnection {
 	// create a ManagedClusterConnection that uses client set fakes
 	clusterConnection := &util.ManagedClusterConnection{
 		KubeClient:                  fake.NewSimpleClientset(),
@@ -400,7 +390,12 @@ func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 	}
 
 	for _, pod := range getPods() {
-		clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace(pod.Namespace, clusterName), metav1.CreateOptions{})
+		namespace := v1.Namespace{
+			ObjectMeta: v12.ObjectMeta{
+				Name: pod.Namespace,
+			},
+		}
+		clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &namespace, metav1.CreateOptions{})
 		clusterConnection.KubeClient.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	}
 
@@ -423,26 +418,6 @@ func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		}, metav1.CreateOptions{})
 
 	return clusterConnection
-}
-
-func getNamespace(name string, clusterName string) *v1.Namespace {
-	if name == "istio-system" || name == "verrazzano-system" {
-		return &v1.Namespace{
-			ObjectMeta: v12.ObjectMeta{
-				Name: name,
-			},
-		}
-	} else {
-		return &v1.Namespace{
-			ObjectMeta: v12.ObjectMeta{
-				Name: name,
-				Labels: map[string]string{
-					"verrazzano.binding": "testBinding",
-					"verrazzano.cluster": clusterName,
-				},
-			},
-		}
-	}
 }
 
 // Get a pod for testing that is populated with the given name, namespace and IP.
@@ -592,7 +567,7 @@ func getModelBindingPair() *types.ModelBindingPair {
 		ManagedClusters: map[string]*types.ManagedCluster{
 			"cluster1": {
 				Name:       "cluster1",
-				Namespaces: []string{"default", "test", "test2", "test3", "istio-system", "verrazzano-system"},
+				Namespaces: []string{"default", "test", "test2", "test3"},
 				Ingresses: map[string][]*types.Ingress{
 					"test": {
 						{
