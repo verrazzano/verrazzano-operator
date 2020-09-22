@@ -74,7 +74,7 @@ func (s simplePodNamespaceLister) List(selector labels.Selector) (ret []*v1.Pod,
 	if err != nil {
 		return nil, err
 	}
-	for i, _ := range list.Items {
+	for i := range list.Items {
 		pod := list.Items[i]
 		if selector.Matches(labels.Set(pod.Labels)) {
 			pods = append(pods, &pod)
@@ -160,7 +160,7 @@ func (s *simpleNamespaceLister) List(selector labels.Selector) (ret []*v1.Namesp
 	}
 
 	var list []*v1.Namespace
-	for i, _ := range namespaces.Items {
+	for i := range namespaces.Items {
 		namespace := namespaces.Items[i]
 		if selector.Matches(labels.Set(namespace.Labels)) {
 			list = append(list, &namespace)
@@ -220,7 +220,7 @@ func (s simpleGatewayNamespaceLister) List(selector labels.Selector) (ret []*v1a
 	if err != nil {
 		return nil, err
 	}
-	for i, _ := range list.Items {
+	for i := range list.Items {
 		gateway := list.Items[i]
 		if selector.Matches(labels.Set(gateway.Labels)) {
 			gateways = append(gateways, &gateway)
@@ -280,7 +280,7 @@ func (s simpleVirtualServiceNamespaceLister) List(selector labels.Selector) (ret
 	if err != nil {
 		return nil, err
 	}
-	for i, _ := range list.Items {
+	for i := range list.Items {
 		service := list.Items[i]
 		if selector.Matches(labels.Set(service.Labels)) {
 			services = append(services, &service)
@@ -340,7 +340,7 @@ func (s simpleServiceEntryNamespaceLister) List(selector labels.Selector) (ret [
 	if err != nil {
 		return nil, err
 	}
-	for i, _ := range list.Items {
+	for i := range list.Items {
 		entry := list.Items[i]
 		entries = append(entries, &entry)
 	}
