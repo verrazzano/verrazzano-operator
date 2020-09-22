@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -23,7 +24,7 @@ import (
 )
 
 func TestGetUniqueServiceEntryAddress(t *testing.T) {
-	clusterConnections := GetManagedClusterConnections()
+	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 	var startIPIndex = 1
 
@@ -59,8 +60,8 @@ func TestGetUniqueServiceEntryAddress(t *testing.T) {
 }
 
 func TestGetIstioGateways(t *testing.T) {
-	modelBindingPair := getModelBindingPair()
-	clusterConnections := GetManagedClusterConnections()
+	modelBindingPair := testutil.GetModelBindingPair()
+	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster2"]
 
 	gatewayAddress := getIstioGateways(modelBindingPair, clusterConnections, "cluster2")
@@ -89,8 +90,8 @@ func TestGetIstioGateways(t *testing.T) {
 }
 
 func TestCleanupOrphanedServiceEntries(t *testing.T) {
-	modelBindingPair := getModelBindingPair()
-	clusterConnections := GetManagedClusterConnections()
+	modelBindingPair := testutil.GetModelBindingPair()
+	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 	clusterConnection2 := clusterConnections["cluster3"]
 
@@ -126,8 +127,8 @@ func TestCleanupOrphanedServiceEntries(t *testing.T) {
 }
 
 func TestCleanupOrphanedIngresses(t *testing.T) {
-	modelBindingPair := getModelBindingPair()
-	clusterConnections := GetManagedClusterConnections()
+	modelBindingPair := testutil.GetModelBindingPair()
+	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 	clusterConnection2 := clusterConnections["cluster3"]
 
@@ -178,8 +179,8 @@ func TestCleanupOrphanedIngresses(t *testing.T) {
 }
 
 func TestCreateServiceEntries(t *testing.T) {
-	modelBindingPair := getModelBindingPair()
-	clusterConnections := GetManagedClusterConnections()
+	modelBindingPair := testutil.GetModelBindingPair()
+	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
 	// create the service entries
@@ -256,8 +257,8 @@ func assertCreateServiceEntries(t *testing.T, clusterConnection *util.ManagedClu
 }
 
 func TestCreateIngresses(t *testing.T) {
-	modelBindingPair := getModelBindingPair()
-	clusterConnections := GetManagedClusterConnections()
+	modelBindingPair := testutil.GetModelBindingPair()
+	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
 	// create the ingresses
@@ -310,8 +311,8 @@ func assertCreateIngresses(t *testing.T, clusterConnection *util.ManagedClusterC
 }
 
 func TestCreateDestinationRules(t *testing.T) {
-	modelBindingPair := getModelBindingPair()
-	clusterConnections := GetManagedClusterConnections()
+	modelBindingPair := testutil.GetModelBindingPair()
+	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
 	// create the destination rules
@@ -378,8 +379,8 @@ func assertCreateDestinationRules(t *testing.T, clusterConnection *util.ManagedC
 }
 
 func TestCreateAuthorizationPolicies(t *testing.T) {
-	clusterConnections := GetManagedClusterConnections()
-	modelBindingPair := getModelBindingPair()
+	clusterConnections := testutil.GetManagedClusterConnections()
+	modelBindingPair := testutil.GetModelBindingPair()
 	clusterConnection := clusterConnections["cluster1"]
 
 	// create the authorization policies
@@ -416,8 +417,8 @@ func assertCreateAuthorizationPolicies(t *testing.T, clusterConnection *util.Man
 	assert.Equal(t, 1, len(policy.Spec.Rules))
 	assert.Equal(t, 2, len(policy.Spec.Rules[0].From))
 	assert.Equal(t, 2, len(policy.Spec.Rules[0].From[0].Source.Namespaces))
-	assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test"))
-	assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "istio-system"))
+	assert.True(t, testutil.StringArrayContains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test"))
+	assert.True(t, testutil.StringArrayContains(policy.Spec.Rules[0].From[0].Source.Namespaces, "istio-system"))
 
 	// test2-authorization-policy
 	list, err = clusterConnection.IstioAuthClientSet.SecurityV1beta1().AuthorizationPolicies("test2").List(context.TODO(), metav1.ListOptions{})
@@ -434,13 +435,13 @@ func assertCreateAuthorizationPolicies(t *testing.T, clusterConnection *util.Man
 	assert.Equal(t, 2, len(policy.Spec.Rules[0].From))
 	if wlsHasConn {
 		assert.Equal(t, 3, len(policy.Spec.Rules[0].From[0].Source.Namespaces))
-		assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test2"))
-		assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test3"))
-		assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "istio-system"))
+		assert.True(t, testutil.StringArrayContains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test2"))
+		assert.True(t, testutil.StringArrayContains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test3"))
+		assert.True(t, testutil.StringArrayContains(policy.Spec.Rules[0].From[0].Source.Namespaces, "istio-system"))
 	} else {
 		assert.Equal(t, 2, len(policy.Spec.Rules[0].From[0].Source.Namespaces))
-		assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test2"))
-		assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "istio-system"))
+		assert.True(t, testutil.StringArrayContains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test2"))
+		assert.True(t, testutil.StringArrayContains(policy.Spec.Rules[0].From[0].Source.Namespaces, "istio-system"))
 	}
 
 	// test3-authorization-policy
@@ -457,9 +458,9 @@ func assertCreateAuthorizationPolicies(t *testing.T, clusterConnection *util.Man
 	assert.Equal(t, 1, len(policy.Spec.Rules))
 	assert.Equal(t, 2, len(policy.Spec.Rules[0].From))
 	assert.Equal(t, 3, len(policy.Spec.Rules[0].From[0].Source.Namespaces))
-	assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test"))
-	assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test3"))
-	assert.True(t, contains(policy.Spec.Rules[0].From[0].Source.Namespaces, "istio-system"))
+	assert.True(t, testutil.StringArrayContains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test"))
+	assert.True(t, testutil.StringArrayContains(policy.Spec.Rules[0].From[0].Source.Namespaces, "test3"))
+	assert.True(t, testutil.StringArrayContains(policy.Spec.Rules[0].From[0].Source.Namespaces, "istio-system"))
 }
 
 func TestNewIngresses(t *testing.T) {

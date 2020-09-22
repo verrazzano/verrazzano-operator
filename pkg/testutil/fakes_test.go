@@ -1,7 +1,7 @@
 // Copyright (C) 2020, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package managed
+package testutil
 
 import (
 	"context"
@@ -14,14 +14,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
-
-func TestContains(t *testing.T) {
-	s := []string{"foo", "bar", "baz"}
-	assert.True(t, contains(s, "foo"))
-	assert.True(t, contains(s, "bar"))
-	assert.True(t, contains(s, "baz"))
-	assert.False(t, contains(s, "biz"))
-}
 
 func TestSimplePodLister(t *testing.T) {
 	clusterConnections := GetManagedClusterConnections()

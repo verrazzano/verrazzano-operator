@@ -5,12 +5,14 @@ package managed
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func TestCreateNamespaces(t *testing.T) {
@@ -26,8 +28,8 @@ func TestCreateNamespaces(t *testing.T) {
 		{
 			name: "create namespaces",
 			args: args{
-				mbPair:              getModelBindingPair(),
-				filteredConnections: GetManagedClusterConnections(),
+				mbPair:              testutil.GetModelBindingPair(),
+				filteredConnections: testutil.GetManagedClusterConnections(),
 			},
 			wantErr: false,
 		},
@@ -82,10 +84,10 @@ func TestCleanupOrphanedNamespaces(t *testing.T) {
 		{
 			name: "cleanup namespaces",
 			args: args{
-				mbPair:                             getModelBindingPair(),
-				availableManagedClusterConnections: GetManagedClusterConnections(),
+				mbPair:                             testutil.GetModelBindingPair(),
+				availableManagedClusterConnections: testutil.GetManagedClusterConnections(),
 				allMbPairs: map[string]*types.ModelBindingPair{
-					"testBinding": getModelBindingPair(),
+					"testBinding": testutil.GetModelBindingPair(),
 				},
 			},
 			wantErr: false,
@@ -136,8 +138,8 @@ func TestDeleteNamespaces(t *testing.T) {
 		{
 			name: "delete namespaces binding label true",
 			args: args{
-				mbPair:                             getModelBindingPair(),
-				availableManagedClusterConnections: GetManagedClusterConnections(),
+				mbPair:                             testutil.GetModelBindingPair(),
+				availableManagedClusterConnections: testutil.GetManagedClusterConnections(),
 				bindingLabel:                       true,
 			},
 			wantErr: false,
@@ -145,8 +147,8 @@ func TestDeleteNamespaces(t *testing.T) {
 		{
 			name: "delete namespaces binding label false",
 			args: args{
-				mbPair:                             getModelBindingPair(),
-				availableManagedClusterConnections: GetManagedClusterConnections(),
+				mbPair:                             testutil.GetModelBindingPair(),
+				availableManagedClusterConnections: testutil.GetManagedClusterConnections(),
 				bindingLabel:                       false,
 			},
 			wantErr: false,

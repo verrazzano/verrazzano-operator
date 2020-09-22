@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
-	"github.com/verrazzano/verrazzano-operator/pkg/managed"
+	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -17,7 +17,7 @@ import (
 // Test creating and getting a secret
 func testKubeSecretsCreateGet(t *testing.T) {
 	assert := assert.New(t)
-	connections := managed.GetManagedClusterConnections()
+	connections := testutil.GetManagedClusterConnections()
 	connection := connections["cluster1"]
 
 	origSecret := corev1.Secret{
@@ -65,7 +65,7 @@ func testKubeSecretsCreateGet(t *testing.T) {
 // Test updating a secret.
 func testKubeSecretsUpdate(t *testing.T) {
 	assert := assert.New(t)
-	connections := managed.GetManagedClusterConnections()
+	connections := testutil.GetManagedClusterConnections()
 	connection := connections["cluster1"]
 
 	secrets := KubeSecrets{
@@ -120,7 +120,7 @@ func testKubeSecretsUpdate(t *testing.T) {
 // Test listing secrets.
 func testKubeSecretsList(t *testing.T) {
 	assert := assert.New(t)
-	connections := managed.GetManagedClusterConnections()
+	connections := testutil.GetManagedClusterConnections()
 	connection := connections["cluster1"]
 
 	secrets := KubeSecrets{
@@ -168,7 +168,7 @@ func testKubeSecretsList(t *testing.T) {
 // Test getting the VMI password secret
 func testKubeSecretsGetVmiPassword(t *testing.T) {
 	assert := assert.New(t)
-	connections := managed.GetManagedClusterConnections()
+	connections := testutil.GetManagedClusterConnections()
 	connection := connections["cluster1"]
 
 	secrets := KubeSecrets{
