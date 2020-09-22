@@ -15,7 +15,7 @@ import (
 )
 
 // Test creating and getting a secret
-func testKubeSecretsCreateGet(t *testing.T) {
+func TestKubeSecretsCreateGet(t *testing.T) {
 	assert := assert.New(t)
 	connections := testutil.GetManagedClusterConnections()
 	connection := connections["cluster1"]
@@ -40,7 +40,7 @@ func testKubeSecretsCreateGet(t *testing.T) {
 	secret, err := secrets.Create(&origSecret)
 	assert.NoErrorf(err, "Can't create secret")
 	assert.NotNilf(secret, "Invalid secret created: %v", secret)
-	assert.Same(&origSecret, secret)
+	assert.Equal(&origSecret, secret)
 
 	// Get the test secret.
 	secret, err = secrets.Get("test-secret-name-1")
@@ -63,7 +63,7 @@ func testKubeSecretsCreateGet(t *testing.T) {
 }
 
 // Test updating a secret.
-func testKubeSecretsUpdate(t *testing.T) {
+func TestKubeSecretsUpdate(t *testing.T) {
 	assert := assert.New(t)
 	connections := testutil.GetManagedClusterConnections()
 	connection := connections["cluster1"]
@@ -118,7 +118,7 @@ func testKubeSecretsUpdate(t *testing.T) {
 }
 
 // Test listing secrets.
-func testKubeSecretsList(t *testing.T) {
+func TestKubeSecretsList(t *testing.T) {
 	assert := assert.New(t)
 	connections := testutil.GetManagedClusterConnections()
 	connection := connections["cluster1"]
@@ -166,7 +166,7 @@ func testKubeSecretsList(t *testing.T) {
 }
 
 // Test getting the VMI password secret
-func testKubeSecretsGetVmiPassword(t *testing.T) {
+func TestKubeSecretsGetVmiPassword(t *testing.T) {
 	assert := assert.New(t)
 	connections := testutil.GetManagedClusterConnections()
 	connection := connections["cluster1"]
