@@ -131,7 +131,8 @@ func (s simpleSecretNamespaceLister) List(selector labels.Selector) (ret []*v1.S
 	}
 	var secrets []*v1.Secret = nil
 	var items []v1.Secret = list.Items
-	for i := 0; i < len(items); i++ {
+	for i := range items {
+		//for i := 0; i < len(items); i++ {
 		secrets = append(secrets, &items[i])
 	}
 	return secrets, nil

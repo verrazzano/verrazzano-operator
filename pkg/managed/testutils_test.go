@@ -181,6 +181,7 @@ func TestSimpleServiceEntryLister(t *testing.T) {
 
 // Test simpleSecretLister
 func TestSimpleSecretLister(t *testing.T) {
+	assert := assert.New(t)
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
@@ -221,33 +222,34 @@ func TestSimpleSecretLister(t *testing.T) {
 	}
 
 	namespace, err := clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace1, metav1.CreateOptions{})
-	assert.NoError(t, err, "Should not err creating namespace.")
-	assert.Equal(t, &testNamespace1, namespace, "Created namespace should match original.")
+	assert.NoError(err, "Should not err creating namespace.")
+	assert.Equal(&testNamespace1, namespace, "Created namespace should match original.")
 
 	secrets, err := clusterConnection.SecretLister.List(labels.Everything())
-	assert.NoError(t, err, "Should not err for empty list.")
-	assert.Nil(t, secrets, "List should be empty/nil.")
+	assert.NoError(err, "Should not err for empty list.")
+	assert.Nil(secrets, "List should be empty/nil.")
 
 	secret, err := clusterConnection.KubeClient.CoreV1().Secrets("test-namespace-1").Create(context.TODO(), &testSecret1, metav1.CreateOptions{})
-	assert.NoError(t, err, "Creating secret should not err.")
-	assert.Equal(t, &testSecret1, secret, "Create should return same secret.")
+	assert.NoError(err, "Creating secret should not err.")
+	assert.Equal(&testSecret1, secret, "Create should return same secret.")
 
 	secrets, err = clusterConnection.SecretLister.List(labels.Everything())
-	assert.NoError(t, err, "Should not err for non-empty list.")
-	assert.Len(t, secrets, 1, "List should have one entry.")
+	assert.NoError(err, "Should not err for non-empty list.")
+	assert.Len(secrets, 1, "List should have one entry.")
 
 	secret, err = clusterConnection.KubeClient.CoreV1().Secrets("test-namespace-1").Create(context.TODO(), &testSecret2, metav1.CreateOptions{})
-	assert.NoError(t, err, "Creating secret should not err.")
-	assert.Equal(t, &testSecret2, secret, "Create should return same secret.")
+	assert.NoError(err, "Creating secret should not err.")
+	assert.Equal(&testSecret2, secret, "Create should return same secret.")
 
 	secrets, err = clusterConnection.SecretLister.List(labels.Everything())
-	assert.NoError(t, err, "Should not err for non-empty list.")
-	assert.Len(t, secrets, 2, "List should have one entry.")
-	assert.NotEqual(t, secrets[0], secrets[1], "Secrets should be different.")
+	assert.NoError(err, "Should not err for non-empty list.")
+	assert.Len(secrets, 2, "List should have one entry.")
+	assert.NotEqual(secrets[0], secrets[1], "Secrets should be different.")
 }
 
 // Test simpleSecretNamespaceLister List and Get
 func TestSimpleSecretNamespaceLister(t *testing.T) {
+	assert := assert.New(t)
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
@@ -265,22 +267,22 @@ func TestSimpleSecretNamespaceLister(t *testing.T) {
 	}
 
 	secrets, err := clusterConnection.SecretLister.Secrets("test-namespace-1").List(labels.Everything())
-	assert.NoError(t, err, "Should not err for empty list.")
-	assert.Nil(t, secrets, "List should be empty/nil.")
+	assert.NoError(err, "Should not err for empty list.")
+	assert.Nil(secrets, "List should be empty/nil.")
 
 	secret, err := clusterConnection.KubeClient.CoreV1().Secrets("test-namespace-1").Create(context.TODO(), &testSecret1, metav1.CreateOptions{})
-	assert.NoError(t, err, "Creating secret should not err.")
-	assert.Equal(t, &testSecret1, secret, "Create should return same secret.")
+	assert.NoError(err, "Creating secret should not err.")
+	assert.Equal(&testSecret1, secret, "Create should return same secret.")
 
 	secrets, err = clusterConnection.SecretLister.Secrets("test-namespace-1").List(labels.Everything())
-	assert.NoError(t, err, "Should not err for non-empty list.")
-	assert.Len(t, secrets, 1, "List should have one entry.")
+	assert.NoError(err, "Should not err for non-empty list.")
+	assert.Len(secrets, 1, "List should have one entry.")
 
 	secret, err = clusterConnection.SecretLister.Secrets("test-namespace-1").Get("test-secret-1")
-	assert.NoError(t, err, "Should not err for an existing secret.")
-	assert.Equal(t, &testSecret1, secret, "Get should return same secret.")
+	assert.NoError(err, "Should not err for an existing secret.")
+	assert.Equal(&testSecret1, secret, "Get should return same secret.")
 
 	secret, err = clusterConnection.SecretLister.Secrets("test-namespace-1").Get("test-secret-invalid")
-	assert.Error(t, err, "Should err for a non-existing secret.")
-	assert.Nil(t, secret, "Should return nil for a non-existing secret.")
+	assert.Error(err, "Should err for a non-existing secret.")
+	assert.Nil(secret, "Should return nil for a non-existing secret.")
 }
