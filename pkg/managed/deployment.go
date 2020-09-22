@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Handles creation/deletion of deployments based, on a VerrazzanoBinding
+
 package managed
 
 import (
@@ -21,7 +22,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, manifest *util.Manifest, verrazzanoUri string, sec monitoring.Secrets) error {
+// CreateDeployments creates/updates deployments needed for each managed cluster.
+func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) error {
 	glog.V(6).Infof("Creating/updating Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
@@ -37,9 +39,9 @@ func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterCo
 
 		var deployments []*appsv1.Deployment
 		if mbPair.Binding.Name == constants.VmiSystemBindingName {
-			deployments = monitoring.GetSystemDeployments(clusterName, verrazzanoUri, sec)
+			deployments = monitoring.GetSystemDeployments(clusterName, verrazzanoURI, sec)
 		} else {
-			deployments = newDeployments(mbPair.Binding, managedClusterObj, manifest, verrazzanoUri, sec)
+			deployments = newDeployments(mbPair.Binding, managedClusterObj, manifest, verrazzanoURI, sec)
 		}
 
 		// Create/Update Deployments
@@ -67,7 +69,7 @@ func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterCo
 }
 
 // Constructs the necessary Deployments for the specified ManagedCluster in the given VerrazzanoBinding
-func newDeployments(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.ManagedCluster, manifest *util.Manifest, verrazzanoUri string, sec monitoring.Secrets) []*appsv1.Deployment {
+func newDeployments(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.ManagedCluster, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) []*appsv1.Deployment {
 	managedNamespace := util.GetManagedClusterNamespaceForSystem()
 	deployPromPusher := true //temporary variable to create pusher deployment
 	depLabels := util.GetManagedLabelsNoBinding(managedCluster.Name)
@@ -93,10 +95,10 @@ func newDeployments(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types
 
 	// Does a Prometheus pusher need to be deployed to this cluster?
 	if deployPromPusher == true {
-		if verrazzanoUri == "" {
+		if verrazzanoURI == "" {
 			glog.V(4).Infof("Verrazzano URI must not be empty for prometheus pusher to work")
 		} else {
-			deployment := monitoring.CreateDeployment(constants.MonitoringNamespace, binding.Name, depLabels, verrazzanoUri, sec)
+			deployment := monitoring.CreateDeployment(constants.MonitoringNamespace, binding.Name, depLabels, sec)
 			deployments = append(deployments, deployment)
 		}
 	}

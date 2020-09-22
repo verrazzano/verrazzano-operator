@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Handles creation/deletion of deployments based, on a VerrazzanoBinding
+
 package managed
 
 import (
@@ -20,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+// CreateNamespaces creates/updates namespaces needed for each managed cluster.
 func CreateNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 
 	glog.V(6).Infof("Creating/updating Namespaces for VerrazzanoBinding %s", mbPair.Binding.Name)
@@ -65,6 +67,7 @@ func createNamespace(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnec
 	return nil
 }
 
+// CleanupOrphanedNamespaces deletes namespaces that have been orphaned.
 func CleanupOrphanedNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allMbPairs map[string]*types.ModelBindingPair) error {
 	glog.V(6).Infof("Cleaning up orphaned Namespace for VerrazzanoBinding %s", mbPair.Binding.Name)
 
@@ -173,6 +176,7 @@ func CleanupOrphanedNamespaces(mbPair *types.ModelBindingPair, availableManagedC
 	return nil
 }
 
+// DeleteNamespaces deletes namespaces for a given binding.
 func DeleteNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
 	glog.V(6).Infof("Deleting Namespaces for VerrazzanoBinding %s", mbPair.Binding.Name)
 

@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+// CreateServices creates/updates services needed for each managed cluster.
 func CreateServices(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 
 	glog.V(6).Infof("Creating/updating Service for VerrazzanoBinding %s", mbPair.Binding.Name)

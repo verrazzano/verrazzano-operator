@@ -3,6 +3,7 @@
 
 package monitoring
 
+// FilebeatConfigData contains configuration used by Filebeats.
 const FilebeatConfigData = `filebeat.config:
   inputs:
     # Mounted filebeat-inputs configmap:
@@ -29,6 +30,7 @@ output.elasticsearch:
   index: ${INDEX_NAME}
 `
 
+// JournalbeatConfigData contains configuration used by Journalbeats.
 const JournalbeatConfigData = `name: ${NODENAME}
 journalbeat.inputs:
 - paths: []
@@ -49,6 +51,7 @@ output.elasticsearch:
   index: ${INDEX_NAME}
 `
 
+// FilebeatInputData contains configuration used as inputs for Filebeats.
 const FilebeatInputData = `- type: docker
   containers.ids:
   - "*"

@@ -31,7 +31,7 @@ var (
 	masterURL                    string
 	kubeconfig                   string
 	watchNamespace               string
-	verrazzanoUri                string
+	verrazzanoURI                string
 	helidonAppOperatorDeployment string
 	enableMonitoringStorage      string
 	apiServerRealm               string
@@ -123,7 +123,7 @@ func main() {
 		glog.V(6).Info("helidonAppOperatorDeployment Disabled")
 		manifest.HelidonAppOperatorImage = ""
 	}
-	controller, err := pkgverrazzanooperator.NewController(kubeconfig, manifest, masterURL, watchNamespace, verrazzanoUri, enableMonitoringStorage)
+	controller, err := pkgverrazzanooperator.NewController(kubeconfig, manifest, masterURL, watchNamespace, verrazzanoURI, enableMonitoringStorage)
 	if err != nil {
 		glog.Fatalf("Error creating the controller: %s", err.Error())
 	}
@@ -144,7 +144,7 @@ func main() {
 	secrets.Init(controller.ListerSet())
 	apiserver.Init(controller.ListerSet())
 
-	instance.SetVerrazzanoUri(verrazzanoUri)
+	instance.SetVerrazzanoUri(verrazzanoURI)
 	apiserver.SetRealm(apiServerRealm)
 	// start REST handlers
 	go handleRequests()
@@ -163,7 +163,7 @@ func init() {
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&watchNamespace, "watchNamespace", "", "Optionally, a namespace to watch exclusively.  If not set, all namespaces will be watched.")
-	flag.StringVar(&verrazzanoUri, "verrazzanoUri", "", "Verrazzano URI, for example my-verrazzano-1.verrazzano.example.com")
+	flag.StringVar(&verrazzanoURI, "verrazzanoUri", "", "Verrazzano URI, for example my-verrazzano-1.verrazzano.example.com")
 	flag.StringVar(&helidonAppOperatorDeployment, "helidonAppOperatorDeployment", "", "--helidonAppOperatorDeployment=false disables helidonAppOperatorDeployment")
 	flag.StringVar(&enableMonitoringStorage, "enableMonitoringStorage", "", "Enable storage for monitoring.  The default is true. 'false' means monitoring storage is disabled.")
 	flag.StringVar(&apiServerRealm, "apiServerRealm", "", "API Server Realm on Keycloak")

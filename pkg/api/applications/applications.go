@@ -20,7 +20,7 @@ import (
 
 // Application represents an application in Verrazzano
 type Application struct {
-	Id          string `json:"id"`
+	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Model       string `json:"model"`
@@ -28,6 +28,7 @@ type Application struct {
 	Status      string `json:"status"`
 }
 
+// ModelFinder keeps track of matching models.
 type ModelFinder struct {
 	Model        *v1beta1.VerrazzanoModel
 	BindingMatch bool
@@ -79,7 +80,7 @@ func refreshApplications() error {
 			model.BindingMatch = true
 		}
 		Applications = append(Applications, Application{
-			Id:          strconv.Itoa(i),
+			ID:          strconv.Itoa(i),
 			Name:        binding.Name,
 			Description: binding.Spec.Description,
 			Model:       string(modelYaml),
@@ -95,7 +96,7 @@ func refreshApplications() error {
 		if model.BindingMatch == false {
 			modelYaml, _ := yaml.Marshal(model.Model)
 			Applications = append(Applications, Application{
-				Id:          strconv.Itoa(i),
+				ID:          strconv.Itoa(i),
 				Name:        "",
 				Description: "",
 				Model:       string(modelYaml),
@@ -140,7 +141,7 @@ func ReturnSingleApplication(w http.ResponseWriter, r *http.Request) {
 	// if the article.Id equals the key we pass in
 	// return the article encoded as JSON
 	for _, application := range Applications {
-		if application.Id == key {
+		if application.ID == key {
 			json.NewEncoder(w).Encode(application)
 		}
 	}
@@ -182,14 +183,14 @@ func DeleteApplication(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	// we will need to extract the `id` of the application we
 	// wish to delete
-	id := vars["id"]
-	glog.V(4).Info("DELETE /applications/" + id)
+	ID := vars["id"]
+	glog.V(4).Info("DELETE /applications/" + ID)
 
 	// we then need to loop through all our applications
 	for index, application := range Applications {
 		// if our id path parameter matches one of our
 		// applications
-		if application.Id == id {
+		if application.ID == ID {
 			// updates our Applications array to remove the
 			// application
 			Applications = append(Applications[:index], Applications[index+1:]...)
@@ -208,9 +209,9 @@ func UpdateApplication(w http.ResponseWriter, r *http.Request) {
 
 	// find the id of the application to update
 	vars := mux.Vars(r)
-	id := vars["id"]
+	ID := vars["id"]
 
-	glog.V(4).Info("PUT /applications/" + id)
+	glog.V(4).Info("PUT /applications/" + ID)
 
 	// get the updated application
 	reqBody, _ := ioutil.ReadAll(r.Body)
@@ -219,7 +220,7 @@ func UpdateApplication(w http.ResponseWriter, r *http.Request) {
 
 	// find the right application and update it
 	for index, application := range Applications {
-		if application.Id == id {
+		if application.ID == ID {
 			Applications = append(Applications[:index], updatedApplication)
 			Applications = append(Applications, Applications[index+1:]...)
 		}

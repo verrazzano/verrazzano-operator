@@ -35,7 +35,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// Structure maintaining the connection details to a ManagedCluster
+// ManagedClusterConnection maintains the connection details to a ManagedCluster.
 type ManagedClusterConnection struct {
 	KubeClient                  kubernetes.Interface
 	KubeExtClientSet            apiextensionsclient.Interface
@@ -87,7 +87,7 @@ type ManagedClusterConnection struct {
 	ServiceInformer             cache.SharedIndexInformer
 }
 
-// Structure maintaining the concrete set of images for components the Verrazzano Operator launches
+// Manifest maintains the concrete set of images for components the Verrazzano Operator launches.
 type Manifest struct {
 	WlsMicroOperatorImage   string `json:"wlsMicroOperatorImage"`
 	WlsMicroOperatorCrd     string `json:"wlsMicroOperatorCrd"`
@@ -97,6 +97,7 @@ type Manifest struct {
 	CohClusterOperatorCrd   string `json:"cohClusterOperatorCrd"`
 }
 
+// DeploymentHelper defines an interface for deployments.
 type DeploymentHelper interface {
 	DeleteDeployment(namespace, name string) error
 }

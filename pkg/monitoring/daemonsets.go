@@ -16,18 +16,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Create all the Daemon sets needed by Filebeats, Journalbeats, and NodeExporters in all the managed clusters
-func SystemDaemonSets(managedClusterName string, verrazzanoUri string) []*appsv1.DaemonSet {
+// SystemDaemonSets create all the Daemon sets needed by Filebeats, Journalbeats, and NodeExporters
+// in all the managed clusters.
+func SystemDaemonSets(managedClusterName string, verrazzanoURI string) []*appsv1.DaemonSet {
 	filebeatLabels := GetFilebeatLabels(managedClusterName)
 	journalbeatLabels := GetJournalbeatLabels(managedClusterName)
 	nodeExporterLabels := GetNodeExporterLabels(managedClusterName)
 	var daemonSets []*appsv1.DaemonSet
 
-	fileabeatDS, err := createFilebeatDaemonSet(constants.LoggingNamespace, constants.FilebeatName, verrazzanoUri, filebeatLabels)
+	fileabeatDS, err := createFilebeatDaemonSet(constants.LoggingNamespace, constants.FilebeatName, filebeatLabels)
 	if err != nil {
 		glog.V(6).Infof("New Daemonset %s is giving error %s", constants.FilebeatName, err)
 	}
-	journalbeatDS, err := createJournalbeatDaemonSet(constants.LoggingNamespace, constants.JournalbeatName, verrazzanoUri, journalbeatLabels)
+	journalbeatDS, err := createJournalbeatDaemonSet(constants.LoggingNamespace, constants.JournalbeatName, journalbeatLabels)
 	if err != nil {
 		glog.V(6).Infof("New Daemonset %s is giving error %s", constants.JournalbeatName, err)
 	}
@@ -40,7 +41,7 @@ func SystemDaemonSets(managedClusterName string, verrazzanoUri string) []*appsv1
 	return daemonSets
 }
 
-func createFilebeatDaemonSet(namespace string, name string, verrazzanoUri string, labels map[string]string) (*appsv1.DaemonSet, error) {
+func createFilebeatDaemonSet(namespace string, name string, labels map[string]string) (*appsv1.DaemonSet, error) {
 
 	loggingDaemonSet := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -212,7 +213,7 @@ func createFilebeatDaemonSet(namespace string, name string, verrazzanoUri string
 	return loggingDaemonSet, nil
 }
 
-func createJournalbeatDaemonSet(namespace string, name string, verrazzanoUri string, labels map[string]string) (*appsv1.DaemonSet, error) {
+func createJournalbeatDaemonSet(namespace string, name string, labels map[string]string) (*appsv1.DaemonSet, error) {
 
 	loggingDaemonSet := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{

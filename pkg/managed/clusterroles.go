@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+// CreateClusterRoles creates/updates cluster roles needed for each managed cluster.
 func CreateClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 
 	glog.V(6).Infof("Creating/updating ClusterRoles for VerrazzanoBinding %s", mbPair.Binding.Name)
@@ -58,6 +59,7 @@ func CreateClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterC
 	return nil
 }
 
+// CleanupOrphanedClusterRoles deletes cluster roles that have been orphaned.
 func CleanupOrphanedClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allMbPairs map[string]*types.ModelBindingPair) error {
 	glog.V(6).Infof("Cleaning up orphaned ClusterRoles for VerrazzanoBinding %s", mbPair.Binding.Name)
 
@@ -89,6 +91,7 @@ func CleanupOrphanedClusterRoles(mbPair *types.ModelBindingPair, availableManage
 	return nil
 }
 
+// DeleteClusterRoles deletes cluster roles for a given binding.
 func DeleteClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
 	glog.V(6).Infof("Deleting ClusterRole for VerrazzanoBinding %s", mbPair.Binding.Name)
 

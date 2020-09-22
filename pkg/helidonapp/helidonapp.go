@@ -20,9 +20,14 @@ import (
 )
 
 const microOperatorName = "verrazzano-helidon-app-operator"
+
+// DefaultPort constant for default Helidon port
 const DefaultPort = int32(8080)
+
+// DefaultTargetPort constant for default Helidon target port
 const DefaultTargetPort = int32(8080)
 
+// CreateHelidonAppCR constructs a Helidon application custome resource.
 func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.VerrazzanoHelidon, mbPair *types.ModelBindingPair, labels map[string]string) *v1helidonapp.HelidonApp {
 	helidonApp := v1helidonapp.HelidonApp{}
 
@@ -92,23 +97,23 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 				// Only override if the ENV var is not explicitly defined in the model
 				if cohCluster != nil {
 					var env corev1.EnvVar
-					const COH_CLUSTER = "COH_CLUSTER"
-					const COH_CACHE_CONFIG = "COH_CACHE_CONFIG"
-					const COH_POF_CONFIG = "COH_POF_CONFIG"
+					const envCohCluster = "COH_CLUSTER"
+					const envCohCacheConfig = "COH_CACHE_CONFIG"
+					const envCohPofConfig = "COH_POF_CONFIG"
 
-					if _, ok := envSet[COH_CLUSTER]; !ok {
-						env.Name = COH_CLUSTER
+					if _, ok := envSet[envCohCluster]; !ok {
+						env.Name = envCohCluster
 						env.Value = cohConnection.Target
 						envs = append(envs, env)
 					}
-					if _, ok := envSet[COH_CACHE_CONFIG]; !ok {
-						env.Name = COH_CACHE_CONFIG
+					if _, ok := envSet[envCohCacheConfig]; !ok {
+						env.Name = envCohCacheConfig
 						env.Value = cohCluster.CacheConfig
 						envs = append(envs, env)
 
 					}
-					if _, ok := envSet[COH_POF_CONFIG]; !ok {
-						env.Name = COH_POF_CONFIG
+					if _, ok := envSet[envCohPofConfig]; !ok {
+						env.Name = envCohPofConfig
 						env.Value = cohCluster.PofConfig
 						envs = append(envs, env)
 					}
@@ -126,7 +131,7 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 	// Include fluentd needed resource if fluentd integration is enabled
 	if IsFluentdEnabled(app) {
 		// Add fluentd container
-		helidonApp.Spec.Containers = append(helidonApp.Spec.Containers, createFluentdContainer(mbPair.Binding, app, mbPair.VerrazzanoUri))
+		helidonApp.Spec.Containers = append(helidonApp.Spec.Containers, createFluentdContainer(mbPair.Binding, app))
 
 		// Add fluentd volumes
 		volumes := createFluentdVolHostPaths()
@@ -139,7 +144,7 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 	return &helidonApp
 }
 
-// Create a deployment for the verrazzano-helidon-app-operator
+// CreateDeployment creates a deployment for the verrazzano-helidon-app-operator.
 func CreateDeployment(namespace string, labels map[string]string, image string) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -201,7 +206,7 @@ func CreateDeployment(namespace string, labels map[string]string, image string) 
 	return deployment
 }
 
-// Update env variables for a given component
+// UpdateEnvVars updates env variables for a given Helidon component.
 func UpdateEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.EnvVar) {
 	if *envs != nil && len(*envs) != 0 {
 		for _, app := range mc.HelidonApps {
@@ -215,7 +220,7 @@ func UpdateEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.En
 	}
 }
 
-// Check if Fluentd integration is enabled for this application
+// IsFluentdEnabled checks if Fluentd integration is enabled for this Helidon application.
 func IsFluentdEnabled(app *v1beta1v8o.VerrazzanoHelidon) bool {
 	if app.FluentdEnabled == nil {
 		return true

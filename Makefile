@@ -71,17 +71,17 @@ go-fmt:
 
 .PHONY: go-vet
 go-vet:
-	$(GO) vet $(shell go list ./... | grep -v /vendor/)
+	$(GO) vet $(shell go list ./... | grep -v github.com/verrazzano/verrazzano-operator/pkg/assets)
 
 .PHONY: go-lint
 go-lint:
 	$(GO) get -u golang.org/x/lint/golint
-	golint -set_exit_status $(shell go list ./... | grep -v /vendor/)
+	golint -set_exit_status $(shell go list ./... | grep -v github.com/verrazzano/verrazzano-operator/pkg/assets)
 
 .PHONY: go-ineffassign
 go-ineffassign:
 	$(GO) get -u github.com/gordonklaus/ineffassign
-	ineffassign $(shell find . -name "*.go" | grep -v /vendor/)
+	ineffassign $(shell find . -name "*.go" | grep -v /vendor/ | grep -v /pkg/assets/)
 
 .PHONY: go-mod
 go-mod:

@@ -100,7 +100,7 @@ func TestGetGetVmiUri(t *testing.T) {
 	assert := assert.New(t)
 	const bindingName = "testbinding"
 	const uri = "vzURI"
-	assert.Equal(fmt.Sprintf("vmi.%s.%s", bindingName, uri), GetVmiUri(bindingName, uri))
+	assert.Equal(fmt.Sprintf("vmi.%s.%s", bindingName, uri), GetVmiURI(bindingName, uri))
 }
 
 func TestGetServiceAccountNameForSystem(t *testing.T) {

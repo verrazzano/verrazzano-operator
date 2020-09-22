@@ -27,9 +27,12 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-const PrometheusPodPrefix = "prometheus-"
+const prometheusPodPrefix = "prometheus-"
+
+// IstioSystemNamespace constant for the istio namespace.
 const IstioSystemNamespace = "istio-system"
 
+// CreateIngresses creates/updates istio gateways and virtual services for managed clusters.
 func CreateIngresses(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Creating/updating Ingresses for VerrazzanoBinding %s", mbPair.Binding.Name)
 
@@ -96,6 +99,7 @@ func CreateIngresses(mbPair *types.ModelBindingPair, filteredConnections map[str
 	return nil
 }
 
+// CreateServiceEntries creates/updates istio service entries for managed clusters.
 func CreateServiceEntries(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Creating/updating istio serviceentries for VerrazzanoBinding %s", mbPair.Binding.Name)
 
@@ -159,6 +163,7 @@ func CreateServiceEntries(mbPair *types.ModelBindingPair, filteredConnections ma
 	return nil
 }
 
+// CreateDestinationRules creates/updates istio destination rules for managed clusters.
 func CreateDestinationRules(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Creating/updating DestinationRules for VerrazzanoBinding %s", mbPair.Binding.Name)
 
@@ -201,6 +206,7 @@ func CreateDestinationRules(mbPair *types.ModelBindingPair, filteredConnections 
 	return nil
 }
 
+// CreateAuthorizationPolicies creates/updates istio authorization policies for managed clusters.
 func CreateAuthorizationPolicies(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Creating/updating AuthorizationPolicies for VerrazzanoBinding %s", mbPair.Binding.Name)
 
@@ -266,7 +272,7 @@ func getUniqueServiceEntryAddress(managedClusterConnection *util.ManagedClusterC
 				for _, address := range se.Spec.Addresses {
 					if address == uniqueIP {
 						glog.V(6).Infof("found ServiceEntry with address %s: trying next address", uniqueIP)
-						*startIPIndex += 1
+						*startIPIndex++
 						uniqueIP = fmt.Sprintf("%s.%s", baseIP, strconv.Itoa(*startIPIndex))
 						match = true
 						break
@@ -278,7 +284,7 @@ func getUniqueServiceEntryAddress(managedClusterConnection *util.ManagedClusterC
 			}
 		}
 		if !match {
-			*startIPIndex += 1
+			*startIPIndex++
 			break
 		}
 	}
@@ -286,6 +292,7 @@ func getUniqueServiceEntryAddress(managedClusterConnection *util.ManagedClusterC
 	return uniqueIP, nil
 }
 
+// CleanupOrphanedIngresses deletes istio gateways and virtual services that have been orphaned.
 func CleanupOrphanedIngresses(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Cleaning up orphaned Ingresses for VerrazzanoBinding %s", mbPair.Binding.Name)
 
@@ -389,6 +396,7 @@ func CleanupOrphanedIngresses(mbPair *types.ModelBindingPair, availableManagedCl
 	return nil
 }
 
+// CleanupOrphanedServiceEntries deletes istio virtual service entries that have been orphaned.
 func CleanupOrphanedServiceEntries(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Cleaning up orphaned ServiceEntries for VerrazzanoBinding %s", mbPair.Binding.Name)
 
@@ -537,7 +545,7 @@ func httpRoutes(namespace string, ingress *types.Ingress) []istiocrd.HttpRoute {
 			},
 		}
 		for _, m := range destination.Match {
-			for k, v := range m.Uri {
+			for k, v := range m.URI {
 				route.Match = addMatch(route.Match, k, v)
 			}
 		}
@@ -568,10 +576,12 @@ func httpRoutes(namespace string, ingress *types.Ingress) []istiocrd.HttpRoute {
 	return routes
 }
 
+// GetDomainAdminServerNameAsInAddress returns Weblogic domain admin server name for service.
 func GetDomainAdminServerNameAsInAddress() string {
 	return strings.ToLower(GetDomainAdminServerNameAsInTarget())
 }
 
+// GetDomainAdminServerNameAsInTarget returns Weblogic domain admin server name for target.
 func GetDomainAdminServerNameAsInTarget() string {
 	return "AdminServer"
 }
@@ -757,9 +767,9 @@ func newAuthorizationPolicies(mbPair *types.ModelBindingPair, mc *types.ManagedC
 			for cohNamespaceSource := range cohNamespaceSources[ns] {
 				podIPs = append(podIPs, getIpsOfNamespacePods(cohNamespaceSource, pods)...)
 			}
-			systemPrometheusPodIp := getIpOfSystemPrometheusPod(pods)
-			if systemPrometheusPodIp != "" {
-				podIPs = append(podIPs, systemPrometheusPodIp)
+			systemPrometheusPodIP := getIPOfSystemPrometheusPod(pods)
+			if systemPrometheusPodIP != "" {
+				podIPs = append(podIPs, systemPrometheusPodIP)
 			}
 			// allow traffic from any of the binding namespaces that are connected to components in this namespace
 			namespaceValues := GetNamespaceValues(namespaceSources, ns)
@@ -834,9 +844,9 @@ func getIpsOfNamespacePods(ns string, pods []*v1.Pod) []string {
 	return podIPs
 }
 
-func getIpOfSystemPrometheusPod(pods []*v1.Pod) string {
+func getIPOfSystemPrometheusPod(pods []*v1.Pod) string {
 	for _, pod := range pods {
-		if pod.Namespace == IstioSystemNamespace && strings.HasPrefix(pod.Name, PrometheusPodPrefix) {
+		if pod.Namespace == IstioSystemNamespace && strings.HasPrefix(pod.Name, prometheusPodPrefix) {
 			return pod.Status.PodIP
 		}
 	}
@@ -844,7 +854,7 @@ func getIpOfSystemPrometheusPod(pods []*v1.Pod) string {
 	return ""
 }
 
-// Add a value to a set for a given namespace map
+// AddToNamespace adds a value to a set for a given namespace map.
 func AddToNamespace(nsMap map[string]map[string]struct{}, ns string, value string) {
 	if nsMap[ns] == nil {
 		nsMap[ns] = map[string]struct{}{}
@@ -852,7 +862,7 @@ func AddToNamespace(nsMap map[string]map[string]struct{}, ns string, value strin
 	nsMap[ns][value] = struct{}{}
 }
 
-// Get the set of values for a given namespace and map
+// GetNamespaceValues returns the set of values for a given namespace and map.
 func GetNamespaceValues(nsMap map[string]map[string]struct{}, ns string) []string {
 	var values []string
 	if nsMap[ns] != nil {

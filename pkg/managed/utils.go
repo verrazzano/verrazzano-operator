@@ -30,7 +30,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// Builds a ManagedClusterConnection for the given KubeConfig contents
+// BuildManagedClusterConnection builds a ManagedClusterConnection for the given KubeConfig contents.
 func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*util.ManagedClusterConnection, error) {
 	managedClusterConnection := &util.ManagedClusterConnection{}
 
@@ -208,7 +208,8 @@ func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan stru
 	return managedClusterConnection, nil
 }
 
-// Given a map of available ManagedClusterConnections, returns a filtered set of those NOT applicable to the given VerrazzanoBinding
+// GetFilteredConnections given a map of available ManagedClusterConnections, returns a filtered set of those NOT
+// applicable to the given VerrazzanoBinding.
 func GetFilteredConnections(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) (map[string]*util.ManagedClusterConnection, error) {
 	var filteredConnections map[string]*util.ManagedClusterConnection
 	var err error

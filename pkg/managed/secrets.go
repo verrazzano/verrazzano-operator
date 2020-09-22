@@ -91,7 +91,7 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 
 	for namespace, secretNames := range managedCluster.Secrets {
 		for _, secretName := range secretNames {
-			err, secretObj := newSecret(secretName, namespace, kubeClientSet, nil, nil)
+			secretObj, err := newSecret(secretName, namespace, kubeClientSet, nil, nil)
 			if err != nil {
 				continue
 			}
@@ -130,7 +130,7 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 				// Create the new secret in the domain's namespace from the secret named in this database binding
 				labels := make(map[string]string)
 				labels["weblogic.domainUID"] = domain.Name
-				err, secretObj := newSecret(secretName, namespace, kubeClientSet, data, labels)
+				secretObj, err := newSecret(secretName, namespace, kubeClientSet, data, labels)
 				if err != nil {
 					glog.V(6).Infof("Copying secret %s to namespace %s for database binding %s is giving error %s", secretName, namespace, databaseBinding.Name, err)
 					continue
@@ -173,7 +173,7 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 	return secrets
 }
 
-func newSecret(secretName string, namespace string, kubeClientSet kubernetes.Interface, data map[string][]byte, labels map[string]string) (error, *corev1.Secret) {
+func newSecret(secretName string, namespace string, kubeClientSet kubernetes.Interface, data map[string][]byte, labels map[string]string) (*corev1.Secret, error) {
 
 	var secretInMgmtCluster *corev1.Secret
 	secretInMgmtCluster, err := local.GetSecret(secretName, constants.DefaultNamespace, kubeClientSet)
@@ -182,7 +182,7 @@ func newSecret(secretName string, namespace string, kubeClientSet kubernetes.Int
 		// VMI binding secrets are located in the verrazzano system namespace.
 		secretInMgmtCluster, err = local.GetSecret(secretName, constants.VerrazzanoNamespace, kubeClientSet)
 		if err != nil {
-			return err, nil
+			return nil, err
 		}
 	}
 
@@ -206,7 +206,7 @@ func newSecret(secretName string, namespace string, kubeClientSet kubernetes.Int
 		Data: newData,
 		Type: secretInMgmtCluster.Type,
 	}
-	return nil, secretObj
+	return secretObj, nil
 }
 
 // generateRandomString returns a base64 encoded generated random string.
