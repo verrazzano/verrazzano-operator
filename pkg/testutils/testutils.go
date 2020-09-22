@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Utilities
-package managed
+package testutils
 
 import (
 	"context"
@@ -28,6 +28,9 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	corelistersv1 "k8s.io/client-go/listers/core/v1"
 )
+
+// Duplicate of managed.IstioSystemNamespace to avoid circular import
+const IstioSystemNamespace = "istio-system"
 
 // ----- simplePodLister
 // Simple PodLister implementation.
@@ -413,7 +416,7 @@ func getPods() []*v1.Pod {
 }
 
 // Get a test model binding pair.
-func getModelBindingPair() *types.ModelBindingPair {
+func GetModelBindingPair() *types.ModelBindingPair {
 	var pair = &types.ModelBindingPair{
 		Model: &v1beta1.VerrazzanoModel{
 			ObjectMeta: v12.ObjectMeta{
@@ -580,7 +583,7 @@ func getModelBindingPair() *types.ModelBindingPair {
 	return pair
 }
 
-func contains(s []string, e string) bool {
+func StringArrayContains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
 			return true

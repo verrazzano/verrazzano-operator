@@ -1,7 +1,7 @@
 // Copyright (C) 2020, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package managed
+package testutils
 
 import (
 	"context"
@@ -17,10 +17,10 @@ import (
 
 func TestContains(t *testing.T) {
 	s := []string{"foo", "bar", "baz"}
-	assert.True(t, contains(s, "foo"))
-	assert.True(t, contains(s, "bar"))
-	assert.True(t, contains(s, "baz"))
-	assert.False(t, contains(s, "biz"))
+	assert.True(t, StringArrayContains(s, "foo"))
+	assert.True(t, StringArrayContains(s, "bar"))
+	assert.True(t, StringArrayContains(s, "baz"))
+	assert.False(t, StringArrayContains(s, "biz"))
 }
 
 func TestSimplePodLister(t *testing.T) {
