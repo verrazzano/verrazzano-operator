@@ -144,10 +144,7 @@ func updateIstioPrometheusConfigMap(clusterName string, managedClusterConnection
 	}
 
 	// Create a new istio prometheus configmap if necessary
-	existingcm, err := managedClusterConnection.ConfigMapLister.ConfigMaps(IstioNamespace).Get(IstioPrometheusCMName)
-	if err != nil {
-		return err
-	}
+	existingcm, _ := managedClusterConnection.ConfigMapLister.ConfigMaps(IstioNamespace).Get(IstioPrometheusCMName)
 	if existingcm == nil {
 		glog.V(4).Infof("Creating Configmaps %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
 		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newPrometheusConfigMap.Namespace).Create(context.TODO(), newPrometheusConfigMap, metav1.CreateOptions{})
