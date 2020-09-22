@@ -90,7 +90,7 @@ func CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets Secrets) er
 
 	if vmiSecret == nil {
 		vmiSecret = NewVmiSecret(binding)
-		vmiSecret, err = secrets.Create(vmiSecret)
+		_, err := secrets.Create(vmiSecret)
 		if err != nil {
 			return err
 		}
@@ -105,7 +105,7 @@ func CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets Secrets) er
 			updated = true
 		}
 		if updated {
-			vmiSecret, err = secrets.Update(vmiSecret)
+			_, err := secrets.Update(vmiSecret)
 			if err != nil {
 				return err
 			}
