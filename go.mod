@@ -3,7 +3,6 @@ module github.com/verrazzano/verrazzano-operator
 require (
 	github.com/Jeffail/gabs/v2 v2.3.0
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-	github.com/gordonklaus/ineffassign v0.0.0-20200809085317-e36bfde3bb78 // indirect
 	github.com/gorilla/mux v1.7.3
 	github.com/hashicorp/go-retryablehttp v0.6.6
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible // indirect
