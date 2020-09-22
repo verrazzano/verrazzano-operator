@@ -1,7 +1,7 @@
 // Copyright (C) 2020, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package testutils
+package testutil
 
 import (
 	"context"
@@ -9,19 +9,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	istio "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
+	v12 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
-
-func TestContains(t *testing.T) {
-	s := []string{"foo", "bar", "baz"}
-	assert.True(t, StringArrayContains(s, "foo"))
-	assert.True(t, StringArrayContains(s, "bar"))
-	assert.True(t, StringArrayContains(s, "baz"))
-	assert.False(t, StringArrayContains(s, "biz"))
-}
 
 func TestSimplePodLister(t *testing.T) {
 	clusterConnections := GetManagedClusterConnections()
@@ -57,13 +49,13 @@ func TestSimpleGatewayLister(t *testing.T) {
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	gw := istio.Gateway{
-		ObjectMeta: metav1.ObjectMeta{
+	gw := v1alpha3.Gateway{
+		ObjectMeta: v1.ObjectMeta{
 			Name:      "test-gateway",
 			Namespace: "test",
 		},
 	}
-	_, err := clusterConnection.IstioClientSet.NetworkingV1alpha3().Gateways("test").Create(context.TODO(), &gw, metav1.CreateOptions{})
+	_, err := clusterConnection.IstioClientSet.NetworkingV1alpha3().Gateways("test").Create(context.TODO(), &gw, v1.CreateOptions{})
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't create gateway: %v", err))
 	}
@@ -99,13 +91,13 @@ func TestSimpleVirtualServiceLister(t *testing.T) {
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	vs := istio.VirtualService{
-		ObjectMeta: metav1.ObjectMeta{
+	vs := v1alpha3.VirtualService{
+		ObjectMeta: v1.ObjectMeta{
 			Name:      "test-service",
 			Namespace: "test",
 		},
 	}
-	_, err := clusterConnection.IstioClientSet.NetworkingV1alpha3().VirtualServices("test").Create(context.TODO(), &vs, metav1.CreateOptions{})
+	_, err := clusterConnection.IstioClientSet.NetworkingV1alpha3().VirtualServices("test").Create(context.TODO(), &vs, v1.CreateOptions{})
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't create service: %v", err))
 	}
@@ -141,13 +133,13 @@ func TestSimpleServiceEntryLister(t *testing.T) {
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	se := istio.ServiceEntry{
-		ObjectMeta: metav1.ObjectMeta{
+	se := v1alpha3.ServiceEntry{
+		ObjectMeta: v1.ObjectMeta{
 			Name:      "test-entry",
 			Namespace: "test",
 		},
 	}
-	_, err := clusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Create(context.TODO(), &se, metav1.CreateOptions{})
+	_, err := clusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries("test").Create(context.TODO(), &se, v1.CreateOptions{})
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't create entry: %v", err))
 	}
@@ -185,19 +177,19 @@ func TestSimpleSecretLister(t *testing.T) {
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	testNamespace1 := corev1.Namespace{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
+	testNamespace1 := v12.Namespace{
+		TypeMeta: v1.TypeMeta{},
+		ObjectMeta: v1.ObjectMeta{
 			Namespace: "",
 			Name:      "test-namespace-1",
 		},
-		Spec:   corev1.NamespaceSpec{},
-		Status: corev1.NamespaceStatus{},
+		Spec:   v12.NamespaceSpec{},
+		Status: v12.NamespaceStatus{},
 	}
 
-	testSecret1 := corev1.Secret{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
+	testSecret1 := v12.Secret{
+		TypeMeta: v1.TypeMeta{},
+		ObjectMeta: v1.ObjectMeta{
 			Namespace: "test-namespace-1",
 			Name:      "test-secret-1"},
 		Immutable: nil,
@@ -208,9 +200,9 @@ func TestSimpleSecretLister(t *testing.T) {
 		Type: "test-secret-type",
 	}
 
-	testSecret2 := corev1.Secret{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
+	testSecret2 := v12.Secret{
+		TypeMeta: v1.TypeMeta{},
+		ObjectMeta: v1.ObjectMeta{
 			Namespace: "test-namespace-1",
 			Name:      "test-secret-2"},
 		Immutable: nil,
@@ -221,7 +213,7 @@ func TestSimpleSecretLister(t *testing.T) {
 		Type: "test-secret-type",
 	}
 
-	namespace, err := clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace1, metav1.CreateOptions{})
+	namespace, err := clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace1, v1.CreateOptions{})
 	assert.NoError(err, "Should not err creating namespace.")
 	assert.Equal(&testNamespace1, namespace, "Created namespace should match original.")
 
@@ -229,7 +221,7 @@ func TestSimpleSecretLister(t *testing.T) {
 	assert.NoError(err, "Should not err for empty list.")
 	assert.Nil(secrets, "List should be empty/nil.")
 
-	secret, err := clusterConnection.KubeClient.CoreV1().Secrets("test-namespace-1").Create(context.TODO(), &testSecret1, metav1.CreateOptions{})
+	secret, err := clusterConnection.KubeClient.CoreV1().Secrets("test-namespace-1").Create(context.TODO(), &testSecret1, v1.CreateOptions{})
 	assert.NoError(err, "Creating secret should not err.")
 	assert.Equal(&testSecret1, secret, "Create should return same secret.")
 
@@ -237,7 +229,7 @@ func TestSimpleSecretLister(t *testing.T) {
 	assert.NoError(err, "Should not err for non-empty list.")
 	assert.Len(secrets, 1, "List should have one entry.")
 
-	secret, err = clusterConnection.KubeClient.CoreV1().Secrets("test-namespace-1").Create(context.TODO(), &testSecret2, metav1.CreateOptions{})
+	secret, err = clusterConnection.KubeClient.CoreV1().Secrets("test-namespace-1").Create(context.TODO(), &testSecret2, v1.CreateOptions{})
 	assert.NoError(err, "Creating secret should not err.")
 	assert.Equal(&testSecret2, secret, "Create should return same secret.")
 
@@ -253,9 +245,9 @@ func TestSimpleSecretNamespaceLister(t *testing.T) {
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	testSecret1 := corev1.Secret{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
+	testSecret1 := v12.Secret{
+		TypeMeta: v1.TypeMeta{},
+		ObjectMeta: v1.ObjectMeta{
 			Namespace: "test-namespace-1",
 			Name:      "test-secret-1"},
 		Immutable: nil,
@@ -270,7 +262,7 @@ func TestSimpleSecretNamespaceLister(t *testing.T) {
 	assert.NoError(err, "Should not err for empty list.")
 	assert.Nil(secrets, "List should be empty/nil.")
 
-	secret, err := clusterConnection.KubeClient.CoreV1().Secrets("test-namespace-1").Create(context.TODO(), &testSecret1, metav1.CreateOptions{})
+	secret, err := clusterConnection.KubeClient.CoreV1().Secrets("test-namespace-1").Create(context.TODO(), &testSecret1, v1.CreateOptions{})
 	assert.NoError(err, "Creating secret should not err.")
 	assert.Equal(&testSecret1, secret, "Create should return same secret.")
 
