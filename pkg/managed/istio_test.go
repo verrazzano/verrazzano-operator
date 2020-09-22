@@ -23,7 +23,7 @@ import (
 )
 
 func TestGetUniqueServiceEntryAddress(t *testing.T) {
-	clusterConnections := getManagedClusterConnections()
+	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 	var startIPIndex = 1
 
@@ -60,7 +60,7 @@ func TestGetUniqueServiceEntryAddress(t *testing.T) {
 
 func TestGetIstioGateways(t *testing.T) {
 	modelBindingPair := getModelBindingPair()
-	clusterConnections := getManagedClusterConnections()
+	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster2"]
 
 	gatewayAddress := getIstioGateways(modelBindingPair, clusterConnections, "cluster2")
@@ -90,7 +90,7 @@ func TestGetIstioGateways(t *testing.T) {
 
 func TestCleanupOrphanedServiceEntries(t *testing.T) {
 	modelBindingPair := getModelBindingPair()
-	clusterConnections := getManagedClusterConnections()
+	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 	clusterConnection2 := clusterConnections["cluster3"]
 
@@ -127,7 +127,7 @@ func TestCleanupOrphanedServiceEntries(t *testing.T) {
 
 func TestCleanupOrphanedIngresses(t *testing.T) {
 	modelBindingPair := getModelBindingPair()
-	clusterConnections := getManagedClusterConnections()
+	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 	clusterConnection2 := clusterConnections["cluster3"]
 
@@ -179,7 +179,7 @@ func TestCleanupOrphanedIngresses(t *testing.T) {
 
 func TestCreateServiceEntries(t *testing.T) {
 	modelBindingPair := getModelBindingPair()
-	clusterConnections := getManagedClusterConnections()
+	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
 	// create the service entries
@@ -257,7 +257,7 @@ func assertCreateServiceEntries(t *testing.T, clusterConnection *util.ManagedClu
 
 func TestCreateIngresses(t *testing.T) {
 	modelBindingPair := getModelBindingPair()
-	clusterConnections := getManagedClusterConnections()
+	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
 	// create the ingresses
@@ -311,7 +311,7 @@ func assertCreateIngresses(t *testing.T, clusterConnection *util.ManagedClusterC
 
 func TestCreateDestinationRules(t *testing.T) {
 	modelBindingPair := getModelBindingPair()
-	clusterConnections := getManagedClusterConnections()
+	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
 	// create the destination rules
@@ -378,7 +378,7 @@ func assertCreateDestinationRules(t *testing.T, clusterConnection *util.ManagedC
 }
 
 func TestCreateAuthorizationPolicies(t *testing.T) {
-	clusterConnections := getManagedClusterConnections()
+	clusterConnections := GetManagedClusterConnections()
 	modelBindingPair := getModelBindingPair()
 	clusterConnection := clusterConnections["cluster1"]
 
