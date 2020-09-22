@@ -396,7 +396,7 @@ func CleanupOrphanedIngresses(mbPair *types.ModelBindingPair, availableManagedCl
 	return nil
 }
 
-// CleanupOrphanedServiceEntries deletes istio virtual service entries that have been orphaned.
+// CleanupOrphanedServiceEntries deletes istio service entries that have been orphaned.
 func CleanupOrphanedServiceEntries(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Cleaning up orphaned ServiceEntries for VerrazzanoBinding %s", mbPair.Binding.Name)
 

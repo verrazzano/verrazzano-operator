@@ -45,12 +45,12 @@ func getWlsMicroImage() string {
 	return os.Getenv(wlsMicroImage)
 }
 
-// GetPromtheusPusherImage returns Prometheus Pusher image.
+// GetPromtheusPusherImage returns the Prometheus Pusher image.
 func GetPromtheusPusherImage() string {
 	return os.Getenv(prometheusPusherImage)
 }
 
-// GetNodeExporterImage returns Node Exporter image.
+// GetNodeExporterImage returns the Node Exporter image.
 func GetNodeExporterImage() string {
 	return os.Getenv(nodeExporterImage)
 }

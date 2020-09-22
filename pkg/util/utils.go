@@ -238,7 +238,7 @@ func LoadManifest() (*Manifest, error) {
 	return &manifest, allErrs.ToAggregate()
 }
 
-// IsClusterInBinding checks if a cluster found in a binding.
+// IsClusterInBinding checks if a cluster was found in a binding.
 func IsClusterInBinding(clusterName string, allMbPairs map[string]*types.ModelBindingPair) bool {
 	for _, mb := range allMbPairs {
 		for _, placement := range mb.Binding.Spec.Placement {

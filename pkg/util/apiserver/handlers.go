@@ -27,7 +27,7 @@ func CORSHandler(h http.Handler) http.Handler {
 
 }
 
-// Error represents and error structure for HTTP errors.
+// Error represents an error structure for HTTP errors.
 type Error struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`

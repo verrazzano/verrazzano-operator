@@ -192,7 +192,7 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 	return domainCR
 }
 
-// UpdateEnvVars for a given WebLogic component update environment variables.
+// UpdateEnvVars given a WebLogic component update environment variables.
 func UpdateEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.EnvVar) {
 	if *envs != nil && len(*envs) != 0 {
 		for _, domain := range mc.WlsDomainCRs {

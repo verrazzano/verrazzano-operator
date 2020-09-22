@@ -47,7 +47,7 @@ import (
 const controllerAgentName = "verrazzano-controller"
 const bindingFinalizer = "vb.verrazzano.io"
 
-// Controller represents is the primary controller structure
+// Controller represents the primary controller structure.
 type Controller struct {
 	kubeClientSet               kubernetes.Interface
 	kubeExtClientSet            apiextensionsclient.Interface
