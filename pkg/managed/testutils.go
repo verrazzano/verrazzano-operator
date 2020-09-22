@@ -73,8 +73,11 @@ func (s simplePodNamespaceLister) List(selector labels.Selector) (ret []*v1.Pod,
 	if err != nil {
 		return nil, err
 	}
-	for _, pod := range list.Items {
-		pods = append(pods, &pod)
+	for i, _ := range list.Items {
+		pod := list.Items[i]
+		if selector.Matches(labels.Set(pod.Labels)) {
+			pods = append(pods, &pod)
+		}
 	}
 	return pods, nil
 }
@@ -87,7 +90,7 @@ func (s simplePodNamespaceLister) Get(name string) (*v1.Pod, error) {
 // ----- simpleNamespaceLister
 // simple NamespaceLister implementation
 type simpleNamespaceLister struct {
-	kubeClient     kubernetes.Interface
+	kubeClient kubernetes.Interface
 }
 
 // list all Namespaces
@@ -157,8 +160,11 @@ func (s simpleGatewayNamespaceLister) List(selector labels.Selector) (ret []*v1a
 	if err != nil {
 		return nil, err
 	}
-	for _, gateway := range list.Items {
-		gateways = append(gateways, &gateway)
+	for i, _ := range list.Items {
+		gateway := list.Items[i]
+		if selector.Matches(labels.Set(gateway.Labels)) {
+			gateways = append(gateways, &gateway)
+		}
 	}
 	return gateways, nil
 }
@@ -214,8 +220,11 @@ func (s simpleVirtualServiceNamespaceLister) List(selector labels.Selector) (ret
 	if err != nil {
 		return nil, err
 	}
-	for _, service := range list.Items {
-		services = append(services, &service)
+	for i, _ := range list.Items {
+		service := list.Items[i]
+		if selector.Matches(labels.Set(service.Labels)) {
+			services = append(services, &service)
+		}
 	}
 	return services, nil
 }
@@ -271,7 +280,8 @@ func (s simpleServiceEntryNamespaceLister) List(selector labels.Selector) (ret [
 	if err != nil {
 		return nil, err
 	}
-	for _, entry := range list.Items {
+	for i, _ := range list.Items {
+		entry := list.Items[i]
 		entries = append(entries, &entry)
 	}
 	return entries, nil
@@ -308,7 +318,7 @@ func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		kubeClient: clusterConnection.KubeClient,
 	}
 
-	clusterConnection.NamespaceLister = &simpleNamespaceLister {
+	clusterConnection.NamespaceLister = &simpleNamespaceLister{
 		kubeClient: clusterConnection.KubeClient,
 	}
 
