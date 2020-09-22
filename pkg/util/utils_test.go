@@ -233,13 +233,13 @@ func TestGetComponentNamespace(t *testing.T) {
 		},
 		Status: v1beta1v8o.VerrazzanoBindingStatus{},
 	}
-	err, ns := GetComponentNamespace(compname1, binding)
+	ns, err := GetComponentNamespace(compname1, binding)
 	assert.NoError(err, "Error finding component in GetComponentNamespace")
 	assert.Equal(ns1, ns)
-	err, ns = GetComponentNamespace(compname2, binding)
+	ns, err = GetComponentNamespace(compname2, binding)
 	assert.NoError(err, "Error finding component in GetComponentNamespace")
 	assert.Equal(ns2, ns)
-	err, _ = GetComponentNamespace(compname3, binding)
+	_, err = GetComponentNamespace(compname3, binding)
 	assert.Error(err, "Error finding component in GetComponentNamespace. Component should not be found")
 }
 

@@ -40,7 +40,7 @@ func Retry(backoff wait.Backoff, fn wait.ConditionFunc) error {
 	return err
 }
 
-// Waits for the given deployment to reach the given number of available replicas
+// WaitForDeploymentAvailable waits for the given deployment to reach the given number of available replicas.
 func WaitForDeploymentAvailable(namespace string, deploymentName string, availableReplicas int, kubeClient kubernetes.Interface) error {
 	var err error
 	fmt.Printf("Waiting for deployment '%s' to reach %d available and total replicas...\n", deploymentName, availableReplicas)
@@ -61,7 +61,7 @@ func WaitForDeploymentAvailable(namespace string, deploymentName string, availab
 	return err
 }
 
-// Waits for the given ServiceAccount to become available
+// WaitForServiceAccountAvailable waits for the given ServiceAccount to become available.
 func WaitForServiceAccountAvailable(namespace string, serviceAccount string, kubeClient kubernetes.Interface) error {
 	var err error
 	fmt.Printf("Waiting for ServiceAccount '%s' to become available...\n", serviceAccount)

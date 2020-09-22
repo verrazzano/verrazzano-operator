@@ -27,12 +27,14 @@ func CORSHandler(h http.Handler) http.Handler {
 
 }
 
+// Error represents and error structure for HTTP errors.
 type Error struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
-func HttpError(w http.ResponseWriter, statusCode int, code, message string) {
+// HTTPError replies to the request with the specified error message and HTTP code.
+func HTTPError(w http.ResponseWriter, statusCode int, code, message string) {
 	error := Error{Code: code, Message: message}
 	errMsg := message
 	bytes, err := json.Marshal(&error)
@@ -42,6 +44,7 @@ func HttpError(w http.ResponseWriter, statusCode int, code, message string) {
 	http.Error(w, errMsg, statusCode)
 }
 
+// InternalServerError replies to request with InternalServerError.
 func InternalServerError(w http.ResponseWriter, message string) {
-	HttpError(w, http.StatusInternalServerError, "InternalServerError", message)
+	HTTPError(w, http.StatusInternalServerError, "InternalServerError", message)
 }

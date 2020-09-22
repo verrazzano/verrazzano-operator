@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// Creates a Managed Cluster with the given name, based on the local test kubeconfig
+// CreateManagedCluster creates a Managed Cluster with the given name, based on the local test kubeconfig.
 func CreateManagedCluster(f *framework.Framework, clusterName string) (*v1beta1v8o.VerrazzanoManagedCluster, error) {
 	secret :=
 		&corev1.Secret{
@@ -48,7 +48,7 @@ func CreateManagedCluster(f *framework.Framework, clusterName string) (*v1beta1v
 	return managedCluster, nil
 }
 
-// Deletes the given ManagedCluster
+// DeleteManagedCluster deletes the given ManagedCluster.
 func DeleteManagedCluster(f *framework.Framework, clusterName string) error {
 	var returnErr error
 	err := f.KubeClient.CoreV1().Secrets(f.Namespace).Delete(context.TODO(), clusterName, metav1.DeleteOptions{})
@@ -62,7 +62,7 @@ func DeleteManagedCluster(f *framework.Framework, clusterName string) error {
 	return returnErr
 }
 
-// Creates an Application Model that will match with the Application Binding
+// CreateAppModel creates an Application Model that will match with the Application Binding.
 func CreateAppModel(f *framework.Framework, modelName string) (*v1beta1v8o.VerrazzanoModel, error) {
 	appModel := &v1beta1v8o.VerrazzanoModel{
 		ObjectMeta: metav1.ObjectMeta{
@@ -82,7 +82,8 @@ func CreateAppModel(f *framework.Framework, modelName string) (*v1beta1v8o.Verra
 	return appModel, nil
 }
 
-// Creates an Application Binding with the given name, with the given "components" and the clusters they attach to
+// CreateAppBinding creates an Application Binding with the given name, with the given "components" and the
+// clusters they attach to.
 func CreateAppBinding(f *framework.Framework, bindingName string, modelName string, componentNameToCluster map[string]string) (*v1beta1v8o.VerrazzanoBinding, error) {
 	appBinding := &v1beta1v8o.VerrazzanoBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -118,19 +119,19 @@ func CreateAppBinding(f *framework.Framework, bindingName string, modelName stri
 	return appBinding, nil
 }
 
-// Deletes the given ApplicationModel
+// DeleteAppModel deletes the given ApplicationModel.
 func DeleteAppModel(f *framework.Framework, modelName string) error {
 	err := f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoModels(f.Namespace).Delete(context.TODO(), modelName, metav1.DeleteOptions{})
 	return err
 }
 
-// Deletes the given ApplicationBinding
+// DeleteAppBinding deletes the given ApplicationBinding.
 func DeleteAppBinding(f *framework.Framework, bindingName string) error {
 	err := f.VerrazzanoOperatorClient.VerrazzanoV1beta1().VerrazzanoBindings(f.Namespace).Delete(context.TODO(), bindingName, metav1.DeleteOptions{})
 	return err
 }
 
-// ReadModel reads/unmarshal's a model yaml file into a VerrazzanoModel
+// ReadModel reads/unmarshal's a model yaml file into a VerrazzanoModel.
 func ReadModel(path string) (*v1beta1v8o.VerrazzanoModel, error) {
 	filename, _ := filepath.Abs(path)
 	yamlFile, err := ioutil.ReadFile(filename)
@@ -142,7 +143,7 @@ func ReadModel(path string) (*v1beta1v8o.VerrazzanoModel, error) {
 	return &vmodel, err
 }
 
-// ReadBinding reads/unmarshal's VerrazzanoBinding yaml file into a VerrazzanoBinding
+// ReadBinding reads/unmarshal's VerrazzanoBinding yaml file into a VerrazzanoBinding.
 func ReadBinding(path string) (*v1beta1v8o.VerrazzanoBinding, error) {
 	filename, _ := filepath.Abs(path)
 	yamlFile, err := ioutil.ReadFile(filename)
@@ -154,7 +155,7 @@ func ReadBinding(path string) (*v1beta1v8o.VerrazzanoBinding, error) {
 	return &vbnd, err
 }
 
-// Write writes/marshalls the obj to a yaml file
+// WriteYmal writes/marshalls the obj to a yaml file.
 func WriteYmal(path string, obj interface{}) (string, error) {
 	fileout, _ := filepath.Abs(path)
 	bytes, err := ToYmal(obj)
@@ -165,7 +166,7 @@ func WriteYmal(path string, obj interface{}) (string, error) {
 	return fileout, err
 }
 
-// ToYmal arshalls the obj to a yaml
+// ToYmal marshalls the obj to a yaml
 func ToYmal(obj interface{}) ([]byte, error) {
 	return yaml.Marshal(obj)
 }

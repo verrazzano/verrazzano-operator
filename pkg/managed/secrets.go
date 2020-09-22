@@ -122,7 +122,7 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 			// If this domain has a database connection that targets this database binding...
 			if hasConnection {
 				// Find the namespace for this domain in the binding placements
-				err, namespace := util.GetComponentNamespace(domain.Name, binding)
+				namespace, err := util.GetComponentNamespace(domain.Name, binding)
 				if err != nil {
 					glog.V(6).Infof("Getting namespace for domain %s is giving error %s", domain.Name, err)
 					continue
@@ -144,7 +144,7 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 	// Note: we are assuming that each domain has DomainHomeSourceType is set to FromModel.
 	for _, domain := range managedCluster.WlsDomainCRs {
 		// Find the namespace for this domain in the binding placements
-		err, namespace := util.GetComponentNamespace(domain.Name, binding)
+		namespace, err := util.GetComponentNamespace(domain.Name, binding)
 		if err != nil {
 			glog.Errorf("Getting namespace for domain %s is giving error %s", domain.Name, err)
 			continue

@@ -5,7 +5,6 @@ package util
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -102,47 +101,59 @@ type DeploymentHelper interface {
 	DeleteDeployment(namespace, name string) error
 }
 
+// GetManagedBindingLabels returns binding labels for managed cluster.
 func GetManagedBindingLabels(binding *v1beta1v8o.VerrazzanoBinding, managedClusterName string) map[string]string {
 	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoBinding: binding.Name, constants.VerrazzanoCluster: managedClusterName}
 }
 
+// GetManagedLabelsNoBinding return labels for managed cluster with no binding.
 func GetManagedLabelsNoBinding(managedClusterName string) map[string]string {
 	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoCluster: managedClusterName}
 }
 
+// GetManagedNamespaceForBinding return the namespace for a given binding.
 func GetManagedNamespaceForBinding(binding *v1beta1v8o.VerrazzanoBinding) string {
 	return fmt.Sprintf("%s-%s", constants.VerrazzanoPrefix, binding.Name)
 }
+
+// GetLocalBindingLabels returns binding labels for local cluster.
 func GetLocalBindingLabels(binding *v1beta1v8o.VerrazzanoBinding) map[string]string {
 	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoBinding: binding.Name}
 }
 
+// GetManagedClusterNamespaceForSystem returns the system namespace for Verrazzano.
 func GetManagedClusterNamespaceForSystem() string {
 	return constants.VerrazzanoSystem
 }
 
+// GetVmiNameForBinding returns a Verrazzano Monitoring Instance name.
 func GetVmiNameForBinding(bindingName string) string {
 	return bindingName
 }
 
-func GetVmiUri(bindingName string, verrazzanoUri string) string {
-	return fmt.Sprintf("vmi.%s.%s", bindingName, verrazzanoUri)
+// GetVmiURI returns a Verrazzano Monitoring Instance URI.
+func GetVmiURI(bindingName string, verrazzanoURI string) string {
+	return fmt.Sprintf("vmi.%s.%s", bindingName, verrazzanoURI)
 }
 
+// GetServiceAccountNameForSystem return the system service account for Verrazzano.
 func GetServiceAccountNameForSystem() string {
 	return constants.VerrazzanoSystem
 }
 
+// NewVal returns an address of an int32 value.
 func NewVal(value int32) *int32 {
 	var val = value
 	return &val
 }
 
+// New64Val returns an address of an int64 value.
 func New64Val(value int64) *int64 {
 	var val = value
 	return &val
 }
 
+// Contains checks if a string exists in array of strings.
 func Contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
@@ -152,13 +163,14 @@ func Contains(s []string, e string) bool {
 	return false
 }
 
-// Given a map of available ManagedClusterConnections, returns a filtered set of only those applicable to the given VerrazzanoBinding
+// GetManagedClustersForVerrazzanoBinding returns a filtered set of only those applicable to a given
+// VerrazzanoBinding given a map of available ManagedClusterConnections.
 func GetManagedClustersForVerrazzanoBinding(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*ManagedClusterConnection) (
 	map[string]*ManagedClusterConnection, error) {
 	filteredManagedClusters := map[string]*ManagedClusterConnection{}
 	for _, managedCluster := range mbPair.ManagedClusters {
 		if _, ok := availableManagedClusterConnections[managedCluster.Name]; !ok {
-			return nil, errors.New(fmt.Sprintf("Managed cluster %s referenced in binding %s not found", managedCluster.Name, mbPair.Binding.Name))
+			return nil, fmt.Errorf("Managed cluster %s referenced in binding %s not found", managedCluster.Name, mbPair.Binding.Name)
 		}
 		filteredManagedClusters[managedCluster.Name] = availableManagedClusterConnections[managedCluster.Name]
 
@@ -166,7 +178,8 @@ func GetManagedClustersForVerrazzanoBinding(mbPair *types.ModelBindingPair, avai
 	return filteredManagedClusters, nil
 }
 
-// Given a map of available ManagedClusterConnections, returns a filtered set of those NOT applicable to the given VerrazzanoBinding
+// GetManagedClustersNotForVerrazzanoBinding returns a filtered set of those NOT applicable to a given
+// VerrazzanoBinding given a map of available ManagedClusterConnections.
 func GetManagedClustersNotForVerrazzanoBinding(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*ManagedClusterConnection) map[string]*ManagedClusterConnection {
 	filteredManagedClusters := map[string]*ManagedClusterConnection{}
 	for clusterName := range availableManagedClusterConnections {
@@ -184,7 +197,7 @@ func GetManagedClustersNotForVerrazzanoBinding(mbPair *types.ModelBindingPair, a
 	return filteredManagedClusters
 }
 
-// Loads and verifies the Verrazzano Operator Manifest
+// LoadManifest loads and verifies the Verrazzano Operator Manifest.
 func LoadManifest() (*Manifest, error) {
 	manifestString, err := assets.Asset(constants.ManifestFile)
 	if err != nil {
@@ -224,6 +237,7 @@ func LoadManifest() (*Manifest, error) {
 	return &manifest, allErrs.ToAggregate()
 }
 
+// IsClusterInBinding checks if a cluster found in a binding.
 func IsClusterInBinding(clusterName string, allMbPairs map[string]*types.ModelBindingPair) bool {
 	for _, mb := range allMbPairs {
 		for _, placement := range mb.Binding.Spec.Placement {
@@ -235,16 +249,16 @@ func IsClusterInBinding(clusterName string, allMbPairs map[string]*types.ModelBi
 	return false
 }
 
-// Find the namespace for the component from the given binding placements
-func GetComponentNamespace(componentName string, binding *v1beta1v8o.VerrazzanoBinding) (error, string) {
+// GetComponentNamespace finds the namespace for the component from the given binding placements.
+func GetComponentNamespace(componentName string, binding *v1beta1v8o.VerrazzanoBinding) (string, error) {
 	for _, placement := range binding.Spec.Placement {
 		for _, namespace := range placement.Namespaces {
 			for _, component := range namespace.Components {
 				if component.Name == componentName {
-					return nil, namespace.Name
+					return namespace.Name, nil
 				}
 			}
 		}
 	}
-	return errors.New(fmt.Sprintf("No placement found for component %s", componentName)), ""
+	return "", fmt.Errorf("No placement found for component %s", componentName)
 }
