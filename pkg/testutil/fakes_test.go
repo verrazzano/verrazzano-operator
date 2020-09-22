@@ -45,6 +45,27 @@ func TestSimplePodLister(t *testing.T) {
 	assert.Equal(t, "test", pod.Namespace)
 }
 
+func TestSimpleNamespaceLister(t *testing.T) {
+	clusterConnections := GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	l := simpleNamespaceLister{
+		clusterConnection.KubeClient,
+	}
+	s := labels.Everything()
+	namespaces, err := l.List(s)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get namespaces: %v", err))
+	}
+	assert.Equal(t, 4, len(namespaces))
+
+	namespace, err := l.Get("test")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get namespace: %v", err))
+	}
+	assert.Equal(t, "test", namespace.Name)
+}
+
 func TestSimpleGatewayLister(t *testing.T) {
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]

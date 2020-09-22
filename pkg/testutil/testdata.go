@@ -29,14 +29,14 @@ const IstioSystemNamespace = "istio-system"
 // Get a test map of managed cluster connections that uses fake client sets
 func GetManagedClusterConnections() map[string]*util.ManagedClusterConnection {
 	return map[string]*util.ManagedClusterConnection{
-		"cluster1": getManagedClusterConnection(),
-		"cluster2": getManagedClusterConnection(),
-		"cluster3": getManagedClusterConnection(),
+		"cluster1": getManagedClusterConnection("cluster1"),
+		"cluster2": getManagedClusterConnection("cluster2"),
+		"cluster3": getManagedClusterConnection("cluster3"),
 	}
 }
 
 // Get a managed cluster connection that uses fake client sets
-func getManagedClusterConnection() *util.ManagedClusterConnection {
+func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnection {
 	// create a ManagedClusterConnection that uses client set fakes
 	clusterConnection := &util.ManagedClusterConnection{
 		KubeClient:                  fake.NewSimpleClientset(),
@@ -56,6 +56,10 @@ func getManagedClusterConnection() *util.ManagedClusterConnection {
 		kubeClient: clusterConnection.KubeClient,
 	}
 
+	clusterConnection.NamespaceLister = &simpleNamespaceLister{
+		kubeClient: clusterConnection.KubeClient,
+	}
+
 	clusterConnection.IstioGatewayLister = &simpleGatewayLister{
 		kubeClient:     clusterConnection.KubeClient,
 		istioClientSet: clusterConnection.IstioClientSet,
@@ -72,12 +76,7 @@ func getManagedClusterConnection() *util.ManagedClusterConnection {
 	}
 
 	for _, pod := range getPods() {
-		namespace := v1.Namespace{
-			ObjectMeta: v12.ObjectMeta{
-				Name: pod.Namespace,
-			},
-		}
-		clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &namespace, metav1.CreateOptions{})
+		clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace(pod.Namespace, clusterName), metav1.CreateOptions{})
 		clusterConnection.KubeClient.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	}
 
@@ -100,6 +99,26 @@ func getManagedClusterConnection() *util.ManagedClusterConnection {
 		}, metav1.CreateOptions{})
 
 	return clusterConnection
+}
+
+func getNamespace(name string, clusterName string) *v1.Namespace {
+	if name == "istio-system" || name == "verrazzano-system" {
+		return &v1.Namespace{
+			ObjectMeta: v12.ObjectMeta{
+				Name: name,
+			},
+		}
+	} else {
+		return &v1.Namespace{
+			ObjectMeta: v12.ObjectMeta{
+				Name: name,
+				Labels: map[string]string{
+					"verrazzano.binding": "testBinding",
+					"verrazzano.cluster": clusterName,
+				},
+			},
+		}
+	}
 }
 
 // Get a pod for testing that is populated with the given name, namespace and IP.
@@ -249,7 +268,7 @@ func GetModelBindingPair() *types.ModelBindingPair {
 		ManagedClusters: map[string]*types.ManagedCluster{
 			"cluster1": {
 				Name:       "cluster1",
-				Namespaces: []string{"default", "test", "test2", "test3"},
+				Namespaces: []string{"default", "test", "test2", "test3", "istio-system", "verrazzano-system"},
 				Ingresses: map[string][]*types.Ingress{
 					"test": {
 						{

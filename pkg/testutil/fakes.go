@@ -10,7 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/clientset/versioned"
 	v1alpha32 "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/listers/networking.istio.io/v1alpha3"
 	v1 "k8s.io/api/core/v1"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	v13 "k8s.io/client-go/listers/core/v1"
@@ -24,7 +24,7 @@ type simplePodLister struct {
 
 // list all Pods
 func (s *simplePodLister) List(selector labels.Selector) (ret []*v1.Pod, err error) {
-	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), v12.ListOptions{})
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -57,19 +57,22 @@ type simplePodNamespaceLister struct {
 func (s simplePodNamespaceLister) List(selector labels.Selector) (ret []*v1.Pod, err error) {
 	var pods []*v1.Pod
 
-	list, err := s.kubeClient.CoreV1().Pods(s.namespace).List(context.TODO(), v12.ListOptions{})
+	list, err := s.kubeClient.CoreV1().Pods(s.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	for _, pod := range list.Items {
-		pods = append(pods, &pod)
+	for i := range list.Items {
+		pod := list.Items[i]
+		if selector.Matches(labels.Set(pod.Labels)) {
+			pods = append(pods, &pod)
+		}
 	}
 	return pods, nil
 }
 
 // retrieves the Pod for a given namespace and name
 func (s simplePodNamespaceLister) Get(name string) (*v1.Pod, error) {
-	return s.kubeClient.CoreV1().Pods(s.namespace).Get(context.TODO(), name, v12.GetOptions{})
+	return s.kubeClient.CoreV1().Pods(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 // ----- simpleSecretLister
@@ -80,7 +83,7 @@ type simpleSecretLister struct {
 
 // List all secrets
 func (s *simpleSecretLister) List(selector labels.Selector) (ret []*v1.Secret, err error) {
-	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), v12.ListOptions{})
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -112,14 +115,13 @@ type simpleSecretNamespaceLister struct {
 // List all secret for a given namespace
 func (s simpleSecretNamespaceLister) List(selector labels.Selector) (ret []*v1.Secret, err error) {
 
-	list, err := s.kubeClient.CoreV1().Secrets(s.namespace).List(context.TODO(), v12.ListOptions{})
+	list, err := s.kubeClient.CoreV1().Secrets(s.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 	var secrets []*v1.Secret = nil
 	var items []v1.Secret = list.Items
 	for i := range items {
-		//for i := 0; i < len(items); i++ {
 		secrets = append(secrets, &items[i])
 	}
 	return secrets, nil
@@ -127,7 +129,35 @@ func (s simpleSecretNamespaceLister) List(selector labels.Selector) (ret []*v1.S
 
 // Retrieves the secret for a given namespace and name
 func (s simpleSecretNamespaceLister) Get(name string) (*v1.Secret, error) {
-	return s.kubeClient.CoreV1().Secrets(s.namespace).Get(context.TODO(), name, v12.GetOptions{})
+	return s.kubeClient.CoreV1().Secrets(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// ----- simpleNamespaceLister
+// simple NamespaceLister implementation
+type simpleNamespaceLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// list all Namespaces
+func (s *simpleNamespaceLister) List(selector labels.Selector) (ret []*v1.Namespace, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var list []*v1.Namespace
+	for i := range namespaces.Items {
+		namespace := namespaces.Items[i]
+		if selector.Matches(labels.Set(namespace.Labels)) {
+			list = append(list, &namespace)
+		}
+	}
+	return list, nil
+}
+
+// retrieves the Namespace for a given name
+func (s *simpleNamespaceLister) Get(name string) (*v1.Namespace, error) {
+	return s.kubeClient.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 // ----- simpleGatewayLister
@@ -139,7 +169,7 @@ type simpleGatewayLister struct {
 
 // list all Gateways
 func (s *simpleGatewayLister) List(selector labels.Selector) (ret []*v1alpha3.Gateway, err error) {
-	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), v12.ListOptions{})
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -172,19 +202,22 @@ type simpleGatewayNamespaceLister struct {
 func (s simpleGatewayNamespaceLister) List(selector labels.Selector) (ret []*v1alpha3.Gateway, err error) {
 	var gateways []*v1alpha3.Gateway
 
-	list, err := s.istioClientSet.NetworkingV1alpha3().Gateways(s.namespace).List(context.TODO(), v12.ListOptions{})
+	list, err := s.istioClientSet.NetworkingV1alpha3().Gateways(s.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	for _, gateway := range list.Items {
-		gateways = append(gateways, &gateway)
+	for i := range list.Items {
+		gateway := list.Items[i]
+		if selector.Matches(labels.Set(gateway.Labels)) {
+			gateways = append(gateways, &gateway)
+		}
 	}
 	return gateways, nil
 }
 
 // retrieves the Gateway for a given namespace and name
 func (s simpleGatewayNamespaceLister) Get(name string) (*v1alpha3.Gateway, error) {
-	return s.istioClientSet.NetworkingV1alpha3().Gateways(s.namespace).Get(context.TODO(), name, v12.GetOptions{})
+	return s.istioClientSet.NetworkingV1alpha3().Gateways(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 // ----- simpleVirtualServiceLister
@@ -196,7 +229,7 @@ type simpleVirtualServiceLister struct {
 
 // lists all VirtualServices
 func (s *simpleVirtualServiceLister) List(selector labels.Selector) (ret []*v1alpha3.VirtualService, err error) {
-	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), v12.ListOptions{})
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -229,19 +262,22 @@ type simpleVirtualServiceNamespaceLister struct {
 func (s simpleVirtualServiceNamespaceLister) List(selector labels.Selector) (ret []*v1alpha3.VirtualService, err error) {
 	var services []*v1alpha3.VirtualService
 
-	list, err := s.istioClientSet.NetworkingV1alpha3().VirtualServices(s.namespace).List(context.TODO(), v12.ListOptions{})
+	list, err := s.istioClientSet.NetworkingV1alpha3().VirtualServices(s.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	for _, service := range list.Items {
-		services = append(services, &service)
+	for i := range list.Items {
+		service := list.Items[i]
+		if selector.Matches(labels.Set(service.Labels)) {
+			services = append(services, &service)
+		}
 	}
 	return services, nil
 }
 
 // retrieves the VirtualService for a given namespace and name
 func (s simpleVirtualServiceNamespaceLister) Get(name string) (*v1alpha3.VirtualService, error) {
-	return s.istioClientSet.NetworkingV1alpha3().VirtualServices(s.namespace).Get(context.TODO(), name, v12.GetOptions{})
+	return s.istioClientSet.NetworkingV1alpha3().VirtualServices(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 // ----- simpleServiceEntryLister
@@ -253,7 +289,7 @@ type simpleServiceEntryLister struct {
 
 // lists all ServiceEntries
 func (s *simpleServiceEntryLister) List(selector labels.Selector) (ret []*v1alpha3.ServiceEntry, err error) {
-	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), v12.ListOptions{})
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -286,11 +322,12 @@ type simpleServiceEntryNamespaceLister struct {
 func (s simpleServiceEntryNamespaceLister) List(selector labels.Selector) (ret []*v1alpha3.ServiceEntry, err error) {
 	var entries []*v1alpha3.ServiceEntry
 
-	list, err := s.istioClientSet.NetworkingV1alpha3().ServiceEntries(s.namespace).List(context.TODO(), v12.ListOptions{})
+	list, err := s.istioClientSet.NetworkingV1alpha3().ServiceEntries(s.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	for _, entry := range list.Items {
+	for i := range list.Items {
+		entry := list.Items[i]
 		entries = append(entries, &entry)
 	}
 	return entries, nil
@@ -298,5 +335,5 @@ func (s simpleServiceEntryNamespaceLister) List(selector labels.Selector) (ret [
 
 // retrieves the ServiceEntry for a given namespace and name
 func (s simpleServiceEntryNamespaceLister) Get(name string) (*v1alpha3.ServiceEntry, error) {
-	return s.istioClientSet.NetworkingV1alpha3().ServiceEntries(s.namespace).Get(context.TODO(), name, v12.GetOptions{})
+	return s.istioClientSet.NetworkingV1alpha3().ServiceEntries(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
