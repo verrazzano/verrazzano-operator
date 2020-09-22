@@ -7,7 +7,7 @@ package testutil
 import (
 	"context"
 
-	v13 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
+	cohv1 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
 	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned/fake"
@@ -16,10 +16,9 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	istioAuthClientset "istio.io/client-go/pkg/clientset/versioned/fake"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -81,14 +80,14 @@ func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 	}
 
 	clusterConnection.KubeClient.CoreV1().Services(IstioSystemNamespace).Create(context.TODO(),
-		&v1.Service{
-			ObjectMeta: v12.ObjectMeta{
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: IstioSystemNamespace,
 				Name:      "istio-ingressgateway",
 			},
-			Status: v1.ServiceStatus{
-				LoadBalancer: v1.LoadBalancerStatus{
-					Ingress: []v1.LoadBalancerIngress{
+			Status: corev1.ServiceStatus{
+				LoadBalancer: corev1.LoadBalancerStatus{
+					Ingress: []corev1.LoadBalancerIngress{
 						{
 							IP:       "123.45.0.1",
 							Hostname: "host",
@@ -101,16 +100,16 @@ func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 	return clusterConnection
 }
 
-func getNamespace(name string, clusterName string) *v1.Namespace {
+func getNamespace(name string, clusterName string) *corev1.Namespace {
 	if name == "istio-system" || name == "verrazzano-system" {
-		return &v1.Namespace{
-			ObjectMeta: v12.ObjectMeta{
+		return &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
 		}
 	} else {
-		return &v1.Namespace{
-			ObjectMeta: v12.ObjectMeta{
+		return &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 				Labels: map[string]string{
 					"verrazzano.binding": "testBinding",
@@ -122,20 +121,20 @@ func getNamespace(name string, clusterName string) *v1.Namespace {
 }
 
 // Get a pod for testing that is populated with the given name, namespace and IP.
-func getPod(name string, ns string, podIP string) *v1.Pod {
-	return &v1.Pod{
-		ObjectMeta: v12.ObjectMeta{
+func getPod(name string, ns string, podIP string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: ns,
 		},
-		Status: v1.PodStatus{
+		Status: corev1.PodStatus{
 			PodIP: podIP,
 		},
 	}
 }
 
-func getPods() []*v1.Pod {
-	return []*v1.Pod{
+func getPods() []*corev1.Pod {
+	return []*corev1.Pod{
 		getPod("prometheus-pod", "istio-system", "123.99.0.1"),
 		getPod("test-pod", "test", "123.99.0.2"),
 		getPod("test2-pod", "test2", "123.99.0.3"),
@@ -147,7 +146,7 @@ func getPods() []*v1.Pod {
 func GetModelBindingPair() *types.ModelBindingPair {
 	var pair = &types.ModelBindingPair{
 		Model: &v1beta1.VerrazzanoModel{
-			ObjectMeta: v12.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "testModel",
 			},
 			Spec: v1beta1.VerrazzanoModelSpec{
@@ -174,10 +173,10 @@ func GetModelBindingPair() *types.ModelBindingPair {
 				CoherenceClusters: []v1beta1.VerrazzanoCoherenceCluster{
 					{
 						Name: "test-coherence",
-						Ports: []v13.NamedPortSpec{
+						Ports: []cohv1.NamedPortSpec{
 							{
 								Name: "extend",
-								PortSpec: v13.PortSpec{
+								PortSpec: cohv1.PortSpec{
 									Port: 9000,
 								},
 							},
@@ -222,7 +221,7 @@ func GetModelBindingPair() *types.ModelBindingPair {
 			},
 		},
 		Binding: &v1beta1.VerrazzanoBinding{
-			ObjectMeta: v12.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "testBinding",
 			},
 			Spec: v1beta1.VerrazzanoBindingSpec{

@@ -7,13 +7,13 @@ import (
 	"context"
 
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
-	"github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/clientset/versioned"
-	v1alpha32 "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/listers/networking.istio.io/v1alpha3"
+	istioClientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/clientset/versioned"
+	istioLister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/listers/networking.istio.io/v1alpha3"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
-	v13 "k8s.io/client-go/listers/core/v1"
+	corelistersv1 "k8s.io/client-go/listers/core/v1"
 )
 
 // ----- simplePodLister
@@ -41,7 +41,7 @@ func (s *simplePodLister) List(selector labels.Selector) (ret []*v1.Pod, err err
 }
 
 // returns an object that can list and get Pods for the given namespace
-func (s *simplePodLister) Pods(namespace string) v13.PodNamespaceLister {
+func (s *simplePodLister) Pods(namespace string) corelistersv1.PodNamespaceLister {
 	return simplePodNamespaceLister{
 		namespace:  namespace,
 		kubeClient: s.kubeClient,
@@ -99,7 +99,7 @@ func (s *simpleSecretLister) List(selector labels.Selector) (ret []*v1.Secret, e
 }
 
 // Returns an object that can list and get secrets for the given namespace
-func (s *simpleSecretLister) Secrets(namespace string) v13.SecretNamespaceLister {
+func (s *simpleSecretLister) Secrets(namespace string) corelistersv1.SecretNamespaceLister {
 	return simpleSecretNamespaceLister{
 		namespace:  namespace,
 		kubeClient: s.kubeClient,
@@ -164,7 +164,7 @@ func (s *simpleNamespaceLister) Get(name string) (*v1.Namespace, error) {
 // simple GatewayLister implementation
 type simpleGatewayLister struct {
 	kubeClient     kubernetes.Interface
-	istioClientSet versioned.Interface
+	istioClientSet istioClientset.Interface
 }
 
 // list all Gateways
@@ -186,7 +186,7 @@ func (s *simpleGatewayLister) List(selector labels.Selector) (ret []*v1alpha3.Ga
 }
 
 // returns an object that can list and get Gateways for the given namespace
-func (s *simpleGatewayLister) Gateways(namespace string) v1alpha32.GatewayNamespaceLister {
+func (s *simpleGatewayLister) Gateways(namespace string) istioLister.GatewayNamespaceLister {
 	return simpleGatewayNamespaceLister{
 		namespace:      namespace,
 		istioClientSet: s.istioClientSet,
@@ -195,7 +195,7 @@ func (s *simpleGatewayLister) Gateways(namespace string) v1alpha32.GatewayNamesp
 
 type simpleGatewayNamespaceLister struct {
 	namespace      string
-	istioClientSet versioned.Interface
+	istioClientSet istioClientset.Interface
 }
 
 // lists all Gateways for a given namespace
@@ -224,7 +224,7 @@ func (s simpleGatewayNamespaceLister) Get(name string) (*v1alpha3.Gateway, error
 // simple VirtualServiceLister implementation
 type simpleVirtualServiceLister struct {
 	kubeClient     kubernetes.Interface
-	istioClientSet versioned.Interface
+	istioClientSet istioClientset.Interface
 }
 
 // lists all VirtualServices
@@ -246,7 +246,7 @@ func (s *simpleVirtualServiceLister) List(selector labels.Selector) (ret []*v1al
 }
 
 // returns an object that can list and get VirtualServices for a given namespace
-func (s *simpleVirtualServiceLister) VirtualServices(namespace string) v1alpha32.VirtualServiceNamespaceLister {
+func (s *simpleVirtualServiceLister) VirtualServices(namespace string) istioLister.VirtualServiceNamespaceLister {
 	return simpleVirtualServiceNamespaceLister{
 		namespace:      namespace,
 		istioClientSet: s.istioClientSet,
@@ -255,7 +255,7 @@ func (s *simpleVirtualServiceLister) VirtualServices(namespace string) v1alpha32
 
 type simpleVirtualServiceNamespaceLister struct {
 	namespace      string
-	istioClientSet versioned.Interface
+	istioClientSet istioClientset.Interface
 }
 
 // lists all VirtualServices for a given namespace
@@ -284,7 +284,7 @@ func (s simpleVirtualServiceNamespaceLister) Get(name string) (*v1alpha3.Virtual
 // simple ServiceEntryLister implementation
 type simpleServiceEntryLister struct {
 	kubeClient     kubernetes.Interface
-	istioClientSet versioned.Interface
+	istioClientSet istioClientset.Interface
 }
 
 // lists all ServiceEntries
@@ -306,7 +306,7 @@ func (s *simpleServiceEntryLister) List(selector labels.Selector) (ret []*v1alph
 }
 
 // returns an object that can list and get ServiceEntries for a given namespace
-func (s *simpleServiceEntryLister) ServiceEntries(namespace string) v1alpha32.ServiceEntryNamespaceLister {
+func (s *simpleServiceEntryLister) ServiceEntries(namespace string) istioLister.ServiceEntryNamespaceLister {
 	return simpleServiceEntryNamespaceLister{
 		namespace:      namespace,
 		istioClientSet: s.istioClientSet,
@@ -315,7 +315,7 @@ func (s *simpleServiceEntryLister) ServiceEntries(namespace string) v1alpha32.Se
 
 type simpleServiceEntryNamespaceLister struct {
 	namespace      string
-	istioClientSet versioned.Interface
+	istioClientSet istioClientset.Interface
 }
 
 // lists all ServiceEntries for a given namespace
