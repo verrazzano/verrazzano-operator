@@ -5,12 +5,13 @@ package controller
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	. "github.com/verrazzano/verrazzano-operator/pkg/managed"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 // Test creating and getting a secret
@@ -139,20 +140,17 @@ func TestKubeSecrets_List(t *testing.T) {
 			Name:      "test-secret-name-2"},
 	}
 
-	var err error
-	var list []*corev1.Secret
-
-	//list, err := secrets.List("test-secret-namespace-1", nil)
+	list, err := secrets.List("test-secret-namespace-1", nil)
 	assert.NoErrorf(t, err, "Error listing secrets: %v", err)
 	assert.Nilf(t, list, "Should have returned a nil secret list: %v", list)
 
 	_, err = secrets.Create(&origSecret1)
-	//assert.NoErrorf(t, err, "Create failed: %v", err)
-	//list, err = secrets.List("test-secret-namespace-1", nil)
-	//assert.NoErrorf(t, err, "Error listing secrets: %v", err)
-	//assert.NotNilf(t, list, "Invalid secret list: %v", err)
-	//assert.Len(t, list, 1, "List should have one secret.")
-	//assert.Equal(t, "test-secret-name-1", list[0].Name)
+	assert.NoErrorf(t, err, "Create failed: %v", err)
+	list, err = secrets.List("test-secret-namespace-1", nil)
+	assert.NoErrorf(t, err, "Error listing secrets: %v", err)
+	assert.NotNilf(t, list, "Invalid secret list: %v", err)
+	assert.Len(t, list, 1, "List should have one secret.")
+	assert.Equal(t, "test-secret-name-1", list[0].Name)
 
 	_, err = secrets.Create(&origSecret2)
 	assert.NoErrorf(t, err, "Create failed: %v", err)
