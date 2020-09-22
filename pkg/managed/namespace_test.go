@@ -27,7 +27,7 @@ func TestCreateNamespaces(t *testing.T) {
 			name: "create namespaces",
 			args: args{
 				mbPair:              getModelBindingPair(),
-				filteredConnections: getManagedClusterConnections(),
+				filteredConnections: GetManagedClusterConnections(),
 			},
 			wantErr: false,
 		},
@@ -83,7 +83,7 @@ func TestCleanupOrphanedNamespaces(t *testing.T) {
 			name: "cleanup namespaces",
 			args: args{
 				mbPair:                             getModelBindingPair(),
-				availableManagedClusterConnections: getManagedClusterConnections(),
+				availableManagedClusterConnections: GetManagedClusterConnections(),
 				allMbPairs: map[string]*types.ModelBindingPair{
 					"testBinding": getModelBindingPair(),
 				},
@@ -137,7 +137,7 @@ func TestDeleteNamespaces(t *testing.T) {
 			name: "delete namespaces binding label true",
 			args: args{
 				mbPair:                             getModelBindingPair(),
-				availableManagedClusterConnections: getManagedClusterConnections(),
+				availableManagedClusterConnections: GetManagedClusterConnections(),
 				bindingLabel:                       true,
 			},
 			wantErr: false,
@@ -146,7 +146,7 @@ func TestDeleteNamespaces(t *testing.T) {
 			name: "delete namespaces binding label false",
 			args: args{
 				mbPair:                             getModelBindingPair(),
-				availableManagedClusterConnections: getManagedClusterConnections(),
+				availableManagedClusterConnections: GetManagedClusterConnections(),
 				bindingLabel:                       false,
 			},
 			wantErr: false,

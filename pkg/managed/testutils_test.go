@@ -54,7 +54,7 @@ func TestSimplePodLister(t *testing.T) {
 }
 
 func TestSimpleNamespaceLister(t *testing.T) {
-	clusterConnections := getManagedClusterConnections()
+	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
 	l := simpleNamespaceLister{
