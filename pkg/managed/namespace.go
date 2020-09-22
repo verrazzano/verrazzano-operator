@@ -22,14 +22,9 @@ import (
 )
 
 // CreateNamespaces creates/updates namespaces needed for each managed cluster.
-func CreateNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func CreateNamespaces(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 
 	glog.V(6).Infof("Creating/updating Namespaces for VerrazzanoBinding %s", mbPair.Binding.Name)
-
-	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return err
-	}
 
 	// Construct namespaces for each ManagedCluster
 	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
