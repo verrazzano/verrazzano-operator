@@ -20,7 +20,16 @@ func (mock *MockDeployment) DeleteDeployment(namespace, name string) error {
 	return nil
 }
 
-func TestDeletePomPusher(t *testing.T) {
+func TestCreateDeployment(t *testing.T) {
+	mock := &MockDeployment{}
+	app := "hello"
+	pomPusher := pomPusherName(app)
+	DeletePomPusher(app, mock)
+	assert.Equal(t, constants.MonitoringNamespace, mock.namespace, "namespace")
+	assert.Equal(t, pomPusher, mock.deleted, "deployment deleted")
+}
+
+func TestGetSystemDeployments(t *testing.T) {
 	mock := &MockDeployment{}
 	app := "hello"
 	pomPusher := pomPusherName(app)
