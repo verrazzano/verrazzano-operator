@@ -36,11 +36,11 @@ var testImages []Image = []Image{
 		Status:          "PROVISIONING",
 	}}
 
+// simple test to exercise the one line in the actual Init method
 func TestInit(t *testing.T) {
 	tests := []struct {
 		name string
 	}{
-		// TODO: Add test cases.
 		{
 			name: "initTest",
 		},
