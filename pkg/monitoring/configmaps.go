@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Create all the config maps needed by Filebeats and Journalbeats in all the managed cluster
+// LoggingConfigMaps gets all the config maps needed by Filebeats and Journalbeats in all the managed cluster.
 func LoggingConfigMaps(managedClusterName string) []*corev1.ConfigMap {
 	filebeatLabels := GetFilebeatLabels(managedClusterName)
 	journalbeatLabels := GetJournalbeatLabels(managedClusterName)

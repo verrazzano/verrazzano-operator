@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Handles creation/deletion of VMI CRs, based on a VerrazzanoBinding
+
 package local
 
 import (
@@ -21,12 +22,13 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-func CreateVmis(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoUri string, enableMonitoringStorage string) error {
+// CreateVmis creates/updates Verrazzano Monitoring Instances for a given binding.
+func CreateVmis(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 
 	glog.V(6).Infof("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the set of expected VMIs
-	newVMIs := newVMIs(binding, verrazzanoUri, enableMonitoringStorage)
+	newVMIs := newVMIs(binding, verrazzanoURI, enableMonitoringStorage)
 
 	// Create or update VMIs
 	var vmiNames = []string{}
@@ -71,6 +73,7 @@ func CreateVmis(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset
 	return nil
 }
 
+// DeleteVmis deletes Verrazzano Monitoring Instances for a given binding.
 func DeleteVmis(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
 
 	glog.V(4).Infof("Deleting Local (Management Cluster) VMIs for VerrazzanoBinding %s", binding.Name)
@@ -102,11 +105,11 @@ func createStorageOption(enableMonitoringStorage string) vmov1.Storage {
 }
 
 // Constructs the necessary VMI for the given VerrazzanoBinding
-func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enableMonitoringStorage string) []*vmov1.VerrazzanoMonitoringInstance {
+func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string, enableMonitoringStorage string) []*vmov1.VerrazzanoMonitoringInstance {
 	bindingLabels := util.GetLocalBindingLabels(binding)
 
-	if verrazzanoUri == "" {
-		verrazzanoUri = "my.verrazano.com"
+	if verrazzanoURI == "" {
+		verrazzanoURI = "my.verrazano.com"
 	}
 	storageOption := createStorageOption(enableMonitoringStorage)
 	return []*vmov1.VerrazzanoMonitoringInstance{
@@ -117,7 +120,7 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 				Labels:    bindingLabels,
 			},
 			Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
-				URI:             util.GetVmiUri(binding.Name, verrazzanoUri),
+				URI:             util.GetVmiURI(binding.Name, verrazzanoURI),
 				AutoSecret:      true,
 				SecretsName:     constants.VmiSecretName,
 				CascadingDelete: true,
@@ -129,7 +132,7 @@ func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, enable
 						RequestMemory: util.GetGrafanaRequestMemory(),
 					},
 				},
-				IngressTargetDNSName: fmt.Sprintf("verrazzano-ingress.%s", verrazzanoUri),
+				IngressTargetDNSName: fmt.Sprintf("verrazzano-ingress.%s", verrazzanoURI),
 				Prometheus: vmov1.Prometheus{
 					Enabled: true,
 					Storage: storageOption,

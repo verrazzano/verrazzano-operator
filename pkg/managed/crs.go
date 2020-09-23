@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+// CreateCustomResources creates/updates custome resources needed for each managed cluster.
 func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}, vbLister listers.VerrazzanoBindingLister) error {
 
 	glog.V(6).Infof("Creating/updating CustomResources for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
@@ -343,6 +344,7 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 	return nil
 }
 
+// DeleteCustomResources deletes custom resources for a given binding.
 func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Deleting ServiceAccount for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
 
@@ -474,6 +476,7 @@ func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 	}
 	return nil
 }
+
 func cleanupCoherenceCustomResources(mc *util.ManagedClusterConnection, name string, namespace string, clusterName string) error {
 
 	// First, delete the coherencecluster resource
@@ -538,6 +541,7 @@ func containsWlsOperator(opr *wlsoprtypes.WlsOperator, inName string, inNamespac
 	return false
 }
 
+// CleanupOrphanedCustomResources deletes custom resources that have been orphaned.
 func CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}) error {
 	glog.V(6).Infof("Cleaning up orphaned CustomResources for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
 

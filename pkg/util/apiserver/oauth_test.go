@@ -243,7 +243,7 @@ func TestKeyCloakUnavailable(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %v", goodToken)},
 	}
 	authHandler.ServeHTTP(&res, &req)
-	assert.NotNil(t, req.Context().Value(BearerToken), "Expected parsed token")
+	assert.NotNil(t, req.Context().Value(keyBearerToken), "Expected parsed token")
 	mockHandler.assertCalled(t)
 	assertOK(t, &res)
 }
@@ -263,7 +263,7 @@ func TestValidBearerToken(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %v", goodToken)},
 	}
 	authHandler.ServeHTTP(&res, &req)
-	assert.NotNil(t, req.Context().Value(BearerToken), "Expected parsed token")
+	assert.NotNil(t, req.Context().Value(keyBearerToken), "Expected parsed token")
 	mockHandler.assertCalled(t)
 	assertOK(t, &res)
 
@@ -272,7 +272,7 @@ func TestValidBearerToken(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %v", goodToken)},
 	}
 	authHandler.ServeHTTP(&res, &req)
-	assert.NotNil(t, req.Context().Value(BearerToken), "Expected parsed token")
+	assert.NotNil(t, req.Context().Value(keyBearerToken), "Expected parsed token")
 	mockHandler.assertCalled(t)
 	assertOK(t, &res)
 }
@@ -296,12 +296,12 @@ func TestVerifyJsonWebToken(t *testing.T) {
 	keyRepoMock := &KeyRepoMock{key: key}
 	keyRepo = keyRepoMock
 	goodToken, _ := keyRepoMock.genToken("goodJWT")
-	token, err := verifyJsonWebToken(goodToken)
+	token, err := verifyJSONWebToken(goodToken)
 	assert.NotNil(t, token, "Expected good JWT")
 	assert.Nil(t, err)
 
 	expiredToken, _ := keyRepoMock.expiredToken("expiredToken")
-	token, err = verifyJsonWebToken(expiredToken)
+	token, err = verifyJSONWebToken(expiredToken)
 	assert.NotNil(t, token, "Expiredd JWT")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "expired")
