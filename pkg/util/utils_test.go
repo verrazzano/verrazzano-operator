@@ -5,13 +5,14 @@ package util
 
 import (
 	"fmt"
+	"math"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"math"
-	"testing"
 )
 
 func TestGetManagedBindingLabels(t *testing.T) {
@@ -99,7 +100,7 @@ func TestGetGetVmiUri(t *testing.T) {
 	assert := assert.New(t)
 	const bindingName = "testbinding"
 	const uri = "vzURI"
-	assert.Equal(fmt.Sprintf("vmi.%s.%s", bindingName, uri), GetVmiUri(bindingName, uri))
+	assert.Equal(fmt.Sprintf("vmi.%s.%s", bindingName, uri), GetVmiURI(bindingName, uri))
 }
 
 func TestGetServiceAccountNameForSystem(t *testing.T) {
@@ -147,7 +148,7 @@ func TestGetManagedClustersForVerrazzanoBinding(t *testing.T) {
 		Model:   &v1beta1v8o.VerrazzanoModel{},
 		Binding: &v1beta1v8o.VerrazzanoBinding{},
 		ManagedClusters: map[string]*types.ManagedCluster{
-			cname1: &types.ManagedCluster{Name: cname1},
+			cname1: {Name: cname1},
 		},
 	}
 	mcMap := map[string]*ManagedClusterConnection{
@@ -175,7 +176,7 @@ func TestGetManagedClustersNotForVerrazzanoBinding(t *testing.T) {
 		Model:   &v1beta1v8o.VerrazzanoModel{},
 		Binding: &v1beta1v8o.VerrazzanoBinding{},
 		ManagedClusters: map[string]*types.ManagedCluster{
-			cname2: &types.ManagedCluster{Name: cname1},
+			cname2: {Name: cname1},
 		},
 	}
 	mcMap := map[string]*ManagedClusterConnection{
@@ -195,7 +196,7 @@ func TestIsClusterInBinding(t *testing.T) {
 	const cname1 = "cluster1"
 	const cname2 = "cluster2"
 	mbMap := map[string]*types.ModelBindingPair{
-		cname1: &types.ModelBindingPair{
+		cname1: {
 			Binding: &v1beta1v8o.VerrazzanoBinding{
 				Spec: v1beta1v8o.VerrazzanoBindingSpec{
 					Placement: []v1beta1v8o.VerrazzanoPlacement{{Name: cname1}},
@@ -221,24 +222,24 @@ func TestGetComponentNamespace(t *testing.T) {
 				{Namespaces: []v1beta1v8o.KubernetesNamespace{
 					{Name: ns1,
 						Components: []v1beta1v8o.BindingComponent{{
-						Name: compname1,}},
+							Name: compname1}},
 					},
 					{Name: ns2,
 						Components: []v1beta1v8o.BindingComponent{{
-							Name: compname2,}},
+							Name: compname2}},
 					},
 				}},
 			},
 		},
 		Status: v1beta1v8o.VerrazzanoBindingStatus{},
 	}
-	err, ns := GetComponentNamespace(compname1, binding)
+	ns, err := GetComponentNamespace(compname1, binding)
 	assert.NoError(err, "Error finding component in GetComponentNamespace")
 	assert.Equal(ns1, ns)
-	err, ns = GetComponentNamespace(compname2, binding)
+	ns, err = GetComponentNamespace(compname2, binding)
 	assert.NoError(err, "Error finding component in GetComponentNamespace")
 	assert.Equal(ns2, ns)
-	err, ns = GetComponentNamespace(compname3, binding)
+	_, err = GetComponentNamespace(compname3, binding)
 	assert.Error(err, "Error finding component in GetComponentNamespace. Component should not be found")
 }
 

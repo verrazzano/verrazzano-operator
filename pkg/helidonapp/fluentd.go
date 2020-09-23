@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Create the Fluentd configmap for a given Helidon application
+// CreateFluentdConfigMap creates the Fluentd configmap for a given Helidon application
 func CreateFluentdConfigMap(app *v1beta1v8o.VerrazzanoHelidon, namespace string, labels map[string]string) *corev1.ConfigMap {
 	// fluentd parsing rules
 	parsingRules := `<label @FLUENT_LOG>
@@ -99,7 +99,7 @@ func CreateFluentdConfigMap(app *v1beta1v8o.VerrazzanoHelidon, namespace string,
 }
 
 // Create the Fluentd sidecar container
-func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v8o.VerrazzanoHelidon, verrazzanoUri string) corev1.Container {
+func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v8o.VerrazzanoHelidon) corev1.Container {
 	container := corev1.Container{
 		Name:            "fluentd",
 		Args:            []string{"-c", "/etc/fluent.conf"},

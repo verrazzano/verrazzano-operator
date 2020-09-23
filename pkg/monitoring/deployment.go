@@ -14,21 +14,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Constructs the necessary Deployments for the specified ManagedCluster for the System VMI
-func GetSystemDeployments(managedClusterName, verrazzanoUri string, sec Secrets) []*appsv1.Deployment {
+// GetSystemDeployments constructs the necessary Deployments for the specified ManagedCluster for the System VMI.
+func GetSystemDeployments(managedClusterName, verrazzanoURI string, sec Secrets) []*appsv1.Deployment {
 	depLabels := util.GetManagedLabelsNoBinding(managedClusterName)
 	var deployments []*appsv1.Deployment
 
-	if verrazzanoUri == "" {
+	if verrazzanoURI == "" {
 		glog.V(4).Infof("Verrazzano URI must not be empty for prometheus pusher to work")
 	} else {
-		deployment := CreateDeployment(constants.MonitoringNamespace, constants.VmiSystemBindingName, depLabels, verrazzanoUri, sec)
+		deployment := CreateDeployment(constants.MonitoringNamespace, constants.VmiSystemBindingName, depLabels, sec)
 		deployments = append(deployments, deployment)
 	}
 
 	return deployments
 }
 
+// DeletePomPusher deletes the Prometheus Pusher deployment.
 func DeletePomPusher(binding string, helper util.DeploymentHelper) error {
 	return helper.DeleteDeployment(constants.MonitoringNamespace, pomPusherName(binding))
 }
@@ -37,8 +38,8 @@ func pomPusherName(bindingName string) string {
 	return fmt.Sprintf("prom-pusher-%s", bindingName)
 }
 
-// Create prometheus pusher deployment on all clusters, based on a VerrazzanoApplicationBinding
-func CreateDeployment(namespace string, bindingName string, labels map[string]string, verrazzanoUri string, sec Secrets) *appsv1.Deployment {
+// CreateDeployment creates prometheus pusher deployment on all clusters, based on a VerrazzanoApplicationBinding.
+func CreateDeployment(namespace string, bindingName string, labels map[string]string, sec Secrets) *appsv1.Deployment {
 	payload := "match%5B%5D=%7Bjob%3D~%22" + bindingName + "%2E%2A%22%7D" // URL encoded : match[]={job=~"binding-name.*"}
 	password, err := sec.GetVmiPassword()
 	if err != nil {

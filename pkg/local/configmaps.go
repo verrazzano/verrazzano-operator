@@ -20,6 +20,7 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 )
 
+// UpdateConfigMaps updates config maps for a given binding in the management cluster.
 func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	glog.V(6).Infof("Updating Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
 
@@ -29,7 +30,7 @@ func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 		return err
 	}
 	configMapNames := []string{newConfigMap.Name}
-	existingConfigMap, err := configMapLister.ConfigMaps(newConfigMap.Namespace).Get(newConfigMap.Name)
+	existingConfigMap, _ := configMapLister.ConfigMaps(newConfigMap.Namespace).Get(newConfigMap.Name)
 
 	if existingConfigMap != nil {
 		if !reflect.DeepEqual(existingConfigMap.Data, newConfigMap.Data) {
@@ -62,6 +63,7 @@ func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 	return nil
 }
 
+// DeleteConfigMaps deletes config maps for a given binding in the management cluster.
 func DeleteConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	glog.V(6).Infof("Deleting Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
 

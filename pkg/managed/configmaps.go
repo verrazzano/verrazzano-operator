@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+// CreateConfigMaps creates/updates config maps needed for each managed cluster.
 func CreateConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 
 	glog.V(6).Infof("Creating/updating ConfigMap for VerrazzanoBinding %s", mbPair.Binding.Name)
@@ -39,14 +40,17 @@ func CreateConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterCon
 			}
 			for _, newConfigMap := range newConfigMaps {
 				err = createUpdateConfigMaps(managedClusterConnection, newConfigMap, clusterName)
+				if err != nil {
+					return err
+				}
 			}
 		} else {
 			for _, newConfigMap := range managedClusterObj.ConfigMaps {
 				err = createUpdateConfigMaps(managedClusterConnection, newConfigMap, clusterName)
+				if err != nil {
+					return err
+				}
 			}
-		}
-		if err != nil {
-			return err
 		}
 	}
 	return nil
@@ -72,6 +76,7 @@ func createUpdateConfigMaps(managedClusterConnection *util.ManagedClusterConnect
 	return nil
 }
 
+// CleanupOrphanedConfigMaps deletes config maps that have been orphaned.
 func CleanupOrphanedConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allMbPairs map[string]*types.ModelBindingPair) error {
 	glog.V(6).Infof("Cleaning up orphaned ConfigMaps for VerrazzanoBinding %s", mbPair.Binding.Name)
 

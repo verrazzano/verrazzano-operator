@@ -139,7 +139,7 @@ func createFluentdVolumeMount(name string) corev1.VolumeMount {
 	}
 }
 
-// Create the fluentd configmap
+// CreateFluentdConfigMap creates the fluentd configmap.
 func CreateFluentdConfigMap(namespace string, labels map[string]string) *corev1.ConfigMap {
 
 	// fluentd parsing rules

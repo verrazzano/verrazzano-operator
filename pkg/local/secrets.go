@@ -2,12 +2,12 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Handles creation/deletion of WeblogicApplication CRs, based on a VerrazzanoBinding
+
 package local
 
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/golang/glog"
@@ -21,7 +21,7 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 )
 
-type acmeDns struct {
+type acmeDNS struct {
 	AllowFrom  []string `json:"allowfrom"`
 	Fulldomain string   `json:"fulldomain"`
 	Password   string   `json:"password"`
@@ -29,6 +29,7 @@ type acmeDns struct {
 	Username   string   `json:"username"`
 }
 
+// DeleteSecrets deletes secrets for a given binding in the management cluster.
 func DeleteSecrets(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
 
 	glog.V(6).Infof("Deleting Management Cluster secrets for VerrazzanoBinding %s", binding.Name)
@@ -58,7 +59,7 @@ func DeleteSecrets(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernet
 // data into the model/binding files
 //
 
-// CreateGenericSecret will create a secret in the specificed cluster - this is intended to
+// CreateGenericSecret will create a secret in the specified cluster - this is intended to
 // be used to create secrets in the management cluster
 func CreateGenericSecret(newSecret corev1.Secret, kubeClientSet kubernetes.Interface) error {
 
@@ -96,13 +97,13 @@ func GetSecretByUID(kubeClientSet kubernetes.Interface, ns string, uid string) (
 	return nil, false, nil
 }
 
-// Update the AcmeDnsSecret, which is used for "bring your own dns" installs, to contain the DNS
+// UpdateAcmeDNSSecret updates the AcmeDnsSecret, which is used for "bring your own dns" installs, to contain the DNS
 // entries for the model/binding.  This is one of the required steps for the monitoring endpoints to work.
-func UpdateAcmeDnsSecret(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoUri string) error {
+func UpdateAcmeDNSSecret(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
 
 	glog.V(6).Infof("Updating Management Cluster secret %s for VerrazzanoBinding %s", name, binding.Name)
 	namespace := constants.VerrazzanoNamespace
-	acmeDnsKey := constants.AcmeDnsSecretKey
+	acmeDNSKey := constants.AcmeDnsSecretKey
 
 	// Get the cert-manager secret for acms-dns
 	secret, err := secretLister.Secrets(namespace).Get(name)
@@ -110,41 +111,41 @@ func UpdateAcmeDnsSecret(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet ku
 		// Secret will not exist when not using "bring your own dns"
 		return nil
 	} else if err != nil {
-		return errors.New(fmt.Sprintf("Request to get secret %s in namespace %s failed with error %v", name, namespace, err))
+		return fmt.Errorf("Request to get secret %s in namespace %s failed with error %v", name, namespace, err)
 	}
 
 	// Unmarshal the acme dns credentials
-	var dnsCredentials map[string]acmeDns
-	acmeDnsData, found := secret.Data[acmeDnsKey]
+	var dnsCredentials map[string]acmeDNS
+	acmeDNSData, found := secret.Data[acmeDNSKey]
 	if !found {
-		return errors.New(fmt.Sprintf("The data in secret %s in namespace %s does not contain the key %s", name, namespace, acmeDnsKey))
+		return fmt.Errorf("The data in secret %s in namespace %s does not contain the key %s", name, namespace, acmeDNSKey)
 	}
-	err = json.Unmarshal(acmeDnsData, &dnsCredentials)
+	err = json.Unmarshal(acmeDNSData, &dnsCredentials)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to unmarshal key %s from secret %s in namespace %s, error: %v", acmeDnsKey, name, namespace, err))
+		return fmt.Errorf("Failed to unmarshal key %s from secret %s in namespace %s, error: %v", acmeDNSKey, name, namespace, err)
 	}
 
 	// Make sure the map is not empty
 	if len(dnsCredentials) == 0 {
-		return errors.New(fmt.Sprintf("The key %s in secret %s in namespace %s does not contain any data", acmeDnsKey, name, namespace))
+		return fmt.Errorf("The key %s in secret %s in namespace %s does not contain any data", acmeDNSKey, name, namespace)
 	}
 
 	// All the records contain the same credentials, obtain the entry keyed by the uri
-	dnsCred := dnsCredentials[verrazzanoUri]
+	dnsCred := dnsCredentials[verrazzanoURI]
 
 	// Check to see if credential records already exist for the binding
 	updated := false
-	bindingDnsName := fmt.Sprintf("vmi.%s.%s", binding.Name, verrazzanoUri)
-	_, found = dnsCredentials[bindingDnsName]
+	bindingDNSName := fmt.Sprintf("vmi.%s.%s", binding.Name, verrazzanoURI)
+	_, found = dnsCredentials[bindingDNSName]
 	if !found {
-		dnsCredentials[bindingDnsName] = dnsCred
+		dnsCredentials[bindingDNSName] = dnsCred
 		updated = true
 	}
 
-	bindingDnsName = fmt.Sprintf("*.vmi.%s.%s", binding.Name, verrazzanoUri)
-	_, found = dnsCredentials[bindingDnsName]
+	bindingDNSName = fmt.Sprintf("*.vmi.%s.%s", binding.Name, verrazzanoURI)
+	_, found = dnsCredentials[bindingDNSName]
 	if !found {
-		dnsCredentials[bindingDnsName] = dnsCred
+		dnsCredentials[bindingDNSName] = dnsCred
 		updated = true
 	}
 
@@ -155,7 +156,7 @@ func UpdateAcmeDnsSecret(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet ku
 			return err
 		}
 
-		secret.Data[acmeDnsKey] = secretDataEnc
+		secret.Data[acmeDNSKey] = secretDataEnc
 
 		_, err = kubeClientSet.CoreV1().Secrets(namespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
 		if err != nil {
@@ -166,7 +167,7 @@ func UpdateAcmeDnsSecret(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet ku
 	return nil
 }
 
-// UpdateSecret updates an existing secret
+// DeleteSecret deletes an existing secret
 func DeleteSecret(kubeClientSet kubernetes.Interface, secret *corev1.Secret) error {
 	return kubeClientSet.CoreV1().Secrets(secret.Namespace).Delete(context.TODO(), secret.Name, metav1.DeleteOptions{})
 }

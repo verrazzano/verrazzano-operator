@@ -22,7 +22,7 @@ func TestFluentdEnabledDefault(t *testing.T) {
 		Binding: &vz.VerrazzanoBinding{
 			Spec: vz.VerrazzanoBindingSpec{},
 		},
-		VerrazzanoUri: "test.v8o.xyz.com",
+		VerrazzanoURI: "test.v8o.xyz.com",
 	}
 	mbPair.Binding.Spec.WeblogicBindings = []vz.VerrazzanoWeblogicBinding{{Name: domainName}}
 	labels := make(map[string]string)

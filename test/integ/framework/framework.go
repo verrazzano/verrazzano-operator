@@ -53,8 +53,8 @@ func Setup() error {
 	}
 
 	if *runid == "" {
-		runIdString := "test-" + generateRandomID(3)
-		runid = &runIdString
+		runIDString := "test-" + generateRandomID(3)
+		runid = &runIDString
 	}
 
 	Global = &Framework{

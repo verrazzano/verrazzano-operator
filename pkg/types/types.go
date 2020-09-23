@@ -15,30 +15,38 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// ComponentType component type
 type ComponentType int
 
 const (
-	Wls       ComponentType = 0
-	Helidon   ComponentType = 1
+	// WLS component type
+	WLS ComponentType = 0
+	// Helidon component type
+	Helidon ComponentType = 1
+	// Coherence component type
 	Coherence ComponentType = 2
-	Unknown   ComponentType = 3
+	// Unknown component type
+	Unknown ComponentType = 3
 )
 
+// IngressDestination represents a destination ingress.
 type IngressDestination struct {
 	Host string
-	//VirtualService destination Port
+	// VirtualService destination Port
 	Port       int
 	Match      []MatchRequest
 	DomainName string
 }
 
-//see verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3/virtual_service.go
+// MatchRequest represents an istio virtual service match criteria.
+// see verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3/virtual_service.go
 //    istio.io/api/networking/v1alpha3/virtual_service.json
 type MatchRequest struct {
-	Uri  map[string]string //`json:"uri,omitempty"`
+	URI  map[string]string //`json:"uri,omitempty"`
 	Port int               //`json:"port,omitempty"`
 }
 
+// Ingress represents an ingress and its destinations.
 type Ingress struct {
 	// Name of the ingress in the binding
 	Name string
@@ -47,6 +55,7 @@ type Ingress struct {
 	Destination []*IngressDestination
 }
 
+// RemoteRestConnection represents a rest connection to a remote cluster.
 type RemoteRestConnection struct {
 	// Name of remote service
 	Name string
@@ -112,9 +121,9 @@ type ModelBindingPair struct {
 	ManagedClusters map[string]*ManagedCluster
 
 	// Lock for synchronizing write access
-	Lock sync.RWMutex
+	Lock *sync.RWMutex
 
-	VerrazzanoUri string
+	VerrazzanoURI string
 
 	// Optional list of image pull secrets to add to service accounts created by the operator
 	ImagePullSecrets []corev1.LocalObjectReference

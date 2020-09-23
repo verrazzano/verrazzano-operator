@@ -5,7 +5,6 @@ package managed
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -21,6 +20,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+// ScrapeConfigInfo contains configuration for scraping metrics.
 type ScrapeConfigInfo struct {
 	PrometheusScrapeTargetJobName string
 	Namespace                     string
@@ -33,7 +33,8 @@ type ScrapeConfigInfo struct {
 	Password                      string
 }
 
-// Updating the istio prometheus scrape configs to include all the node exporter endpoints in monitoring namespace
+// UpdateIstioPrometheusConfigMaps updates the istio prometheus scrape configs to include all the node exporter
+// endpoints in monitoring namespace.
 func UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 
 	if mbPair.Binding.Name == constants.VmiSystemBindingName {
@@ -44,7 +45,8 @@ func UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretListe
 	return nil
 }
 
-// Updating the istio prometheus scrape configs to include all the node exporter endpoints in monitoring namespace
+// UpdateIstioPrometheusConfigMapsForNodeExporter updates the istio prometheus scrape configs to include all the node
+// exporter endpoints in monitoring namespace.
 func UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Add/Update node export scrape target in Istio Prometheus configmaps for all clusters.")
 
@@ -55,7 +57,7 @@ func UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair *types.ModelBindingPa
 	}
 
 	// Construct services for each ManagedCluster
-	for clusterName, _ := range mbPair.ManagedClusters {
+	for clusterName := range mbPair.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
@@ -83,8 +85,9 @@ func UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair *types.ModelBindingPa
 	return nil
 }
 
-// Updating the istio prometheus scrape configs to include all the component endpoints from a given verrazzano model binding pair.
-// Different scrape targets/jobs will be added to differentiate the binding/cluster/namespace/component/componentBinding combinations.
+// UpdateIstioPrometheusConfigMapsForBinding updates the istio prometheus scrape configs to include all the component
+// endpoints from a given verrazzano model binding pair.  Different scrape targets/jobs will be added to differentiate
+// the binding/cluster/namespace/component/componentBinding combinations.
 // job_name: <binding_name>_<cluster_name>_<namespace>_<component_name>_<component_binding_name>
 //
 // For examples:
@@ -110,7 +113,7 @@ func UpdateIstioPrometheusConfigMapsForBinding(mbPair *types.ModelBindingPair, s
 	}
 
 	// Construct prometheus.yml configMaps for each managed cluster
-	for clusterName, _ := range mbPair.ManagedClusters {
+	for clusterName := range mbPair.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
@@ -144,7 +147,7 @@ func updateIstioPrometheusConfigMap(clusterName string, managedClusterConnection
 	}
 
 	// Create a new istio prometheus configmap if necessary
-	existingcm, err := managedClusterConnection.ConfigMapLister.ConfigMaps(IstioNamespace).Get(IstioPrometheusCMName)
+	existingcm, _ := managedClusterConnection.ConfigMapLister.ConfigMaps(IstioNamespace).Get(IstioPrometheusCMName)
 	if existingcm == nil {
 		glog.V(4).Infof("Creating Configmaps %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
 		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newPrometheusConfigMap.Namespace).Create(context.TODO(), newPrometheusConfigMap, metav1.CreateOptions{})
@@ -160,6 +163,9 @@ func updateIstioPrometheusConfigMap(clusterName string, managedClusterConnection
 		glog.V(6).Infof("ConfigMap %s : Spec differences %s", newPrometheusConfigMap.Name, specDiffs)
 		glog.V(4).Infof("Updating ConfigMap %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
 		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newPrometheusConfigMap.Namespace).Update(context.TODO(), newPrometheusConfigMap, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
 		// Bounce Prometheus Pod
 		istioPodName, err := managedClusterConnection.KubeClient.CoreV1().Pods(IstioNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: PrometheusLabel})
 		for _, pod := range istioPodName.Items {
@@ -199,11 +205,11 @@ func getNewPrometheusConfigMap(scrapeConfigInfoList []ScrapeConfigInfo, cmdata m
 // Updating prometheus.yml with all the component bindings within a given cluster
 func updatePrometheusYml(scrapeConfigInfoList []ScrapeConfigInfo, currPrometheusYml string) (string, error) {
 	// Parse current Prometheus config
-	prometheusYmlJson, err := yaml.YAMLToJSON([]byte(currPrometheusYml))
+	prometheusYmlJSON, err := yaml.YAMLToJSON([]byte(currPrometheusYml))
 	if err != nil {
 		return "", err
 	}
-	prometheusYml, err := gabs.ParseJSON(prometheusYmlJson)
+	prometheusYml, err := gabs.ParseJSON(prometheusYmlJSON)
 	if err != nil {
 		return "", err
 	}
@@ -251,13 +257,13 @@ func getPrometheusScrapeConfig(scrapeConfigInfo ScrapeConfigInfo) (*gabs.Contain
 	scrapeConfigTemplate = strings.Replace(scrapeConfigTemplate, KeepSourceLabelsRegexHolder, scrapeConfigInfo.KeepSourceLabelsRegex, -1)
 
 	// Parse out the prometheus scrape config
-	scrapeConfigJson, err := yaml.YAMLToJSON([]byte(scrapeConfigTemplate))
+	scrapeConfigJSON, err := yaml.YAMLToJSON([]byte(scrapeConfigTemplate))
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failure to parse built-in Prometheus job template: %v", err))
+		return nil, fmt.Errorf("Failure to parse built-in Prometheus job template: %v", err)
 	}
-	scrapeConfig, err := gabs.ParseJSON(scrapeConfigJson)
+	scrapeConfig, err := gabs.ParseJSON(scrapeConfigJSON)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failure to parse built-in Prometheus job template: %v", err))
+		return nil, fmt.Errorf("Failure to parse built-in Prometheus job template: %v", err)
 	}
 
 	// Add basic auth

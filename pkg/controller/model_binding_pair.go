@@ -25,14 +25,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateModelBindingPair(model *v1beta1v8o.VerrazzanoModel, binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, imagePullSecrets []corev1.LocalObjectReference) *types.ModelBindingPair {
+// CreateModelBindingPair creates a unique pairing of a model and binding.
+func CreateModelBindingPair(model *v1beta1v8o.VerrazzanoModel, binding *v1beta1v8o.VerrazzanoBinding, VerrazzanoURI string, imagePullSecrets []corev1.LocalObjectReference) *types.ModelBindingPair {
 
 	mbPair := &types.ModelBindingPair{
 		Model:            model,
 		Binding:          binding,
 		ManagedClusters:  map[string]*types.ManagedCluster{},
-		Lock:             sync.RWMutex{},
-		VerrazzanoUri:    verrazzanoUri,
+		Lock:             &sync.RWMutex{},
+		VerrazzanoURI:    VerrazzanoURI,
 		ImagePullSecrets: imagePullSecrets,
 	}
 	return buildModelBindingPair(mbPair)
@@ -46,9 +47,9 @@ func releaseLock(mbPair *types.ModelBindingPair) {
 	mbPair.Lock.Unlock()
 }
 
-// Update a model/binding pair by rebuilding it
-func UpdateModelBindingPair(mbPair *types.ModelBindingPair, model *v1beta1v8o.VerrazzanoModel, binding *v1beta1v8o.VerrazzanoBinding, verrazzanoUri string, imagePullSecrets []corev1.LocalObjectReference) {
-	newMBPair := CreateModelBindingPair(model, binding, verrazzanoUri, imagePullSecrets)
+// UpdateModelBindingPair updates a model/binding pair by rebuilding it.
+func UpdateModelBindingPair(mbPair *types.ModelBindingPair, model *v1beta1v8o.VerrazzanoModel, binding *v1beta1v8o.VerrazzanoBinding, VerrazzanoURI string, imagePullSecrets []corev1.LocalObjectReference) {
+	newMBPair := CreateModelBindingPair(model, binding, VerrazzanoURI, imagePullSecrets)
 	lock := mbPair.Lock
 	lock.Lock()
 	defer lock.Unlock()
@@ -393,13 +394,13 @@ func addIngress(mc *types.ManagedCluster, ingressConn v1beta1v8o.VerrazzanoIngre
 func addMatch(matches []types.MatchRequest, key, value string) []types.MatchRequest {
 	found := false
 	for _, match := range matches {
-		if match.Uri[key] == value {
+		if match.URI[key] == value {
 			found = true
 		}
 	}
 	if !found {
 		matches = append(matches, types.MatchRequest{
-			Uri: map[string]string{key: value},
+			URI: map[string]string{key: value},
 		})
 	}
 	return matches
@@ -451,7 +452,7 @@ func addRemoteRest(mc *types.ManagedCluster, restName string, localNamespace str
 	mc.RemoteRests[localNamespace] = append(mc.RemoteRests[localNamespace], &types.RemoteRestConnection{
 		Name: func() string {
 			var name string
-			if remoteType == types.Wls {
+			if remoteType == types.WLS {
 				for _, domain := range remoteMc.WlsDomainCRs {
 					if restName == domain.Name {
 						name = getDomainServiceName(domain)
@@ -564,7 +565,7 @@ func getRestConnectionEnvVars(mbPair *types.ModelBindingPair, connections []v1be
 
 		env.Name = restConnection.EnvironmentVariableForHost
 		if isRemote {
-			if targetType == types.Wls {
+			if targetType == types.WLS {
 				for _, domain := range remoteMc.WlsDomainCRs {
 					if restConnection.Target == domain.Name {
 						env.Value = fmt.Sprintf("%s.%s.global", getDomainServiceName(domain), targetNamespace)
@@ -575,7 +576,7 @@ func getRestConnectionEnvVars(mbPair *types.ModelBindingPair, connections []v1be
 				env.Value = fmt.Sprintf("%s.%s.global", restConnection.Target, targetNamespace)
 			}
 		} else {
-			if targetType == types.Wls {
+			if targetType == types.WLS {
 				for _, domain := range remoteMc.WlsDomainCRs {
 					if restConnection.Target == domain.Name {
 						env.Value = fmt.Sprintf("%s.%s.svc.cluster.local", getDomainServiceName(domain), targetNamespace)
@@ -611,7 +612,7 @@ func getTargetNamespacePlacement(restTarget string, binding *v1beta1v8o.Verrazza
 func getTargetTypePort(managedCluster *types.ManagedCluster, target string) (types.ComponentType, uint32, error) {
 	for _, wls := range managedCluster.WlsDomainCRs {
 		if wls.Name == target {
-			return types.Wls, getDomainDestinationPort(wls), nil
+			return types.WLS, getDomainDestinationPort(wls), nil
 		}
 	}
 
@@ -653,26 +654,23 @@ func getDomainDestinationHost(domain *v8weblogic.Domain) string {
 func getDomainServiceName(domain *v8weblogic.Domain) string {
 	if len(domain.Spec.Clusters) == 0 {
 		return getDomainAdminServerServiceName(&domain.Spec)
-	} else {
-		return getDomainClusterServiceName(&domain.Spec)
 	}
+	return getDomainClusterServiceName(&domain.Spec)
 }
 
 // Utility function to generate the destination port number for a domain
 func getDomainDestinationPort(domain *v8weblogic.Domain) uint32 {
 	if len(domain.Spec.Clusters) == 0 {
 		return 7001
-	} else {
-		return 8001
 	}
+	return 8001
 }
 
 func getDataSourceTarget(domainSpec *v8weblogic.DomainSpec) string {
 	if len(domainSpec.Clusters) == 0 {
 		return managed.GetDomainAdminServerNameAsInTarget()
-	} else {
-		return domainSpec.Clusters[0].ClusterName
 	}
+	return domainSpec.Clusters[0].ClusterName
 }
 
 func getDomainClusterServiceName(domainSpec *v8weblogic.DomainSpec) string {

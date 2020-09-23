@@ -111,9 +111,9 @@ func TestSockShopIngressBindings(t *testing.T) {
 	assert.Equal(t, 2, len(ingressBindings), "Expected 2 IngressBinding's")
 	cluster := "cluster1"
 	namespace := "sockshop"
-	vzUri := "Verrazzano.Uri"
+	vzURI := "Verrazzano.Uri"
 	var optImagePullSecrets []corev1.LocalObjectReference
-	pair := CreateModelBindingPair(model, binding, vzUri, optImagePullSecrets)
+	pair := CreateModelBindingPair(model, binding, vzURI, optImagePullSecrets)
 
 	validateIngressBindings(t, pair, cluster, namespace, "wl-frontend-cluster-cluster-1.sockshop.svc.cluster.local", 8001)
 }
@@ -162,9 +162,9 @@ func TestSockShopSimpleModelBinding(t *testing.T) {
 	}
 	cluster := "local"
 	namespace := "sockshop"
-	vzUri := "Verrazzano.Uri"
+	vzURI := "Verrazzano.Uri"
 	var optImagePullSecrets []corev1.LocalObjectReference
-	pair := CreateModelBindingPair(model, binding, vzUri, optImagePullSecrets)
+	pair := CreateModelBindingPair(model, binding, vzURI, optImagePullSecrets)
 
 	assertPorts(t, pair, cluster, namespace, "frontend", 8080, 8079)
 	assertPorts(t, pair, cluster, namespace, "carts", 80, 7001)
@@ -180,7 +180,7 @@ func TestSockShopSimpleModelBinding(t *testing.T) {
 		apps = append(apps, helidon)
 	}
 	model.Spec.HelidonApplications = apps
-	pair = CreateModelBindingPair(model, binding, vzUri, optImagePullSecrets)
+	pair = CreateModelBindingPair(model, binding, vzURI, optImagePullSecrets)
 	assertPorts(t, pair, cluster, namespace, "frontend", 8080, 8080)
 	assertPorts(t, pair, cluster, namespace, "carts", 8080, 8080)
 	assertPorts(t, pair, cluster, namespace, "user", 8080, 8080)
@@ -243,7 +243,7 @@ func assertMatch(t *testing.T, match []types.MatchRequest, expected ...KvPair) {
 	size := len(expected)
 	assert.Equal(t, size, len(match), fmt.Sprintf("Expected %v HttpMatch", size))
 	for i, pair := range expected {
-		uri := match[i].Uri[pair.k]
+		uri := match[i].URI[pair.k]
 		assert.Equal(t, pair.v, uri, fmt.Sprintf("Expected match %v: %v", pair.k, pair.v))
 	}
 }
@@ -276,7 +276,7 @@ func TestCreateModelBindingPair(t *testing.T) {
 		HelidonApps:      expectedClusterHelidonApps,
 		Namespaces:       expectedClusterNamespaces,
 		WlsDomains:       map[string]map[string]*wls.Domain{"cluster1": {"wl-frontend": wlsDomain}},
-		Uri:              "/my/verrazzano/url",
+		URI:              "/my/verrazzano/url",
 		ImagePullSecrets: optImagePullSecrets,
 	}
 	// validate the returned mbp
@@ -296,14 +296,14 @@ func TestCreateModelBindingPairNoCluster(t *testing.T) {
 	assert.Equal(t, 2, len(ingressBindings), "Expected 2 IngressBinding's")
 	cluster := "cluster1"
 	namespace := "sockshop"
-	vzUri := "/my/verrazzano/url"
+	vzURI := "/my/verrazzano/url"
 	optImagePullSecrets := []corev1.LocalObjectReference{
 		{
 			Name: "testSecret",
 		},
 	}
 
-	mbp := CreateModelBindingPair(model, binding, vzUri, optImagePullSecrets)
+	mbp := CreateModelBindingPair(model, binding, vzURI, optImagePullSecrets)
 
 	// gather expected state
 	expectedClusterHelidonApps := map[string]map[string]struct{}{"cluster1": {"frontend": {}, "carts": {},
@@ -318,7 +318,7 @@ func TestCreateModelBindingPairNoCluster(t *testing.T) {
 		HelidonApps:      expectedClusterHelidonApps,
 		Namespaces:       expectedClusterNamespaces,
 		WlsDomains:       map[string]map[string]*wls.Domain{"cluster1": {"wl-frontend": wlsDomain}},
-		Uri:              "/my/verrazzano/url",
+		URI:              "/my/verrazzano/url",
 		ImagePullSecrets: optImagePullSecrets,
 	}
 
@@ -366,7 +366,7 @@ func TestUpdateModelBindingPair(t *testing.T) {
 		HelidonApps:      expectedClusterHelidonApps,
 		Namespaces:       expectedClusterNamespaces,
 		WlsDomains:       map[string]map[string]*wls.Domain{"cluster1": {"wl-frontend": wlsDomain}},
-		Uri:              "/my/verrazzano/url",
+		URI:              "/my/verrazzano/url",
 		ImagePullSecrets: optImagePullSecrets,
 	}
 	// validate create mbp
@@ -392,7 +392,7 @@ func TestUpdateModelBindingPair(t *testing.T) {
 		HelidonApps:      expectedClusterHelidonApps,
 		Namespaces:       expectedClusterNamespaces,
 		WlsDomains:       map[string]map[string]*wls.Domain{},
-		Uri:              "/my/verrazzano/url/updated",
+		URI:              "/my/verrazzano/url/updated",
 		ImagePullSecrets: optImagePullSecretsUpdated,
 	}
 	// validate updated mbp
@@ -418,7 +418,7 @@ type MbpExpectedValues struct {
 	HelidonApps      map[string]map[string]struct{}
 	Namespaces       map[string]map[string]struct{}
 	WlsDomains       map[string]map[string]*wls.Domain
-	Uri              string
+	URI              string
 	ImagePullSecrets []corev1.LocalObjectReference
 }
 
@@ -427,7 +427,7 @@ func validateModelBindingPair(t *testing.T,
 	mbp *types.ModelBindingPair,
 	expectedValues MbpExpectedValues) {
 
-	assert.Equal(t, expectedValues.Uri, mbp.VerrazzanoUri)
+	assert.Equal(t, expectedValues.URI, mbp.VerrazzanoURI)
 	assert.Equal(t, expectedValues.ImagePullSecrets, mbp.ImagePullSecrets)
 	assert.True(t, reflect.DeepEqual(expectedValues.ImagePullSecrets, mbp.ImagePullSecrets), "ImagePullSecrets should be equal")
 	assert.True(t, reflect.DeepEqual(expectedValues.Model, mbp.Model), "Models should be equal")

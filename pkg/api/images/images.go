@@ -16,7 +16,7 @@ import (
 // which equally apply to this file
 
 type Image struct {
-	Id              string `json:"id"`
+	ID              string `json:"id"`
 	Format          string `json:"format"`
 	WebLogicVersion string `json:"weblogic_version"`
 	JDKVersion      string `json:"jdk_version"`
@@ -62,7 +62,7 @@ func ReturnSingleImage(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /images/" + key)
 
 	for _, images := range Images {
-		if images.Id == key {
+		if images.ID == key {
 			json.NewEncoder(w).Encode(images)
 		}
 	}

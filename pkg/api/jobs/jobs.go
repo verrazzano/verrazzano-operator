@@ -5,9 +5,10 @@ package jobs
 
 import (
 	"encoding/json"
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"net/http"
 	"strconv"
+
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -50,15 +51,15 @@ type Inputs struct {
 }
 
 type Data struct {
-	Username string `json:username,omitempty`
-	Password string `json:password,omitempty`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 var Jobs []Job
 
 func Init() {
 	Jobs = []Job{
-		Job{
+		{
 			Id:      "1",
 			Name:    "Deploy WebLogic Operator",
 			Status:  "Not started",
@@ -67,16 +68,16 @@ func Init() {
 				Name:    "job-0001",
 				Version: "1.0.0",
 				Steps: []Step{
-					Step{
+					{
 						Description: "Deploy WebLogic Operator",
 						Tasks: []Task{
-							Task{
+							{
 								Task: "createK8sNamespace",
 								Inputs: Inputs{
 									Namespace: "operator1",
 								},
 							},
-							Task{
+							{
 								Task: "deployWlsOperator",
 								Inputs: Inputs{
 									Name:           "operator1",

@@ -52,7 +52,7 @@ const (
 	HelidonKeepSourceLabelsRegex = "true;##COMPONENT_BINDING_NAME##"
 )
 
-// general prometheus scrape target template
+// PrometheusScrapeConfigTemplate configuration for general prometheus scrape target template.
 const PrometheusScrapeConfigTemplate = `
 job_name: ##JOB_NAME##
 kubernetes_sd_configs:
