@@ -97,6 +97,10 @@ func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 			},
 		}, metav1.CreateOptions{})
 
+	clusterConnection.ServiceLister = &simpleServiceLister{
+		kubeClient: clusterConnection.KubeClient,
+	}
+
 	return clusterConnection
 }
 

@@ -337,3 +337,62 @@ func (s simpleServiceEntryNamespaceLister) List(selector labels.Selector) (ret [
 func (s simpleServiceEntryNamespaceLister) Get(name string) (*v1alpha3.ServiceEntry, error) {
 	return s.istioClientSet.NetworkingV1alpha3().ServiceEntries(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
+
+// ----- simpleServiceLister
+// Simple ServiceLister implementation.
+type simpleServiceLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// list all Services
+func (s *simpleServiceLister) List(selector labels.Selector) (ret []*v1.Service, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var services []*v1.Service
+	for _, namespace := range namespaces.Items {
+
+		list, err := s.Services(namespace.Name).List(selector)
+		if err != nil {
+			return nil, err
+		}
+		services = append(services, list...)
+	}
+	return services, nil
+}
+
+// returns an object that can list and get Services for the given namespace
+func (s *simpleServiceLister) Services(namespace string) corelistersv1.ServiceNamespaceLister {
+	return simpleServiceNamespaceLister{
+		namespace:  namespace,
+		kubeClient: s.kubeClient,
+	}
+}
+
+type simpleServiceNamespaceLister struct {
+	namespace  string
+	kubeClient kubernetes.Interface
+}
+
+// list all Services for a given namespace
+func (s simpleServiceNamespaceLister) List(selector labels.Selector) (ret []*v1.Service, err error) {
+	var services []*v1.Service
+
+	list, err := s.kubeClient.CoreV1().Services(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		service := list.Items[i]
+		if selector.Matches(labels.Set(service.Labels)) {
+			services = append(services, &service)
+		}
+	}
+	return services, nil
+}
+
+// retrieves the Service for a given namespace and name
+func (s simpleServiceNamespaceLister) Get(name string) (*v1.Service, error) {
+	return s.kubeClient.CoreV1().Services(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}

@@ -18,7 +18,7 @@ import (
 )
 
 // CreateServices creates/updates services needed for each managed cluster.
-func CreateServices(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 
 	glog.V(6).Infof("Creating/updating Service for VerrazzanoBinding %s", mbPair.Binding.Name)
 
@@ -28,11 +28,6 @@ func CreateServices(mbPair *types.ModelBindingPair, availableManagedClusterConne
 		return nil
 	}
 
-	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return err
-	}
-
 	// Construct services for each ManagedCluster
 	for clusterName := range mbPair.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
@@ -40,11 +35,7 @@ func CreateServices(mbPair *types.ModelBindingPair, availableManagedClusterConne
 		defer managedClusterConnection.Lock.RUnlock()
 
 		// Construct the set of expected Services
-		newServices, err := newServices(clusterName)
-
-		if err != nil {
-			return err
-		}
+		newServices := newServices(clusterName)
 
 		// Create or update Services
 		for _, newService := range newServices {
@@ -69,7 +60,7 @@ func CreateServices(mbPair *types.ModelBindingPair, availableManagedClusterConne
 }
 
 // Constructs the necessary Service for the specified ManagedCluster
-func newServices(managedClusterName string) ([]*corev1.Service, error) {
+func newServices(managedClusterName string) []*corev1.Service {
 	roleLabels := monitoring.GetNodeExporterLabels(managedClusterName)
 	labels := map[string]string{
 		constants.ServiceAppLabel: constants.NodeExporterName,
@@ -98,5 +89,5 @@ func newServices(managedClusterName string) ([]*corev1.Service, error) {
 	}
 	Services = append(Services, service)
 
-	return Services, nil
+	return Services
 }
