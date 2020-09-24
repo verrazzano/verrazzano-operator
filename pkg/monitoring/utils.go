@@ -25,8 +25,10 @@ func GetMonitoringNamespace(componentName string) string {
 		return constants.LoggingNamespace
 	} else if componentName == constants.JournalbeatName {
 		return constants.LoggingNamespace
-	} else {
+	} else if componentName == constants.NodeExporterName {
 		return constants.MonitoringNamespace
+	} else {
+		return ""
 	}
 }
 

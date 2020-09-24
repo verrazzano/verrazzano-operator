@@ -15,7 +15,7 @@ import (
 // This file is very similar to applications.go - please see comments there
 // which equally apply to this file
 
-// Image details of image returned in API calls.
+// Image is a structure providing the image metadata
 type Image struct {
 	ID              string `json:"id"`
 	Format          string `json:"format"`
@@ -29,10 +29,10 @@ type Image struct {
 	Status          string `json:"status"`
 }
 
-// Images contains all images.
+// Images is the available set of images
 var Images []Image
 
-// Init initialization for images API.
+// Init creates an empty slice of images
 func Init() {
 	Images = []Image{}
 	//Images = []Image{
@@ -51,7 +51,7 @@ func Init() {
 	//}
 }
 
-// ReturnAllImages returns all images used by model and bindings.
+// ReturnAllImages returns all images available
 func ReturnAllImages(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /images")
 
@@ -59,16 +59,23 @@ func ReturnAllImages(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Images)
 }
 
-// ReturnSingleImage returns a single image identified by the image Kubernetes UID.
+// ReturnSingleImage returns the image identified by the supplied key. If no image
+// is found, sets the 404/NotFound HTTP status header
 func ReturnSingleImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
 	glog.V(4).Info("GET /images/" + key)
 
+	found := false
 	for _, images := range Images {
 		if images.ID == key {
+			found = true
 			json.NewEncoder(w).Encode(images)
 		}
+	}
+
+	if !found {
+		w.WriteHeader(http.StatusNotFound)
 	}
 }
