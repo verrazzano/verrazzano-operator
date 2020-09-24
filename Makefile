@@ -48,6 +48,9 @@ HELM_CHART_ARCHIVE_NAME = ${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz
 .PHONY: all
 all: build
 
+.PHONY: check
+check: go-fmt go-vet go-ineffassign
+
 #
 # Go build related tasks
 #
@@ -124,7 +127,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: build
-build: go-mod
+build: go-mod check
 	docker build --pull \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 

@@ -10,11 +10,11 @@ import (
 	"testing"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/testutilcontroller"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
-	"gopkg.in/yaml.v2"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
@@ -97,7 +97,7 @@ func TestCreateNewApplication(t *testing.T) {
 	noBindingAppRequest, err := http.NewRequest("POST", "/applications", bytes.NewBuffer(noBindingAppBytes))
 	assert.Nil(t, err, "Unexpected error - cannot create http request for noBinding test application")
 	notAnAppRequest, err := http.NewRequest("POST", "/applications", bytes.NewBuffer([]byte(notAnApplication)))
-
+	assert.Nil(t, err, "Unexpected error - cannot create http request for invalid application")
 	tests := []struct {
 		name           string
 		req            *http.Request
@@ -190,7 +190,9 @@ func assertApplicationOk(t *testing.T, application Application, mbPair *types.Mo
 	// Marshal and unmarshal the in-memory expected model and binding
 	// Otherwise there are differences between the actual/expected in terms of nil vs empty {}
 	marshaledModel, err := yaml.Marshal(mbPair.Model)
+	assert.Nil(t, err, "Unexpected error - cannot marshal in-memory model")
 	marshaledBinding, err := yaml.Marshal(mbPair.Binding)
+	assert.Nil(t, err, "Unexpected error - cannot marshal in-memory binding")
 	expectedModel := v1beta1.VerrazzanoModel{}
 	expectedBinding := v1beta1.VerrazzanoBinding{}
 	err = yaml.Unmarshal(marshaledModel, &expectedModel)
