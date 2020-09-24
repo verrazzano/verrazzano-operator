@@ -119,6 +119,16 @@ pipeline {
             }
         }
 
+        stage('golint Check') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano-operator
+                    make go-lint
+                """
+            }
+        }
+
         stage('ineffassign Check') {
             when { not { buildingTag() } }
             steps {
