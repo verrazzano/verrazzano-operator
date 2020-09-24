@@ -4,6 +4,6 @@
 package monitoring
 
 /*
-Package moinitoring manages resources used by Filebeats, Journalbeats, and NodeExporters.  Filebeats and Journalbeats ship
+Package monitoring manages resources used by Filebeats, Journalbeats, and NodeExporters.  Filebeats and Journalbeats ship
 log data to Elasticsearch.  NodeExporters send metrics to prometheus.
 */
