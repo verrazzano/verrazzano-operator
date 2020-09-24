@@ -140,10 +140,17 @@ func ReturnSingleApplication(w http.ResponseWriter, r *http.Request) {
 	// Loop over all of our Applications
 	// if the article.Id equals the key we pass in
 	// return the article encoded as JSON
+	foundApplication := false
 	for _, application := range Applications {
 		if application.ID == key {
+			foundApplication = true
 			json.NewEncoder(w).Encode(application)
 		}
+	}
+	if !foundApplication {
+		msg := fmt.Sprintf("Application with ID %v not found", key)
+		http.Error(w, msg, http.StatusNotFound)
+		return
 	}
 }
 
@@ -162,7 +169,12 @@ func CreateNewApplication(w http.ResponseWriter, r *http.Request) {
 	// append this to our Applications array.
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	var application Application
-	json.Unmarshal(reqBody, &application)
+	err = json.Unmarshal(reqBody, &application)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error parsing application JSON: %s", err.Error()),
+			http.StatusBadRequest)
+		return
+	}
 	// update our global Applications array to include
 	// our new Application
 	Applications = append(Applications, application)
@@ -186,15 +198,22 @@ func DeleteApplication(w http.ResponseWriter, r *http.Request) {
 	ID := vars["id"]
 	glog.V(4).Info("DELETE /applications/" + ID)
 
+	foundApplication := false
 	// we then need to loop through all our applications
 	for index, application := range Applications {
 		// if our id path parameter matches one of our
 		// applications
 		if application.ID == ID {
+			foundApplication = true
 			// updates our Applications array to remove the
 			// application
 			Applications = append(Applications[:index], Applications[index+1:]...)
 		}
+	}
+	if !foundApplication {
+		msg := fmt.Sprintf("Application with ID %v not found", ID)
+		http.Error(w, msg, http.StatusNotFound)
+		return
 	}
 }
 
@@ -216,13 +235,24 @@ func UpdateApplication(w http.ResponseWriter, r *http.Request) {
 	// get the updated application
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	var updatedApplication Application
-	json.Unmarshal(reqBody, &updatedApplication)
-
+	err = json.Unmarshal(reqBody, &updatedApplication)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error parsing application JSON: %s", err.Error()),
+			http.StatusBadRequest)
+		return
+	}
 	// find the right application and update it
+	foundApplication := false
 	for index, application := range Applications {
 		if application.ID == ID {
+			foundApplication = true
 			Applications = append(Applications[:index], updatedApplication)
 			Applications = append(Applications, Applications[index+1:]...)
 		}
+	}
+	if !foundApplication {
+		msg := fmt.Sprintf("Application with ID %v not found", ID)
+		http.Error(w, msg, http.StatusNotFound)
+		return
 	}
 }

@@ -8,10 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"github.com/gorilla/mux"
+	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
+
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
@@ -36,7 +36,7 @@ func TestReturnAllClusters(t *testing.T) {
 	initClusters()
 
 	request, _ := http.NewRequest("GET", "/clusters", nil)
-	responseRecorder := invokeHandler(request, "/clusters", ReturnAllClusters)
+	responseRecorder := testutil.InvokeHttpHandler(request, "/clusters", ReturnAllClusters)
 
 	assertEqual("2", responseRecorder.Header().Get("X-Total-Count"), "X-Total-Count header", t)
 
@@ -54,7 +54,7 @@ func TestReturnSingleCluster(t *testing.T) {
 	initClusters()
 
 	request, _ := http.NewRequest("GET", "/clusters/"+string(cluster1.UID), nil)
-	responseRecorder := invokeHandler(request, "/clusters/{id}", ReturnSingleCluster)
+	responseRecorder := testutil.InvokeHttpHandler(request, "/clusters/{id}", ReturnSingleCluster)
 
 	responseCluster := &TestCluster{}
 	json.Unmarshal(responseRecorder.Body.Bytes(), responseCluster)
@@ -80,15 +80,6 @@ func NewTestCluster(managedCluster v1beta1.VerrazzanoManagedCluster) *TestCluste
 		Description:   managedCluster.Spec.Description,
 		Status:        "OK",
 	}
-}
-
-func invokeHandler(request *http.Request, path string, handler func(http.ResponseWriter, *http.Request)) *httptest.ResponseRecorder {
-	responseRecorder := httptest.NewRecorder()
-	router := mux.NewRouter()
-	router.HandleFunc(path, handler)
-	router.ServeHTTP(responseRecorder, request)
-
-	return responseRecorder
 }
 
 func assertClusters(actualClusters []TestCluster, expectedClusters map[string]v1beta1.VerrazzanoManagedCluster, t *testing.T) {

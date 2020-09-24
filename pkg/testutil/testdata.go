@@ -150,12 +150,24 @@ func getPods() []*corev1.Pod {
 	}
 }
 
+// Get a test model and binding pair with the specified model and binding names in given NS
+func GetModelBindingPairWithNames(modelName string, bindingName string, ns string) *types.ModelBindingPair {
+	pair := GetModelBindingPair()
+	pair.Binding.Name = bindingName
+	pair.Model.Name = modelName
+	pair.Binding.Spec.ModelName = modelName
+	pair.Model.Namespace = ns
+	pair.Binding.Namespace = ns
+	return pair
+}
+
 // Get a test model binding pair.
 func GetModelBindingPair() *types.ModelBindingPair {
 	var pair = &types.ModelBindingPair{
 		Model: &v1beta1.VerrazzanoModel{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "testModel",
+				Name:      "testModel",
+				Namespace: "default",
 			},
 			Spec: v1beta1.VerrazzanoModelSpec{
 				Description: "",
@@ -230,9 +242,11 @@ func GetModelBindingPair() *types.ModelBindingPair {
 		},
 		Binding: &v1beta1.VerrazzanoBinding{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "testBinding",
+				Name:      "testBinding",
+				Namespace: "default",
 			},
 			Spec: v1beta1.VerrazzanoBindingSpec{
+				ModelName: "testModel",
 				Placement: []v1beta1.VerrazzanoPlacement{
 					{
 						Name: "local",
@@ -328,4 +342,13 @@ func GetModelBindingPair() *types.ModelBindingPair {
 		},
 	}
 	return pair
+}
+
+func GetTestClusters() []v1beta1.VerrazzanoManagedCluster {
+	return []v1beta1.VerrazzanoManagedCluster{
+		{
+			ObjectMeta: metav1.ObjectMeta{UID: "123-456-789", Name: "cluster1", Namespace: "default"},
+			Spec:       v1beta1.VerrazzanoManagedClusterSpec{Type: "testCluster", ServerAddress: "test.com", Description: "Test Cluster"},
+		},
+	}
 }
