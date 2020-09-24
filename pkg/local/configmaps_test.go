@@ -71,23 +71,43 @@ type Panel struct {
 	Panels []Panel `json:"panels"`
 }
 
-func TestSystemDashboard(t *testing.T) {
-	sysDash := constants.SystemDashboards[1]
-	//"Need to run "make go-install" to build assets
-	//content, err := assets.Asset(sysDash)
-	filename, _ := filepath.Abs(fmt.Sprintf("../../%s", sysDash))
-	content, err := ioutil.ReadFile(filename)
-	if err != nil {
-		t.Fatalf("Error reading %v %v", sysDash, err)
+func TestAllDashboardsUniqueIDs(t *testing.T) {
+	checkDashboardUniqueIDs(t, constants.SystemDashboards[1])
+	for i := 1; i < len(constants.DefaultDashboards); i++ {
+		checkDashboardUniqueIDs(t, constants.DefaultDashboards[i])
 	}
-	var dashboard Dashboard
-	err = json.Unmarshal(content, &dashboard)
+}
+
+func checkDashboardUniqueIDs(t *testing.T, name string) {
+	dashboard, err := readDashboard(name)
 	if err != nil {
-		t.Fatalf("Error reading %v %v", sysDash, err)
+		t.Fatalf("Error reading %v %v", name, err)
 	}
 	ids := map[int]*[]string{0: {fmt.Sprintf("'%v'(%v)", dashboard.Title, 0)}}
 	for _, p := range dashboard.Panels {
 		ids = checkPanelId(t, 0, ids, &p)
+	}
+}
+
+func readDashboard(name string) (*Dashboard, error) {
+	filename, _ := filepath.Abs(fmt.Sprintf("../../%s", name))
+	content, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	var dashboard Dashboard
+	err = json.Unmarshal(content, &dashboard)
+	if err != nil {
+		return nil, err
+	}
+	return &dashboard, nil
+}
+
+func TestSystemDashboardCpuPanels(t *testing.T) {
+	sysDash := constants.SystemDashboards[1]
+	dashboard, err := readDashboard(sysDash)
+	if err != nil {
+		t.Fatalf("Error reading %v %v", sysDash, err)
 	}
 	panCPU := findPanel(201, dashboard.Panels)
 	assert.Equal(t, "CPU", panCPU.Title, "panelCPU.Title")
