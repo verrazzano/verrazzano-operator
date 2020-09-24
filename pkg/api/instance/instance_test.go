@@ -12,44 +12,44 @@ import (
 
 const urlTemp = "https://%v.%v"
 
-const vzUri = "abc.v8o.example.com"
+const vzURI = "abc.v8o.example.com"
 
 // Test KeyCloak Url
 func TestGetKeyCloakUrl(t *testing.T) {
-	SetVerrazzanoUri(vzUri)
-	keycloakUrl := fmt.Sprintf(urlTemp, "keycloak", vzUri)
-	assert.Equal(t, keycloakUrl, GetKeyCloakUrl(), "Expected KeyCloakUrl")
+	SetVerrazzanoUri(vzURI)
+	keycloakURL := fmt.Sprintf(urlTemp, "keycloak", vzURI)
+	assert.Equal(t, keycloakURL, GetKeyCloakUrl(), "Expected KeyCloakUrl")
 
-	vzUri2 := "xyz.v8o.example.com"
-	SetVerrazzanoUri(vzUri2)
-	keycloakUrl = fmt.Sprintf(urlTemp, "keycloak", vzUri2)
-	assert.Equal(t, keycloakUrl, GetKeyCloakUrl(), "Expected KeyCloakUrl")
+	vzURI2 := "xyz.v8o.example.com"
+	SetVerrazzanoUri(vzURI2)
+	keycloakURL = fmt.Sprintf(urlTemp, "keycloak", vzURI2)
+	assert.Equal(t, keycloakURL, GetKeyCloakUrl(), "Expected KeyCloakUrl")
 }
 
 // Test Kinana Url
 func TestGetKibanaUrl(t *testing.T) {
-	SetVerrazzanoUri(vzUri)
-	expectedUrl := fmt.Sprintf(urlTemp, "kibana.vmi.system", vzUri)
-	assert.Equal(t, expectedUrl, GetKibanaUrl(), "Invalid Kibana Url")
+	SetVerrazzanoUri(vzURI)
+	expectedURL := fmt.Sprintf(urlTemp, "kibana.vmi.system", vzURI)
+	assert.Equal(t, expectedURL, GetKibanaUrl(), "Invalid Kibana Url")
 }
 
 // Test Grafana Url
 func TestGetGrafanaUrl(t *testing.T) {
-	SetVerrazzanoUri(vzUri)
-	expectedUrl := fmt.Sprintf(urlTemp, "grafana.vmi.system", vzUri)
-	assert.Equal(t, expectedUrl, GetGrafanaUrl(), "Invalid Grafana Url")
+	SetVerrazzanoUri(vzURI)
+	expectedURL := fmt.Sprintf(urlTemp, "grafana.vmi.system", vzURI)
+	assert.Equal(t, expectedURL, GetGrafanaUrl(), "Invalid Grafana Url")
 }
 
 // Test Prometheus Url
 func TestGetPrometheusUrl(t *testing.T) {
-	SetVerrazzanoUri(vzUri)
-	expectedUrl := fmt.Sprintf(urlTemp, "prometheus.vmi.system", vzUri)
-	assert.Equal(t, expectedUrl, GetPrometheusUrl(), "Invalid Prometheus Url")
+	SetVerrazzanoUri(vzURI)
+	expectedURL := fmt.Sprintf(urlTemp, "prometheus.vmi.system", vzURI)
+	assert.Equal(t, expectedURL, GetPrometheusUrl(), "Invalid Prometheus Url")
 }
 
 // Test Elastic Search Url
 func TestGetElasticUrl(t *testing.T) {
-	SetVerrazzanoUri(vzUri)
-	expectedUrl := fmt.Sprintf(urlTemp, "elasticsearch.vmi.system", vzUri)
-	assert.Equal(t, expectedUrl, GetElasticUrl(), "Invalid Elastic Url")
+	SetVerrazzanoUri(vzURI)
+	expectedURL := fmt.Sprintf(urlTemp, "elasticsearch.vmi.system", vzURI)
+	assert.Equal(t, expectedURL, GetElasticUrl(), "Invalid Elastic Url")
 }

@@ -16,8 +16,9 @@ import (
 // This file is very similar to applications.go - please see comments there
 // which equally apply to this file
 
+// Operator details of operator returned in API calls.
 type Operator struct {
-	Id          string `json:"id"`
+	ID          string `json:"id"`
 	Cluster     string `json:"cluster"`
 	Type        string `json:"type"`
 	RestAddress string `json:"restAddress"`
@@ -27,10 +28,11 @@ type Operator struct {
 }
 
 var (
-	Operators []Operator
+	operators []Operator
 	listerSet controller.Listers
 )
 
+// Init initialization for operators API.
 func Init(listers controller.Listers) {
 	listerSet = listers
 	refreshOperators()
@@ -38,7 +40,7 @@ func Init(listers controller.Listers) {
 
 func refreshOperators() {
 	// initialize operators as an empty list to avoid json encoding "nil"
-	Operators = []Operator{}
+	operators = []Operator{}
 
 	for _, mbp := range *listerSet.ModelBindingPairs {
 
@@ -46,9 +48,9 @@ func refreshOperators() {
 		for _, mc := range mbp.ManagedClusters {
 			// Each managed cluster can only have one WebLogic operator
 			if mc.WlsOperator != nil {
-				Operators = append(Operators, Operator{
+				operators = append(operators, Operator{
 					Name:    mc.WlsOperator.Spec.Name,
-					Id:      string(mc.WlsOperator.UID),
+					ID:      string(mc.WlsOperator.UID),
 					Cluster: mc.Name,
 					Type:    "WebLogic",
 					RestAddress: func() string {
@@ -63,23 +65,25 @@ func refreshOperators() {
 	}
 }
 
+// ReturnAllOperators returns all operators used by model and bindings.
 func ReturnAllOperators(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /operators")
 
 	refreshOperators()
-	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Operators)), 10))
-	json.NewEncoder(w).Encode(Operators)
+	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(operators)), 10))
+	json.NewEncoder(w).Encode(operators)
 }
 
+// ReturnSingleOperator returns a single operator identified by the secret Kubernetes UID.
 func ReturnSingleOperator(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
 	glog.V(4).Info("GET /operators/" + key)
 
-	for _, operator := range Operators {
-		if operator.Id == key {
-			json.NewEncoder(w).Encode(operator)
+	for _, oper := range operators {
+		if oper.ID == key {
+			json.NewEncoder(w).Encode(oper)
 		}
 	}
 }
