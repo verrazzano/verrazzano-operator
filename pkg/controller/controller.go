@@ -489,7 +489,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create Service for Node Exporter
-	err = managed.CreateServices(mbPair, c.managedClusterConnections)
+	err = managed.CreateServices(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create service for binding %s: %v", mbPair.Binding.Name, err)
 	}
