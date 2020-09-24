@@ -4,11 +4,21 @@
 package local
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
+
+	"k8s.io/client-go/kubernetes"
+	fakek8s "k8s.io/client-go/kubernetes/fake"
+	v1 "k8s.io/client-go/listers/core/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -153,4 +163,116 @@ func findPanel(id int, panels []Panel) *Panel {
 		}
 	}
 	return nil
+}
+
+func configMap(name string, labels map[string]string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      util.GetVmiNameForBinding(name) + "-dashboards",
+			Namespace: constants.VerrazzanoNamespace,
+			Labels:    labels,
+		},
+		Data: map[string]string{},
+	}
+}
+
+func TestUpdateConfigMaps(t *testing.T) {
+	var binding v1beta1v8o.VerrazzanoBinding
+	binding.Name = "system"
+	ns := constants.VerrazzanoNamespace
+	labels := util.GetLocalBindingLabels(&binding)
+	cmSys := configMap("system", labels)
+	kubeCli := fakek8s.NewSimpleClientset(cmSys)
+	cLister := testutil.NewConfigMapLister(kubeCli)
+	assert.Equal(t, 0, len(cmSys.Data), "Expected size of Data")
+	err := UpdateConfigMaps(&binding, kubeCli, cLister)
+	assert.Nil(t, err, "UpdateConfigMaps error")
+	cmSys, err = kubeCli.CoreV1().ConfigMaps(ns).Get(context.TODO(), cmSys.Name, metav1.GetOptions{})
+	assert.Equal(t, 2, len(cmSys.Data), "Expected size of Data")
+	assert.Nil(t, err, "Get ConfigMaps error")
+}
+
+func TestUpdateWithExistingConfigMaps(t *testing.T) {
+	var binding v1beta1v8o.VerrazzanoBinding
+	binding.Name = "system"
+	labels := util.GetLocalBindingLabels(&binding)
+	cm1 := configMap("system", labels)
+	cm2 := configMap("exisitngSystem", labels)
+	kubeCli := fakek8s.NewSimpleClientset(cm1, cm2)
+	cLister := testutil.NewConfigMapLister(kubeCli)
+	list, _ := kubeCli.CoreV1().ConfigMaps(constants.VerrazzanoNamespace).List(context.TODO(), metav1.ListOptions{})
+	assert.Equal(t, 2, len(list.Items), "Expected size of configMaps")
+	err := UpdateConfigMaps(&binding, kubeCli, cLister)
+	assert.Nil(t, err, "UpdateConfigMaps error")
+	list, _ = kubeCli.CoreV1().ConfigMaps(constants.VerrazzanoNamespace).List(context.TODO(), metav1.ListOptions{})
+	assert.Equal(t, 1, len(list.Items), "Expected size of configMaps")
+	cm, _ := kubeCli.CoreV1().ConfigMaps(constants.VerrazzanoNamespace).Get(context.TODO(), cm1.Name, metav1.GetOptions{})
+	assert.Equal(t, 2, len(cm.Data), "Expected size of Data")
+	cm, _ = kubeCli.CoreV1().ConfigMaps(constants.VerrazzanoNamespace).Get(context.TODO(), cm2.Name, metav1.GetOptions{})
+	assert.Nil(t, cm, "DeleteConfigMaps error")
+}
+
+func TestUpdateConfigMapsWithUpdateError(t *testing.T) {
+	var binding v1beta1v8o.VerrazzanoBinding
+	binding.Name = "system"
+	//ns := constants.VerrazzanoNamespace
+	labels := util.GetLocalBindingLabels(&binding)
+	cm1 := configMap("system", labels)
+	cm2 := configMap("System", labels)
+	//obj := corev1.ConfigMap{}
+	kubeCli := testutil.MockError(fakek8s.NewSimpleClientset(cm1, cm2), "update", "configmaps", &corev1.ConfigMap{})
+	cLister := testutil.NewConfigMapLister(kubeCli)
+	err := UpdateConfigMaps(&binding, kubeCli, cLister)
+	assert.NotNil(t, err, "Expected UpdateConfigMaps error")
+}
+
+func TestUpdateConfigMapsWithDeleteError(t *testing.T) {
+	var binding v1beta1v8o.VerrazzanoBinding
+	binding.Name = "system"
+	//ns := constants.VerrazzanoNamespace
+	labels := util.GetLocalBindingLabels(&binding)
+	cm1 := configMap("system", labels)
+	cm2 := configMap("System", labels)
+	kubeCli := testutil.MockError(fakek8s.NewSimpleClientset(cm1, cm2), "delete", "configmaps", &corev1.ConfigMap{})
+	cLister := testutil.NewConfigMapLister(kubeCli)
+	err := UpdateConfigMaps(&binding, kubeCli, cLister)
+	assert.NotNil(t, err, "Expected UpdateConfigMaps error")
+}
+
+func TestDeleteConfigMap(t *testing.T) {
+	var binding v1beta1v8o.VerrazzanoBinding
+	binding.Name = "system"
+	labels := util.GetLocalBindingLabels(&binding)
+	cm1 := configMap("system", labels)
+
+	var kubeCli kubernetes.Interface = fakek8s.NewSimpleClientset(cm1)
+	var cLister v1.ConfigMapLister = testutil.NewConfigMapLister(kubeCli)
+	err := DeleteConfigMaps(&binding, kubeCli, cLister)
+	assert.Nil(t, err, "DeleteConfigMaps error")
+	cm, _ := kubeCli.CoreV1().ConfigMaps(constants.VerrazzanoNamespace).Get(context.TODO(), cm1.Name, metav1.GetOptions{})
+	assert.Nil(t, cm, "DeleteConfigMaps error")
+}
+
+func TestDeleteConfigMapWithListError(t *testing.T) {
+	var binding v1beta1v8o.VerrazzanoBinding
+	binding.Name = "system"
+	labels := util.GetLocalBindingLabels(&binding)
+	cm1 := configMap("system", labels)
+	var kubeCli kubernetes.Interface = fakek8s.NewSimpleClientset(cm1)
+	kubeCli = testutil.MockError(kubeCli, "list", "configmaps", &corev1.ConfigMapList{})
+	var cLister v1.ConfigMapLister = testutil.NewConfigMapLister(kubeCli)
+	err := DeleteConfigMaps(&binding, kubeCli, cLister)
+	assert.NotNil(t, err, "Expected DeleteConfigMaps error")
+}
+
+func TestDeleteConfigMapWithDeleteError(t *testing.T) {
+	var binding v1beta1v8o.VerrazzanoBinding
+	binding.Name = "system"
+	labels := util.GetLocalBindingLabels(&binding)
+	cm1 := configMap("system", labels)
+	var kubeCli kubernetes.Interface = fakek8s.NewSimpleClientset(cm1)
+	kubeCli = testutil.MockError(kubeCli, "delete", "configmaps", &corev1.ConfigMap{})
+	cLister := testutil.NewConfigMapLister(kubeCli)
+	err := DeleteConfigMaps(&binding, kubeCli, cLister)
+	assert.NotNil(t, err, "Expected DeleteConfigMaps error")
 }
