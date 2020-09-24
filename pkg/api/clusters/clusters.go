@@ -15,8 +15,9 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+// Cluster details of cluster returned in API calls.
 type Cluster struct {
-	Id            string `json:"id"`
+	ID            string `json:"id"`
 	Name          string `json:"name"`
 	Type          string `json:"type"`
 	ServerAddress string `json:"serverAddress"`
@@ -25,15 +26,18 @@ type Cluster struct {
 }
 
 var (
+	// Clusters contains all clusters.
 	Clusters  []Cluster
 	listerSet controller.Listers
 )
 
+// Init initialization for clusters API.
 func Init(listers controller.Listers) {
 	listerSet = listers
 	refreshClusters()
 }
 
+// GetClusters returns list of clusters.
 func GetClusters() ([]Cluster, error) {
 	err := refreshClusters()
 	if err != nil {
@@ -55,7 +59,7 @@ func refreshClusters() error {
 	i := 0
 	for _, cluster := range managedClusters {
 		Clusters = append(Clusters, Cluster{
-			Id:            string(cluster.UID),
+			ID:            string(cluster.UID),
 			Name:          cluster.Name,
 			Type:          cluster.Spec.Type,
 			ServerAddress: cluster.Spec.ServerAddress,
@@ -67,6 +71,7 @@ func refreshClusters() error {
 	return nil
 }
 
+// ReturnAllClusters returns all Verrazzano managed cluster resources.
 func ReturnAllClusters(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /clusters")
 
@@ -81,6 +86,7 @@ func ReturnAllClusters(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Clusters)
 }
 
+// ReturnSingleCluster returns a single Verrazzano managed cluster resource identified by a Kubernetes UID.
 func ReturnSingleCluster(w http.ResponseWriter, r *http.Request) {
 	err := refreshClusters()
 	if err != nil {
@@ -98,7 +104,7 @@ func ReturnSingleCluster(w http.ResponseWriter, r *http.Request) {
 	// if the article.Id equals the key we pass in
 	// return the article encoded as JSON
 	for _, clusters := range Clusters {
-		if clusters.Id == key {
+		if clusters.ID == key {
 			json.NewEncoder(w).Encode(clusters)
 		}
 	}

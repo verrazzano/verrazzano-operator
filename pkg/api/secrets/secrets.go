@@ -50,7 +50,8 @@ type DockerRegistry struct {
 }
 
 var (
-	secrets   []Secret
+	// Secrets contains all secrets.
+	Secrets   []Secret
 	listerSet controller.Listers
 )
 
@@ -73,7 +74,7 @@ func addSecret(secretNames []string, secretName string) []string {
 
 func refreshSecrets() {
 	// initialize secrets as an empty list to avoid json encoding "nil"
-	secrets = []Secret{}
+	Secrets = []Secret{}
 
 	// Get a list of the models that have been deployed to the management cluster
 	modelSelector := labels.SelectorFromSet(map[string]string{})
@@ -150,7 +151,7 @@ func addSecrets(secretNames []string) {
 			continue
 		}
 
-		secrets = append(secrets, Secret{
+		Secrets = append(Secrets, Secret{
 			ID:        string(theSecret.UID),
 			Name:      secretName,
 			Namespace: "",
@@ -177,8 +178,8 @@ func ReturnAllSecrets(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /secrets")
 	refreshSecrets()
 
-	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(secrets)), 10))
-	json.NewEncoder(w).Encode(secrets)
+	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Secrets)), 10))
+	json.NewEncoder(w).Encode(Secrets)
 }
 
 // ReturnSingleSecret returns a single secret identified by the secret Kubernetes UID.
@@ -189,9 +190,9 @@ func ReturnSingleSecret(w http.ResponseWriter, r *http.Request) {
 
 	glog.V(4).Info("GET /secrets/" + key)
 
-	for _, s := range secrets {
-		if s.ID == key {
-			json.NewEncoder(w).Encode(s)
+	for _, secrets := range Secrets {
+		if secrets.ID == key {
+			json.NewEncoder(w).Encode(secrets)
 		}
 	}
 }

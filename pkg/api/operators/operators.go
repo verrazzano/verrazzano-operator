@@ -28,7 +28,8 @@ type Operator struct {
 }
 
 var (
-	operators []Operator
+	// Operators contains all operators.
+	Operators []Operator
 	listerSet controller.Listers
 )
 
@@ -40,7 +41,7 @@ func Init(listers controller.Listers) {
 
 func refreshOperators() {
 	// initialize operators as an empty list to avoid json encoding "nil"
-	operators = []Operator{}
+	Operators = []Operator{}
 
 	for _, mbp := range *listerSet.ModelBindingPairs {
 
@@ -48,7 +49,7 @@ func refreshOperators() {
 		for _, mc := range mbp.ManagedClusters {
 			// Each managed cluster can only have one WebLogic operator
 			if mc.WlsOperator != nil {
-				operators = append(operators, Operator{
+				Operators = append(Operators, Operator{
 					Name:    mc.WlsOperator.Spec.Name,
 					ID:      string(mc.WlsOperator.UID),
 					Cluster: mc.Name,
@@ -70,20 +71,20 @@ func ReturnAllOperators(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /operators")
 
 	refreshOperators()
-	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(operators)), 10))
-	json.NewEncoder(w).Encode(operators)
+	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Operators)), 10))
+	json.NewEncoder(w).Encode(Operators)
 }
 
-// ReturnSingleOperator returns a single operator identified by the secret Kubernetes UID.
+// ReturnSingleOperator returns a single operator identified by the operator Kubernetes UID.
 func ReturnSingleOperator(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
 	glog.V(4).Info("GET /operators/" + key)
 
-	for _, oper := range operators {
-		if oper.ID == key {
-			json.NewEncoder(w).Encode(oper)
+	for _, operator := range Operators {
+		if operator.ID == key {
+			json.NewEncoder(w).Encode(operator)
 		}
 	}
 }

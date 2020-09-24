@@ -27,7 +27,8 @@ type Microservice struct {
 }
 
 var (
-	microservices []Microservice
+	// Microservices contains all microservices.
+	Microservices []Microservice
 	listerSet     controller.Listers
 )
 
@@ -40,13 +41,13 @@ func Init(listers controller.Listers) {
 func refreshMicroservices() {
 
 	// initialize microservices as an empty list to avoid json encoding "nil"
-	microservices = []Microservice{}
+	Microservices = []Microservice{}
 
 	for _, mbp := range *listerSet.ModelBindingPairs {
 		// Find all HelidonApps across all managed clusters within this model/binding pair
 		for _, mc := range mbp.ManagedClusters {
 			for _, helidonApp := range mc.HelidonApps {
-				microservices = append(microservices, Microservice{
+				Microservices = append(Microservices, Microservice{
 					ID:        helidonApp.Spec.Name,
 					Name:      helidonApp.Spec.Name,
 					Cluster:   mc.Name,
@@ -63,11 +64,11 @@ func refreshMicroservices() {
 func ReturnAllMicroservices(w http.ResponseWriter, r *http.Request) {
 	refreshMicroservices()
 	glog.V(4).Info("GET /microservices")
-	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(microservices)), 10))
-	json.NewEncoder(w).Encode(microservices)
+	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Microservices)), 10))
+	json.NewEncoder(w).Encode(Microservices)
 }
 
-// ReturnSingleMicroservice returns a single microservice identified by the secret Kubernetes UID.
+// ReturnSingleMicroservice returns a single microservice identified by the microservice Kubernetes UID.
 func ReturnSingleMicroservice(w http.ResponseWriter, r *http.Request) {
 	refreshMicroservices()
 	vars := mux.Vars(r)
@@ -75,9 +76,9 @@ func ReturnSingleMicroservice(w http.ResponseWriter, r *http.Request) {
 
 	glog.V(4).Info("GET /microservices/" + key)
 
-	for _, ms := range microservices {
-		if ms.ID == key {
-			json.NewEncoder(w).Encode(ms)
+	for _, microservices := range Microservices {
+		if microservices.ID == key {
+			json.NewEncoder(w).Encode(microservices)
 		}
 	}
 }

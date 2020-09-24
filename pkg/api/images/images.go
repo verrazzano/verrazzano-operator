@@ -15,6 +15,7 @@ import (
 // This file is very similar to applications.go - please see comments there
 // which equally apply to this file
 
+// Image details of image returned in API calls.
 type Image struct {
 	ID              string `json:"id"`
 	Format          string `json:"format"`
@@ -28,8 +29,10 @@ type Image struct {
 	Status          string `json:"status"`
 }
 
+// Images contains all images.
 var Images []Image
 
+// Init initialization for images API.
 func Init() {
 	Images = []Image{}
 	//Images = []Image{
@@ -48,6 +51,7 @@ func Init() {
 	//}
 }
 
+// ReturnAllImages returns all images used by model and bindings.
 func ReturnAllImages(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /images")
 
@@ -55,6 +59,7 @@ func ReturnAllImages(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Images)
 }
 
+// ReturnSingleImage returns a single image identified by the image Kubernetes UID.
 func ReturnSingleImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
