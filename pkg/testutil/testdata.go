@@ -105,6 +105,9 @@ func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		kubeClient: clusterConnection.KubeClient,
 	}
 
+	clusterConnection.ServiceAccountLister = &simpleServiceAccountLister{
+		kubeClient: clusterConnection.KubeClient,
+	}
 	return clusterConnection
 }
 
@@ -324,6 +327,11 @@ func GetModelBindingPair() *types.ModelBindingPair {
 			"cluster2": {
 				Name:       "cluster2",
 				Namespaces: []string{"default", "test2"},
+			},
+		},
+		ImagePullSecrets: []corev1.LocalObjectReference{
+			{
+				Name: "test-imagePullSecret",
 			},
 		},
 	}

@@ -456,3 +456,62 @@ func (s simpleServiceNamespaceLister) List(selector labels.Selector) (ret []*v1.
 func (s simpleServiceNamespaceLister) Get(name string) (*v1.Service, error) {
 	return s.kubeClient.CoreV1().Services(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
+
+// ----- simpleServiceAccountLister
+// Simple ServiceAccountLister implementation.
+type simpleServiceAccountLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// list all Service Accounts
+func (s *simpleServiceAccountLister) List(selector labels.Selector) (ret []*v1.ServiceAccount, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var serviceAccounts []*v1.ServiceAccount
+	for _, namespace := range namespaces.Items {
+
+		list, err := s.ServiceAccounts(namespace.Name).List(selector)
+		if err != nil {
+			return nil, err
+		}
+		serviceAccounts = append(serviceAccounts, list...)
+	}
+	return serviceAccounts, nil
+}
+
+// returns an object that can list and get Service Accounts for the given namespace
+func (s *simpleServiceAccountLister) ServiceAccounts(namespace string) corelistersv1.ServiceAccountNamespaceLister {
+	return simpleServiceAccountNamespaceLister{
+		namespace:  namespace,
+		kubeClient: s.kubeClient,
+	}
+}
+
+type simpleServiceAccountNamespaceLister struct {
+	namespace  string
+	kubeClient kubernetes.Interface
+}
+
+// list all Service Accounts for a given namespace
+func (s simpleServiceAccountNamespaceLister) List(selector labels.Selector) (ret []*v1.ServiceAccount, err error) {
+	var serviceAccounts []*v1.ServiceAccount
+
+	list, err := s.kubeClient.CoreV1().ServiceAccounts(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		serviceAccount := list.Items[i]
+		if selector.Matches(labels.Set(serviceAccount.Labels)) {
+			serviceAccounts = append(serviceAccounts, &serviceAccount)
+		}
+	}
+	return serviceAccounts, nil
+}
+
+// retrieves the Service Account for a given namespace and name
+func (s simpleServiceAccountNamespaceLister) Get(name string) (*v1.ServiceAccount, error) {
+	return s.kubeClient.CoreV1().ServiceAccounts(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}

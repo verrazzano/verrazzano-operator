@@ -20,14 +20,9 @@ import (
 )
 
 // CreateServiceAccounts creates/updates service accounts needed for each managed cluster.
-func CreateServiceAccounts(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func CreateServiceAccounts(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 
 	glog.V(6).Infof("Creating/updating Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
-
-	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return err
-	}
 
 	// Construct service account for each ManagedCluster
 	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
