@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func TestSimplePodLister(t *testing.T) {
@@ -298,4 +299,58 @@ func TestSimpleSecretNamespaceLister(t *testing.T) {
 	secret, err = clusterConnection.SecretLister.Secrets("test-namespace-1").Get("test-secret-invalid")
 	assert.Error(err, "Should err for a non-existing secret.")
 	assert.Nil(secret, "Should return nil for a non-existing secret.")
+}
+
+func TestSimpleServiceLister(t *testing.T) {
+	clusterConnections := GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	svc := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-service",
+			Namespace: "test",
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "metrics",
+					Port:       9100,
+					TargetPort: intstr.FromInt(9100),
+					Protocol:   "TCP",
+				},
+			},
+			Type: "ClusterIP",
+		},
+	}
+	_, err := clusterConnection.KubeClient.CoreV1().Services("test").Create(context.TODO(), &svc, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create service: %v", err))
+	}
+
+	l := simpleServiceLister{
+		clusterConnection.KubeClient,
+	}
+
+	s := labels.Everything()
+	services, err := l.List(s)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get services: %v", err))
+	}
+	// testdata includes the istio-ingressgateway service so expect 2 services
+	assert.Equal(t, 2, len(services))
+
+	nsl := l.Services("test")
+
+	services, err = nsl.List(s)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get services: %v", err))
+	}
+	assert.Equal(t, 1, len(services))
+
+	service, err := nsl.Get("test-service")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get service: %v", err))
+	}
+	assert.Equal(t, "test-service", service.Name)
+	assert.Equal(t, "test", service.Namespace)
 }
