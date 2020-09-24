@@ -18,15 +18,9 @@ import (
 )
 
 // CreateConfigMaps creates/updates config maps needed for each managed cluster.
-func CreateConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func CreateConfigMaps(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 
 	glog.V(6).Infof("Creating/updating ConfigMap for VerrazzanoBinding %s", mbPair.Binding.Name)
-
-	// Parse out the clusters that this binding applies to Construct configMaps for each Cluster
-	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return err
-	}
 
 	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
@@ -46,7 +40,7 @@ func CreateConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterCon
 			}
 		} else {
 			for _, newConfigMap := range managedClusterObj.ConfigMaps {
-				err = createUpdateConfigMaps(managedClusterConnection, newConfigMap, clusterName)
+				err := createUpdateConfigMaps(managedClusterConnection, newConfigMap, clusterName)
 				if err != nil {
 					return err
 				}
@@ -77,7 +71,7 @@ func createUpdateConfigMaps(managedClusterConnection *util.ManagedClusterConnect
 }
 
 // CleanupOrphanedConfigMaps deletes config maps that have been orphaned.
-func CleanupOrphanedConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allMbPairs map[string]*types.ModelBindingPair) error {
+func CleanupOrphanedConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Cleaning up orphaned ConfigMaps for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Get the managed clusters that this binding does NOT apply to
