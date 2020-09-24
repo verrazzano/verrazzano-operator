@@ -75,6 +75,66 @@ func (s simplePodNamespaceLister) Get(name string) (*v1.Pod, error) {
 	return s.kubeClient.CoreV1().Pods(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
+// simple ConfigMapLister implementation
+type simpleConfigMapLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// lists all ConfigMaps
+func (s *simpleConfigMapLister) List(selector labels.Selector) (ret []*v1.ConfigMap, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var pods []*v1.ConfigMap
+	for _, namespace := range namespaces.Items {
+
+		list, err := s.ConfigMaps(namespace.Name).List(selector)
+		if err != nil {
+			return nil, err
+		}
+		pods = append(pods, list...)
+	}
+	return pods, nil
+}
+
+// ConfigMaps returns an object that can list and get ConfigMaps.
+func (s *simpleConfigMapLister) ConfigMaps(namespace string) corelistersv1.ConfigMapNamespaceLister {
+	return simpleConfigMapNamespaceLister{
+		namespace:  namespace,
+		kubeClient: s.kubeClient,
+	}
+}
+
+// configMapNamespaceLister implements the ConfigMapNamespaceLister
+// interface.
+type simpleConfigMapNamespaceLister struct {
+	namespace  string
+	kubeClient kubernetes.Interface
+}
+
+// List lists all ConfigMaps in the indexer for a given namespace.
+func (s simpleConfigMapNamespaceLister) List(selector labels.Selector) (ret []*v1.ConfigMap, err error) {
+	var configMaps []*v1.ConfigMap
+
+	list, err := s.kubeClient.CoreV1().ConfigMaps(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		configMap := list.Items[i]
+		if selector.Matches(labels.Set(configMap.Labels)) {
+			configMaps = append(configMaps, &configMap)
+		}
+	}
+	return configMaps, nil
+}
+
+// Get retrieves the ConfigMap from the indexer for a given namespace and name.
+func (s simpleConfigMapNamespaceLister) Get(name string) (*v1.ConfigMap, error) {
+	return s.kubeClient.CoreV1().ConfigMaps(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
 // ----- simpleSecretLister
 // Simple secret sister implementation.
 type simpleSecretLister struct {
