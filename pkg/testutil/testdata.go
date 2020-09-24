@@ -52,6 +52,10 @@ func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		kubeClient: clusterConnection.KubeClient,
 	}
 
+	clusterConnection.ConfigMapLister = &simpleConfigMapLister{
+		kubeClient: clusterConnection.KubeClient,
+	}
+
 	clusterConnection.SecretLister = &simpleSecretLister{
 		kubeClient: clusterConnection.KubeClient,
 	}
@@ -301,6 +305,18 @@ func GetModelBindingPair() *types.ModelBindingPair {
 							RemoteClusterName: "cluster2",
 							LocalNamespace:    "test",
 							Port:              8183,
+						},
+					},
+				},
+				ConfigMaps: []*corev1.ConfigMap{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-configmap",
+							Namespace: "test",
+						},
+						Data: map[string]string{
+							"foo": "aaa",
+							"bar": "bbb",
 						},
 					},
 				},

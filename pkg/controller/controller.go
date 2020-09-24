@@ -461,7 +461,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create ConfigMaps
-	err = managed.CreateConfigMaps(mbPair, c.managedClusterConnections)
+	err = managed.CreateConfigMaps(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create config maps for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -783,7 +783,7 @@ func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 	}
 
 	// Cleanup ConfigMaps
-	err = managed.CleanupOrphanedConfigMaps(mbPair, c.managedClusterConnections, c.modelBindingPairs)
+	err = managed.CleanupOrphanedConfigMaps(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to cleanup ConfigMaps for binding %s: %v", mbPair.Binding.Name, err)
 	}
