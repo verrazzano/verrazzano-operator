@@ -67,7 +67,7 @@ type Dashboard struct {
 type Panel struct {
 	Title  string  `json:"title"`
 	Type   string  `json:"type"`
-	Id     int     `json:"id"`
+	ID     int     `json:"id"`
 	Panels []Panel `json:"panels"`
 }
 
@@ -85,7 +85,7 @@ func checkDashboardUniqueIDs(t *testing.T, name string) {
 	}
 	ids := map[int]*[]string{0: {fmt.Sprintf("'%v'(%v)", dashboard.Title, 0)}}
 	for _, p := range dashboard.Panels {
-		ids = checkPanelId(t, 0, ids, &p)
+		ids = checkPanelID(t, 0, ids, &p)
 	}
 }
 
@@ -121,20 +121,20 @@ func TestSystemDashboardCpuPanels(t *testing.T) {
 	assert.Equal(t, "vCPU Usage", panCPU.Panels[1].Title, "panelCPU.Title")
 }
 
-func checkPanelId(t *testing.T, parentId int, ids map[int]*[]string, p *Panel) map[int]*[]string {
-	parentPath := ids[parentId]
+func checkPanelID(t *testing.T, parentID int, ids map[int]*[]string, p *Panel) map[int]*[]string {
+	parentPath := ids[parentID]
 	path := make([]string, len(*parentPath))
 	copy(path, *parentPath)
-	path = append(path, fmt.Sprintf("'%v'(%v)", p.Title, p.Id))
-	existingPanel := ids[p.Id]
+	path = append(path, fmt.Sprintf("'%v'(%v)", p.Title, p.ID))
+	existingPanel := ids[p.ID]
 	if existingPanel != nil {
 		t.Fatalf("Duplicate Panel id %v %v", existingPanel, path)
 	} else {
-		ids[p.Id] = &path
+		ids[p.ID] = &path
 	}
 	if p.Panels != nil {
 		for _, child := range p.Panels {
-			ids = checkPanelId(t, p.Id, ids, &child)
+			ids = checkPanelID(t, p.ID, ids, &child)
 		}
 	}
 	return ids
@@ -142,7 +142,7 @@ func checkPanelId(t *testing.T, parentId int, ids map[int]*[]string, p *Panel) m
 
 func findPanel(id int, panels []Panel) *Panel {
 	for _, p := range panels {
-		if p.Id == id {
+		if p.ID == id {
 			return &p
 		}
 		if p.Panels != nil {

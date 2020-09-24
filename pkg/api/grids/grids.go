@@ -16,8 +16,9 @@ import (
 // This file is very similar to applications.go - please see comments there
 // which equally apply to this file
 
+// Grid details of grid returned in API calls.
 type Grid struct {
-	Id        string `json:"id"`
+	ID        string `json:"id"`
 	Cluster   string `json:"cluster"`
 	Name      string `json:"name"`
 	PodName   string `json:"podName"`
@@ -28,10 +29,12 @@ type Grid struct {
 }
 
 var (
+	// Grids contains all grids.
 	Grids     []Grid
 	listerSet controller.Listers
 )
 
+// Init initialization for grids API.
 func Init(listers controller.Listers) {
 	listerSet = listers
 	refreshGrids()
@@ -47,7 +50,7 @@ func refreshGrids() {
 		i := 0
 		for _, grid := range mbp.Model.Spec.CoherenceClusters {
 			Grids = append(Grids, Grid{
-				Id: strconv.FormatInt(int64(i), 10),
+				ID: strconv.FormatInt(int64(i), 10),
 				Cluster: func() string {
 					return "NYI"
 				}(),
@@ -65,6 +68,7 @@ func refreshGrids() {
 	}
 }
 
+// ReturnAllGrids returns all grids used by model and bindings.
 func ReturnAllGrids(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /grids")
 
@@ -73,6 +77,7 @@ func ReturnAllGrids(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Grids)
 }
 
+// ReturnSingleGrid returns a single grid identified by the grid Kubernetes UID.
 func ReturnSingleGrid(w http.ResponseWriter, r *http.Request) {
 	refreshGrids()
 	vars := mux.Vars(r)
@@ -81,7 +86,7 @@ func ReturnSingleGrid(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /grids/" + key)
 
 	for _, grids := range Grids {
-		if grids.Id == key {
+		if grids.ID == key {
 			json.NewEncoder(w).Encode(grids)
 		}
 	}

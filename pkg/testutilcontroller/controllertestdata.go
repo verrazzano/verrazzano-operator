@@ -42,6 +42,7 @@ func testKeyFuncBinding(obj interface{}) (string, error) {
 	return string(obj.(*v1beta1.VerrazzanoBinding).UID), nil
 }
 
+// NewControllerListers constructs a list of listers for the controller.
 func NewControllerListers(clusters []v1beta1.VerrazzanoManagedCluster, modelBindingPairs *map[string]*types.ModelBindingPair) controller.Listers {
 	testIndexers := map[string]cache.IndexFunc{
 		"namespace": testIndexFunc,

@@ -461,7 +461,8 @@ func (s simpleServiceNamespaceLister) Get(name string) (*v1.Service, error) {
 	return s.kubeClient.CoreV1().Services(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
-func InvokeHttpHandler(request *http.Request, path string, handler func(http.ResponseWriter, *http.Request)) *httptest.ResponseRecorder {
+// InvokeHTTPHandler sets up a HTTP handler
+func InvokeHTTPHandler(request *http.Request, path string, handler func(http.ResponseWriter, *http.Request)) *httptest.ResponseRecorder {
 	responseRecorder := httptest.NewRecorder()
 	router := mux.NewRouter()
 	router.HandleFunc(path, handler)

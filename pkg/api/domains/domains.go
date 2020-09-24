@@ -19,8 +19,9 @@ import (
 // This file is very similar to applications.go - please see comments there
 // which equally apply to this file
 
+// Domain details of a WebLogic domain returned in API calls.
 type Domain struct {
-	Id                 string    `json:"id"`
+	ID                 string    `json:"id"`
 	Style              string    `json:"style"`
 	AdminServerAddress string    `json:"adminServerAddress"`
 	T3Address          string    `json:"t3Address"`
@@ -31,16 +32,18 @@ type Domain struct {
 	Clusters           []Cluster `json:"clusters,omitempty"`
 }
 
+// Server details a WebLogic domain server returned in API calls.
 type Server struct {
-	Id          string `json:"id"`
+	ID          string `json:"id"`
 	State       string `json:"state"`
 	ClusterName string `json:"clusterName"`
 	NodeName    string `json:"nodeName"`
 	Type        string `json:"type"`
 }
 
+// Cluster details a WebLogic domain cluster returned in API calls.
 type Cluster struct {
-	Id          string `json:"id"`
+	ID          string `json:"id"`
 	Type        string `json:"type"`
 	InitialSize string `json:"initialSize"`
 	MaxSize     string `json:"maxSize"`
@@ -48,10 +51,12 @@ type Cluster struct {
 }
 
 var (
+	// Domains contains all WebLogic domains.
 	Domains   []Domain
 	listerSet controller.Listers
 )
 
+// Init initialization for domains API.
 func Init(listers controller.Listers) {
 	listerSet = listers
 	refreshDomains()
@@ -70,13 +75,12 @@ func refreshDomains() {
 			// grab all of the domains
 			for _, domain := range mc.WlsDomainCRs {
 				Domains = append(Domains, Domain{
-					Id: domain.Name,
+					ID: domain.Name,
 					Style: func() string {
 						if domain.Spec.DomainHomeInImage == true {
 							return "domain-in-image"
-						} else {
-							return "domain-on-pv"
 						}
+						return "domain-on-pv"
 					}(),
 					AdminServerAddress: func() string {
 						for _, channel := range domain.Spec.AdminServer.AdminService.Channels {
@@ -115,7 +119,7 @@ func refreshDomains() {
 						servers := []Server{}
 						for _, server := range domain.Status.Servers {
 							servers = append(servers, Server{
-								Id:    server.ServerName,
+								ID:    server.ServerName,
 								State: server.State,
 								ClusterName: func() string {
 									if len(server.ClusterName) > 0 {
@@ -145,7 +149,7 @@ func refreshDomains() {
 						clusters := []Cluster{}
 						for _, cluster := range domain.Spec.Clusters {
 							clusters = append(clusters, Cluster{
-								Id:          cluster.ClusterName,
+								ID:          cluster.ClusterName,
 								InitialSize: strconv.FormatInt(int64(cluster.Replicas), 10),
 							})
 						}
@@ -157,6 +161,7 @@ func refreshDomains() {
 	}
 }
 
+// ReturnAllDomains returns all domains used by model and bindings.
 func ReturnAllDomains(w http.ResponseWriter, r *http.Request) {
 	refreshDomains()
 
@@ -166,6 +171,7 @@ func ReturnAllDomains(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Domains)
 }
 
+// ReturnSingleDomain returns a single domain identified by the domain Kubernetes UID.
 func ReturnSingleDomain(w http.ResponseWriter, r *http.Request) {
 	refreshDomains()
 	vars := mux.Vars(r)
@@ -174,7 +180,7 @@ func ReturnSingleDomain(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /domains/" + key)
 
 	for _, domains := range Domains {
-		if domains.Id == key {
+		if domains.ID == key {
 			json.NewEncoder(w).Encode(domains)
 		}
 	}

@@ -46,7 +46,7 @@ func TestInit(t *testing.T) {
 func TestReturnAllApplications(t *testing.T) {
 	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
 	request, _ := http.NewRequest("GET", "/applications", nil)
-	responseRecorder := testutil.InvokeHttpHandler(request, "/applications", ReturnAllApplications)
+	responseRecorder := testutil.InvokeHTTPHandler(request, "/applications", ReturnAllApplications)
 	assert.Equal(t, 200, responseRecorder.Code)
 	responseApplications := []Application{}
 	err := yaml.Unmarshal(responseRecorder.Body.Bytes(), &responseApplications)
@@ -58,7 +58,7 @@ func TestReturnAllApplications(t *testing.T) {
 func TestReturnSingleApplication(t *testing.T) {
 	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
 	request, _ := http.NewRequest("GET", "/applications/0", nil)
-	responseRecorder := testutil.InvokeHttpHandler(request, "/applications/{id}", ReturnSingleApplication)
+	responseRecorder := testutil.InvokeHTTPHandler(request, "/applications/{id}", ReturnSingleApplication)
 	assert.Equal(t, 200, responseRecorder.Code)
 	responseApplication := Application{}
 	err := yaml.Unmarshal(responseRecorder.Body.Bytes(), &responseApplication)
@@ -69,7 +69,7 @@ func TestReturnSingleApplication(t *testing.T) {
 func TestReturnSingleApplicationNonExistent(t *testing.T) {
 	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
 	request, _ := http.NewRequest("GET", "/applications/5", nil)
-	responseRecorder := testutil.InvokeHttpHandler(request, "/applications/{id}", ReturnSingleApplication)
+	responseRecorder := testutil.InvokeHTTPHandler(request, "/applications/{id}", ReturnSingleApplication)
 	assert.Equal(t, 404, responseRecorder.Code)
 	assert.Contains(t, string(responseRecorder.Body.Bytes()), "Application with ID 5 not found")
 }
@@ -110,7 +110,7 @@ func TestCreateNewApplication(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			responseRecorder := testutil.InvokeHttpHandler(tt.req, "/applications", CreateNewApplication)
+			responseRecorder := testutil.InvokeHTTPHandler(tt.req, "/applications", CreateNewApplication)
 			assert.Equal(t, tt.expectedStatus, responseRecorder.Code)
 		})
 	}
@@ -132,7 +132,7 @@ func TestDeleteApplication(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			responseRecorder := testutil.InvokeHttpHandler(tt.req, "/applications/{id}", DeleteApplication)
+			responseRecorder := testutil.InvokeHTTPHandler(tt.req, "/applications/{id}", DeleteApplication)
 			assert.Equal(t, tt.expectedStatus, responseRecorder.Code)
 		})
 	}
@@ -172,7 +172,7 @@ func TestUpdateApplication(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			responseRecorder := testutil.InvokeHttpHandler(tt.req, "/applications/{id}", UpdateApplication)
+			responseRecorder := testutil.InvokeHTTPHandler(tt.req, "/applications/{id}", UpdateApplication)
 			assert.Equal(t, tt.expectedStatus, responseRecorder.Code)
 		})
 	}

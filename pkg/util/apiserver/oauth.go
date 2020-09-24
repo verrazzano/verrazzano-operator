@@ -47,7 +47,7 @@ var keyRepo KeyRepo
 func SetRealm(realm string) {
 	apiServerRealm = realm
 	if apiServerRealm != "" {
-		keyRepo = NewKeyCloak(instance.GetKeyCloakUrl(), apiServerRealm)
+		keyRepo = NewKeyCloak(instance.GetKeyCloakURL(), apiServerRealm)
 	} else {
 		keyRepo = nil
 	}

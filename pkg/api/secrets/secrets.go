@@ -22,8 +22,10 @@ import (
 
 // This file is very similar to applications.go - please see comments there
 // which equally apply to this file
+
+// Secret details of secret returned in API calls.
 type Secret struct {
-	Id             string         `json:"id"`
+	ID             string         `json:"id"`
 	Cluster        string         `json:"cluster"`
 	Type           string         `json:"type"`
 	Name           string         `json:"name"`
@@ -33,11 +35,13 @@ type Secret struct {
 	DockerRegistry DockerRegistry `json:"dockerRegistry,omitempty"`
 }
 
+// Data contains data section of secret.
 type Data struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
 
+// DockerRegistry contains the fields for a Docker registry secret.
 type DockerRegistry struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -46,10 +50,12 @@ type DockerRegistry struct {
 }
 
 var (
+	// Secrets contains all secrets.
 	Secrets   []Secret
 	listerSet controller.Listers
 )
 
+// Init initialization for secrets API.
 func Init(listers controller.Listers) {
 	listerSet = listers
 	refreshSecrets()
@@ -67,7 +73,7 @@ func addSecret(secretNames []string, secretName string) []string {
 }
 
 func refreshSecrets() {
-	// initialize domains as an empty list to avoid json encoding "nil"
+	// initialize secrets as an empty list to avoid json encoding "nil"
 	Secrets = []Secret{}
 
 	// Get a list of the models that have been deployed to the management cluster
@@ -146,7 +152,7 @@ func addSecrets(secretNames []string) {
 		}
 
 		Secrets = append(Secrets, Secret{
-			Id:        string(theSecret.UID),
+			ID:        string(theSecret.UID),
 			Name:      secretName,
 			Namespace: "",
 			Cluster:   "",
@@ -167,6 +173,7 @@ func addSecrets(secretNames []string) {
 	}
 }
 
+// ReturnAllSecrets returns all secrets used by model and bindings.
 func ReturnAllSecrets(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /secrets")
 	refreshSecrets()
@@ -175,6 +182,7 @@ func ReturnAllSecrets(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Secrets)
 }
 
+// ReturnSingleSecret returns a single secret identified by the secret Kubernetes UID.
 func ReturnSingleSecret(w http.ResponseWriter, r *http.Request) {
 	refreshSecrets()
 	vars := mux.Vars(r)
@@ -183,12 +191,13 @@ func ReturnSingleSecret(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /secrets/" + key)
 
 	for _, secrets := range Secrets {
-		if secrets.Id == key {
+		if secrets.ID == key {
 			json.NewEncoder(w).Encode(secrets)
 		}
 	}
 }
 
+// CreateSecret creates a secret as requested.
 func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("POST /secrets")
 
@@ -237,9 +246,8 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 		Type: func() corev1.SecretType {
 			if secret.Type == "docker-registry" {
 				return corev1.SecretTypeDockerConfigJson
-			} else {
-				return corev1.SecretTypeOpaque
 			}
+			return corev1.SecretTypeOpaque
 		}(),
 	}
 
