@@ -55,7 +55,7 @@ func TestInit(t *testing.T) {
 	}
 }
 
-func TestReturNoImages(t *testing.T) {
+func TestReturnNoImages(t *testing.T) {
 	assert := assert.New(t)
 	recorder := httptest.NewRecorder()
 	router := mux.NewRouter()
