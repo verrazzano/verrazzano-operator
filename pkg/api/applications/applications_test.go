@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/verrazzano/verrazzano-operator/pkg/testutilcontroller"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
@@ -28,7 +30,7 @@ func TestInit(t *testing.T) {
 		name    string
 		listers controller.Listers
 	}{
-		{name: "usingFakeListers", listers: testutil.NewControllerListers(clusters, &modelBindingPairs)},
+		{name: "usingFakeListers", listers: testutilcontroller.NewControllerListers(clusters, &modelBindingPairs)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -42,7 +44,7 @@ func TestInit(t *testing.T) {
 }
 
 func TestReturnAllApplications(t *testing.T) {
-	Init(testutil.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
+	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
 	request, _ := http.NewRequest("GET", "/applications", nil)
 	responseRecorder := testutil.InvokeHttpHandler(request, "/applications", ReturnAllApplications)
 	assert.Equal(t, 200, responseRecorder.Code)
@@ -54,7 +56,7 @@ func TestReturnAllApplications(t *testing.T) {
 }
 
 func TestReturnSingleApplication(t *testing.T) {
-	Init(testutil.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
+	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
 	request, _ := http.NewRequest("GET", "/applications/0", nil)
 	responseRecorder := testutil.InvokeHttpHandler(request, "/applications/{id}", ReturnSingleApplication)
 	assert.Equal(t, 200, responseRecorder.Code)
@@ -65,7 +67,7 @@ func TestReturnSingleApplication(t *testing.T) {
 }
 
 func TestReturnSingleApplicationNonExistent(t *testing.T) {
-	Init(testutil.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
+	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
 	request, _ := http.NewRequest("GET", "/applications/5", nil)
 	responseRecorder := testutil.InvokeHttpHandler(request, "/applications/{id}", ReturnSingleApplication)
 	assert.Equal(t, 404, responseRecorder.Code)
@@ -73,7 +75,7 @@ func TestReturnSingleApplicationNonExistent(t *testing.T) {
 }
 
 func TestCreateNewApplication(t *testing.T) {
-	Init(testutil.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
+	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
 	noModelApp := Application{ID: "91", Name: "NoModelApp", Status: "Broken",
 		Description: "I have no model", Binding: Applications[0].Binding}
 	noBindingApp := Application{ID: "92", Name: "NoBindingApp", Status: "AlsoBroken",
@@ -115,7 +117,7 @@ func TestCreateNewApplication(t *testing.T) {
 }
 
 func TestDeleteApplication(t *testing.T) {
-	Init(testutil.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
+	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
 	nonExistingAppReq, err := http.NewRequest("DELETE", "/applications/22", nil)
 	assert.Nil(t, err, "Unexpected error - failed creating delete request")
 	existingAppReq, err := http.NewRequest("DELETE", "/applications/0", nil)
@@ -141,7 +143,7 @@ func TestUpdateApplication(t *testing.T) {
 		"mbPairGood0": testutil.GetModelBindingPairWithNames("goodModel", "goodBinding", "default"),
 		//"mbPairGood1": testutil.GetModelBindingPairWithNames("tooGoodModel", "tooGoodBinding", "default"),
 	}
-	Init(testutil.NewControllerListers(testutil.GetTestClusters(), &updateMbPairs))
+	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &updateMbPairs))
 	goodApp := Application{ID: "0", Name: "StillAGoodApp", Status: "Good",
 		Description: "What a good app am I!",
 		Model:       Applications[0].Model,
