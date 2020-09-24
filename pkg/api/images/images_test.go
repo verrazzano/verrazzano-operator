@@ -1,3 +1,5 @@
+// Copyright (c) 2020, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package images
 
 import (
@@ -53,6 +55,24 @@ func TestInit(t *testing.T) {
 	}
 }
 
+func TestReturNoImages(t *testing.T) {
+	assert := assert.New(t)
+	recorder := httptest.NewRecorder()
+	router := mux.NewRouter()
+	router.HandleFunc("/images", func(w http.ResponseWriter, r *http.Request) {
+		ReturnAllImages(w, r)
+	})
+	request, _ := http.NewRequest("GET", "/images", nil)
+	router.ServeHTTP(recorder, request)
+	assert.Equal(200, recorder.Code)
+	reqJSON, err := simplejson.NewFromReader(recorder.Body)
+	if err != nil {
+		t.Errorf("Error while reading response JSON: %s", err)
+	}
+	imgArray := reqJSON.MustArray()
+	assert.Empty(imgArray)
+}
+
 func TestReturnAllImages(t *testing.T) {
 	Images = append(Images, testImages...)
 	assert := assert.New(t)
@@ -64,11 +84,11 @@ func TestReturnAllImages(t *testing.T) {
 	request, _ := http.NewRequest("GET", "/images", nil)
 	router.ServeHTTP(recorder, request)
 	assert.Equal(200, recorder.Code)
-	reqJson, err := simplejson.NewFromReader(recorder.Body)
+	reqJSON, err := simplejson.NewFromReader(recorder.Body)
 	if err != nil {
 		t.Errorf("Error while reading response JSON: %s", err)
 	}
-	imgArray := reqJson.MustArray()
+	imgArray := reqJSON.MustArray()
 	img := imgArray[0]
 	mapEntry := img.(map[string]interface{})
 	assert.Equal("1", mapEntry["id"])
@@ -92,6 +112,11 @@ func TestReturnSingleImage(t *testing.T) {
 	request, _ = http.NewRequest("GET", "/images/2", nil)
 	router.ServeHTTP(recorder, request)
 	testSingleImageResponse(t, assert, recorder, "12.2.1.3.1")
+
+	recorder, router = createRequestHandlers()
+	request, _ = http.NewRequest("GET", "/images/3", nil)
+	router.ServeHTTP(recorder, request)
+	assert.Equal(http.StatusNotFound, recorder.Code)
 }
 
 // Create the structs required for generating and posting a request
@@ -106,12 +131,11 @@ func createRequestHandlers() (*httptest.ResponseRecorder, *mux.Router) {
 
 // validate a single image response by ensuring the version value is correct
 func testSingleImageResponse(t *testing.T, assert *assert.Assertions, recorder *httptest.ResponseRecorder, version string) {
-	assert.Equal(200, recorder.Code)
-	reqJson, err := simplejson.NewFromReader(recorder.Body)
+	assert.Equal(http.StatusOK, recorder.Code)
+	reqJSON, err := simplejson.NewFromReader(recorder.Body)
 	if err != nil {
 		t.Errorf("Error while reading response JSON: %s", err)
 	}
-	img := reqJson.MustMap()
+	img := reqJSON.MustMap()
 	assert.Equal(version, img["weblogic_version"])
 }
-
