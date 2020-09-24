@@ -22,59 +22,39 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-// CreateVmis creates/updates Verrazzano Monitoring Instances for a given binding.
-func CreateVmis(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
+// CreateUpdateVmi creates/updates Verrazzano Monitoring Instances for a given binding.
+func CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 
 	glog.V(6).Infof("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the set of expected VMIs
-	newVMIs := newVMIs(binding, verrazzanoURI, enableMonitoringStorage)
+	newVmi := createInstance(binding, verrazzanoURI, enableMonitoringStorage)
 
 	// Create or update VMIs
-	var vmiNames = []string{}
-	for _, newVmi := range newVMIs {
-		vmiNames = append(vmiNames, newVmi.Name)
-		existingVmi, err := vmiLister.VerrazzanoMonitoringInstances(newVmi.Namespace).Get(newVmi.Name)
-		if existingVmi != nil {
-			newVmi.Spec.Grafana.Storage.PvcNames = existingVmi.Spec.Grafana.Storage.PvcNames
-			newVmi.Spec.Prometheus.Storage.PvcNames = existingVmi.Spec.Prometheus.Storage.PvcNames
-			newVmi.Spec.Elasticsearch.Storage.PvcNames = existingVmi.Spec.Elasticsearch.Storage.PvcNames
-			specDiffs := diff.CompareIgnoreTargetEmpties(existingVmi, newVmi)
-			if specDiffs != "" {
-				glog.V(6).Infof("VMI %s : Spec differences %s", newVmi.Name, specDiffs)
-				glog.V(4).Infof("Updating VMI %s", newVmi.Name)
-				newVmi.ResourceVersion = existingVmi.ResourceVersion
-				_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Update(context.TODO(), newVmi, metav1.UpdateOptions{})
-			}
-		} else {
-			glog.V(4).Infof("Creating VMI %s", newVmi.Name)
-			_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Create(context.TODO(), newVmi, metav1.CreateOptions{})
+	existingVmi, err := vmiLister.VerrazzanoMonitoringInstances(newVmi.Namespace).Get(newVmi.Name)
+	if existingVmi != nil {
+		newVmi.Spec.Grafana.Storage.PvcNames = existingVmi.Spec.Grafana.Storage.PvcNames
+		newVmi.Spec.Prometheus.Storage.PvcNames = existingVmi.Spec.Prometheus.Storage.PvcNames
+		newVmi.Spec.Elasticsearch.Storage.PvcNames = existingVmi.Spec.Elasticsearch.Storage.PvcNames
+		specDiffs := diff.CompareIgnoreTargetEmpties(existingVmi, newVmi)
+		if specDiffs != "" {
+			glog.V(6).Infof("VMI %s : Spec differences %s", newVmi.Name, specDiffs)
+			glog.V(4).Infof("Updating VMI %s", newVmi.Name)
+			newVmi.ResourceVersion = existingVmi.ResourceVersion
+			_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Update(context.TODO(), newVmi, metav1.UpdateOptions{})
 		}
-		if err != nil {
-			return err
-		}
+	} else {
+		glog.V(4).Infof("Creating VMI %s", newVmi.Name)
+		_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Create(context.TODO(), newVmi, metav1.CreateOptions{})
 	}
-
-	// Delete VMIs that shouldn't exist
-	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
-	existingVMIsList, err := vmiLister.VerrazzanoMonitoringInstances("").List(selector)
 	if err != nil {
 		return err
-	}
-	for _, existingVmi := range existingVMIsList {
-		if !util.Contains(vmiNames, existingVmi.Name) {
-			glog.V(4).Infof("Deleting VMI %s", existingVmi.Name)
-			err := vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(existingVmi.Namespace).Delete(context.TODO(), existingVmi.Name, metav1.DeleteOptions{})
-			if err != nil {
-				return err
-			}
-		}
 	}
 	return nil
 }
 
-// DeleteVmis deletes Verrazzano Monitoring Instances for a given binding.
-func DeleteVmis(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
+// DeleteVmi deletes Verrazzano Monitoring Instances for a given binding.
+func DeleteVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
 
 	glog.V(4).Infof("Deleting Local (Management Cluster) VMIs for VerrazzanoBinding %s", binding.Name)
 
@@ -104,72 +84,68 @@ func createStorageOption(enableMonitoringStorage string) vmov1.Storage {
 	}
 }
 
-// Constructs the necessary VMI for the given VerrazzanoBinding
-func newVMIs(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string, enableMonitoringStorage string) []*vmov1.VerrazzanoMonitoringInstance {
+// Constructs the necessary VerrazzanoMonitoringInstance for the given VerrazzanoBinding
+func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string, enableMonitoringStorage string) *vmov1.VerrazzanoMonitoringInstance {
 	bindingLabels := util.GetLocalBindingLabels(binding)
 
-	if verrazzanoURI == "" {
-		verrazzanoURI = "my.verrazano.com"
-	}
 	storageOption := createStorageOption(enableMonitoringStorage)
-	return []*vmov1.VerrazzanoMonitoringInstance{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      util.GetVmiNameForBinding(binding.Name),
-				Namespace: constants.VerrazzanoNamespace,
-				Labels:    bindingLabels,
+
+	return &vmov1.VerrazzanoMonitoringInstance{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      util.GetVmiNameForBinding(binding.Name),
+			Namespace: constants.VerrazzanoNamespace,
+			Labels:    bindingLabels,
+		},
+		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
+			URI:             util.GetVmiURI(binding.Name, verrazzanoURI),
+			AutoSecret:      true,
+			SecretsName:     constants.VmiSecretName,
+			CascadingDelete: true,
+			Grafana: vmov1.Grafana{
+				Enabled:             true,
+				Storage:             storageOption,
+				DashboardsConfigMap: util.GetVmiNameForBinding(binding.Name) + "-dashboards",
+				Resources: vmov1.Resources{
+					RequestMemory: util.GetGrafanaRequestMemory(),
+				},
 			},
-			Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
-				URI:             util.GetVmiURI(binding.Name, verrazzanoURI),
-				AutoSecret:      true,
-				SecretsName:     constants.VmiSecretName,
-				CascadingDelete: true,
-				Grafana: vmov1.Grafana{
-					Enabled:             true,
-					Storage:             storageOption,
-					DashboardsConfigMap: util.GetVmiNameForBinding(binding.Name) + "-dashboards",
-					Resources: vmov1.Resources{
-						RequestMemory: util.GetGrafanaRequestMemory(),
-					},
+			IngressTargetDNSName: fmt.Sprintf("verrazzano-ingress.%s", verrazzanoURI),
+			Prometheus: vmov1.Prometheus{
+				Enabled: true,
+				Storage: storageOption,
+				Resources: vmov1.Resources{
+					RequestMemory: util.GetPrometheusRequestMemory(),
 				},
-				IngressTargetDNSName: fmt.Sprintf("verrazzano-ingress.%s", verrazzanoURI),
-				Prometheus: vmov1.Prometheus{
-					Enabled: true,
-					Storage: storageOption,
-					Resources: vmov1.Resources{
-						RequestMemory: util.GetPrometheusRequestMemory(),
-					},
-				},
-				Elasticsearch: vmov1.Elasticsearch{
-					Enabled: true,
-					Storage: storageOption,
-					IngestNode: vmov1.ElasticsearchNode{
-						Replicas: 1,
-						Resources: vmov1.Resources{
-							RequestMemory: util.GetElasticsearchIngestNodeRequestMemory(),
-						},
-					},
-					MasterNode: vmov1.ElasticsearchNode{
-						Replicas: util.GetElasticsearchMasterNodeReplicas(),
-						Resources: vmov1.Resources{
-							RequestMemory: util.GetElasticsearchMasterNodeRequestMemory(),
-						},
-					},
-					DataNode: vmov1.ElasticsearchNode{
-						Replicas: 2,
-						Resources: vmov1.Resources{
-							RequestMemory: util.GetElasticsearchDataNodeRequestMemory(),
-						},
-					},
-				},
-				Kibana: vmov1.Kibana{
-					Enabled: true,
-					Resources: vmov1.Resources{
-						RequestMemory: util.GetKibanaRequestMemory(),
-					},
-				},
-				ServiceType: "ClusterIP",
 			},
+			Elasticsearch: vmov1.Elasticsearch{
+				Enabled: true,
+				Storage: storageOption,
+				IngestNode: vmov1.ElasticsearchNode{
+					Replicas: 1,
+					Resources: vmov1.Resources{
+						RequestMemory: util.GetElasticsearchIngestNodeRequestMemory(),
+					},
+				},
+				MasterNode: vmov1.ElasticsearchNode{
+					Replicas: util.GetElasticsearchMasterNodeReplicas(),
+					Resources: vmov1.Resources{
+						RequestMemory: util.GetElasticsearchMasterNodeRequestMemory(),
+					},
+				},
+				DataNode: vmov1.ElasticsearchNode{
+					Replicas: 2,
+					Resources: vmov1.Resources{
+						RequestMemory: util.GetElasticsearchDataNodeRequestMemory(),
+					},
+				},
+			},
+			Kibana: vmov1.Kibana{
+				Enabled: true,
+				Resources: vmov1.Resources{
+					RequestMemory: util.GetKibanaRequestMemory(),
+				},
+			},
+			ServiceType: "ClusterIP",
 		},
 	}
 }

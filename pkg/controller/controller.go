@@ -250,7 +250,7 @@ func NewController(kubeconfig string, manifest *util.Manifest, masterURL string,
 // CreateUpdateGlobalEntities installs global entities
 func (c *Controller) CreateUpdateGlobalEntities() error {
 	// Create or update System VMI
-	// A synthetic binding will be constructed and passed to the generic CreateVmis API to create the System VMI
+	// A synthetic binding will be constructed and passed to the generic CreateUpdateVmi API to create the System VMI
 	systemBinding := &v1beta1v8o.VerrazzanoBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
@@ -258,7 +258,7 @@ func (c *Controller) CreateUpdateGlobalEntities() error {
 	}
 	glog.V(4).Info("Configuring System VMI...")
 	for {
-		err := local.CreateVmis(systemBinding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
+		err := local.CreateUpdateVmi(systemBinding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
 		if err != nil {
 			glog.Errorf("Failed to create System VMI %s: %v", constants.VmiSystemBindingName, err)
 		}
@@ -683,7 +683,7 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 	 * Create Artifacts in the Local Cluster
 	 **********************/
 	// Create VMIs
-	err = local.CreateVmis(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
+	err = local.CreateUpdateVmi(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
 	if err != nil {
 		glog.Errorf("Failed to create VMIs for binding %s: %v", binding.Name, err)
 	}
@@ -827,7 +827,7 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	 * Delete Artifacts in the Local Cluster
 	 **********************/
 	// Delete VMIs
-	err := local.DeleteVmis(binding, c.vmoClientSet, c.vmiLister)
+	err := local.DeleteVmi(binding, c.vmoClientSet, c.vmiLister)
 	if err != nil {
 		glog.Errorf("Failed to delete VMIs for binding %s: %v", binding.Name, err)
 	}
