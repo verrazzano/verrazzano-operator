@@ -22,37 +22,37 @@ func TestLoggingConfigMaps(t *testing.T) {
 		"index-config": {ObjectMeta: metav1.ObjectMeta{
 			Name:      "index-config",
 			Namespace: constants.LoggingNamespace,
-			Labels:    filebeatLabels,},
+			Labels:    filebeatLabels},
 			Data: map[string]string{"index_name": "vmo-demo-filebeat"},
 		},
 		"filebeat-index-config": {ObjectMeta: metav1.ObjectMeta{
 			Name:      "filebeat-index-config",
 			Namespace: constants.LoggingNamespace,
-			Labels:    filebeatLabels,},
+			Labels:    filebeatLabels},
 			Data: map[string]string{"filebeat-index-name": "vmo-" + clusterName + "-filebeat-%{+yyyy.MM.dd}"},
 		},
 		"filebeat-config": {ObjectMeta: metav1.ObjectMeta{
 			Name:      "filebeat-config",
 			Namespace: constants.LoggingNamespace,
-			Labels:    filebeatLabels,},
+			Labels:    filebeatLabels},
 			Data: map[string]string{"filebeat.yml": FilebeatConfigData},
 		},
 		"filebeat-inputs": {ObjectMeta: metav1.ObjectMeta{
 			Name:      "filebeat-config",
 			Namespace: constants.LoggingNamespace,
-			Labels:    filebeatLabels,},
+			Labels:    filebeatLabels},
 			Data: map[string]string{"kubernetes.yml": FilebeatInputData},
 		},
 		"journalbeat-index-config": {ObjectMeta: metav1.ObjectMeta{
 			Name:      "journalbeat-index-config",
 			Namespace: constants.LoggingNamespace,
-			Labels:    journalbeatLabels,},
+			Labels:    journalbeatLabels},
 			Data: map[string]string{"journalbeat-index-name": "vmo-" + clusterName + "-journalbeat-%{+yyyy.MM.dd}"},
 		},
 		"journalbeat-config": {ObjectMeta: metav1.ObjectMeta{
 			Name:      "journalbeat-index-config",
 			Namespace: constants.LoggingNamespace,
-			Labels:    journalbeatLabels,},
+			Labels:    journalbeatLabels},
 			Data: map[string]string{"journalbeat.yml": JournalbeatConfigData},
 		},
 	}
@@ -68,7 +68,7 @@ func TestLoggingConfigMaps(t *testing.T) {
 			assert.Truef(ok, "Configmap data is missing for entry &v", v.Name)
 			assert.Equal(tdata, dv)
 		}
-		delete(testMap,v.Name)
+		delete(testMap, v.Name)
 	}
 	// All of the entries in the testMap should have been removed
 	assert.Equalf(0, len(testMap), "LoggingConfigMaps did not return all of the entries")
