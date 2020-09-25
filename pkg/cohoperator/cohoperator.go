@@ -17,6 +17,7 @@ import (
 
 const microOperatorName = "verrazzano-coh-cluster-operator"
 
+// CreateCR constructs a CohCluster resource.
 func CreateCR(mcName string, mcNamespace string, cluster *v1betav8o.VerrazzanoCoherenceCluster, labels map[string]string) *v1cohcluster.CohCluster {
 	var operatorName = fmt.Sprintf("%s-coherence-operator", mcNamespace)
 
@@ -41,7 +42,7 @@ func CreateCR(mcName string, mcNamespace string, cluster *v1betav8o.VerrazzanoCo
 	return &cohCluster
 }
 
-// Create a deployment for the coh-cluster-operator
+// CreateDeployment creates a deployment for the coh-cluster-operator.
 func CreateDeployment(namespace string, bindingName string, labels map[string]string, image string) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{

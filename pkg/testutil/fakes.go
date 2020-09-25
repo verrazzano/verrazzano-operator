@@ -79,6 +79,66 @@ func (s simplePodNamespaceLister) Get(name string) (*v1.Pod, error) {
 	return s.kubeClient.CoreV1().Pods(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
+// simple ConfigMapLister implementation
+type simpleConfigMapLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// lists all ConfigMaps
+func (s *simpleConfigMapLister) List(selector labels.Selector) (ret []*v1.ConfigMap, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var pods []*v1.ConfigMap
+	for _, namespace := range namespaces.Items {
+
+		list, err := s.ConfigMaps(namespace.Name).List(selector)
+		if err != nil {
+			return nil, err
+		}
+		pods = append(pods, list...)
+	}
+	return pods, nil
+}
+
+// ConfigMaps returns an object that can list and get ConfigMaps.
+func (s *simpleConfigMapLister) ConfigMaps(namespace string) corelistersv1.ConfigMapNamespaceLister {
+	return simpleConfigMapNamespaceLister{
+		namespace:  namespace,
+		kubeClient: s.kubeClient,
+	}
+}
+
+// configMapNamespaceLister implements the ConfigMapNamespaceLister
+// interface.
+type simpleConfigMapNamespaceLister struct {
+	namespace  string
+	kubeClient kubernetes.Interface
+}
+
+// List lists all ConfigMaps in the indexer for a given namespace.
+func (s simpleConfigMapNamespaceLister) List(selector labels.Selector) (ret []*v1.ConfigMap, err error) {
+	var configMaps []*v1.ConfigMap
+
+	list, err := s.kubeClient.CoreV1().ConfigMaps(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		configMap := list.Items[i]
+		if selector.Matches(labels.Set(configMap.Labels)) {
+			configMaps = append(configMaps, &configMap)
+		}
+	}
+	return configMaps, nil
+}
+
+// Get retrieves the ConfigMap from the indexer for a given namespace and name.
+func (s simpleConfigMapNamespaceLister) Get(name string) (*v1.ConfigMap, error) {
+	return s.kubeClient.CoreV1().ConfigMaps(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
 // ----- simpleSecretLister
 // Simple secret sister implementation.
 type simpleSecretLister struct {
@@ -342,7 +402,67 @@ func (s simpleServiceEntryNamespaceLister) Get(name string) (*v1alpha3.ServiceEn
 	return s.istioClientSet.NetworkingV1alpha3().ServiceEntries(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
-func InvokeHttpHandler(request *http.Request, path string, handler func(http.ResponseWriter, *http.Request)) *httptest.ResponseRecorder {
+// ----- simpleServiceLister
+// Simple ServiceLister implementation.
+type simpleServiceLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// list all Services
+func (s *simpleServiceLister) List(selector labels.Selector) (ret []*v1.Service, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var services []*v1.Service
+	for _, namespace := range namespaces.Items {
+
+		list, err := s.Services(namespace.Name).List(selector)
+		if err != nil {
+			return nil, err
+		}
+		services = append(services, list...)
+	}
+	return services, nil
+}
+
+// returns an object that can list and get Services for the given namespace
+func (s *simpleServiceLister) Services(namespace string) corelistersv1.ServiceNamespaceLister {
+	return simpleServiceNamespaceLister{
+		namespace:  namespace,
+		kubeClient: s.kubeClient,
+	}
+}
+
+type simpleServiceNamespaceLister struct {
+	namespace  string
+	kubeClient kubernetes.Interface
+}
+
+// list all Services for a given namespace
+func (s simpleServiceNamespaceLister) List(selector labels.Selector) (ret []*v1.Service, err error) {
+	var services []*v1.Service
+
+	list, err := s.kubeClient.CoreV1().Services(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		service := list.Items[i]
+		if selector.Matches(labels.Set(service.Labels)) {
+			services = append(services, &service)
+		}
+	}
+	return services, nil
+}
+
+// retrieves the Service for a given namespace and name
+func (s simpleServiceNamespaceLister) Get(name string) (*v1.Service, error) {
+	return s.kubeClient.CoreV1().Services(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// InvokeHTTPHandler sets up a HTTP handler
+func InvokeHTTPHandler(request *http.Request, path string, handler func(http.ResponseWriter, *http.Request)) *httptest.ResponseRecorder {
 	responseRecorder := httptest.NewRecorder()
 	router := mux.NewRouter()
 	router.HandleFunc(path, handler)

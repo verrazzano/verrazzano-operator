@@ -7,7 +7,6 @@ import (
 	crand "crypto/rand"
 	"crypto/sha1"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -24,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+// Secrets defines the interface for handling secrets.
 type Secrets interface {
 	Get(name string) (*corev1.Secret, error)
 	Create(*corev1.Secret) (*corev1.Secret, error)
@@ -33,7 +33,7 @@ type Secrets interface {
 	GetVmiPassword() (string, error)
 }
 
-// Constructs the necessary Secrets for the given VerrazzanoBinding
+// NewVmiSecret creates the necessary Secrets for the given VerrazzanoBinding.
 func NewVmiSecret(binding *v1beta1v8o.VerrazzanoBinding) *corev1.Secret {
 	bindingLabels := util.GetLocalBindingLabels(binding)
 	sec := &corev1.Secret{
@@ -50,6 +50,7 @@ func NewVmiSecret(binding *v1beta1v8o.VerrazzanoBinding) *corev1.Secret {
 	return saltedHash(sec)
 }
 
+// GetVmiPassword returns the password for the VMI secret.
 func GetVmiPassword(secrets Secrets) (string, error) {
 	sec, err := secrets.Get(constants.VmiSecretName)
 	pw := ""
@@ -58,7 +59,7 @@ func GetVmiPassword(secrets Secrets) (string, error) {
 		if bytes != nil {
 			pw = string(bytes)
 		} else {
-			err = errors.New(fmt.Sprintf("Failed to retrieve %s password", constants.VmiUsername))
+			err = fmt.Errorf("Failed to retrieve %s password", constants.VmiUsername)
 		}
 	}
 	return pw, err
@@ -85,6 +86,7 @@ func saltedHash(sec *corev1.Secret) *corev1.Secret {
 	return sec
 }
 
+// CreateVmiSecrets creates/updates a VMI secret.
 func CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets Secrets) error {
 	vmiSecret, _ := secrets.Get(constants.VmiSecretName)
 
@@ -131,7 +133,7 @@ func CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets Secrets) er
 	return nil
 }
 
-// Create all the secrets needed by Filebeats and Journalbeats in all the managed cluster
+// GetSystemSecrets the secrets to be created for Filebeats and Journalbeats.
 func GetSystemSecrets(sec Secrets) []*corev1.Secret {
 	var secrets []*corev1.Secret
 	password, err := sec.GetVmiPassword()

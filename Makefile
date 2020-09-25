@@ -48,6 +48,9 @@ HELM_CHART_ARCHIVE_NAME = ${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz
 .PHONY: all
 all: build
 
+.PHONY: check
+check: go-fmt go-vet go-ineffassign
+
 #
 # Go build related tasks
 #
@@ -71,17 +74,17 @@ go-fmt:
 
 .PHONY: go-vet
 go-vet:
-	$(GO) vet $(shell go list ./... | grep -v /vendor/)
+	$(GO) vet $(shell go list ./... | grep -v github.com/verrazzano/verrazzano-operator/pkg/assets)
 
 .PHONY: go-lint
 go-lint:
 	$(GO) get -u golang.org/x/lint/golint
-	golint -set_exit_status $(shell go list ./... | grep -v /vendor/)
+	golint -set_exit_status $(shell go list ./... | grep -v github.com/verrazzano/verrazzano-operator/pkg/assets)
 
 .PHONY: go-ineffassign
 go-ineffassign:
 	$(GO) get -u github.com/gordonklaus/ineffassign
-	ineffassign $(shell find . -name "*.go" | grep -v /vendor/)
+	ineffassign $(shell find . -name "*.go" | grep -v /vendor/ | grep -v /pkg/assets/)
 
 .PHONY: go-mod
 go-mod:
@@ -124,7 +127,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: build
-build: go-mod
+build: go-mod check
 	docker build --pull \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 

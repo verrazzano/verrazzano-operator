@@ -34,6 +34,7 @@ var (
 	listerSet controller.Listers
 )
 
+// Init initializes set of Listers for API server.
 func Init(listers controller.Listers) {
 	listerSet = listers
 }
@@ -42,18 +43,23 @@ func Init(listers controller.Listers) {
 var apiServerRealm string
 var keyRepo KeyRepo
 
+// SetRealm sets the the realm for API server.
 func SetRealm(realm string) {
 	apiServerRealm = realm
 	if apiServerRealm != "" {
-		keyRepo = NewKeyCloak(instance.GetKeyCloakUrl(), apiServerRealm)
+		keyRepo = NewKeyCloak(instance.GetKeyCloakURL(), apiServerRealm)
 	} else {
 		keyRepo = nil
 	}
 }
 
-//context property name
-const BearerToken = "BearerToken"
+type key int
 
+const (
+	keyBearerToken key = iota
+)
+
+// AuthHandler setups handler for API server HTTP requests.
 func AuthHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var err error
@@ -62,7 +68,7 @@ func AuthHandler(h http.Handler) http.Handler {
 			if err != nil {
 				errMsg := fmt.Sprintf("Error getting Authorization Header: %v", err)
 				glog.Error(errMsg)
-				InvalidTokenError(w, err.Error())
+				invalidTokenError(w, err.Error())
 				return
 			}
 			//Getting public key from KeyCloak
@@ -73,48 +79,53 @@ func AuthHandler(h http.Handler) http.Handler {
 				InternalServerError(w, errMsg)
 				return
 			}
-			token, err := verifyJsonWebToken(auth)
+			token, err := verifyJSONWebToken(auth)
 			if err != nil {
 				glog.V(5).Infof("%v error verifying token: %v", r.URL.Path, err)
-				InvalidTokenError(w, err.Error())
+				invalidTokenError(w, err.Error())
 				return
 			}
 			if token == nil {
 				errMsg := fmt.Sprintf("%v missing Bearer token", r.URL.Path)
 				glog.V(5).Infoln(errMsg)
-				InvalidTokenError(w, errMsg)
+				invalidTokenError(w, errMsg)
 				return
 			}
-			verifiedRequest := r.WithContext(context.WithValue(r.Context(), BearerToken, token))
+			verifiedRequest := r.WithContext(context.WithValue(r.Context(), keyBearerToken, token))
 			*r = *verifiedRequest
 		}
 		h.ServeHTTP(w, r)
 	})
 }
 
+// PublicKeys represents json public keys.
 type PublicKeys struct {
-	Keys []JsonWebKey `json:"keys"`
+	Keys []JSONWebKey `json:"keys"`
 }
 
+// JSONWebKey represents a cryptographic key.
 //https://tools.ietf.org/html/rfc7517#section-4.7 JsonWebKey
-type JsonWebKey struct {
-	KeyId            string   `json:"kid"`
+type JSONWebKey struct {
+	KeyID            string   `json:"kid"`
 	KeyType          string   `json:"kty"`
 	Algorithm        string   `json:"alg"`
 	CertificateChain []string `json:"x5c"`
 }
 
+// KeyRepo defines interface to get public keys.
 type KeyRepo interface {
 	GetPublicKey(kid string) (*rsa.PublicKey, error)
 	GetPublicKeys() (bool, error)
 }
 
+// KeyCloak represents a KeyCloak instance.
 type KeyCloak struct {
 	Endpoint string
 	Realm    string
-	keyCache map[string]*JsonWebKey
+	keyCache map[string]*JSONWebKey
 }
 
+// NewKeyCloak creates a KeyCloak struct.
 func NewKeyCloak(url, realm string) KeyRepo {
 	return &KeyCloak{Endpoint: url, Realm: realm}
 }
@@ -124,6 +135,7 @@ const certTemp = `
 %v
 -----END CERTIFICATE-----`
 
+// GetPublicKeys returns boolean whether public keys exist or not.
 func (kc *KeyCloak) GetPublicKeys() (bool, error) {
 	if kc.keyCache == nil {
 		err := kc.refreshKeyCache()
@@ -134,6 +146,7 @@ func (kc *KeyCloak) GetPublicKeys() (bool, error) {
 	return true, nil
 }
 
+// GetPublicKey returns a public key.
 func (kc *KeyCloak) GetPublicKey(kid string) (*rsa.PublicKey, error) {
 	key := kc.keyCache[kid]
 	if key == nil {
@@ -158,36 +171,35 @@ func (kc *KeyCloak) GetPublicKey(kid string) (*rsa.PublicKey, error) {
 	if err == nil {
 		publicKey, ok := cert.PublicKey.(*rsa.PublicKey)
 		if !ok {
-			return nil, errors.New(fmt.Sprintf("Invalid public key: %T is not a valid RSA public key", cert.PublicKey))
+			return nil, fmt.Errorf("Invalid public key: %T is not a valid RSA public key", cert.PublicKey)
 		}
 		return publicKey, nil
-	} else {
-		return nil, err
 	}
+
+	return nil, err
 }
 
-const certsUrl = "%v/auth/realms/%v/protocol/openid-connect/certs"
+const certsURL = "%v/auth/realms/%v/protocol/openid-connect/certs"
 
 func (kc *KeyCloak) refreshKeyCache() error {
 	cert, err := kc.getPublicKeys()
 	if err != nil || cert.Keys == nil || len(cert.Keys) == 0 {
 		return err
-	} else {
-		kc.keyCache = make(map[string]*JsonWebKey)
-		for _, k := range cert.Keys {
-			if k.CertificateChain != nil && len(k.CertificateChain) > 0 && k.KeyId != "" {
-				kc.keyCache[k.KeyId] = &k
-			}
-		}
-		return nil
 	}
+	kc.keyCache = make(map[string]*JSONWebKey)
+	for _, k := range cert.Keys {
+		if k.CertificateChain != nil && len(k.CertificateChain) > 0 && k.KeyID != "" {
+			kc.keyCache[k.KeyID] = &k
+		}
+	}
+	return nil
 }
 
 // Call Keycloak to get the public keys.  This is only called
 // when the public key id specified by the JWT token is not
 // cached, which should not happen often.
 func (kc *KeyCloak) getPublicKeys() (*PublicKeys, error) {
-	url := fmt.Sprintf(certsUrl, kc.Endpoint, kc.Realm)
+	url := fmt.Sprintf(certsURL, kc.Endpoint, kc.Realm)
 	httpClient := getKeyCloakClient()
 	httpClient.RetryMax = 10
 	glog.Info(fmt.Sprintf("Calling KeyCloak to get the public keys at url " + url))
@@ -198,7 +210,7 @@ func (kc *KeyCloak) getPublicKeys() (*PublicKeys, error) {
 	}
 	if res.StatusCode == http.StatusNotFound {
 		glog.Error(fmt.Sprintf("HTTP StatusNotFound calling %s to get certs ", url))
-		return &PublicKeys{}, errors.New(fmt.Sprintf("Failed retrieving Public Key from %s", url))
+		return &PublicKeys{}, fmt.Errorf("Failed retrieving Public Key from %s", url)
 	}
 
 	defer res.Body.Close()
@@ -211,12 +223,12 @@ func (kc *KeyCloak) getPublicKeys() (*PublicKeys, error) {
 	return &publicKeys, err
 }
 
-func InvalidTokenError(w http.ResponseWriter, message string) {
+func invalidTokenError(w http.ResponseWriter, message string) {
 	errorCode := "NotAuthorizedOrNotFound"
 	if strings.Contains(strings.ToLower(message), "expired") {
 		errorCode = "TokenExpired"
 	}
-	HttpError(w, http.StatusNotFound, errorCode, message)
+	HTTPError(w, http.StatusNotFound, errorCode, message)
 }
 
 // Get client used to call keycloak
@@ -290,7 +302,7 @@ func validateSigningAlgorithm(algorithm string) bool {
 	return false
 }
 
-func verifyJsonWebToken(auth string) (*jwt.JSONWebToken, error) {
+func verifyJSONWebToken(auth string) (*jwt.JSONWebToken, error) {
 	joseToken, err := jwt.ParseSigned(auth)
 	if err != nil {
 		return nil, err
@@ -299,7 +311,7 @@ func verifyJsonWebToken(auth string) (*jwt.JSONWebToken, error) {
 	if joseToken != nil && joseToken.Headers != nil {
 		for _, jhr := range joseToken.Headers {
 			if !validateSigningAlgorithm(jhr.Algorithm) {
-				return nil, errors.New(fmt.Sprintf("Invalid signing algorithm %s", jhr.Algorithm))
+				return nil, fmt.Errorf("Invalid signing algorithm %s", jhr.Algorithm)
 			}
 			header = &jhr
 		}

@@ -6,6 +6,7 @@ package wlsopr
 import (
 	"errors"
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
@@ -65,7 +66,7 @@ func NewWlsOperatorCR(cr WlsOperatorCRConfig) (*v1beta1.WlsOperator, error) {
 	return wlsopr, nil
 }
 
-// Create a deployment for the verrazzano-wko-operator
+// CreateDeployment creates a deployment for the verrazzano-wko-operator
 func CreateDeployment(namespace string, bindingName string, labels map[string]string, image string) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{

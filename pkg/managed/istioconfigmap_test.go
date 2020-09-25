@@ -185,11 +185,11 @@ func TestFakeSecretNamespaceLister(t *testing.T) {
 // | Unit Test helper functions |
 // ------------------------------
 func validatePrometheusYml(t *testing.T, prometheusYmlString string) {
-	prometheusYmlJson, err := yaml.YAMLToJSON([]byte(prometheusYmlString))
+	prometheusYmlJSON, err := yaml.YAMLToJSON([]byte(prometheusYmlString))
 	if err != nil {
 		t.Fatal(err)
 	}
-	prometheusYml, err := gabs.ParseJSON(prometheusYmlJson)
+	prometheusYml, err := gabs.ParseJSON(prometheusYmlJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -378,7 +378,7 @@ func (f fakeSecretNamespaceLister) List(selector labels.Selector) (ret []*apicor
 
 func (f fakeSecretNamespaceLister) Get(name string) (*apicorev1.Secret, error) {
 	if name != testWebLogicCredentialsSecret {
-		return nil, fmt.Errorf("Unexpected WebLogic credential secret name. Expected %s, but got %s.", testWebLogicCredentialsSecret, name)
+		return nil, fmt.Errorf("Unexpected WebLogic credential secret name. Expected %s, but got %s", testWebLogicCredentialsSecret, name)
 	}
 
 	webLogicSecret := &apicorev1.Secret{

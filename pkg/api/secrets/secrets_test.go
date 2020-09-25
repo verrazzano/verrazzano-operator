@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	testutilcontroller "github.com/verrazzano/verrazzano-operator/pkg/testutilontroller"
+	testutilcontroller "github.com/verrazzano/verrazzano-operator/pkg/testutilcontroller"
 
 	k8sTypes "k8s.io/apimachinery/pkg/types"
 
@@ -214,7 +214,7 @@ func TestUpdateSecretWhereSecretAlreadyExists(t *testing.T) {
 
 	reader, _ := NewJsonByteReaderFromObject(testSecretUpdate)
 	request, _ := http.NewRequest("PATCH", "/secret/test-secret-uid-1", reader)
-	recorder := testutil.InvokeHttpHandler(request, "/secret/{id}", UpdateSecret)
+	recorder := testutil.InvokeHTTPHandler(request, "/secret/{id}", UpdateSecret)
 	assert.Equal(200, recorder.Code)
 
 	kubSecret, found, err := local.GetSecretByUID(*listerSet.KubeClientSet, constants.DefaultNamespace, "test-secret-uid-1")
@@ -259,7 +259,7 @@ func TestUpdateSecretWhereSecretDoesNotExists(t *testing.T) {
 
 	reader, _ := NewJsonByteReaderFromObject(testSecretUpdate)
 	request, _ := http.NewRequest("PATCH", "/secret/test-secret-uid-1", reader)
-	recorder := testutil.InvokeHttpHandler(request, "/secret/{id}", UpdateSecret)
+	recorder := testutil.InvokeHTTPHandler(request, "/secret/{id}", UpdateSecret)
 	assert.Equal(404, recorder.Code)
 	assert.Contains(string(recorder.Body.Bytes()), "test-secret-uid-1")
 
@@ -281,7 +281,7 @@ func TestUpdateSecretWithInvalidJson(t *testing.T) {
 
 	reader := strings.NewReader("invalid-playload")
 	request, _ := http.NewRequest("PATCH", "/secret/test-secret-uid-1", reader)
-	recorder := testutil.InvokeHttpHandler(request, "/secret/{id}", UpdateSecret)
+	recorder := testutil.InvokeHTTPHandler(request, "/secret/{id}", UpdateSecret)
 	assert.Equal(400, recorder.Code)
 }
 
@@ -308,7 +308,7 @@ func TestDeleteSecretWhereSecretExists(t *testing.T) {
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 
 	request, _ := http.NewRequest("DELETE", "/secret/test-secret-uid-1", nil)
-	recorder := testutil.InvokeHttpHandler(request, "/secret/{id}", DeleteSecret)
+	recorder := testutil.InvokeHTTPHandler(request, "/secret/{id}", DeleteSecret)
 	assert.Equal(200, recorder.Code)
 
 	kubSecret, found, err := local.GetSecretByUID(*listerSet.KubeClientSet, constants.DefaultNamespace, "test-secret-uid-1")
@@ -327,7 +327,7 @@ func TestDeleteSecretWhereSecretDoesNotExists(t *testing.T) {
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 
 	request, _ := http.NewRequest("DELETE", "/secret/test-secret-uid-1", nil)
-	recorder := testutil.InvokeHttpHandler(request, "/secret/{id}", DeleteSecret)
+	recorder := testutil.InvokeHTTPHandler(request, "/secret/{id}", DeleteSecret)
 	assert.Equal(404, recorder.Code)
 	assert.Contains(string(recorder.Body.Bytes()), "test-secret-uid-1")
 }
@@ -355,7 +355,7 @@ func TestCreateSecretWhereSecretDidNotAlreadyExist(t *testing.T) {
 
 	reader, _ := NewJsonByteReaderFromObject(testSecretCreate)
 	request, _ := http.NewRequest("POST", "/secrets", reader)
-	recorder := testutil.InvokeHttpHandler(request, "/secrets", CreateSecret)
+	recorder := testutil.InvokeHTTPHandler(request, "/secrets", CreateSecret)
 
 	// Check the content of the returned secret.
 	assert.Equal(200, recorder.Code)
@@ -413,7 +413,7 @@ func TestCreateSecretWhereSecretAlreadyExisted(t *testing.T) {
 
 	reader, _ := NewJsonByteReaderFromObject(testSecretCreate)
 	request, _ := http.NewRequest("POST", "/secrets", reader)
-	recorder := testutil.InvokeHttpHandler(request, "/secrets", CreateSecret)
+	recorder := testutil.InvokeHTTPHandler(request, "/secrets", CreateSecret)
 
 	// Check the content of the returned secret.
 	assert.Equal(409, recorder.Code)
@@ -441,7 +441,7 @@ func TestCreateSecretWithInvalidJson(t *testing.T) {
 
 	reader := strings.NewReader("invalid-playload")
 	request, _ := http.NewRequest("POST", "/secrets", reader)
-	recorder := testutil.InvokeHttpHandler(request, "/secrets", CreateSecret)
+	recorder := testutil.InvokeHTTPHandler(request, "/secrets", CreateSecret)
 
 	assert.Equal(400, recorder.Code)
 }
@@ -470,7 +470,7 @@ func TestCreateSecretDockerSecret(t *testing.T) {
 
 	reader, _ := NewJsonByteReaderFromObject(dockerSecret)
 	request, _ := http.NewRequest("POST", "/secrets", reader)
-	recorder := testutil.InvokeHttpHandler(request, "/secrets", CreateSecret)
+	recorder := testutil.InvokeHTTPHandler(request, "/secrets", CreateSecret)
 
 	assert.Equal(200, recorder.Code)
 
@@ -496,7 +496,7 @@ func TestReturnAllSecretsWhenThereAreNoSecrets(t *testing.T) {
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 	request, _ := http.NewRequest("GET", "/secrets", nil)
-	recorder := testutil.InvokeHttpHandler(request, "/secrets", ReturnAllSecrets)
+	recorder := testutil.InvokeHTTPHandler(request, "/secrets", ReturnAllSecrets)
 	assert.Equal(200, recorder.Code)
 	assert.Equal("0", recorder.Header().Get("X-Total-Count"))
 	assert.Equal("[]", strings.TrimSpace(string(recorder.Body.Bytes())))
@@ -547,7 +547,7 @@ func TestReturnAllSecretsWhereModelHasWeblogicSecrets(t *testing.T) {
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 	request, _ := http.NewRequest("GET", "/secrets", nil)
-	recorder := testutil.InvokeHttpHandler(request, "/secrets", ReturnAllSecrets)
+	recorder := testutil.InvokeHTTPHandler(request, "/secrets", ReturnAllSecrets)
 	assert.Equal(200, recorder.Code)
 	ret := make([]Secret, 0)
 	err = json.Unmarshal(recorder.Body.Bytes(), &ret)
@@ -589,7 +589,7 @@ func TestReturnAllSecretsWhereModelHasCoherenceSecret(t *testing.T) {
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 	request, _ := http.NewRequest("GET", "/secrets", nil)
-	recorder := testutil.InvokeHttpHandler(request, "/secrets", ReturnAllSecrets)
+	recorder := testutil.InvokeHTTPHandler(request, "/secrets", ReturnAllSecrets)
 	assert.Equal(200, recorder.Code)
 	ret := make([]Secret, 0)
 	err = json.Unmarshal(recorder.Body.Bytes(), &ret)
@@ -628,7 +628,7 @@ func TestReturnAllSecretsWhereModelHasHelidonSecret(t *testing.T) {
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 	request, _ := http.NewRequest("GET", "/secrets", nil)
-	recorder := testutil.InvokeHttpHandler(request, "/secrets", ReturnAllSecrets)
+	recorder := testutil.InvokeHTTPHandler(request, "/secrets", ReturnAllSecrets)
 	assert.Equal(200, recorder.Code)
 	ret := make([]Secret, 0)
 	err = json.Unmarshal(recorder.Body.Bytes(), &ret)
@@ -665,7 +665,7 @@ func TestReturnAllSecretsWhereModelHasDatabaseSecret(t *testing.T) {
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 	request, _ := http.NewRequest("GET", "/secrets", nil)
-	recorder := testutil.InvokeHttpHandler(request, "/secrets", ReturnAllSecrets)
+	recorder := testutil.InvokeHTTPHandler(request, "/secrets", ReturnAllSecrets)
 	assert.Equal(200, recorder.Code)
 	ret := make([]Secret, 0)
 	err = json.Unmarshal(recorder.Body.Bytes(), &ret)
@@ -702,7 +702,7 @@ func TestReturnSingleSecretWithValidKey(t *testing.T) {
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 	request, _ := http.NewRequest("GET", "/secrets/test-db-secret-name-1", nil)
-	recorder := testutil.InvokeHttpHandler(request, "/secrets/{id}", ReturnSingleSecret)
+	recorder := testutil.InvokeHTTPHandler(request, "/secrets/{id}", ReturnSingleSecret)
 	assert.Equal(200, recorder.Code)
 	ret := make([]Secret, 0)
 	err = json.Unmarshal(recorder.Body.Bytes(), &ret)
@@ -719,7 +719,7 @@ func TestReturnSingleSecretWithInvalidKey(t *testing.T) {
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 	request, _ := http.NewRequest("GET", "/secrets/invalid-secret-key", nil)
-	recorder := testutil.InvokeHttpHandler(request, "/secrets/{id}", ReturnSingleSecret)
+	recorder := testutil.InvokeHTTPHandler(request, "/secrets/{id}", ReturnSingleSecret)
 	// Some debate about getting a 200 vs a 404 here.
 	assert.Equal(404, recorder.Code)
 	//assert.Equal(200, recorder.Code)

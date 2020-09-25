@@ -40,7 +40,7 @@
   },
   "description": "Dynamic Dashboard covering metrics for: 1 VM, n VMs or All VMs.\n",
   "editable": true,
-  "gnetId": 9096,
+  "gnetId": null,
   "graphTooltip": 0,
   "id": null,
   "iteration": 1549391326944,
@@ -1269,7 +1269,7 @@
         "x": 0,
         "y": 4
       },
-      "id": 92,
+      "id": 201,
       "panels": [
         {
           "columns": [],
@@ -1333,7 +1333,7 @@
           ],
           "targets": [
             {
-              "expr": "count(count(node_cpu_seconds_total{alias=~\"$host\"}) without (mode,instance,job)) without (cpu) ",
+              "expr": "count(count(node_cpu_seconds_total{alias=~\"$host\"}) without(mode,instance,app,pod_template_generation,pod_name,job,original_job)) without (cpu) ",
               "format": "table",
               "instant": true,
               "interval": "30s",
@@ -1359,13 +1359,13 @@
           "fill": 1,
           "grid": {},
           "gridPos": {
-            "h": 4,
+            "h": 12,
             "w": 24,
             "x": 0,
             "y": 64
           },
           "height": "260px",
-          "id": 2,
+          "id": 59,
           "legend": {
             "alignAsTable": true,
             "avg": true,
@@ -1405,10 +1405,10 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "100 - (avg by(env, job) (irate(node_cpu_seconds_total{mode=\"idle\",alias=~\"$host\"}[$__range])) * 100) ",
+              "expr": "irate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\",}[$__range]) * 100",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "CPU: {{job}}",
+              "legendFormat": "{{instance}} {{pod}}",
               "refId": "B"
             }
           ],
@@ -1424,7 +1424,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "CPU Used",
+          "title": "Pod CPU Usage",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -1463,6 +1463,200 @@
         }
       ],
       "title": "CPU",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 202,
+      "panels": [
+        {
+          "datasource": "$datasource",
+          "description": "Used CPU from a total available of 100%.\n- CPUThreshold:\n >Critical: > 90% Used CPU\n\nThere are 3 general states your CPU can be in:\n - Idle, which means it has nothing to do.\n - Running a user space program, like a command shell, an email server, or a compiler.\n - Running the kernel, servicing interrupts or managing resources.\n\nThese three meta states can be further subdivided. For example, user space programs can be categorized as those running under their initial priority level or those running with a nice priority. Niceness is a way to tweak the priority level of a process so that it runs less frequently. The niceness level ranges from -20 (most favorable scheduling) to 19 (least favorable). By default processes on Linux are started with a niceness of 0.",
+          "gridPos": {
+            "h": 4,
+            "w": 7,
+            "x": 0,
+            "y": 6
+          },
+          "id": 301,
+          "links": [
+            {
+              "title": "CPU",
+              "url": "https://www.opsdash.com/blog/cpu-usage-linux.html"
+            },
+            {
+              "title": "CPU",
+              "url": "http://www.daniloaz.com/en/what-is-the-true-meaning-of-system-average-load-and-cpu-utilization-in-linux/"
+            }
+          ],
+          "options": {
+            "fieldOptions": {
+              "calcs": [
+                "last"
+              ],
+              "defaults": {
+                "mappings": [],
+                "max": 100,
+                "min": 0,
+                "thresholds": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ],
+                "unit": "percent"
+              },
+              "override": {},
+              "values": false
+            },
+            "orientation": "auto",
+            "showThresholdLabels": true,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "6.4.4",
+          "targets": [
+            {
+              "expr": "100 * avg (sum (rate(node_cpu_seconds_total{mode!=\"idle\", original_instance=~\"$OriginalInstance\"}[$__range])) by (cpu))",
+              "format": "time_series",
+              "intervalFactor": 1,
+              "legendFormat": "CPU usage",
+              "refId": "B"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Host CPU Usage",
+          "type": "gauge"
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "$datasource",
+          "decimals": null,
+          "description": "CPU usage for each CPU",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "fillGradient": 0,
+          "grid": {},
+          "gridPos": {
+            "h": 4,
+            "w": 17,
+            "x": 7,
+            "y": 6
+          },
+          "height": "260px",
+          "id": 302,
+          "legend": {
+            "alignAsTable": true,
+            "avg": true,
+            "current": true,
+            "hideEmpty": false,
+            "max": true,
+            "min": true,
+            "rightSide": true,
+            "show": true,
+            "sort": "max",
+            "sortDesc": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [
+            {
+              "title": "CPU",
+              "type": "absolute",
+              "url": "https://www.opsdash.com/blog/cpu-usage-linux.html"
+            },
+            {
+              "title": "CPU",
+              "type": "absolute",
+              "url": "http://www.daniloaz.com/en/what-is-the-true-meaning-of-system-average-load-and-cpu-utilization-in-linux/"
+            }
+          ],
+          "nullPointMode": "null as zero",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "100 * sum ( rate(node_cpu_seconds_total{mode!=\"idle\", original_instance=~\"$OriginalInstance\"}[$__range])) by (cpu)  ",
+              "format": "time_series",
+              "intervalFactor": 1,
+              "legendFormat": "CPU: {{cpu}}",
+              "refId": "B"
+            }
+          ],
+          "thresholds": [
+            {
+              "colorMode": "critical",
+              "fill": false,
+              "line": true,
+              "op": "gt",
+              "value": 90,
+              "yaxis": "left"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "vCPU Usage",
+          "tooltip": {
+            "msResolution": false,
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "format": "percent",
+              "label": "",
+              "logBase": 1,
+              "max": 100,
+              "min": 0,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": 0,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        }
+      ],
+      "repeat": "OriginalInstance",
+      "title": "CPU of $OriginalInstance",
       "type": "row"
     },
     {
@@ -4473,7 +4667,7 @@
       "type": "row"
     },
     {
-      "collapsed": false,
+      "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -4754,7 +4948,7 @@
   "tags": [
     "grafana",
     "prometheus",
-    "noe_exporter 0.17"
+    "node_exporter 0.17"
   ],
   "templating": {
     "list": [
@@ -4805,6 +4999,27 @@
         "name": "version",
         "options": [],
         "query": "label_values(node_exporter_build_info,version)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": "",
+        "current": {},
+        "datasource": "$datasource",
+        "hide": 0,
+        "includeAll": true,
+        "label": "OriginalInstance",
+        "multi": true,
+        "name": "OriginalInstance",
+        "options": [],
+        "query": "label_values(original_instance)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,

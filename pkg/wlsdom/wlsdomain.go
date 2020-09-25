@@ -14,6 +14,7 @@ import (
 	v1meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// CreateWlsDomainCR creates a WebLogic domain custom resource.
 func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbPair *types.ModelBindingPair,
 	labels map[string]string, datasourceModelConfigMap string, dbSecrets []string) *v8weblogic.Domain {
 	domainCRValues := domainModel.DomainCRValues
@@ -42,9 +43,8 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 				// ImagePullPolicy
 				if len(domainCRValues.ImagePullPolicy) > 0 {
 					return domainCRValues.ImagePullPolicy
-				} else {
-					return "IfNotPresent"
 				}
+				return "IfNotPresent"
 			}(),
 			ImagePullSecrets: domainCRValues.ImagePullSecrets,
 			WebLogicCredentialsSecret: corev1.SecretReference{
@@ -59,9 +59,8 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 				ServerStartState: func() string {
 					if len(domainCRValues.AdminServer.ServerStartState) > 0 {
 						return domainCRValues.AdminServer.ServerStartState
-					} else {
-						return "RUNNING"
 					}
+					return "RUNNING"
 				}(),
 				RestartVersion: domainCRValues.AdminServer.RestartVersion,
 				ServerService:  domainCRValues.AdminServer.ServerService,
@@ -97,17 +96,15 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 				// Set replicas if specified in the model or the default of 1 if not specified
 				if domainCRValues.Replicas != nil {
 					return domainCRValues.Replicas
-				} else {
-					return util.NewVal(1)
 				}
+				return util.NewVal(1)
 			}(),
 			Configuration: v8weblogic.Configuration{
 				IntrospectorJobActiveDeadlineSeconds: func() int {
 					if domainCRValues.Configuration.IntrospectorJobActiveDeadlineSeconds > 0 {
 						return domainCRValues.Configuration.IntrospectorJobActiveDeadlineSeconds
-					} else {
-						return 300 // Default to 300 seconds if not specified in domainCRValues
 					}
+					return 300 // Default to 300 seconds if not specified in domainCRValues
 				}(),
 				Istio: v8weblogic.Istio{
 					// Istio is always enabled for WebLogic domains in Verrazzano
@@ -122,9 +119,8 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 			ServerStartPolicy: func() string {
 				if len(domainCRValues.ServerStartPolicy) > 0 {
 					return domainCRValues.ServerStartPolicy
-				} else {
-					return "IF_NEEDED"
 				}
+				return "IF_NEEDED"
 			}(),
 			ServerPod: func() v8weblogic.ServerPod {
 				serverPod := domainCRValues.ServerPod
@@ -160,9 +156,8 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 			ServerStartState: func() string {
 				if len(domainCRValues.ServerStartState) > 0 {
 					return domainCRValues.ServerStartState
-				} else {
-					return "RUNNING"
 				}
+				return "RUNNING"
 			}(),
 			RestartVersion: domainCRValues.RestartVersion,
 		},
@@ -197,7 +192,7 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 	return domainCR
 }
 
-// Update env variables for a given component
+// UpdateEnvVars given a WebLogic component update environment variables.
 func UpdateEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.EnvVar) {
 	if *envs != nil && len(*envs) != 0 {
 		for _, domain := range mc.WlsDomainCRs {

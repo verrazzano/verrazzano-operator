@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Utilities
+
 package testutil
 
 import (
@@ -22,10 +23,10 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-// Duplicate of managed.IstioSystemNamespace to avoid circular import
+// IstioSystemNamespace duplicate of managed.IstioSystemNamespace to avoid circular import
 const IstioSystemNamespace = "istio-system"
 
-// Get a test map of managed cluster connections that uses fake client sets
+// GetManagedClusterConnections returns a test map of managed cluster connections that uses fake client sets
 func GetManagedClusterConnections() map[string]*util.ManagedClusterConnection {
 	return map[string]*util.ManagedClusterConnection{
 		"cluster1": getManagedClusterConnection("cluster1"),
@@ -48,6 +49,10 @@ func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 	}
 	// set a fake pod lister on the cluster connection
 	clusterConnection.PodLister = &simplePodLister{
+		kubeClient: clusterConnection.KubeClient,
+	}
+
+	clusterConnection.ConfigMapLister = &simpleConfigMapLister{
 		kubeClient: clusterConnection.KubeClient,
 	}
 
@@ -97,6 +102,10 @@ func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 			},
 		}, metav1.CreateOptions{})
 
+	clusterConnection.ServiceLister = &simpleServiceLister{
+		kubeClient: clusterConnection.KubeClient,
+	}
+
 	return clusterConnection
 }
 
@@ -107,16 +116,15 @@ func getNamespace(name string, clusterName string) *corev1.Namespace {
 				Name: name,
 			},
 		}
-	} else {
-		return &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: name,
-				Labels: map[string]string{
-					"verrazzano.binding": "testBinding",
-					"verrazzano.cluster": clusterName,
-				},
+	}
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				"verrazzano.binding": "testBinding",
+				"verrazzano.cluster": clusterName,
 			},
-		}
+		},
 	}
 }
 
@@ -142,13 +150,25 @@ func getPods() []*corev1.Pod {
 	}
 }
 
-// Get a test model binding pair.
+// GetModelBindingPairWithNames returns a test model and binding pair with the specified model and binding
+// names in given NS.
+func GetModelBindingPairWithNames(modelName string, bindingName string, ns string) *types.ModelBindingPair {
+	pair := GetModelBindingPair()
+	pair.Binding.Name = bindingName
+	pair.Model.Name = modelName
+	pair.Binding.Spec.ModelName = modelName
+	pair.Model.Namespace = ns
+	pair.Binding.Namespace = ns
+	return pair
+}
+
+// GetModelBindingPair returns a test model binding pair.
 func GetModelBindingPair() *types.ModelBindingPair {
 	var pair = &types.ModelBindingPair{
 		Model: &v1beta1.VerrazzanoModel{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
 				Name:      "testModel",
+				Namespace: "default",
 			},
 			Spec: v1beta1.VerrazzanoModelSpec{
 				Description: "",
@@ -223,8 +243,8 @@ func GetModelBindingPair() *types.ModelBindingPair {
 		},
 		Binding: &v1beta1.VerrazzanoBinding{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
 				Name:      "testBinding",
+				Namespace: "default",
 			},
 			Spec: v1beta1.VerrazzanoBindingSpec{
 				ModelName: "testModel",
@@ -303,6 +323,18 @@ func GetModelBindingPair() *types.ModelBindingPair {
 						},
 					},
 				},
+				ConfigMaps: []*corev1.ConfigMap{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-configmap",
+							Namespace: "test",
+						},
+						Data: map[string]string{
+							"foo": "aaa",
+							"bar": "bbb",
+						},
+					},
+				},
 			},
 			"cluster2": {
 				Name:       "cluster2",
@@ -311,4 +343,14 @@ func GetModelBindingPair() *types.ModelBindingPair {
 		},
 	}
 	return pair
+}
+
+// GetTestClusters returns a list of Verrazzano Managed Cluster resources.
+func GetTestClusters() []v1beta1.VerrazzanoManagedCluster {
+	return []v1beta1.VerrazzanoManagedCluster{
+		{
+			ObjectMeta: metav1.ObjectMeta{UID: "123-456-789", Name: "cluster1", Namespace: "default"},
+			Spec:       v1beta1.VerrazzanoManagedClusterSpec{Type: "testCluster", ServerAddress: "test.com", Description: "Test Cluster"},
+		},
+	}
 }

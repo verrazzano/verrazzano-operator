@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Handles creation/deletion of deployments based, on a VerrazzanoBinding
+
 package managed
 
 import (
@@ -18,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// CreateServiceAccounts creates/updates service accounts needed for each managed cluster.
 func CreateServiceAccounts(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 
 	glog.V(6).Infof("Creating/updating Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
@@ -90,9 +92,8 @@ func newServiceAccounts(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *t
 					// Get namespace for monitoring components in case of System binding.
 					if binding.Name == constants.VmiSystemBindingName {
 						return namespaceName
-					} else {
-						return namespace
 					}
+					return namespace
 				}(),
 				Labels: labels,
 			},

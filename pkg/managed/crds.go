@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Handles creation of CRDs into Managed Clusters
+
 package managed
 
 import (
@@ -18,6 +19,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+// CreateCrdDefinitions creates/updates custom resource definitions needed for each managed cluster.
 func CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnection, managedCluster *v1beta1v8o.VerrazzanoManagedCluster, manifest *util.Manifest) error {
 
 	glog.V(6).Infof("Creating/updating CRDs for ManagedCluster %s", managedCluster.Name)

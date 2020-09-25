@@ -47,13 +47,13 @@ import (
 const controllerAgentName = "verrazzano-controller"
 const bindingFinalizer = "vb.verrazzano.io"
 
-// Primary controller structure
+// Controller represents the primary controller structure.
 type Controller struct {
 	kubeClientSet               kubernetes.Interface
 	kubeExtClientSet            apiextensionsclient.Interface
 	verrazzanoOperatorClientSet clientset.Interface
 	vmoClientSet                vmoclientset.Interface
-	verrazzanoUri               string
+	verrazzanoURI               string
 	enableMonitoringStorage     string
 	imagePullSecrets            []corev1.LocalObjectReference
 
@@ -97,6 +97,7 @@ type Controller struct {
 	bindingSyncThreshold map[string]int
 }
 
+// Listers represents listers used by the controller.
 type Listers struct {
 	ManagedClusterLister *listers.VerrazzanoManagedClusterLister
 	ModelLister          *listers.VerrazzanoModelLister
@@ -105,6 +106,7 @@ type Listers struct {
 	KubeClientSet        *kubernetes.Interface
 }
 
+// ListerSet returns a list of listers used by the controller.
 func (c *Controller) ListerSet() Listers {
 	return Listers{
 		ManagedClusterLister: &c.verrazzanoManagedClusterLister,
@@ -116,7 +118,7 @@ func (c *Controller) ListerSet() Listers {
 }
 
 // NewController returns a new Verrazzano Operator controller
-func NewController(kubeconfig string, manifest *util.Manifest, masterURL string, watchNamespace string, verrazzanoUri string, enableMonitoringStorage string) (*Controller, error) {
+func NewController(kubeconfig string, manifest *util.Manifest, masterURL string, watchNamespace string, verrazzanoURI string, enableMonitoringStorage string) (*Controller, error) {
 	//
 	// Instantiate connection and clients to local k8s cluster
 	//
@@ -194,7 +196,7 @@ func NewController(kubeconfig string, manifest *util.Manifest, masterURL string,
 	}
 	controller := &Controller{
 		watchNamespace:                   watchNamespace,
-		verrazzanoUri:                    verrazzanoUri,
+		verrazzanoURI:                    verrazzanoURI,
 		enableMonitoringStorage:          enableMonitoringStorage,
 		kubeClientSet:                    kubeClientSet,
 		verrazzanoOperatorClientSet:      verrazzanoOperatorClientSet,
@@ -245,7 +247,7 @@ func NewController(kubeconfig string, manifest *util.Manifest, masterURL string,
 	return controller, nil
 }
 
-// Install Global Entities
+// CreateUpdateGlobalEntities installs global entities
 func (c *Controller) CreateUpdateGlobalEntities() error {
 	// Create or update System VMI
 	// A synthetic binding will be constructed and passed to the generic CreateVmis API to create the System VMI
@@ -256,7 +258,7 @@ func (c *Controller) CreateUpdateGlobalEntities() error {
 	}
 	glog.V(4).Info("Configuring System VMI...")
 	for {
-		err := local.CreateVmis(systemBinding, c.vmoClientSet, c.vmiLister, c.verrazzanoUri, c.enableMonitoringStorage)
+		err := local.CreateVmis(systemBinding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
 		if err != nil {
 			glog.Errorf("Failed to create System VMI %s: %v", constants.VmiSystemBindingName, err)
 		}
@@ -349,7 +351,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	}
 
 	// A synthetic Model binding pair will be constructed and passed to the managed clusters
-	mbPair := CreateModelBindingPair(systemModel, systemBinding, c.verrazzanoUri, c.imagePullSecrets)
+	mbPair := CreateModelBindingPair(systemModel, systemBinding, c.verrazzanoURI, c.imagePullSecrets)
 
 	managedCluster := cluster.(*v1beta1v8o.VerrazzanoManagedCluster)
 	secret, err := c.secretLister.Secrets(managedCluster.Namespace).Get(managedCluster.Spec.KubeconfigSecret)
@@ -459,7 +461,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create ConfigMaps
-	err = managed.CreateConfigMaps(mbPair, c.managedClusterConnections)
+	err = managed.CreateConfigMaps(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create config maps for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -489,13 +491,13 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create Service for Node Exporter
-	err = managed.CreateServices(mbPair, c.managedClusterConnections)
+	err = managed.CreateServices(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create service for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create Deployments
-	err = managed.CreateDeployments(mbPair, c.managedClusterConnections, c.Manifest, c.verrazzanoUri, c.secrets)
+	err = managed.CreateDeployments(mbPair, c.managedClusterConnections, c.Manifest, c.verrazzanoURI, c.secrets)
 	if err != nil {
 		glog.Errorf("Failed to create deployments for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -513,7 +515,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create DaemonSets
-	err = managed.CreateDaemonSets(mbPair, c.managedClusterConnections, c.verrazzanoUri)
+	err = managed.CreateDaemonSets(mbPair, c.managedClusterConnections, c.verrazzanoURI)
 	if err != nil {
 		glog.Errorf("Failed to create DaemonSets for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -555,7 +557,7 @@ func (c *Controller) processApplicationModelAdded(cluster interface{}) {
 		if _, ok := c.modelBindingPairs[binding.Name]; !ok {
 			if model.Name == binding.Spec.ModelName {
 				glog.Infof("Adding model/binding pair during add model for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-				mbPair := CreateModelBindingPair(model, binding, c.verrazzanoUri, c.imagePullSecrets)
+				mbPair := CreateModelBindingPair(model, binding, c.verrazzanoURI, c.imagePullSecrets)
 				c.modelBindingPairs[binding.Name] = mbPair
 				break
 			}
@@ -601,7 +603,7 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 				// During restart of the operator a delete can happen before a model/binding is created so create one now.
 				if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
 					glog.Infof("Adding model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-					mbPair := CreateModelBindingPair(model, binding, c.verrazzanoUri, c.imagePullSecrets)
+					mbPair := CreateModelBindingPair(model, binding, c.verrazzanoURI, c.imagePullSecrets)
 					c.modelBindingPairs[binding.Name] = mbPair
 				}
 			}
@@ -654,14 +656,14 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 		// If a model exists for this binding, then create the model/binding pair
 		if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
 			glog.Infof("Adding new model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-			mbPair = CreateModelBindingPair(model, binding, c.verrazzanoUri, c.imagePullSecrets)
+			mbPair = CreateModelBindingPair(model, binding, c.verrazzanoURI, c.imagePullSecrets)
 			c.modelBindingPairs[binding.Name] = mbPair
 			mbPairExists = true
 		}
 	} else {
 		// Rebuild the existing model/binding pair
 		if existingModel, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-			UpdateModelBindingPair(mbPair, existingModel, binding, c.verrazzanoUri, c.imagePullSecrets)
+			UpdateModelBindingPair(mbPair, existingModel, binding, c.verrazzanoURI, c.imagePullSecrets)
 		}
 
 	}
@@ -681,7 +683,7 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 	 * Create Artifacts in the Local Cluster
 	 **********************/
 	// Create VMIs
-	err = local.CreateVmis(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoUri, c.enableMonitoringStorage)
+	err = local.CreateVmis(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
 	if err != nil {
 		glog.Errorf("Failed to create VMIs for binding %s: %v", binding.Name, err)
 	}
@@ -699,7 +701,7 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 	}
 
 	// Update the "bring your own DNS" credentials?
-	err = local.UpdateAcmeDnsSecret(binding, c.kubeClientSet, c.secretLister, constants.AcmeDnsSecret, c.verrazzanoUri)
+	err = local.UpdateAcmeDNSSecret(binding, c.kubeClientSet, c.secretLister, constants.AcmeDNSSecret, c.verrazzanoURI)
 	if err != nil {
 		glog.Errorf("Failed to update DNS credentials for binding %s: %v", binding.Name, err)
 	}
@@ -781,7 +783,7 @@ func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 	}
 
 	// Cleanup ConfigMaps
-	err = managed.CleanupOrphanedConfigMaps(mbPair, c.managedClusterConnections, c.modelBindingPairs)
+	err = managed.CleanupOrphanedConfigMaps(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to cleanup ConfigMaps for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -793,17 +795,16 @@ func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 	}
 }
 
-type KubeDeployment struct {
+type kubeDeployment struct {
 	kubeClientSet kubernetes.Interface
 }
 
-func (me *KubeDeployment) DeleteDeployment(namespace, name string) error {
+func (me *kubeDeployment) DeleteDeployment(namespace, name string) error {
 	dep, err := me.kubeClientSet.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if dep != nil {
 		return me.kubeClientSet.AppsV1().Deployments(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
-	} else {
-		return err
 	}
+	return err
 }
 
 // Process a removal of a VerrazzanoBinding
@@ -870,7 +871,7 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 		return
 	}
 
-	err = monitoring.DeletePomPusher(binding.Name, &KubeDeployment{kubeClientSet: c.kubeClientSet})
+	err = monitoring.DeletePomPusher(binding.Name, &kubeDeployment{kubeClientSet: c.kubeClientSet})
 	if err != nil {
 		glog.Errorf("Failed to delete prometheus-pusher for binding %s: %v", mbPair.Binding.Name, err)
 	}

@@ -16,7 +16,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoUri string) error {
+// CreateDaemonSets creates/updates daemon sets needed for each managed cluster.
+func CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string) error {
 
 	glog.V(6).Infof("Creating/updating daemonset for VerrazzanoBinding %s", mbPair.Binding.Name)
 
@@ -38,7 +39,7 @@ func CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterCon
 		defer managedClusterConnection.Lock.RUnlock()
 
 		// Construct DaemonSet for each ManagedCluster
-		newDaemonSets, err := newDaemonSet(mbPair.Binding.Name, clusterName, verrazzanoUri)
+		newDaemonSets, err := newDaemonSet(clusterName, verrazzanoURI)
 		if err != nil {
 			return err
 		}
@@ -69,8 +70,8 @@ func CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterCon
 }
 
 // Constructs the necessary Daemonset for the specified ManagedCluster
-func newDaemonSet(bindingName string, managedClusterName string, verrazzanoUri string) ([]*appsv1.DaemonSet, error) {
+func newDaemonSet(managedClusterName string, verrazzanoURI string) ([]*appsv1.DaemonSet, error) {
 	var daemonSets []*appsv1.DaemonSet
-	daemonSets = monitoring.SystemDaemonSets(managedClusterName, verrazzanoUri)
+	daemonSets = monitoring.SystemDaemonSets(managedClusterName, verrazzanoURI)
 	return daemonSets, nil
 }

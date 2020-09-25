@@ -10,7 +10,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Create all the cluster role bindings needed by Filebeats, Journalbeats, and NodeExporters in all the managed clusters
+// GetSystemClusterRoleBindings gets all the cluster role bindings needed by Filebeats, Journalbeats, and NodeExporters
+// in all the managed clusters.
 func GetSystemClusterRoleBindings(managedClusterName string) []*rbacv1.ClusterRoleBinding {
 	var clusterRoleBindings []*rbacv1.ClusterRoleBinding
 	filebeatLabels := GetFilebeatLabels(managedClusterName)
