@@ -157,7 +157,6 @@ func addSecrets(secretNames []string) {
 			Namespace: theSecret.Namespace,
 			Cluster:   "",
 			Type:      string(theSecret.Type),
-			//			Status:    "NYI",
 			Data: func() []Data {
 				theData := []Data{}
 				for k, v := range theSecret.Data {
