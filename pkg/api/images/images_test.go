@@ -4,11 +4,12 @@ package images
 
 import (
 	"encoding/json"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 )
 
 // a set of test images for testing purposes

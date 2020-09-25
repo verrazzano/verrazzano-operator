@@ -49,7 +49,7 @@ HELM_CHART_ARCHIVE_NAME = ${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz
 all: build
 
 .PHONY: check
-check: go-fmt go-vet go-ineffassign
+check: go-fmt go-vet go-ineffassign go-lint
 
 #
 # Go build related tasks
