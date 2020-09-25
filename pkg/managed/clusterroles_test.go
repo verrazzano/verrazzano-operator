@@ -153,7 +153,6 @@ func TestCreateClusterRolesCreateAnAlreadyExistingRole(t *testing.T) {
 	if err != nil {
 		t.Fatalf("got an error from CreateClusterRoles: %v", err)
 	}
-
 	// verify that a cluster role with the service account name exists
 	cr, err = clusterConnection.KubeClient.RbacV1().ClusterRoles().Get(context.TODO(), serviceAccountName, metav1.GetOptions{})
 	if err != nil {
