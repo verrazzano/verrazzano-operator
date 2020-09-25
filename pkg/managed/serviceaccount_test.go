@@ -1,3 +1,6 @@
+// Copyright (c) 2020, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package managed
 
 import (
@@ -50,19 +53,20 @@ func TestCreateServiceAccounts(t *testing.T) {
 		assertCreateServiceAccounts(t, sa, "cluster-1")
 	}
 
-	// Update the imagePullSecret for service account we created in "cluster-1" cluster.
+	// Update imagePullSecret for service account we created in "cluster-1" cluster.
 	serviceAccounts[0].ImagePullSecrets[0].Name = ""
 	_, err = managedClusterConnection.KubeClient.CoreV1().ServiceAccounts("test3").Update(context.TODO(), serviceAccounts[0], metav1.UpdateOptions{})
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't update service account for cluster cluster-1: %v", err))
 	}
 
-	// Call CreateServiceAccounts again the update code will be executed to make the service account right.
+	// Call CreateServiceAccounts again, the update code will be executed to make the service account right.
 	err = CreateServiceAccounts(&mbPair, managedConnections)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't create service account: %v", err))
 	}
 
+	// Validate the service account was updated for the "cluster-1" cluster
 	serviceAccounts, err = managedClusterConnection.ServiceAccountLister.List(labels.Everything())
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't list service account for cluster cluster-1: %v", err))
