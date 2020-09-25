@@ -22,6 +22,14 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+const EXISTING_BINDING = "existingBinding"
+const EXISTING_BINDING_TO_BE_UPDATED = "existingBindingToBeUpdated"
+const NONEXISTING_BINDING = "nonexistingBinding"
+const ERROR_LIST_BINDING = "errorListBinding"
+const ERROR_GET_BINDING = "errorGetBinding"
+const ERROR_CREATE_BINDING = "errorCreateBinding"
+const ERROR_DELETE_BINDING = "errorDeleteBinding"
+
 func doTestCreateStorageOption(t *testing.T, option string, expected string) {
 	storage := createStorageOption(option)
 	prometheus := vmov1.Prometheus{
@@ -90,15 +98,15 @@ func (f fakeVmoVerrazzanoV1Client) VerrazzanoMonitoringInstances(namespace strin
 type fakeVmiInterface struct{}
 
 func (f fakeVmiInterface) Create(ctx context.Context, verrazzanoMonitoringInstance *vmov1.VerrazzanoMonitoringInstance, opts metav1.CreateOptions) (*vmov1.VerrazzanoMonitoringInstance, error) {
-	if verrazzanoMonitoringInstance.Name == "existingBinding" {
-		return nil, errors.New("VMI already exists")
+	if verrazzanoMonitoringInstance.Name == ERROR_CREATE_BINDING {
+		return nil, errors.New("error create VMI")
 	} else {
 		return createTestInstance(verrazzanoMonitoringInstance.Name), nil
 	}
 }
 
 func (f fakeVmiInterface) Update(ctx context.Context, verrazzanoMonitoringInstance *vmov1.VerrazzanoMonitoringInstance, opts metav1.UpdateOptions) (*vmov1.VerrazzanoMonitoringInstance, error) {
-	if verrazzanoMonitoringInstance.Name == "existingBindingToBeUpdated" {
+	if verrazzanoMonitoringInstance.Name == EXISTING_BINDING_TO_BE_UPDATED {
 		return createTestInstance(verrazzanoMonitoringInstance.Name), nil
 	} else {
 		return nil, errors.New("VMI can not be updated")
@@ -106,9 +114,11 @@ func (f fakeVmiInterface) Update(ctx context.Context, verrazzanoMonitoringInstan
 }
 
 func (f fakeVmiInterface) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	if name == "existingBinding" {
+	if name == EXISTING_BINDING {
 		return nil
-	} else {
+	} else if name == ERROR_DELETE_BINDING {
+		return errors.New("error delete VMI")
+	} else{
 		return errors.New("VMI doesn't exist")
 	}
 }
@@ -148,20 +158,28 @@ func (f fakeVmiLister) VerrazzanoMonitoringInstances(namespace string) vmolister
 type fakeVmiNamespaceLister struct{}
 
 func (f fakeVmiNamespaceLister) List(selector labels.Selector) (ret []*vmov1.VerrazzanoMonitoringInstance, err error) {
-	if selector.Matches(labels.Set(map[string]string{constants.VerrazzanoBinding: "existingBinding"})) {
-		return []*vmov1.VerrazzanoMonitoringInstance{createTestInstance("existingBinding")}, nil
+	if selector.Matches(labels.Set(map[string]string{constants.VerrazzanoBinding: EXISTING_BINDING})) {
+		return []*vmov1.VerrazzanoMonitoringInstance{createTestInstance(EXISTING_BINDING)}, nil
+	} else if selector.Matches(labels.Set(map[string]string{constants.VerrazzanoBinding: ERROR_LIST_BINDING})) {
+		return nil, errors.New("error list VMI")
+	} else if selector.Matches(labels.Set(map[string]string{constants.VerrazzanoBinding: ERROR_DELETE_BINDING})) {
+		return []*vmov1.VerrazzanoMonitoringInstance{createTestInstance(ERROR_DELETE_BINDING)}, nil
 	} else {
 		return nil, nil
 	}
 }
 
 func (f fakeVmiNamespaceLister) Get(name string) (*vmov1.VerrazzanoMonitoringInstance, error) {
-	if name == "existingBinding" {
-		return createTestInstance("existingBinding"), nil
-	} else if name == "existingBindingToBeUpdated" {
-		return createTestInstanceWithDifferentUri("existingBindingToBeUpdated"), nil
-	} else {
+	if name == EXISTING_BINDING_TO_BE_UPDATED {
+		return createTestInstanceWithDifferentUri(EXISTING_BINDING_TO_BE_UPDATED), nil
+	} else if name == ERROR_GET_BINDING {
+		return nil, errors.New("error Get VMI")
+	} else if name == NONEXISTING_BINDING {
 		return nil, nil
+	} else if name == ERROR_CREATE_BINDING {
+		return nil, nil
+	} else {
+		return createTestInstance(name), nil
 	}
 }
 
@@ -177,23 +195,37 @@ func TestCreateUpdateVmi(t *testing.T) {
 		{
 			name: "create existing",
 			args: args{
-				bindingName: "existingBinding",
+				bindingName: EXISTING_BINDING,
 			},
 			wantErr: false,
 		},
 		{
 			name: "update existing",
 			args: args{
-				bindingName: "existingBindingToBeUpdated",
+				bindingName: EXISTING_BINDING_TO_BE_UPDATED,
 			},
 			wantErr: false,
 		},
 		{
 			name: "create non-existing",
 			args: args{
-				bindingName: "nonexistingBinding",
+				bindingName: NONEXISTING_BINDING,
 			},
 			wantErr: false,
+		},
+		{
+			name: "error getting",
+			args: args{
+				bindingName: ERROR_GET_BINDING,
+			},
+			wantErr: true,
+		},
+		{
+			name: "error creating",
+			args: args{
+				bindingName: ERROR_CREATE_BINDING,
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -217,16 +249,30 @@ func TestDeleteVmi(t *testing.T) {
 		{
 			name: "delete existing",
 			args: args{
-				bindingName: "existingBinding",
+				bindingName: EXISTING_BINDING,
 			},
 			wantErr: false,
 		},
 		{
 			name: "delete non-existing",
 			args: args{
-				bindingName: "nonexistingBinding",
+				bindingName: NONEXISTING_BINDING,
 			},
 			wantErr: false,
+		},
+		{
+			name: "error listing",
+			args: args{
+				bindingName: ERROR_LIST_BINDING,
+			},
+			wantErr: true,
+		},
+		{
+			name: "error deleting",
+			args: args{
+				bindingName: ERROR_DELETE_BINDING,
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

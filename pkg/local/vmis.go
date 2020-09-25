@@ -27,11 +27,14 @@ func CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclie
 
 	glog.V(6).Infof("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
 
-	// Construct the set of expected VMIs
+	// Construct the expected VMI
 	newVmi := createInstance(binding, verrazzanoURI, enableMonitoringStorage)
 
 	// Create or update VMIs
 	existingVmi, err := vmiLister.VerrazzanoMonitoringInstances(newVmi.Namespace).Get(newVmi.Name)
+	if err != nil {
+		return err
+	}
 	if existingVmi != nil {
 		newVmi.Spec.Grafana.Storage.PvcNames = existingVmi.Spec.Grafana.Storage.PvcNames
 		newVmi.Spec.Prometheus.Storage.PvcNames = existingVmi.Spec.Prometheus.Storage.PvcNames
@@ -59,6 +62,7 @@ func DeleteVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.
 	glog.V(4).Infof("Deleting Local (Management Cluster) VMIs for VerrazzanoBinding %s", binding.Name)
 
 	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
+
 	existingVMIsList, err := vmiLister.VerrazzanoMonitoringInstances("").List(selector)
 	if err != nil {
 		return err
