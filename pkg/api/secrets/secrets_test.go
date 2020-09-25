@@ -72,52 +72,23 @@ func TestAddSecretsWithInvalidSecretId(t *testing.T) {
 // func buildSecretData(secret Secret) map[string][]byte {
 func TestBuildSecretData(t *testing.T) {
 	assert := asserts.New(t)
-	secret := Secret{
-		ID:             "",
-		Cluster:        "",
-		Type:           "",
-		Name:           "",
-		Namespace:      "",
-		Status:         "",
-		Data:           nil,
-		DockerRegistry: DockerRegistry{},
-	}
+	secret := newV8oSecret("", "", "", "generic", nil)
 	data := buildSecretData(secret)
 	assert.NotNil(data, "Build secret data should not be nil")
 	assert.Len(data, 0, "Secret data should be empty.")
 
-	secret = Secret{
-		ID:        "",
-		Cluster:   "",
-		Type:      "test-type-1",
-		Name:      "test-secret-1",
-		Namespace: "test-namespace-1",
-		Status:    "",
-		Data: []Data{{
-			Name:  "test-data-1",
-			Value: "test-value-1",
-		}},
-		DockerRegistry: DockerRegistry{},
-	}
+	secret = newV8oSecret("test-secret-name-1", "test-namespace-1", "test-secret-id-1", "generic", map[string]string{"test-data-1": "test-value-1"})
 	data = buildSecretData(secret)
 	assert.NotNil(data, "Build secret data should not be nil")
 	assert.Len(data, 1, "Secret data should have one value.")
 	assert.Equal([]byte("test-value-1"), data["test-data-1"])
 
-	secret = Secret{
-		ID:        "",
-		Cluster:   "",
-		Type:      "docker-registry",
-		Name:      "test-secret-1",
-		Namespace: "test-namespace-1",
-		Status:    "",
-		Data:      nil,
-		DockerRegistry: DockerRegistry{
-			Username: "test-username-1",
-			Password: "test-password-1",
-			Email:    "test-email-1",
-			Server:   "test-server-1",
-		},
+	secret = newV8oSecret("test-secret-name-1", "test-namespace-1", "test-secret-id-1", "docker-registry", nil)
+	secret.DockerRegistry = DockerRegistry{
+		Username: "test-username-1",
+		Password: "test-password-1",
+		Email:    "test-email-1",
+		Server:   "test-server-1",
 	}
 	data = buildSecretData(secret)
 	assert.NotNil(data, "Build secret data should not be nil")
@@ -132,13 +103,7 @@ func TestGetSecretLogErrorValidSecretUid(t *testing.T) {
 	assert := asserts.New(t)
 	mbPairs := map[string]*types.ModelBindingPair{}
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
-	testSecret1 := corev1.Secret{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "test-secret-name-1",
-			UID:       "test-secret-uid-1"},
-	}
+	testSecret1 := newK8sSecret("test-secret-name-1", constants.DefaultNamespace, "test-secret-id-1", "generic", nil)
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
 	_, err := clients.CoreV1().Secrets("default").Create(context.TODO(), &testSecret1, metav1.CreateOptions{})
 	assert.NoError(err)
@@ -146,7 +111,7 @@ func TestGetSecretLogErrorValidSecretUid(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	router := mux.NewRouter()
 	router.HandleFunc("/secret", func(w http.ResponseWriter, r *http.Request) {
-		secret := getSecretLogError(w, "test-secret-uid-1")
+		secret := getSecretLogError(w, "test-secret-id-1")
 		assert.Equal(testSecret1, *secret)
 	})
 	request, _ := http.NewRequest("GET", "/secret", nil)
@@ -158,13 +123,14 @@ func TestGetSecretLogErrorInvalidSecretUid(t *testing.T) {
 	assert := asserts.New(t)
 	mbPairs := map[string]*types.ModelBindingPair{}
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
-	testSecret1 := corev1.Secret{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "test-secret-name-1",
-			UID:       "test-secret-uid-1"},
-	}
+	testSecret1 := newK8sSecret("test-secret-name-1", constants.DefaultNamespace, "test-secret-uid-1", "generic", nil)
+	//testSecret1 := corev1.Secret{
+	//	TypeMeta: metav1.TypeMeta{},
+	//	ObjectMeta: metav1.ObjectMeta{
+	//		Namespace: "default",
+	//		Name:      "test-secret-name-1",
+	//		UID:       "test-secret-uid-1"},
+	//}
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
 	_, err := clients.CoreV1().Secrets("default").Create(context.TODO(), &testSecret1, metav1.CreateOptions{})
 	assert.NoError(err)
@@ -187,32 +153,18 @@ func TestUpdateSecretWhereSecretAlreadyExists(t *testing.T) {
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
 	mbPairs := map[string]*types.ModelBindingPair{}
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
-	testSecret1 := corev1.Secret{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "test-secret-name-1",
-			UID:       "test-secret-uid-1"},
-		Data: map[string][]byte{
-			"test-secret-data-key-1": Base64EncodeStringToBytes("test-secret-data-value-1"),
-		},
+	testSecret1 := newK8sSecret("test-secret-name-1", constants.DefaultNamespace, "test-secret-uid-1", "generic", nil)
+	testSecret1.Data = map[string][]byte{
+		"test-secret-data-key-1": encodeStringToBase64Bytes("test-secret-data-value-1"),
 	}
-	testSecretUpdate := Secret{
-		Type:      "test-secret-type-1",
-		Name:      "test-secret-name=1",
-		Namespace: "default",
-		Data: []Data{{
-			Name:  "test-secret-data-key-2",
-			Value: "test-secret-data-value-2",
-		}},
-	}
+	testSecretUpdate := newV8oSecret("test-secret-name-1", constants.DefaultNamespace, "test-secret-id-1", "generic", map[string]string{"test-secret-data-key-2": "test-secret-data-value-2"})
 
 	_, err := clients.CoreV1().Secrets("default").Create(context.TODO(), &testSecret1, metav1.CreateOptions{})
 	assert.NoError(err)
 
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 
-	reader, _ := NewJsonByteReaderFromObject(testSecretUpdate)
+	reader, _ := newJSONByteReaderFromObject(testSecretUpdate)
 	request, _ := http.NewRequest("PATCH", "/secret/test-secret-uid-1", reader)
 	recorder := testutil.InvokeHTTPHandler(request, "/secret/{id}", UpdateSecret)
 	assert.Equal(200, recorder.Code)
@@ -245,19 +197,11 @@ func TestUpdateSecretWhereSecretDoesNotExists(t *testing.T) {
 	mbPairs := map[string]*types.ModelBindingPair{}
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
 
-	testSecretUpdate := Secret{
-		Type:      "test-secret-type-1",
-		Name:      "test-secret-name=1",
-		Namespace: "default",
-		Data: []Data{{
-			Name:  "test-secret-data-key-2",
-			Value: "test-secret-data-value-2",
-		}},
-	}
+	testSecretUpdate := newV8oSecret("test-secret-name-1", constants.DefaultNamespace, "test-secret-id-1", "generic", map[string]string{"test-secret-data-key-2": "test-secret-data-value-2"})
 
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 
-	reader, _ := NewJsonByteReaderFromObject(testSecretUpdate)
+	reader, _ := newJSONByteReaderFromObject(testSecretUpdate)
 	request, _ := http.NewRequest("PATCH", "/secret/test-secret-uid-1", reader)
 	recorder := testutil.InvokeHTTPHandler(request, "/secret/{id}", UpdateSecret)
 	assert.Equal(404, recorder.Code)
@@ -292,15 +236,9 @@ func TestDeleteSecretWhereSecretExists(t *testing.T) {
 	mbPairs := map[string]*types.ModelBindingPair{}
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
 
-	testSecret1 := corev1.Secret{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "test-secret-name-1",
-			UID:       "test-secret-uid-1"},
-		Data: map[string][]byte{
-			"test-secret-data-key-1": Base64EncodeStringToBytes("test-secret-data-value-1"),
-		},
+	testSecret1 := newK8sSecret("test-secret-name-1", constants.DefaultNamespace, "test-secret-uid-1", "generic", nil)
+	testSecret1.Data = map[string][]byte{
+		"test-secret-data-key-1": encodeStringToBase64Bytes("test-secret-data-value-1"),
 	}
 	_, err := clients.CoreV1().Secrets("default").Create(context.TODO(), &testSecret1, metav1.CreateOptions{})
 	assert.NoError(err)
@@ -340,27 +278,18 @@ func TestCreateSecretWhereSecretDidNotAlreadyExist(t *testing.T) {
 	mbPairs := map[string]*types.ModelBindingPair{}
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
 
-	testSecretCreate := Secret{
-		Type:      "test-secret-type-1",
-		ID:        "test-secret-id-1",
-		Name:      "test-secret-name-1",
-		Namespace: "default",
-		Data: []Data{{
-			Name:  "test-secret-data-key-1",
-			Value: "test-secret-data-value-1",
-		}},
-	}
+	testSecretCreate := newV8oSecret("test-secret-name-1", constants.DefaultNamespace, "test-secret-id-1", "test-secret-type-1", map[string]string{"test-secret-data-key-1": "test-secret-data-value-1"})
 
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 
-	reader, _ := NewJsonByteReaderFromObject(testSecretCreate)
+	reader, _ := newJSONByteReaderFromObject(testSecretCreate)
 	request, _ := http.NewRequest("POST", "/secrets", reader)
 	recorder := testutil.InvokeHTTPHandler(request, "/secrets", CreateSecret)
 
 	// Check the content of the returned secret.
 	assert.Equal(200, recorder.Code)
 	var retSecret Secret
-	err := NewObjectFromJsonByteReader(bytes.NewReader(recorder.Body.Bytes()), &retSecret)
+	err := newObjectFromJSONByteReader(bytes.NewReader(recorder.Body.Bytes()), &retSecret)
 	assert.NoError(err)
 	assert.Equal("test-secret-type-1", retSecret.Type)
 	assert.Equal("test-secret-id-1", retSecret.ID)
@@ -385,33 +314,18 @@ func TestCreateSecretWhereSecretAlreadyExisted(t *testing.T) {
 	mbPairs := map[string]*types.ModelBindingPair{}
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
 
-	existingSecret := corev1.Secret{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "test-secret-name-1",
-			UID:       "test-secret-uid-1"},
-		Data: map[string][]byte{
-			"test-secret-data-key-1": Base64EncodeStringToBytes("test-secret-data-value-1"),
-		},
+	existingSecret := newK8sSecret("test-secret-name-1", constants.DefaultNamespace, "test-secret-uid-1", "generic", nil)
+	existingSecret.Data = map[string][]byte{
+		"test-secret-data-key-1": encodeStringToBase64Bytes("test-secret-data-value-1"),
 	}
-	testSecretCreate := Secret{
-		Type:      "test-secret-type-1",
-		ID:        "test-secret-id-1",
-		Name:      "test-secret-name-1",
-		Namespace: "default",
-		Data: []Data{{
-			Name:  "test-secret-data-key-2",
-			Value: "test-secret-data-value-2",
-		}},
-	}
+	testSecretCreate := newV8oSecret("test-secret-name-1", constants.DefaultNamespace, "test-secret-id-1", "generic", map[string]string{"test-secret-data-key-2": "test-secret-data-value-2"})
 
 	_, err := clients.CoreV1().Secrets("default").Create(context.TODO(), &existingSecret, metav1.CreateOptions{})
 	assert.NoError(err)
 
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 
-	reader, _ := NewJsonByteReaderFromObject(testSecretCreate)
+	reader, _ := newJSONByteReaderFromObject(testSecretCreate)
 	request, _ := http.NewRequest("POST", "/secrets", reader)
 	recorder := testutil.InvokeHTTPHandler(request, "/secrets", CreateSecret)
 
@@ -424,7 +338,7 @@ func TestCreateSecretWhereSecretAlreadyExisted(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal("test-secret-name-1", kubSecret.Name)
 	assert.Contains(kubSecret.Data, "test-secret-data-key-1")
-	value, err := Base64DecodeBytesToString(kubSecret.Data["test-secret-data-key-1"])
+	value, err := decodeBase64BytesToString(kubSecret.Data["test-secret-data-key-1"])
 	assert.NoError(err)
 	assert.Equal("test-secret-data-value-1", value)
 }
@@ -456,26 +370,22 @@ func TestCreateSecretDockerSecret(t *testing.T) {
 
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
 
-	dockerSecret := Secret{
-		Type: "docker-registry",
-		Name: "test-secret-name-1",
-		//Data: nil,
-		DockerRegistry: DockerRegistry{
-			Username: "test-docker-username-1",
-			Password: "test-docker-password-1",
-			Email:    "test-docker-email-1",
-			Server:   "test-docker-server-1",
-		},
+	dockerSecret := newV8oSecret("test-secret-name-1", "test-namespace-1", "test-secret-id-1", "docker-registry", nil)
+	dockerSecret.DockerRegistry = DockerRegistry{
+		Username: "test-docker-username-1",
+		Password: "test-docker-password-1",
+		Email:    "test-docker-email-1",
+		Server:   "test-docker-server-1",
 	}
 
-	reader, _ := NewJsonByteReaderFromObject(dockerSecret)
+	reader, _ := newJSONByteReaderFromObject(dockerSecret)
 	request, _ := http.NewRequest("POST", "/secrets", reader)
 	recorder := testutil.InvokeHTTPHandler(request, "/secrets", CreateSecret)
 
 	assert.Equal(200, recorder.Code)
 
 	var retSecret Secret
-	err := NewObjectFromJsonByteReader(bytes.NewReader(recorder.Body.Bytes()), &retSecret)
+	err := newObjectFromJSONByteReader(bytes.NewReader(recorder.Body.Bytes()), &retSecret)
 	assert.NoError(err)
 	assert.Equal(dockerSecret, retSecret)
 
@@ -507,20 +417,20 @@ func TestReturnAllSecretsWhereModelHasWeblogicSecrets(t *testing.T) {
 	assert := asserts.New(t)
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
 
-	wlsPullSecret := NewK8sSecret("test-wls-pull-secret-name-1", constants.DefaultNamespace, "generic", nil)
+	wlsPullSecret := newK8sSecret("test-wls-pull-secret-name-1", constants.DefaultNamespace, "test-wls-pull-secret-id-1", "generic", nil)
 	_, err := clients.CoreV1().Secrets(constants.DefaultNamespace).Create(context.TODO(), &wlsPullSecret, metav1.CreateOptions{})
 	assert.NoError(err)
 
-	wlsConfSecret := NewK8sSecret("test-wls-conf-secret-name-1", constants.DefaultNamespace, "generic", nil)
+	wlsConfSecret := newK8sSecret("test-wls-conf-secret-name-1", constants.DefaultNamespace, "test-wls-conf-secret-id-1", "generic", nil)
 	_, err = clients.CoreV1().Secrets(constants.DefaultNamespace).Create(context.TODO(), &wlsConfSecret, metav1.CreateOptions{})
 	assert.NoError(err)
 
-	wlsCredSecret := NewK8sSecret("test-wls-cred-secret-name-1", constants.DefaultNamespace, "generic", nil)
+	wlsCredSecret := newK8sSecret("test-wls-cred-secret-name-1", constants.DefaultNamespace, "test-wls-cred-secret-id-1", "generic", nil)
 	_, err = clients.CoreV1().Secrets(constants.DefaultNamespace).Create(context.TODO(), &wlsCredSecret, metav1.CreateOptions{})
 	assert.NoError(err)
 
 	mbPairs := map[string]*types.ModelBindingPair{
-		"test-model-1": &types.ModelBindingPair{
+		"test-model-1": {
 			Model: &v1beta1.VerrazzanoModel{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: constants.DefaultNamespace,
@@ -553,9 +463,9 @@ func TestReturnAllSecretsWhereModelHasWeblogicSecrets(t *testing.T) {
 	err = json.Unmarshal(recorder.Body.Bytes(), &ret)
 	assert.NoError(err)
 	// Need to invent some way to make the order independent.
-	assert.Equal(NewV8oSecretFromK8sSecret(wlsPullSecret), ret[0])
-	assert.Equal(NewV8oSecretFromK8sSecret(wlsConfSecret), ret[1])
-	assert.Equal(NewV8oSecretFromK8sSecret(wlsCredSecret), ret[2])
+	assert.Equal(newV8oSecretFromK8sSecret(wlsPullSecret), ret[0])
+	assert.Equal(newV8oSecretFromK8sSecret(wlsConfSecret), ret[1])
+	assert.Equal(newV8oSecretFromK8sSecret(wlsCredSecret), ret[2])
 	assert.Len(ret, 3)
 }
 
@@ -564,12 +474,12 @@ func TestReturnAllSecretsWhereModelHasCoherenceSecret(t *testing.T) {
 	assert := asserts.New(t)
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
 
-	cohPullSecret := NewK8sSecret("test-coh-pull-secret-name-1", constants.DefaultNamespace, "generic", nil)
+	cohPullSecret := newK8sSecret("test-coh-pull-secret-name-1", constants.DefaultNamespace, "test-coh-pull-secret-id-1", "generic", nil)
 	_, err := clients.CoreV1().Secrets(constants.DefaultNamespace).Create(context.TODO(), &cohPullSecret, metav1.CreateOptions{})
 	assert.NoError(err)
 
 	mbPairs := map[string]*types.ModelBindingPair{
-		"test-model-1": &types.ModelBindingPair{
+		"test-model-1": {
 			Model: &v1beta1.VerrazzanoModel{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: constants.DefaultNamespace,
@@ -594,7 +504,7 @@ func TestReturnAllSecretsWhereModelHasCoherenceSecret(t *testing.T) {
 	ret := make([]Secret, 0)
 	err = json.Unmarshal(recorder.Body.Bytes(), &ret)
 	assert.NoError(err)
-	assert.Equal(NewV8oSecretFromK8sSecret(cohPullSecret), ret[0])
+	assert.Equal(newV8oSecretFromK8sSecret(cohPullSecret), ret[0])
 	assert.Len(ret, 1)
 }
 
@@ -603,12 +513,12 @@ func TestReturnAllSecretsWhereModelHasHelidonSecret(t *testing.T) {
 	assert := asserts.New(t)
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
 
-	helPullSecret := NewK8sSecret("test-hel-pull-secret-name-1", constants.DefaultNamespace, "generic", nil)
+	helPullSecret := newK8sSecret("test-hel-pull-secret-name-1", constants.DefaultNamespace, "test-hel-pull-secret-id-1", "generic", nil)
 	_, err := clients.CoreV1().Secrets(constants.DefaultNamespace).Create(context.TODO(), &helPullSecret, metav1.CreateOptions{})
 	assert.NoError(err)
 
 	mbPairs := map[string]*types.ModelBindingPair{
-		"test-model-1": &types.ModelBindingPair{
+		"test-model-1": {
 			Model: &v1beta1.VerrazzanoModel{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: constants.DefaultNamespace,
@@ -633,7 +543,7 @@ func TestReturnAllSecretsWhereModelHasHelidonSecret(t *testing.T) {
 	ret := make([]Secret, 0)
 	err = json.Unmarshal(recorder.Body.Bytes(), &ret)
 	assert.NoError(err)
-	assert.Equal(NewV8oSecretFromK8sSecret(helPullSecret), ret[0])
+	assert.Equal(newV8oSecretFromK8sSecret(helPullSecret), ret[0])
 	assert.Len(ret, 1)
 }
 
@@ -642,12 +552,12 @@ func TestReturnAllSecretsWhereModelHasDatabaseSecret(t *testing.T) {
 	assert := asserts.New(t)
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
 
-	dbSecret := NewK8sSecret("test-db-secret-name-1", constants.DefaultNamespace, "generic", nil)
+	dbSecret := newK8sSecret("test-db-secret-name-1", constants.DefaultNamespace, "test-db-secret-id-1", "generic", nil)
 	_, err := clients.CoreV1().Secrets(constants.DefaultNamespace).Create(context.TODO(), &dbSecret, metav1.CreateOptions{})
 	assert.NoError(err)
 
 	mbPairs := map[string]*types.ModelBindingPair{
-		"test-model-1": &types.ModelBindingPair{
+		"test-model-1": {
 			Binding: &v1beta1.VerrazzanoBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: constants.DefaultNamespace,
@@ -670,7 +580,7 @@ func TestReturnAllSecretsWhereModelHasDatabaseSecret(t *testing.T) {
 	ret := make([]Secret, 0)
 	err = json.Unmarshal(recorder.Body.Bytes(), &ret)
 	assert.NoError(err)
-	assert.Equal(NewV8oSecretFromK8sSecret(dbSecret), ret[0])
+	assert.Equal(newV8oSecretFromK8sSecret(dbSecret), ret[0])
 	assert.Len(ret, 1)
 }
 
@@ -679,12 +589,12 @@ func TestReturnSingleSecretWithValidKey(t *testing.T) {
 	assert := asserts.New(t)
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
 
-	dbSecret := NewK8sSecret("test-db-secret-name-1", constants.DefaultNamespace, "generic", nil)
+	dbSecret := newK8sSecret("test-db-secret-name-1", constants.DefaultNamespace, "test-db-secret-id-1", "generic", nil)
 	_, err := clients.CoreV1().Secrets(constants.DefaultNamespace).Create(context.TODO(), &dbSecret, metav1.CreateOptions{})
 	assert.NoError(err)
 
 	mbPairs := map[string]*types.ModelBindingPair{
-		"test-model-1": &types.ModelBindingPair{
+		"test-model-1": {
 			Binding: &v1beta1.VerrazzanoBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: constants.DefaultNamespace,
@@ -701,13 +611,13 @@ func TestReturnSingleSecretWithValidKey(t *testing.T) {
 	}
 	clusters := []v1beta1.VerrazzanoManagedCluster{}
 	Init(testutilcontroller.NewControllerListers(&clients, clusters, &mbPairs))
-	request, _ := http.NewRequest("GET", "/secrets/test-db-secret-name-1", nil)
+	request, _ := http.NewRequest("GET", "/secrets/test-db-secret-id-1", nil)
 	recorder := testutil.InvokeHTTPHandler(request, "/secrets/{id}", ReturnSingleSecret)
 	assert.Equal(200, recorder.Code)
 	ret := make([]Secret, 0)
 	err = json.Unmarshal(recorder.Body.Bytes(), &ret)
 	assert.NoError(err)
-	assert.Equal(NewV8oSecretFromK8sSecret(dbSecret), ret[0])
+	assert.Equal(newV8oSecretFromK8sSecret(dbSecret), ret[0])
 	assert.Len(ret, 1)
 }
 
@@ -727,7 +637,7 @@ func TestReturnSingleSecretWithInvalidKey(t *testing.T) {
 	//assert.Equal("[]", strings.TrimSpace(string(recorder.Body.Bytes())))
 }
 
-func NewK8sSecret(n string, ns string, t string, d map[string]string) corev1.Secret {
+func newK8sSecret(n string, ns string, i string, t string, d map[string]string) corev1.Secret {
 	var dd map[string][]byte = nil
 	if d != nil {
 		dd = make(map[string][]byte, len(d))
@@ -740,17 +650,17 @@ func NewK8sSecret(n string, ns string, t string, d map[string]string) corev1.Sec
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
 			Name:      n,
-			UID:       k8sTypes.UID(n),
+			UID:       k8sTypes.UID(i),
 		},
 		Data: dd,
 	}
 	return s
 }
 
-func NewV8oSecret(n string, ns string, t string, d map[string]string) Secret {
+func newV8oSecret(n string, ns string, i string, t string, d map[string]string) Secret {
 	var dd []Data = nil
 	if d != nil {
-		dd = make([]Data, len(d))
+		dd = []Data{}
 		for k, v := range d {
 			dd = append(dd, Data{Name: k, Value: v})
 		}
@@ -759,16 +669,16 @@ func NewV8oSecret(n string, ns string, t string, d map[string]string) Secret {
 		Type:      t,
 		Namespace: ns,
 		Name:      n,
-		ID:        n,
+		ID:        i,
 		Data:      dd,
 	}
 	return s
 }
 
-func NewK8sSecretFromV8oSecret(s Secret) corev1.Secret {
+func newK8sSecretFromV8oSecret(s Secret) corev1.Secret {
 	var d map[string][]byte = nil
 	if s.Data != nil {
-		d := make(map[string][]byte, len(s.Data))
+		d := map[string][]byte{}
 		for i := range s.Data {
 			d[s.Data[i].Name] = []byte(s.Data[i].Value)
 		}
@@ -778,18 +688,17 @@ func NewK8sSecretFromV8oSecret(s Secret) corev1.Secret {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: s.Namespace,
 			Name:      s.Name,
-			// Using name as ID/UID
-			UID: k8sTypes.UID(s.Name),
+			UID:       k8sTypes.UID(s.ID),
 		},
 		Data: d,
 	}
 	return r
 }
 
-func NewV8oSecretFromK8sSecret(s corev1.Secret) Secret {
+func newV8oSecretFromK8sSecret(s corev1.Secret) Secret {
 	var d []Data = nil
 	if s.Data != nil {
-		d := make([]Data, len(s.Data))
+		d := []Data{}
 		for k, v := range s.Data {
 			d = append(d, Data{Name: k, Value: string(v)})
 		}
@@ -798,20 +707,19 @@ func NewV8oSecretFromK8sSecret(s corev1.Secret) Secret {
 		Type:      string(s.Type),
 		Namespace: s.Namespace,
 		Name:      s.Name,
-		// Using name as ID/UID
-		ID:   s.Name,
-		Data: d,
+		ID:        string(s.UID),
+		Data:      d,
 	}
 	return r
 }
 
-func Base64EncodeStringToBytes(message string) []byte {
+func encodeStringToBase64Bytes(message string) []byte {
 	b := make([]byte, base64.StdEncoding.EncodedLen(len(message)))
 	base64.StdEncoding.Encode(b, []byte(message))
 	return b
 }
 
-func Base64DecodeBytesToString(message []byte) (string, error) {
+func decodeBase64BytesToString(message []byte) (string, error) {
 	b := make([]byte, base64.StdEncoding.DecodedLen(len(message)))
 	_, err := base64.StdEncoding.Decode(b, message)
 	if err != nil {
@@ -820,7 +728,7 @@ func Base64DecodeBytesToString(message []byte) (string, error) {
 	return string(b), nil
 }
 
-func NewJsonByteReaderFromObject(o interface{}) (*bytes.Reader, error) {
+func newJSONByteReaderFromObject(o interface{}) (*bytes.Reader, error) {
 	buf, err := json.Marshal(o)
 	if err != nil {
 		return nil, err
@@ -829,6 +737,6 @@ func NewJsonByteReaderFromObject(o interface{}) (*bytes.Reader, error) {
 	return reader, nil
 }
 
-func NewObjectFromJsonByteReader(r *bytes.Reader, v interface{}) error {
+func newObjectFromJSONByteReader(r *bytes.Reader, v interface{}) error {
 	return json.NewDecoder(r).Decode(v)
 }

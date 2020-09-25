@@ -9,6 +9,9 @@ import (
 	"net/http"
 	"testing"
 
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
+
 	"github.com/verrazzano/verrazzano-operator/pkg/testutilcontroller"
 	yaml "gopkg.in/yaml.v2"
 
@@ -25,12 +28,13 @@ var modelBindingPairs = map[string]*types.ModelBindingPair{
 }
 
 func TestInit(t *testing.T) {
+	var clients kubernetes.Interface = fake.NewSimpleClientset()
 	clusters := testutil.GetTestClusters()
 	tests := []struct {
 		name    string
 		listers controller.Listers
 	}{
-		{name: "usingFakeListers", listers: testutilcontroller.NewControllerListers(clusters, &modelBindingPairs)},
+		{name: "usingFakeListers", listers: testutilcontroller.NewControllerListers(&clients, clusters, &modelBindingPairs)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -44,7 +48,8 @@ func TestInit(t *testing.T) {
 }
 
 func TestReturnAllApplications(t *testing.T) {
-	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
+	var clients kubernetes.Interface = fake.NewSimpleClientset()
+	Init(testutilcontroller.NewControllerListers(&clients, testutil.GetTestClusters(), &modelBindingPairs))
 	request, _ := http.NewRequest("GET", "/applications", nil)
 	responseRecorder := testutil.InvokeHTTPHandler(request, "/applications", ReturnAllApplications)
 	assert.Equal(t, 200, responseRecorder.Code)
@@ -56,7 +61,8 @@ func TestReturnAllApplications(t *testing.T) {
 }
 
 func TestReturnSingleApplication(t *testing.T) {
-	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
+	var clients kubernetes.Interface = fake.NewSimpleClientset()
+	Init(testutilcontroller.NewControllerListers(&clients, testutil.GetTestClusters(), &modelBindingPairs))
 	request, _ := http.NewRequest("GET", "/applications/0", nil)
 	responseRecorder := testutil.InvokeHTTPHandler(request, "/applications/{id}", ReturnSingleApplication)
 	assert.Equal(t, 200, responseRecorder.Code)
@@ -67,7 +73,8 @@ func TestReturnSingleApplication(t *testing.T) {
 }
 
 func TestReturnSingleApplicationNonExistent(t *testing.T) {
-	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
+	var clients kubernetes.Interface = fake.NewSimpleClientset()
+	Init(testutilcontroller.NewControllerListers(&clients, testutil.GetTestClusters(), &modelBindingPairs))
 	request, _ := http.NewRequest("GET", "/applications/5", nil)
 	responseRecorder := testutil.InvokeHTTPHandler(request, "/applications/{id}", ReturnSingleApplication)
 	assert.Equal(t, 404, responseRecorder.Code)
@@ -75,7 +82,8 @@ func TestReturnSingleApplicationNonExistent(t *testing.T) {
 }
 
 func TestCreateNewApplication(t *testing.T) {
-	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
+	var clients kubernetes.Interface = fake.NewSimpleClientset()
+	Init(testutilcontroller.NewControllerListers(&clients, testutil.GetTestClusters(), &modelBindingPairs))
 	noModelApp := Application{ID: "91", Name: "NoModelApp", Status: "Broken",
 		Description: "I have no model", Binding: Applications[0].Binding}
 	noBindingApp := Application{ID: "92", Name: "NoBindingApp", Status: "AlsoBroken",
@@ -117,7 +125,8 @@ func TestCreateNewApplication(t *testing.T) {
 }
 
 func TestDeleteApplication(t *testing.T) {
-	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &modelBindingPairs))
+	var clients kubernetes.Interface = fake.NewSimpleClientset()
+	Init(testutilcontroller.NewControllerListers(&clients, testutil.GetTestClusters(), &modelBindingPairs))
 	nonExistingAppReq, err := http.NewRequest("DELETE", "/applications/22", nil)
 	assert.Nil(t, err, "Unexpected error - failed creating delete request")
 	existingAppReq, err := http.NewRequest("DELETE", "/applications/0", nil)
@@ -143,7 +152,8 @@ func TestUpdateApplication(t *testing.T) {
 		"mbPairGood0": testutil.GetModelBindingPairWithNames("goodModel", "goodBinding", "default"),
 		//"mbPairGood1": testutil.GetModelBindingPairWithNames("tooGoodModel", "tooGoodBinding", "default"),
 	}
-	Init(testutilcontroller.NewControllerListers(testutil.GetTestClusters(), &updateMbPairs))
+	var clients kubernetes.Interface = fake.NewSimpleClientset()
+	Init(testutilcontroller.NewControllerListers(&clients, testutil.GetTestClusters(), &updateMbPairs))
 	goodApp := Application{ID: "0", Name: "StillAGoodApp", Status: "Good",
 		Description: "What a good app am I!",
 		Model:       Applications[0].Model,
