@@ -74,7 +74,7 @@ func createTestInstance(bindingName string) *vmov1.VerrazzanoMonitoringInstance 
 
 func TestCreateInstance(t *testing.T) {
 	vmi := createTestInstance("testBinding")
-	assert.Equal(t, "testBinding", vmi.Name, "right Namespace")
+	assert.Equal(t, "testBinding", vmi.Name, "right Name")
 	assert.Equal(t, constants.VerrazzanoNamespace, vmi.Namespace, "right Namespace")
 	assert.Equal(t, constants.VmiSecretName, vmi.Spec.SecretsName, "right SecretsName")
 	assert.Equal(t, "vmi.testBinding.testVerrazzanoURI", vmi.Spec.URI, "right URI")
@@ -226,8 +226,8 @@ func TestCreateUpdateVmi(t *testing.T) {
 			args: args{
 				bindingName: ErrorGetBinding,
 			},
-			wantErr:     true,
-			expectedErr: ErrMsgGet,
+			wantErr:     false,
+			expectedErr: "",
 		},
 		{
 			name: "error creating",
