@@ -147,7 +147,8 @@ func GetModelBindingPair() *types.ModelBindingPair {
 	var pair = &types.ModelBindingPair{
 		Model: &v1beta1.VerrazzanoModel{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "testModel",
+				Namespace: "default",
+				Name:      "testModel",
 			},
 			Spec: v1beta1.VerrazzanoModelSpec{
 				Description: "",
@@ -222,9 +223,11 @@ func GetModelBindingPair() *types.ModelBindingPair {
 		},
 		Binding: &v1beta1.VerrazzanoBinding{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "testBinding",
+				Namespace: "default",
+				Name:      "testBinding",
 			},
 			Spec: v1beta1.VerrazzanoBindingSpec{
+				ModelName: "testModel",
 				Placement: []v1beta1.VerrazzanoPlacement{
 					{
 						Name: "local",

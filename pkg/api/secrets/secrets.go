@@ -20,10 +20,11 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-// This file is very similar to applications.go - please see comments there
+// Secret
+// This implementation is very similar to applications.go - please see comments there
 // which equally apply to this file
 type Secret struct {
-	Id             string         `json:"id"`
+	ID             string         `json:"id"`
 	Cluster        string         `json:"cluster"`
 	Type           string         `json:"type"`
 	Name           string         `json:"name"`
@@ -33,11 +34,13 @@ type Secret struct {
 	DockerRegistry DockerRegistry `json:"dockerRegistry,omitempty"`
 }
 
+// Data for a generic secret
 type Data struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
 
+// DockerRegistry credentials
 type DockerRegistry struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -46,10 +49,11 @@ type DockerRegistry struct {
 }
 
 var (
-	Secrets   []Secret
-	listerSet controller.Listers
+	cachedSecrets []Secret
+	listerSet     controller.Listers
 )
 
+// Init invoked by application main
 func Init(listers controller.Listers) {
 	listerSet = listers
 	refreshSecrets()
@@ -68,7 +72,7 @@ func addSecret(secretNames []string, secretName string) []string {
 
 func refreshSecrets() {
 	// initialize domains as an empty list to avoid json encoding "nil"
-	Secrets = []Secret{}
+	cachedSecrets = []Secret{}
 
 	// Get a list of the models that have been deployed to the management cluster
 	modelSelector := labels.SelectorFromSet(map[string]string{})
@@ -145,15 +149,14 @@ func addSecrets(secretNames []string) {
 			continue
 		}
 
-		Secrets = append(Secrets, Secret{
-			Id:        string(theSecret.UID),
+		cachedSecrets = append(cachedSecrets, Secret{
+			ID:        string(theSecret.UID),
 			Name:      secretName,
-			Namespace: "",
+			Namespace: theSecret.Namespace,
 			Cluster:   "",
 			Type:      string(theSecret.Type),
-			Status:    "NYI",
+			//			Status:    "NYI",
 			Data: func() []Data {
-
 				theData := []Data{}
 				for k, v := range theSecret.Data {
 					theData = append(theData, Data{
@@ -167,14 +170,16 @@ func addSecrets(secretNames []string) {
 	}
 }
 
+// ReturnAllSecrets returns all secrets found in the models and bindings
 func ReturnAllSecrets(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /secrets")
 	refreshSecrets()
 
-	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Secrets)), 10))
-	json.NewEncoder(w).Encode(Secrets)
+	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(cachedSecrets)), 10))
+	json.NewEncoder(w).Encode(cachedSecrets)
 }
 
+// ReturnSingleSecrets returns a single secret found in the models and bindings
 func ReturnSingleSecret(w http.ResponseWriter, r *http.Request) {
 	refreshSecrets()
 	vars := mux.Vars(r)
@@ -182,13 +187,25 @@ func ReturnSingleSecret(w http.ResponseWriter, r *http.Request) {
 
 	glog.V(4).Info("GET /secrets/" + key)
 
-	for _, secrets := range Secrets {
-		if secrets.Id == key {
-			json.NewEncoder(w).Encode(secrets)
+	var m *Secret = nil
+	for _, s := range cachedSecrets {
+		if s.ID == key {
+			m = &s
+			break
 		}
+	}
+
+	if m != nil {
+		w.Header().Set("X-Total-Count", "1")
+		json.NewEncoder(w).Encode(cachedSecrets)
+	} else {
+		msg := fmt.Sprintf("Error: secret with UID %s not found: ", key)
+		glog.Error(msg)
+		http.Error(w, msg, http.StatusNotFound)
 	}
 }
 
+// CreateSecret with create a secret in Kubernetes.
 func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("POST /secrets")
 
