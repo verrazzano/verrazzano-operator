@@ -22,19 +22,22 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-const EXISTING_BINDING = "existingBinding"
-const EXISTING_BINDING_TO_BE_UPDATED = "existingBindingToBeUpdated"
-const NONEXISTING_BINDING = "nonexistingBinding"
-const ERROR_LIST_BINDING = "errorListBinding"
-const ERROR_GET_BINDING = "errorGetBinding"
-const ERROR_CREATE_BINDING = "errorCreateBinding"
-const ERROR_DELETE_BINDING = "errorDeleteBinding"
+const (
+	ExistingBinding            = "existingBinding"
+	ExistingBindingToBeUpdated = "existingBindingToBeUpdated"
+	NonExistingBinding         = "nonExistingBinding"
 
-const ERROR_MSG_CREATE = "error create VMI"
-const ERROR_MSG_UPDATE = "VMI can not be updated"
-const ERROR_MSG_DELETE = "error delete VMI"
-const ERROR_MSG_LIST = "error list VMI"
-const ERROR_MSG_GET = "error Get VMI"
+	ErrorListBinding   = "errorListBinding"
+	ErrorGetBinding    = "errorGetBinding"
+	ErrorCreateBinding = "errorCreateBinding"
+	ErrorDeleteBinding = "errorDeleteBinding"
+
+	ErrMsgCreate = "error create VMI"
+	ErrMsgUpdate = "VMI can not be updated"
+	ErrMsgDelete = "error delete VMI"
+	ErrMsgList   = "error list VMI"
+	ErrMsgGet    = "error Get VMI"
+)
 
 func doTestCreateStorageOption(t *testing.T, option string, expected string) {
 	storage := createStorageOption(option)
@@ -61,7 +64,7 @@ func createTestBinding(bindingName string) *v1beta1v8o.VerrazzanoBinding {
 	return &binding
 }
 
-func createTestInstanceWithDifferentUri(bindingName string) *vmov1.VerrazzanoMonitoringInstance {
+func createTestInstanceWithDifferentURI(bindingName string) *vmov1.VerrazzanoMonitoringInstance {
 	return createInstance(createTestBinding(bindingName), "anotherVerrazzanoURI", "")
 }
 
@@ -104,27 +107,24 @@ func (f fakeVmoVerrazzanoV1Client) VerrazzanoMonitoringInstances(namespace strin
 type fakeVmiInterface struct{}
 
 func (f fakeVmiInterface) Create(ctx context.Context, verrazzanoMonitoringInstance *vmov1.VerrazzanoMonitoringInstance, opts metav1.CreateOptions) (*vmov1.VerrazzanoMonitoringInstance, error) {
-	if verrazzanoMonitoringInstance.Name == ERROR_CREATE_BINDING {
-		return nil, errors.New(ERROR_MSG_CREATE)
-	} else {
-		return createTestInstance(verrazzanoMonitoringInstance.Name), nil
+	if verrazzanoMonitoringInstance.Name == ErrorCreateBinding {
+		return nil, errors.New(ErrMsgCreate)
 	}
+	return createTestInstance(verrazzanoMonitoringInstance.Name), nil
 }
 
 func (f fakeVmiInterface) Update(ctx context.Context, verrazzanoMonitoringInstance *vmov1.VerrazzanoMonitoringInstance, opts metav1.UpdateOptions) (*vmov1.VerrazzanoMonitoringInstance, error) {
-	if verrazzanoMonitoringInstance.Name == EXISTING_BINDING_TO_BE_UPDATED {
+	if verrazzanoMonitoringInstance.Name == ExistingBindingToBeUpdated {
 		return createTestInstance(verrazzanoMonitoringInstance.Name), nil
-	} else {
-		return nil, errors.New(ERROR_MSG_UPDATE)
 	}
+	return nil, errors.New(ErrMsgUpdate)
 }
 
 func (f fakeVmiInterface) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	if name == EXISTING_BINDING {
+	if name == ExistingBinding {
 		return nil
-	} else {
-		return errors.New(ERROR_MSG_DELETE)
 	}
+	return errors.New(ErrMsgDelete)
 }
 
 func (f fakeVmiInterface) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
@@ -162,25 +162,25 @@ func (f fakeVmiLister) VerrazzanoMonitoringInstances(namespace string) vmolister
 type fakeVmiNamespaceLister struct{}
 
 func (f fakeVmiNamespaceLister) List(selector labels.Selector) (ret []*vmov1.VerrazzanoMonitoringInstance, err error) {
-	if selector.Matches(labels.Set(map[string]string{constants.VerrazzanoBinding: EXISTING_BINDING})) {
-		return []*vmov1.VerrazzanoMonitoringInstance{createTestInstance(EXISTING_BINDING)}, nil
-	} else if selector.Matches(labels.Set(map[string]string{constants.VerrazzanoBinding: ERROR_LIST_BINDING})) {
-		return nil, errors.New(ERROR_MSG_LIST)
-	} else if selector.Matches(labels.Set(map[string]string{constants.VerrazzanoBinding: ERROR_DELETE_BINDING})) {
-		return []*vmov1.VerrazzanoMonitoringInstance{createTestInstance(ERROR_DELETE_BINDING)}, nil
+	if selector.Matches(labels.Set(map[string]string{constants.VerrazzanoBinding: ExistingBinding})) {
+		return []*vmov1.VerrazzanoMonitoringInstance{createTestInstance(ExistingBinding)}, nil
+	} else if selector.Matches(labels.Set(map[string]string{constants.VerrazzanoBinding: ErrorListBinding})) {
+		return nil, errors.New(ErrMsgList)
+	} else if selector.Matches(labels.Set(map[string]string{constants.VerrazzanoBinding: ErrorDeleteBinding})) {
+		return []*vmov1.VerrazzanoMonitoringInstance{createTestInstance(ErrorDeleteBinding)}, nil
 	} else {
 		return nil, nil
 	}
 }
 
 func (f fakeVmiNamespaceLister) Get(name string) (*vmov1.VerrazzanoMonitoringInstance, error) {
-	if name == EXISTING_BINDING_TO_BE_UPDATED {
-		return createTestInstanceWithDifferentUri(EXISTING_BINDING_TO_BE_UPDATED), nil
-	} else if name == ERROR_GET_BINDING {
-		return nil, errors.New(ERROR_MSG_GET)
-	} else if name == NONEXISTING_BINDING {
+	if name == ExistingBindingToBeUpdated {
+		return createTestInstanceWithDifferentURI(ExistingBindingToBeUpdated), nil
+	} else if name == ErrorGetBinding {
+		return nil, errors.New(ErrMsgGet)
+	} else if name == NonExistingBinding {
 		return nil, nil
-	} else if name == ERROR_CREATE_BINDING {
+	} else if name == ErrorCreateBinding {
 		return nil, nil
 	} else {
 		return createTestInstance(name), nil
@@ -200,7 +200,7 @@ func TestCreateUpdateVmi(t *testing.T) {
 		{
 			name: "create existing",
 			args: args{
-				bindingName: EXISTING_BINDING,
+				bindingName: ExistingBinding,
 			},
 			wantErr:     false,
 			expectedErr: "",
@@ -208,7 +208,7 @@ func TestCreateUpdateVmi(t *testing.T) {
 		{
 			name: "update existing",
 			args: args{
-				bindingName: EXISTING_BINDING_TO_BE_UPDATED,
+				bindingName: ExistingBindingToBeUpdated,
 			},
 			wantErr:     false,
 			expectedErr: "",
@@ -216,7 +216,7 @@ func TestCreateUpdateVmi(t *testing.T) {
 		{
 			name: "create non-existing",
 			args: args{
-				bindingName: NONEXISTING_BINDING,
+				bindingName: NonExistingBinding,
 			},
 			wantErr:     false,
 			expectedErr: "",
@@ -224,18 +224,18 @@ func TestCreateUpdateVmi(t *testing.T) {
 		{
 			name: "error getting",
 			args: args{
-				bindingName: ERROR_GET_BINDING,
+				bindingName: ErrorGetBinding,
 			},
 			wantErr:     true,
-			expectedErr: ERROR_MSG_GET,
+			expectedErr: ErrMsgGet,
 		},
 		{
 			name: "error creating",
 			args: args{
-				bindingName: ERROR_CREATE_BINDING,
+				bindingName: ErrorCreateBinding,
 			},
 			wantErr:     true,
-			expectedErr: ERROR_MSG_CREATE,
+			expectedErr: ErrMsgCreate,
 		},
 	}
 	for _, tt := range tests {
@@ -266,7 +266,7 @@ func TestDeleteVmi(t *testing.T) {
 		{
 			name: "delete existing",
 			args: args{
-				bindingName: EXISTING_BINDING,
+				bindingName: ExistingBinding,
 			},
 			wantErr:     false,
 			expectedErr: "",
@@ -274,7 +274,7 @@ func TestDeleteVmi(t *testing.T) {
 		{
 			name: "delete non-existing",
 			args: args{
-				bindingName: NONEXISTING_BINDING,
+				bindingName: NonExistingBinding,
 			},
 			wantErr:     false,
 			expectedErr: "",
@@ -282,18 +282,18 @@ func TestDeleteVmi(t *testing.T) {
 		{
 			name: "error listing",
 			args: args{
-				bindingName: ERROR_LIST_BINDING,
+				bindingName: ErrorListBinding,
 			},
 			wantErr:     true,
-			expectedErr: ERROR_MSG_LIST,
+			expectedErr: ErrMsgList,
 		},
 		{
 			name: "error deleting",
 			args: args{
-				bindingName: ERROR_DELETE_BINDING,
+				bindingName: ErrorDeleteBinding,
 			},
 			wantErr:     true,
-			expectedErr: ERROR_MSG_DELETE,
+			expectedErr: ErrMsgDelete,
 		},
 	}
 	for _, tt := range tests {
