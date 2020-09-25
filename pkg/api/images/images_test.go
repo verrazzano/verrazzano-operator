@@ -3,7 +3,7 @@
 package images
 
 import (
-	"github.com/bitly/go-simplejson"
+	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -65,12 +65,12 @@ func TestReturnNoImages(t *testing.T) {
 	request, _ := http.NewRequest("GET", "/images", nil)
 	router.ServeHTTP(recorder, request)
 	assert.Equal(200, recorder.Code)
-	reqJSON, err := simplejson.NewFromReader(recorder.Body)
+	var imgs []Image
+	err := json.Unmarshal(recorder.Body.Bytes(), &imgs)
 	if err != nil {
 		t.Errorf("Error while reading response JSON: %s", err)
 	}
-	imgArray := reqJSON.MustArray()
-	assert.Empty(imgArray)
+	assert.Empty(imgs)
 }
 
 func TestReturnAllImages(t *testing.T) {
@@ -84,23 +84,22 @@ func TestReturnAllImages(t *testing.T) {
 	request, _ := http.NewRequest("GET", "/images", nil)
 	router.ServeHTTP(recorder, request)
 	assert.Equal(200, recorder.Code)
-	reqJSON, err := simplejson.NewFromReader(recorder.Body)
+	var imgs []Image
+	err := json.Unmarshal(recorder.Body.Bytes(), &imgs)
 	if err != nil {
 		t.Errorf("Error while reading response JSON: %s", err)
 	}
-	imgArray := reqJSON.MustArray()
-	img := imgArray[0]
-	mapEntry := img.(map[string]interface{})
-	assert.Equal("1", mapEntry["id"])
-	assert.Equal("12.2.1.3.0", mapEntry["weblogic_version"])
+	img := imgs[0]
+	assert.Equal("1", img.ID)
+	assert.Equal("12.2.1.3.0", img.WebLogicVersion)
 
-	img = imgArray[1]
-	mapEntry = img.(map[string]interface{})
-	assert.Equal("2", mapEntry["id"])
-	assert.Equal("12.2.1.3.1", mapEntry["weblogic_version"])
+	img = imgs[1]
+	assert.Equal("2", img.ID)
+	assert.Equal("12.2.1.3.1", img.WebLogicVersion)
 }
 
 func TestReturnSingleImage(t *testing.T) {
+	Images = nil
 	Images = append(Images, testImages...)
 	assert := assert.New(t)
 	recorder, router := createRequestHandlers()
@@ -108,11 +107,13 @@ func TestReturnSingleImage(t *testing.T) {
 	router.ServeHTTP(recorder, request)
 	testSingleImageResponse(t, assert, recorder, "12.2.1.3.0")
 
+	recorder.Flush()
 	recorder, router = createRequestHandlers()
 	request, _ = http.NewRequest("GET", "/images/2", nil)
 	router.ServeHTTP(recorder, request)
 	testSingleImageResponse(t, assert, recorder, "12.2.1.3.1")
 
+	recorder.Flush()
 	recorder, router = createRequestHandlers()
 	request, _ = http.NewRequest("GET", "/images/3", nil)
 	router.ServeHTTP(recorder, request)
@@ -132,10 +133,10 @@ func createRequestHandlers() (*httptest.ResponseRecorder, *mux.Router) {
 // validate a single image response by ensuring the version value is correct
 func testSingleImageResponse(t *testing.T, assert *assert.Assertions, recorder *httptest.ResponseRecorder, version string) {
 	assert.Equal(http.StatusOK, recorder.Code)
-	reqJSON, err := simplejson.NewFromReader(recorder.Body)
+	var img Image
+	err := json.Unmarshal(recorder.Body.Bytes(), &img)
 	if err != nil {
 		t.Errorf("Error while reading response JSON: %s", err)
 	}
-	img := reqJSON.MustMap()
-	assert.Equal(version, img["weblogic_version"])
+	assert.Equal(version, img.WebLogicVersion)
 }
