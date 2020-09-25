@@ -18,6 +18,99 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+var policyRules = []rbacv1.PolicyRule{
+	{
+		APIGroups: []string{""},
+		Resources: []string{"pods/log", "serviceaccounts", "pods/portforward", "nodes"},
+		Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "deletecollection", "patch"},
+	},
+	{
+		APIGroups: []string{""},
+		Resources: []string{"pods", "pods/exec", "configmaps", "endpoints", "events", "namespaces", "persistentvolumeclaims", "secrets", "services"},
+		Verbs:     []string{"*"},
+	},
+	{
+		NonResourceURLs: []string{"/version/*"},
+		Verbs:           []string{"get"},
+	},
+	{
+		APIGroups: []string{"apps"},
+		Resources: []string{"deployments", "daemonsets", "replicasets", "statefulsets"},
+		Verbs:     []string{"*"},
+	},
+	{
+		APIGroups:     []string{"apps"},
+		Resources:     []string{"deployments/finalizers"},
+		ResourceNames: []string{"coherence-operator"},
+		Verbs:         []string{"update"},
+	},
+	{
+		APIGroups: []string{"extensions"},
+		Resources: []string{"daemonsets", "replicasets", "statefulsets", "podsecuritypolicies"},
+		Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
+	},
+	{
+		APIGroups: []string{"policy"},
+		Resources: []string{"podsecuritypolicies"},
+		Verbs:     []string{"get"},
+	},
+	{
+		APIGroups: []string{"batch"},
+		Resources: []string{"jobs"},
+		Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "patch", "deletecollection"},
+	},
+	{
+		APIGroups: []string{"authentication.k8s.io"},
+		Resources: []string{"tokenreviews"},
+		Verbs:     []string{"create"},
+	},
+	{
+		APIGroups: []string{"authorization.k8s.io"},
+		Resources: []string{"subjectaccessreviews"},
+		Verbs:     []string{"create"},
+	},
+	{
+		APIGroups: []string{"apiextensions.k8s.io"},
+		Resources: []string{"customresourcedefinitions"},
+		Verbs:     []string{"*"},
+	},
+	{
+		APIGroups: []string{"monitoring.coreos.com"},
+		Resources: []string{"servicemonitors"},
+		Verbs:     []string{"get", "create"},
+	},
+	{
+		APIGroups: []string{"verrazzano.io"},
+		Resources: []string{"*"},
+		Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
+	},
+	{
+		APIGroups: []string{"rbac.authorization.k8s.io"},
+		Resources: []string{"clusterroles", "roles"},
+		Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
+	},
+	{
+		APIGroups: []string{"rbac.authorization.k8s.io"},
+		Resources: []string{"clusterrolebindings", "rolebindings"},
+		Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "patch"},
+	},
+	{
+		APIGroups: []string{"weblogic.oracle"},
+		Resources: []string{"domains"},
+		Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "patch", "deletecollection"},
+	},
+	{
+		APIGroups: []string{"weblogic.oracle"},
+		Resources: []string{"domains/status"},
+		Verbs:     []string{"get", "list", "watch", "update", "patch"},
+	},
+	{
+		APIGroups: []string{"coherence.oracle.com"},
+		Resources: []string{"*"},
+		Verbs:     []string{"*"},
+	},
+}
+
 // CreateClusterRoles creates/updates cluster roles needed for each managed cluster.
 func CreateClusterRoles(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 
@@ -141,105 +234,9 @@ func newClusterRoles(binding *v1beta1v8o.VerrazzanoBinding, clusterName string) 
 			Name:   util.GetServiceAccountNameForSystem(),
 			Labels: roleLabels,
 		},
-		Rules: getRules(),
+		Rules: policyRules,
 	}
 	clusterRoles = append(clusterRoles, clusterRole)
 
 	return clusterRoles
-}
-
-func getRules() []rbacv1.PolicyRule {
-	rules := []rbacv1.PolicyRule{
-		{
-			APIGroups: []string{""},
-			Resources: []string{"pods/log", "serviceaccounts", "pods/portforward", "nodes"},
-			Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "deletecollection", "patch"},
-		},
-		{
-			APIGroups: []string{""},
-			Resources: []string{"pods", "pods/exec", "configmaps", "endpoints", "events", "namespaces", "persistentvolumeclaims", "secrets", "services"},
-			Verbs:     []string{"*"},
-		},
-		{
-			NonResourceURLs: []string{"/version/*"},
-			Verbs:           []string{"get"},
-		},
-		{
-			APIGroups: []string{"apps"},
-			Resources: []string{"deployments", "daemonsets", "replicasets", "statefulsets"},
-			Verbs:     []string{"*"},
-		},
-		{
-			APIGroups:     []string{"apps"},
-			Resources:     []string{"deployments/finalizers"},
-			ResourceNames: []string{"coherence-operator"},
-			Verbs:         []string{"update"},
-		},
-		{
-			APIGroups: []string{"extensions"},
-			Resources: []string{"daemonsets", "replicasets", "statefulsets", "podsecuritypolicies"},
-			Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
-		},
-		{
-			APIGroups: []string{"policy"},
-			Resources: []string{"podsecuritypolicies"},
-			Verbs:     []string{"get"},
-		},
-		{
-			APIGroups: []string{"batch"},
-			Resources: []string{"jobs"},
-			Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "patch", "deletecollection"},
-		},
-		{
-			APIGroups: []string{"authentication.k8s.io"},
-			Resources: []string{"tokenreviews"},
-			Verbs:     []string{"create"},
-		},
-		{
-			APIGroups: []string{"authorization.k8s.io"},
-			Resources: []string{"subjectaccessreviews"},
-			Verbs:     []string{"create"},
-		},
-		{
-			APIGroups: []string{"apiextensions.k8s.io"},
-			Resources: []string{"customresourcedefinitions"},
-			Verbs:     []string{"*"},
-		},
-		{
-			APIGroups: []string{"monitoring.coreos.com"},
-			Resources: []string{"servicemonitors"},
-			Verbs:     []string{"get", "create"},
-		},
-		{
-			APIGroups: []string{"verrazzano.io"},
-			Resources: []string{"*"},
-			Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
-		},
-		{
-			APIGroups: []string{"rbac.authorization.k8s.io"},
-			Resources: []string{"clusterroles", "roles"},
-			Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
-		},
-		{
-			APIGroups: []string{"rbac.authorization.k8s.io"},
-			Resources: []string{"clusterrolebindings", "rolebindings"},
-			Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "patch"},
-		},
-		{
-			APIGroups: []string{"weblogic.oracle"},
-			Resources: []string{"domains"},
-			Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "patch", "deletecollection"},
-		},
-		{
-			APIGroups: []string{"weblogic.oracle"},
-			Resources: []string{"domains/status"},
-			Verbs:     []string{"get", "list", "watch", "update", "patch"},
-		},
-		{
-			APIGroups: []string{"coherence.oracle.com"},
-			Resources: []string{"*"},
-			Verbs:     []string{"*"},
-		},
-	}
-	return rules
 }

@@ -467,7 +467,7 @@ type simpleClusterRoleLister struct {
 	kubeClient kubernetes.Interface
 }
 
-// lists all ClusterRoles
+// List lists all the ClusterRoles.
 func (s *simpleClusterRoleLister) List(selector labels.Selector) (ret []*rbacv1.ClusterRole, err error) {
 	var clusterRoles []*rbacv1.ClusterRole
 
@@ -484,7 +484,7 @@ func (s *simpleClusterRoleLister) List(selector labels.Selector) (ret []*rbacv1.
 	return clusterRoles, nil
 }
 
-// retrieves the ClusterRole for a given name.
+// Get retrieves the ClusterRole for a given name.
 func (s *simpleClusterRoleLister) Get(name string) (*rbacv1.ClusterRole, error) {
 	return s.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
 }
