@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	v1 "k8s.io/api/rbac/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -388,6 +389,37 @@ func TestSimpleServiceLister(t *testing.T) {
 	}
 	assert.Equal(t, "test-service", service.Name)
 	assert.Equal(t, "test", service.Namespace)
+}
+
+func TestSimpleClusterRoleLister(t *testing.T) {
+	clusterConnections := GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	cr := v1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+	}
+	_, err := clusterConnection.KubeClient.RbacV1().ClusterRoles().Create(context.TODO(), &cr, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("can't create cluster role: %v", err)
+	}
+
+	l := simpleClusterRoleLister{
+		clusterConnection.KubeClient,
+	}
+	s := labels.Everything()
+	clusterRoles, err := l.List(s)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get cluster roles: %v", err))
+	}
+	assert.Equal(t, 1, len(clusterRoles))
+
+	clusterRole, err := l.Get("test")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get cluster role: %v", err))
+	}
+	assert.Equal(t, "test", clusterRole.Name)
 }
 
 func createConfigMap(t *testing.T, name string, clusterConnection *util.ManagedClusterConnection) {
