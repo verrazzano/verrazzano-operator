@@ -13,29 +13,32 @@ import (
 	clusterPkg "github.com/verrazzano/verrazzano-operator/pkg/api/clusters"
 )
 
+// Instance details of instance returned in API calls.
 type Instance struct {
-	Id            string `json:"id"`
+	ID            string `json:"id"`
 	Name          string `json:"name"`
 	MgmtCluster   string `json:"mgmtCluster"`
 	MgmtPlatform  string `json:"mgmtPlatform"`
 	Status        string `json:"status"`
 	Version       string `json:"version"`
-	KeyCloakUrl   string `json:"keyCloakUrl"`
-	RancherUrl    string `json:"rancherUrl"`
-	VzApiUri      string `json:"vzApiUri"`
-	ElasticUrl    string `json:"elasticUrl"`
-	KibanaUrl     string `json:"kibanaUrl"`
-	GrafanaUrl    string `json:"grafanaUrl"`
-	PrometheusUrl string `json:"prometheusUrl"`
+	KeyCloakURL   string `json:"keyCloakUrl"`
+	RancherURL    string `json:"rancherUrl"`
+	VzAPIURL      string `json:"vzApiUri"`
+	ElasticURL    string `json:"elasticUrl"`
+	KibanaURL     string `json:"kibanaUrl"`
+	GrafanaURL    string `json:"grafanaUrl"`
+	PrometheusURL string `json:"prometheusUrl"`
 }
 
 // This is global for the operator
-var verrazzanoUri string
+var verrazzanoURI string
 
-func SetVerrazzanoUri(s string) {
-	verrazzanoUri = s
+// SetVerrazzanoURI set the verrazzanoURI variable
+func SetVerrazzanoURI(s string) {
+	verrazzanoURI = s
 }
 
+// ReturnSingleInstance returns a single instance identified by the secret Kubernetes UID.
 func ReturnSingleInstance(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /instance")
 
@@ -56,19 +59,19 @@ func ReturnSingleInstance(w http.ResponseWriter, r *http.Request) {
 	}
 
 	instance := Instance{
-		Id:            "0",
+		ID:            "0",
 		Name:          GetVerrazzanoName(),
 		MgmtCluster:   mgmtCluster.Name,
 		MgmtPlatform:  mgmtCluster.Type,
 		Status:        mgmtCluster.Status,
 		Version:       getVersion(),
-		VzApiUri:      deriveUrl("api"),
-		RancherUrl:    deriveUrl("rancher"),
-		ElasticUrl:    GetElasticUrl(),
-		KibanaUrl:     GetKibanaUrl(),
-		GrafanaUrl:    GetGrafanaUrl(),
-		PrometheusUrl: GetPrometheusUrl(),
-		KeyCloakUrl:   GetKeyCloakUrl(),
+		VzAPIURL:      deriveURL("api"),
+		RancherURL:    deriveURL("rancher"),
+		ElasticURL:    GetElasticURL(),
+		KibanaURL:     GetKibanaURL(),
+		GrafanaURL:    GetGrafanaURL(),
+		PrometheusURL: GetPrometheusURL(),
+		KeyCloakURL:   GetKeyCloakURL(),
 	}
 
 	json.NewEncoder(w).Encode(instance)
@@ -79,39 +82,40 @@ func getVersion() string {
 }
 
 // Derive the URL from the verrazzano URI by replacing the 'api' segment
-func deriveUrl(s string) string {
-	return "https://" + s + "." + verrazzanoUri
+func deriveURL(s string) string {
+	return "https://" + s + "." + verrazzanoURI
 }
 
+// GetVerrazzanoName returns the environment name portion of the verrazzanoUri
 func GetVerrazzanoName() string {
-	segs := strings.Split(verrazzanoUri, ".")
+	segs := strings.Split(verrazzanoURI, ".")
 	if len(segs) > 1 {
 		return segs[0]
 	}
 	return ""
 }
 
-// Get KeyCloak Url
-func GetKeyCloakUrl() string {
-	return deriveUrl("keycloak")
+// GetKeyCloakURL returns Keycloak URL
+func GetKeyCloakURL() string {
+	return deriveURL("keycloak")
 }
 
-// Get Kibana Url
-func GetKibanaUrl() string {
-	return deriveUrl("kibana.vmi.system")
+// GetKibanaURL returns Kibana URL
+func GetKibanaURL() string {
+	return deriveURL("kibana.vmi.system")
 }
 
-// Get Grafana Url
-func GetGrafanaUrl() string {
-	return deriveUrl("grafana.vmi.system")
+// GetGrafanaURL returns Grafana URL
+func GetGrafanaURL() string {
+	return deriveURL("grafana.vmi.system")
 }
 
-// Get Prometheus Url
-func GetPrometheusUrl() string {
-	return deriveUrl("prometheus.vmi.system")
+// GetPrometheusURL returns Prometheus URL
+func GetPrometheusURL() string {
+	return deriveURL("prometheus.vmi.system")
 }
 
-// Get Elastic Search Url
-func GetElasticUrl() string {
-	return deriveUrl("elasticsearch.vmi.system")
+// GetElasticURL returns Elasticsearch URL
+func GetElasticURL() string {
+	return deriveURL("elasticsearch.vmi.system")
 }

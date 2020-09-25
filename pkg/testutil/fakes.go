@@ -5,6 +5,10 @@ package testutil
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+
+	"github.com/gorilla/mux"
 
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
 	istioClientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/clientset/versioned"
@@ -514,4 +518,14 @@ func (s simpleServiceAccountNamespaceLister) List(selector labels.Selector) (ret
 // retrieves the Service Account for a given namespace and name
 func (s simpleServiceAccountNamespaceLister) Get(name string) (*v1.ServiceAccount, error) {
 	return s.kubeClient.CoreV1().ServiceAccounts(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// InvokeHTTPHandler sets up a HTTP handler
+func InvokeHTTPHandler(request *http.Request, path string, handler func(http.ResponseWriter, *http.Request)) *httptest.ResponseRecorder {
+	responseRecorder := httptest.NewRecorder()
+	router := mux.NewRouter()
+	router.HandleFunc(path, handler)
+	router.ServeHTTP(responseRecorder, request)
+
+	return responseRecorder
 }

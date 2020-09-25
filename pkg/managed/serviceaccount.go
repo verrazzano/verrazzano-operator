@@ -41,7 +41,7 @@ func CreateServiceAccounts(mbPair *types.ModelBindingPair, filteredConnections m
 		}
 
 		// Create/Update ServiceAccount
-		err := createServiceAccount(mbPair.Binding, managedClusterConnection, serviceAccounts, clusterName)
+		err := createServiceAccount(managedClusterConnection, serviceAccounts, clusterName)
 		if err != nil {
 			return err
 		}
@@ -49,12 +49,10 @@ func CreateServiceAccounts(mbPair *types.ModelBindingPair, filteredConnections m
 	return nil
 }
 
-func createServiceAccount(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnection *util.ManagedClusterConnection, newServiceAccounts []*corev1.ServiceAccount, clusterName string) error {
+func createServiceAccount(managedClusterConnection *util.ManagedClusterConnection, newServiceAccounts []*corev1.ServiceAccount, clusterName string) error {
 	// Create/Update Service Account
-	var serviceAccountNames = []string{}
 
 	for _, newServiceAccount := range newServiceAccounts {
-		serviceAccountNames = append(serviceAccountNames, newServiceAccount.Name)
 		existingServiceAccount, err := managedClusterConnection.ServiceAccountLister.ServiceAccounts(newServiceAccount.Namespace).Get(newServiceAccount.Name)
 		if existingServiceAccount != nil {
 			specDiffs := diff.CompareIgnoreTargetEmpties(existingServiceAccount, newServiceAccount)

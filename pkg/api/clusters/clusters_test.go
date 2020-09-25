@@ -8,10 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"github.com/gorilla/mux"
+	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
+
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
@@ -36,7 +36,7 @@ func TestReturnAllClusters(t *testing.T) {
 	initClusters()
 
 	request, _ := http.NewRequest("GET", "/clusters", nil)
-	responseRecorder := invokeHandler(request, "/clusters", ReturnAllClusters)
+	responseRecorder := testutil.InvokeHTTPHandler(request, "/clusters", ReturnAllClusters)
 
 	assertEqual("2", responseRecorder.Header().Get("X-Total-Count"), "X-Total-Count header", t)
 
@@ -54,7 +54,7 @@ func TestReturnSingleCluster(t *testing.T) {
 	initClusters()
 
 	request, _ := http.NewRequest("GET", "/clusters/"+string(cluster1.UID), nil)
-	responseRecorder := invokeHandler(request, "/clusters/{id}", ReturnSingleCluster)
+	responseRecorder := testutil.InvokeHTTPHandler(request, "/clusters/{id}", ReturnSingleCluster)
 
 	responseCluster := &TestCluster{}
 	json.Unmarshal(responseRecorder.Body.Bytes(), responseCluster)
@@ -63,7 +63,7 @@ func TestReturnSingleCluster(t *testing.T) {
 }
 
 type TestCluster struct {
-	Id            string
+	ID            string
 	Name          string
 	Type          string
 	ServerAddress string
@@ -73,22 +73,13 @@ type TestCluster struct {
 
 func NewTestCluster(managedCluster v1beta1.VerrazzanoManagedCluster) *TestCluster {
 	return &TestCluster{
-		Id:            string(managedCluster.UID),
+		ID:            string(managedCluster.UID),
 		Name:          managedCluster.Name,
 		Type:          managedCluster.Spec.Type,
 		ServerAddress: managedCluster.Spec.ServerAddress,
 		Description:   managedCluster.Spec.Description,
 		Status:        "OK",
 	}
-}
-
-func invokeHandler(request *http.Request, path string, handler func(http.ResponseWriter, *http.Request)) *httptest.ResponseRecorder {
-	responseRecorder := httptest.NewRecorder()
-	router := mux.NewRouter()
-	router.HandleFunc(path, handler)
-	router.ServeHTTP(responseRecorder, request)
-
-	return responseRecorder
 }
 
 func assertClusters(actualClusters []TestCluster, expectedClusters map[string]v1beta1.VerrazzanoManagedCluster, t *testing.T) {
@@ -107,7 +98,7 @@ func assertClusters(actualClusters []TestCluster, expectedClusters map[string]v1
 }
 
 func assertCluster(expected *TestCluster, actual TestCluster, t *testing.T) {
-	assertEqual(expected.Id, actual.Id, "id", t)
+	assertEqual(expected.ID, actual.ID, "id", t)
 	assertEqual(expected.Name, actual.Name, "name", t)
 	assertEqual(expected.Type, actual.Type, "type", t)
 	assertEqual(expected.ServerAddress, actual.ServerAddress, "serverAddress", t)

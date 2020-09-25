@@ -16,8 +16,9 @@ import (
 // This file is very similar to applications.go - please see comments there
 // which equally apply to this file
 
+// Microservice details of microservice returned in API calls.
 type Microservice struct {
-	Id        string `json:"id"`
+	ID        string `json:"id"`
 	Cluster   string `json:"cluster"`
 	Type      string `json:"type"`
 	Name      string `json:"name"`
@@ -26,10 +27,12 @@ type Microservice struct {
 }
 
 var (
+	// Microservices contains all microservices.
 	Microservices []Microservice
 	listerSet     controller.Listers
 )
 
+// Init initialization for microservices API.
 func Init(listers controller.Listers) {
 	listerSet = listers
 	refreshMicroservices()
@@ -45,7 +48,7 @@ func refreshMicroservices() {
 		for _, mc := range mbp.ManagedClusters {
 			for _, helidonApp := range mc.HelidonApps {
 				Microservices = append(Microservices, Microservice{
-					Id:        helidonApp.Spec.Name,
+					ID:        helidonApp.Spec.Name,
 					Name:      helidonApp.Spec.Name,
 					Cluster:   mc.Name,
 					Type:      "Helidon",
@@ -57,6 +60,7 @@ func refreshMicroservices() {
 	}
 }
 
+// ReturnAllMicroservices returns all microservices used by model and bindings.
 func ReturnAllMicroservices(w http.ResponseWriter, r *http.Request) {
 	refreshMicroservices()
 	glog.V(4).Info("GET /microservices")
@@ -64,6 +68,7 @@ func ReturnAllMicroservices(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Microservices)
 }
 
+// ReturnSingleMicroservice returns a single microservice identified by the microservice Kubernetes UID.
 func ReturnSingleMicroservice(w http.ResponseWriter, r *http.Request) {
 	refreshMicroservices()
 	vars := mux.Vars(r)
@@ -72,7 +77,7 @@ func ReturnSingleMicroservice(w http.ResponseWriter, r *http.Request) {
 	glog.V(4).Info("GET /microservices/" + key)
 
 	for _, microservices := range Microservices {
-		if microservices.Id == key {
+		if microservices.ID == key {
 			json.NewEncoder(w).Encode(microservices)
 		}
 	}

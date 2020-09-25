@@ -5,11 +5,12 @@ package jobs
 
 import (
 	"encoding/json"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestReturnAllJobs(t *testing.T) {
@@ -36,7 +37,7 @@ func TestReturnAllJobs(t *testing.T) {
 			assert.Equal(t, http.StatusOK, resp.Code)
 			json.NewDecoder(resp.Body).Decode(&myJobs)
 			assert.Len(t, myJobs, 1)
-			assert.Equal(t, "1", myJobs[0].Id)
+			assert.Equal(t, "1", myJobs[0].ID)
 		})
 	}
 }
@@ -68,7 +69,7 @@ func TestReturnSingleJob(t *testing.T) {
 			ReturnSingleJob(resp, req)
 			assert.Equal(t, http.StatusOK, resp.Code)
 			json.NewDecoder(resp.Body).Decode(&myJob)
-			assert.Equal(t, "1", myJob.Id)
+			assert.Equal(t, "1", myJob.ID)
 		})
 	}
 }
@@ -100,7 +101,7 @@ func TestReturnSingleJobNotFound(t *testing.T) {
 			ReturnSingleJob(resp, req)
 			assert.Equal(t, http.StatusOK, resp.Code)
 			json.NewDecoder(resp.Body).Decode(&myJob)
-			assert.Equal(t, "", myJob.Id)
+			assert.Equal(t, "", myJob.ID)
 		})
 	}
 }
