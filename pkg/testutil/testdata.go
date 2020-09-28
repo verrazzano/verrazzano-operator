@@ -193,7 +193,7 @@ func GetModelBindingPair() *types.ModelBindingPair {
 				},
 				CoherenceClusters: []v1beta1.VerrazzanoCoherenceCluster{
 					{
-						Name: "test-coherence",
+						Name:  "test-coherence",
 						Image: "test-coherence-image:latest",
 						Ports: []cohv1.NamedPortSpec{
 							{
