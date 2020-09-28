@@ -251,7 +251,7 @@ func TestCreateModelBindingPairCoherence(t *testing.T) {
 	assert.Equal(t, "coherence-coherence-operator", cohOperatorCR.Name)
 	assert.Equal(t, "coherence", cohOperatorCR.Namespace)
 
-	cohClusterCRs  := mc.CohClusterCRs
+	cohClusterCRs := mc.CohClusterCRs
 	assert.Equal(t, 1, len(cohClusterCRs))
 	cohClusterCR := cohClusterCRs[0]
 	assert.Equal(t, "test-coherence", cohClusterCR.Name)
@@ -470,11 +470,11 @@ func TestAddRemoteRestConnectionAlreadyExists(t *testing.T) {
 	conn2 := types.RemoteRestConnection{Name: "conn2", RemoteClusterName: "remote-cluster-2", RemoteNamespace: "remote-ns-2",
 		LocalNamespace: "local-ns-2", Port: 54321}
 
-	remoteConns := make(map[string] []*types.RemoteRestConnection)
-	remoteConns["local-ns"]   = []*types.RemoteRestConnection{&conn1}
+	remoteConns := make(map[string][]*types.RemoteRestConnection)
+	remoteConns["local-ns"] = []*types.RemoteRestConnection{&conn1}
 	remoteConns["local-ns-2"] = []*types.RemoteRestConnection{&conn2}
 
-	mc       := types.ManagedCluster{RemoteRests: remoteConns, Name: "cluster-1"}
+	mc := types.ManagedCluster{RemoteRests: remoteConns, Name: "cluster-1"}
 	remoteMc := types.ManagedCluster{Name: "cluster-2"}
 
 	addRemoteRest(&mc, "conn1", "local-ns", &remoteMc, "remote-ns", 12345,
@@ -769,5 +769,3 @@ func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair, expecte
 		}
 	}
 }
-
-
