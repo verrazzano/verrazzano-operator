@@ -473,7 +473,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create ClusterRoleBindings
-	err = managed.CreateClusterRoleBindings(mbPair, c.managedClusterConnections)
+	err = managed.CreateClusterRoleBindings(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create cluster role bindings for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -771,7 +771,7 @@ func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 	}
 
 	// Cleanup ClusterRoleBindings
-	err = managed.CleanupOrphanedClusterRoleBindings(mbPair, c.managedClusterConnections, c.modelBindingPairs)
+	err = managed.CleanupOrphanedClusterRoleBindings(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to cleanup ClusterRoleBindings for binding %s: %v", mbPair.Binding.Name, err)
 	}

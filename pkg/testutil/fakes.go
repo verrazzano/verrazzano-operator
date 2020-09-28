@@ -489,6 +489,33 @@ func (s *simpleClusterRoleLister) Get(name string) (*rbacv1.ClusterRole, error) 
 	return s.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
 }
 
+// simpleClusterRoleBindingLister implements the ClusterRoleBindingLister interface.
+type simpleClusterRoleBindingLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// List lists all ClusterRoleBindings.
+func (s *simpleClusterRoleBindingLister) List(selector labels.Selector) (ret []*rbacv1.ClusterRoleBinding, err error) {
+	var bindings []*rbacv1.ClusterRoleBinding
+
+	list, err := s.kubeClient.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		binding := list.Items[i]
+		if selector.Matches(labels.Set(binding.Labels)) {
+			bindings = append(bindings, &binding)
+		}
+	}
+	return bindings, nil
+}
+
+// Get retrieves the ClusterRoleBinding for a given name.
+func (s *simpleClusterRoleBindingLister) Get(name string) (*rbacv1.ClusterRoleBinding, error) {
+	return s.kubeClient.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
+}
+
 // InvokeHTTPHandler sets up a HTTP handler
 func InvokeHTTPHandler(request *http.Request, path string, handler func(http.ResponseWriter, *http.Request)) *httptest.ResponseRecorder {
 	responseRecorder := httptest.NewRecorder()

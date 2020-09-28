@@ -472,6 +472,86 @@ func TestSimpleClusterRoleLister(t *testing.T) {
 	assert.Equal(t, "test2", clusterRole.Name, "expected the cluster to be named test")
 }
 
+// TestSimpleClusterRoleBindingLister tests the functionality of simpleClusterRoleBindingLister
+// GIVEN a cluster which has no existing cluster role bindings
+//  WHEN I create two cluster role bindings and a simpleClusterRoleBindingLister
+//  THEN the lister should list exactly two cluster role bindings given an everything selector
+//   AND the lister should list exactly one specific cluster role binding given a label selector
+//   AND the lister should get a specific cluster role binding when requested by name
+func TestSimpleClusterRoleBindingLister(t *testing.T) {
+	// create a map of empty test cluster connections that use fakes
+	clusterConnections := GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	// add some cluster role bindings through the fake client set on the test cluster
+	cr := v1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+			Labels: map[string]string{
+				"label1": "foo",
+			},
+		},
+	}
+	_, err := clusterConnection.KubeClient.RbacV1().ClusterRoleBindings().Create(context.TODO(), &cr, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("got an error trying to a create cluster role binding: %v", err)
+	}
+
+	cr = v1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test2",
+		},
+	}
+	_, err = clusterConnection.KubeClient.RbacV1().ClusterRoleBindings().Create(context.TODO(), &cr, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("got an error trying to create cluster role binding: %v", err)
+	}
+
+	// create a simpleClusterRoleBindingLister using the fake client set from the test cluster
+	l := simpleClusterRoleBindingLister{
+		clusterConnection.KubeClient,
+	}
+
+	// list all the cluster role bindings through the lister
+	s := labels.Everything()
+	clusterRoleBindings, err := l.List(s)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to list the cluster role bindings: %v", err))
+	}
+	assert.Len(t, clusterRoleBindings, 2, "expected 2 cluster role bindings in the list")
+	expectedBindingSet := map[string]struct{}{"test": {}, "test2": {}}
+	for _, clusterRoleBinding := range clusterRoleBindings {
+		delete(expectedBindingSet, clusterRoleBinding.Name)
+	}
+	assert.Len(t, expectedBindingSet, 0, "not all of the expected role bindings were returned: %v", expectedBindingSet)
+
+	// list cluster role bindings through the lister with a label selector
+	requirement, err := labels.NewRequirement("label1", selection.Equals, []string{"foo"})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to create a requirement: %v", err))
+	}
+	s = labels.NewSelector().Add(*requirement)
+	clusterRoleBindings, err = l.List(s)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to list the cluster role bindings: %v", err))
+	}
+	assert.Len(t, clusterRoleBindings, 1, "expected 1 cluster role binding in the list")
+	assert.Equal(t, "test", clusterRoleBindings[0].Name, "expected the cluster role binding to be named test")
+
+	// get specific cluster role bindings through the lister
+	clusterRoleBinding, err := l.Get("test")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to get a cluster role binding: %v", err))
+	}
+	assert.Equal(t, "test", clusterRoleBinding.Name, "expected the cluster role binding to be named test")
+
+	clusterRoleBinding, err = l.Get("test2")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to get a cluster role binding: %v", err))
+	}
+	assert.Equal(t, "test2", clusterRoleBinding.Name, "expected the cluster role binding to be named test")
+}
+
 func createConfigMap(t *testing.T, name string, clusterConnection *util.ManagedClusterConnection) {
 	cm := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
