@@ -14,6 +14,7 @@ import (
 	istioClientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/clientset/versioned"
 	istioLister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/listers/networking.istio.io/v1alpha3"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -518,6 +519,33 @@ func (s simpleServiceAccountNamespaceLister) List(selector labels.Selector) (ret
 // retrieves the Service Account for a given namespace and name
 func (s simpleServiceAccountNamespaceLister) Get(name string) (*v1.ServiceAccount, error) {
 	return s.kubeClient.CoreV1().ServiceAccounts(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// simple ClusterRoleLister implementation
+type simpleClusterRoleLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// List lists all the ClusterRoles.
+func (s *simpleClusterRoleLister) List(selector labels.Selector) (ret []*rbacv1.ClusterRole, err error) {
+	var clusterRoles []*rbacv1.ClusterRole
+
+	list, err := s.kubeClient.RbacV1().ClusterRoles().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		clusterRole := list.Items[i]
+		if selector.Matches(labels.Set(clusterRole.Labels)) {
+			clusterRoles = append(clusterRoles, &clusterRole)
+		}
+	}
+	return clusterRoles, nil
+}
+
+// Get retrieves the ClusterRole for a given name.
+func (s *simpleClusterRoleLister) Get(name string) (*rbacv1.ClusterRole, error) {
+	return s.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 // InvokeHTTPHandler sets up a HTTP handler

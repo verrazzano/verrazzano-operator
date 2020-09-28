@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"testing"
 
+	v1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/selection"
+
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 
 	"github.com/stretchr/testify/assert"
@@ -438,6 +441,86 @@ func TestSimpleServiceAccountLister(t *testing.T) {
 	}
 	assert.Equal("test-serviceAccount", serviceAccount.Name)
 	assert.Equal("test", serviceAccount.Namespace)
+}
+
+// TestSimpleClusterRoleLister tests the functionality of simpleClusterRoleLister
+// GIVEN a cluster which has no existing cluster roles
+//  WHEN I create two cluster roles and a simpleClusterRoleLister
+//  THEN the lister should list exactly two cluster roles given an everything selector
+//   AND the lister should list exactly one specific cluster role given a label selector
+//   AND the lister should get a specific cluster role when requested by name
+func TestSimpleClusterRoleLister(t *testing.T) {
+	// create a map of empty test cluster connections that use fakes
+	clusterConnections := GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	// add some cluster roles through the fake client set on the test cluster
+	cr := v1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+			Labels: map[string]string{
+				"label1": "foo",
+			},
+		},
+	}
+	_, err := clusterConnection.KubeClient.RbacV1().ClusterRoles().Create(context.TODO(), &cr, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("got an error trying to a create cluster role: %v", err)
+	}
+
+	cr = v1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test2",
+		},
+	}
+	_, err = clusterConnection.KubeClient.RbacV1().ClusterRoles().Create(context.TODO(), &cr, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("got an error trying to create cluster role: %v", err)
+	}
+
+	// create a simpleClusterRoleLister using the fake client set from the test cluster
+	l := simpleClusterRoleLister{
+		clusterConnection.KubeClient,
+	}
+
+	// list all the cluster roles through the lister
+	s := labels.Everything()
+	clusterRoles, err := l.List(s)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to list the cluster roles: %v", err))
+	}
+	assert.Len(t, clusterRoles, 2, "expected 2 cluster roles in the list")
+	expectedRoleSet := map[string]struct{}{"test": {}, "test2": {}}
+	for _, clusterRole := range clusterRoles {
+		delete(expectedRoleSet, clusterRole.Name)
+	}
+	assert.Len(t, expectedRoleSet, 0, "not all of the expected roles were returned: %v", expectedRoleSet)
+
+	// list cluster roles through the lister with a label selector
+	requirement, err := labels.NewRequirement("label1", selection.Equals, []string{"foo"})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to create a requirement: %v", err))
+	}
+	s = labels.NewSelector().Add(*requirement)
+	clusterRoles, err = l.List(s)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to list the cluster roles: %v", err))
+	}
+	assert.Len(t, clusterRoles, 1, "expected 1 cluster role in the list")
+	assert.Equal(t, "test", clusterRoles[0].Name, "expected the cluster to be named test")
+
+	// get specific cluster roles through the lister
+	clusterRole, err := l.Get("test")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to get a cluster role: %v", err))
+	}
+	assert.Equal(t, "test", clusterRole.Name, "expected the cluster to be named test")
+
+	clusterRole, err = l.Get("test2")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to get a cluster role: %v", err))
+	}
+	assert.Equal(t, "test2", clusterRole.Name, "expected the cluster to be named test")
 }
 
 func createConfigMap(t *testing.T, name string, clusterConnection *util.ManagedClusterConnection) {
