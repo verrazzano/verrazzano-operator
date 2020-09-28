@@ -394,6 +394,12 @@ func TestSimpleServiceLister(t *testing.T) {
 	assert.Equal(t, "test", service.Namespace)
 }
 
+// TestSimpleServiceAccountLister tests the functionality of simpleServiceAccountLister.
+// GIVEN a cluster which has no existing service accounts
+//  WHEN I create one service account and a simpleServiceAccountLister
+//  THEN the lister should list one service account given an everything selector
+//   AND the lister should list exactly one specific service account given a label selector
+//   AND the lister should get a specific service account when requested by name
 func TestSimpleServiceAccountLister(t *testing.T) {
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]

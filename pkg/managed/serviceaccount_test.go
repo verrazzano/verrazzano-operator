@@ -214,9 +214,9 @@ func assertCreateAppServiceAccounts(t *testing.T, sa *corev1.ServiceAccount, clu
 
 	labels := util.GetManagedLabelsNoBinding(clusterName)
 
-	assert.Equal(constants.VerrazzanoNamespace, sa.Name, "namespace %s service account name name was not as expected", sa.Namespace)
-	assert.Equal(labels, sa.Labels, "namespace %s service account namespace label was not as expected", sa.Namespace)
-	assert.Equal("test-imagePullSecret", sa.ImagePullSecrets[0].Name, "namespace %s service account image pull secret was not as expected", sa.Namespace)
+	assert.Equal(util.GetServiceAccountNameForSystem(), sa.Name, "service account name for namespace %s was not as expected", sa.Namespace)
+	assert.Equal(labels, sa.Labels, "service account label for namespace %s was not as expected", sa.Namespace)
+	assert.Equal("test-imagePullSecret", sa.ImagePullSecrets[0].Name, "service account image pull secret for namespace %s was not as expected", sa.Namespace)
 }
 
 // assertCreateVMIServiceAccounts asserts that the given service account for a VMI binding has the expected values.
@@ -225,8 +225,8 @@ func assertCreateVMIServiceAccounts(t *testing.T, sa *corev1.ServiceAccount, ind
 
 	labels := monitoring.GetMonitoringComponentLabels(clusterName, sa.Name)
 
-	assert.Equal(labels, sa.Labels, "namespace %s service account namespace label was not as expected", sa.Namespace)
-	assert.Equal([]corev1.LocalObjectReference{}, sa.ImagePullSecrets, "imagePullSecrets for service account should be nil")
+	assert.Equal(labels, sa.Labels, "service account label for namespace %s was not as expected", sa.Namespace)
+	assert.Equal([]corev1.LocalObjectReference{}, sa.ImagePullSecrets, "imagePullSecrets for service account should be empty")
 	if index == 0 {
 		assert.Equal(constants.FilebeatName, sa.Name, "service account has wrong name")
 	} else if index == 1 {
