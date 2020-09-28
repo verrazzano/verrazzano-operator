@@ -86,7 +86,7 @@ func TestReturnSingleGrid(t *testing.T) {
 }
 
 
-//  TestReturnSingleGridNotFpund verifies that the grid entry with ID=100 is not found
+//  TestReturnSingleGridNotFound verifies that the grid entry with ID=100 is not found
 func TestReturnSingleGridNotFound(t *testing.T) {
 	clusters := testutil.GetTestClusters()
 	type args struct {
