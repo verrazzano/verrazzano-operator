@@ -29,14 +29,14 @@ const IstioSystemNamespace = "istio-system"
 // GetManagedClusterConnections returns a test map of managed cluster connections that uses fake client sets
 func GetManagedClusterConnections() map[string]*util.ManagedClusterConnection {
 	return map[string]*util.ManagedClusterConnection{
-		"cluster1": getManagedClusterConnection("cluster1"),
-		"cluster2": getManagedClusterConnection("cluster2"),
-		"cluster3": getManagedClusterConnection("cluster3"),
+		"cluster1": GetManagedClusterConnection("cluster1"),
+		"cluster2": GetManagedClusterConnection("cluster2"),
+		"cluster3": GetManagedClusterConnection("cluster3"),
 	}
 }
 
-// Get a managed cluster connection that uses fake client sets
-func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnection {
+// GetManagedClusterConnection returns a managed cluster connection that uses fake client sets
+func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnection {
 	// create a ManagedClusterConnection that uses client set fakes
 	clusterConnection := &util.ManagedClusterConnection{
 		KubeClient:                  fake.NewSimpleClientset(),
@@ -114,6 +114,9 @@ func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		kubeClient: clusterConnection.KubeClient,
 	}
 
+	clusterConnection.ServiceAccountLister = &simpleServiceAccountLister{
+		kubeClient: clusterConnection.KubeClient,
+	}
 	return clusterConnection
 }
 
@@ -347,6 +350,11 @@ func GetModelBindingPair() *types.ModelBindingPair {
 			"cluster2": {
 				Name:       "cluster2",
 				Namespaces: []string{"default", "test2"},
+			},
+		},
+		ImagePullSecrets: []corev1.LocalObjectReference{
+			{
+				Name: "test-imagePullSecret",
 			},
 		},
 	}

@@ -455,7 +455,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create ServiceAccounts
-	err = managed.CreateServiceAccounts(mbPair, c.managedClusterConnections)
+	err = managed.CreateServiceAccounts(mbPair.Binding.Name, mbPair.ImagePullSecrets, mbPair.ManagedClusters, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create service accounts for binding %s: %v", mbPair.Binding.Name, err)
 	}

@@ -6,10 +6,12 @@ package testutil
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	"testing"
+
 	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/selection"
-	"testing"
+
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
 
 	"github.com/stretchr/testify/assert"
 	istio "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
@@ -390,6 +392,61 @@ func TestSimpleServiceLister(t *testing.T) {
 	}
 	assert.Equal(t, "test-service", service.Name)
 	assert.Equal(t, "test", service.Namespace)
+}
+
+// TestSimpleServiceAccountLister tests the functionality of simpleServiceAccountLister.
+// GIVEN a cluster which has no existing service accounts
+//  WHEN I create one service account and a simpleServiceAccountLister
+//  THEN the lister should list one service account given an everything selector
+//   AND the lister should list exactly one specific service account given a label selector
+//   AND the lister should get a specific service account when requested by name
+func TestSimpleServiceAccountLister(t *testing.T) {
+	clusterConnections := GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	assert := assert.New(t)
+
+	sa := corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-serviceAccount",
+			Namespace: "test",
+		},
+		ImagePullSecrets: []corev1.LocalObjectReference{
+			{
+				Name: "test-imagePullSecret",
+			},
+		},
+	}
+	_, err := clusterConnection.KubeClient.CoreV1().ServiceAccounts("test").Create(context.TODO(), &sa, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create service account: %v", err))
+	}
+
+	l := simpleServiceAccountLister{
+		clusterConnection.KubeClient,
+	}
+
+	s := labels.Everything()
+	serviceAccounts, err := l.List(s)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get service accounts: %v", err))
+	}
+	assert.Equal(1, len(serviceAccounts))
+
+	nsl := l.ServiceAccounts("test")
+
+	serviceAccounts, err = nsl.List(s)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get service accounts: %v", err))
+	}
+	assert.Equal(1, len(serviceAccounts))
+
+	serviceAccount, err := nsl.Get("test-serviceAccount")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get service account: %v", err))
+	}
+	assert.Equal("test-serviceAccount", serviceAccount.Name)
+	assert.Equal("test", serviceAccount.Namespace)
 }
 
 // TestSimpleClusterRoleLister tests the functionality of simpleClusterRoleLister
