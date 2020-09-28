@@ -1,0 +1,25 @@
+# Copyright (c) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: verrazzano.io/v1beta1
+kind: VerrazzanoModel
+metadata:
+  name: coherence-model
+  namespace: default
+spec:
+  description: "Test Coherence model"
+  coherenceClusters:
+    - name: "test-coherence"
+      image: "ghcr.io/verrazzano/example-bobbys-coherence:0.1.10-3-6e5f030-129"
+      imagePullSecrets:
+        - name: github-packages
+        - name: ocr
+      cacheConfig: "coherence-cache-config.xml"
+      pofConfig: "coherence-pof-config.xml"
+      ports:
+        - name: extend
+          port: 9000
+      connections:
+        - rest:
+            - target: "test-coherence"
+              environmentVariableForHost: "BACKEND_HOSTNAME"
+              environmentVariableForPort: "BACKEND_PORT"

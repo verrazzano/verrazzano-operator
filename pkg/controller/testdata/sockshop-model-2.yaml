@@ -16,6 +16,8 @@ spec:
       connections:
         - ingress:
             - name: "sock-shop-ingress"
+        - rest:
+            - target: "foobar"
     - name: "carts"
       image: "helidonsockshop/carts-core:latest"
     - name: "catalog"

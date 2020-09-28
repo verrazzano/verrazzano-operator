@@ -40,7 +40,7 @@ spec:
     - credentials: mysqlsecret
       name: mysql
       url: jdbc:mysql://mysql.default.svc.cluster.local:3306/socks
-    - credentials: mysql2secret
-      name: mysql2
-      url: jdbc:mysql://mysql.default.svc.cluster.local:3306/socks2
+    - credentials: oraclesecret
+      name: oracle
+      url: jdbc:oracle:thin:@cluster2:1521:socks2
 

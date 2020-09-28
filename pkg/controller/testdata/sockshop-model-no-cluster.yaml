@@ -86,13 +86,13 @@ spec:
         - ingress:
             - name: wl-ingress
         - rest:
-            - target: "catalog"
+            - target: "catalogue"
               environmentVariableForHost: "HELIDON_HOSTNAME"
               environmentVariableForPort: "HELIDON_PORT"
         - database:
             - target: "mysql"
               datasourceName: "socks"
         - database:
-            - target: "mysql2"
+            - target: "oracle"
               datasourceName: "socks2"
 
