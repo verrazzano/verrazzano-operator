@@ -20,6 +20,11 @@ import (
 	k8slabels "k8s.io/apimachinery/pkg/labels"
 )
 
+// TestCreateAppServiceAccounts tests creation of service accounts when an application binding is used.
+// GIVEN clusters which do not have service accounts for each namespace of an application binding
+//  WHEN I call CreateServiceAccounts
+//  THEN there should be a service account created for each namespace of an application binding
+//   AND that service account should have the expected values
 func TestCreateAppServiceAccounts(t *testing.T) {
 	// Setup the needed structures to test creating service accounts for an application binding.
 	imagePullSecrets := []corev1.LocalObjectReference{
@@ -83,6 +88,11 @@ func TestCreateAppServiceAccounts(t *testing.T) {
 	}
 }
 
+// TestCreateVMIServiceAccounts tests creation of service accounts when the binding name is 'system'
+// GIVEN clusters which do not have service accounts for each namespace of a VMI binding
+//  WHEN I call CreateServiceAccounts
+//  THEN there should be a service account created for each namespace of a VMI binding
+//   AND that service account should have the expected values
 func TestCreateVMIServiceAccounts(t *testing.T) {
 	assert := assert.New(t)
 
@@ -122,6 +132,7 @@ func TestCreateVMIServiceAccounts(t *testing.T) {
 	}
 }
 
+// getManagedClusters returns the managed clusters needed for tests.
 func getManagedClusters() map[string]*types.ManagedCluster {
 	return map[string]*types.ManagedCluster{
 		"local": {
@@ -135,6 +146,7 @@ func getManagedClusters() map[string]*types.ManagedCluster {
 	}
 }
 
+// getManagedConnections returns the managed connections needed for tests.
 func getManagedConnections() map[string]*util.ManagedClusterConnection {
 	return map[string]*util.ManagedClusterConnection{
 		"local":     testutil.GetManagedClusterConnection("local"),
@@ -142,7 +154,7 @@ func getManagedConnections() map[string]*util.ManagedClusterConnection {
 	}
 }
 
-// createAppNamespaces is a function to create the namespaces needed for a application binding.
+// createAppNamespaces creates the namespaces needed for a application binding.
 func createAppNamespaces(t *testing.T, managedConnections map[string]*util.ManagedClusterConnection) {
 	var ns = corev1.Namespace{}
 
@@ -166,7 +178,7 @@ func createAppNamespaces(t *testing.T, managedConnections map[string]*util.Manag
 	}
 }
 
-// createVMINamespaces is a function to create the namespaces needed for a VMI binding.
+// createVMINamespaces creates the namespaces needed for a VMI binding.
 func createVMINamespaces(t *testing.T, managedConnections map[string]*util.ManagedClusterConnection) {
 	var ns = corev1.Namespace{}
 
@@ -195,6 +207,8 @@ func createVMINamespaces(t *testing.T, managedConnections map[string]*util.Manag
 	}
 }
 
+// assertCreateAppServiceAccounts asserts that the given service account for an application binding has
+// the expected values.
 func assertCreateAppServiceAccounts(t *testing.T, sa *corev1.ServiceAccount, clusterName string) {
 	assert := assert.New(t)
 
@@ -205,6 +219,7 @@ func assertCreateAppServiceAccounts(t *testing.T, sa *corev1.ServiceAccount, clu
 	assert.Equal("test-imagePullSecret", sa.ImagePullSecrets[0].Name, "namespace %s service account image pull secret was not as expected", sa.Namespace)
 }
 
+// assertCreateVMIServiceAccounts asserts that the given service account for a VMI binding has the expected values.
 func assertCreateVMIServiceAccounts(t *testing.T, sa *corev1.ServiceAccount, index int, clusterName string) {
 	assert := assert.New(t)
 
