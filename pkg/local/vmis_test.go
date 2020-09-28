@@ -6,6 +6,7 @@ package local
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,23 +40,53 @@ const (
 	ErrMsgGet    = "error Get VMI"
 )
 
-func doTestCreateStorageOption(t *testing.T, option string, expected string) {
-	storage := createStorageOption(option)
-	prometheus := vmov1.Prometheus{
-		Enabled: true,
-		Storage: storage,
-	}
-	assert.Equal(t, expected, storage.Size, "right storage size")
-	assert.Equal(t, expected, prometheus.Storage.Size, "right storage size")
-}
-
 func TestCreateStorageOption(t *testing.T) {
-	doTestCreateStorageOption(t, "false", "")
-	doTestCreateStorageOption(t, "False", "")
-	doTestCreateStorageOption(t, "", "50Gi")
-	doTestCreateStorageOption(t, "true", "50Gi")
-	doTestCreateStorageOption(t, "True", "50Gi")
-	doTestCreateStorageOption(t, "random", "50Gi")
+	type args struct {
+		enableMonitoringStorage string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			"false enableMonitoringStorage",
+			args{"false"},
+			"",
+		},
+		{
+			"False enableMonitoringStorage",
+			args{"False"},
+			"",
+		},
+		{
+			"empty enableMonitoringStorage",
+			args{""},
+			"50Gi",
+		},
+		{
+			"true enableMonitoringStorage",
+			args{"true"},
+			"50Gi",
+		},
+		{
+			"True enableMonitoringStorage",
+			args{"True"},
+			"50Gi",
+		},
+		{
+			"random enableMonitoringStorage",
+			args{"random"},
+			"50Gi",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := createStorageOption(tt.args.enableMonitoringStorage).Size; !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("createStorageOption() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
 
 func createTestBinding(bindingName string) *v1beta1v8o.VerrazzanoBinding {
