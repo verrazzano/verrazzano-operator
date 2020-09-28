@@ -8,74 +8,131 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
+
 	"github.com/stretchr/testify/assert"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	k8slabels "k8s.io/apimachinery/pkg/labels"
 )
 
-func TestCreateServiceAccounts(t *testing.T) {
-	// Setup the needed structures to test creating service accounts
-	mbPair := getAppMbPair()
+func TestCreateAppServiceAccounts(t *testing.T) {
+	// Setup the needed structures to test creating service accounts for an application binding.
+	imagePullSecrets := []corev1.LocalObjectReference{
+		{
+			Name: "test-imagePullSecret",
+		},
+	}
+	managedClusters := getManagedClusters()
 	managedConnections := getManagedConnections()
 	createAppNamespaces(t, managedConnections)
 
 	// Create the expected service accounts
-	err := CreateServiceAccounts(&mbPair, managedConnections)
+	err := CreateServiceAccounts("testBinding", imagePullSecrets, managedClusters, managedConnections)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't create service account: %v", err))
 	}
 
 	// Validate the service accounts created for the "local" cluster
 	managedClusterConnection := managedConnections["local"]
-	serviceAccounts, err := managedClusterConnection.ServiceAccountLister.List(labels.Everything())
+	serviceAccounts, err := managedClusterConnection.ServiceAccountLister.List(k8slabels.Everything())
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't list service account for cluster local: %v", err))
 	}
 	assert.Equal(t, 2, len(serviceAccounts), "2 service accounts were expected for cluster local")
 	for _, sa := range serviceAccounts {
-		assertCreateServiceAccounts(t, sa, "local")
+		assertCreateAppServiceAccounts(t, sa, "local")
 	}
 
 	// Validate the service accounts created for the "cluster-1" cluster
 	managedClusterConnection = managedConnections["cluster-1"]
-	serviceAccounts, err = managedClusterConnection.ServiceAccountLister.List(labels.Everything())
+	serviceAccounts, err = managedClusterConnection.ServiceAccountLister.List(k8slabels.Everything())
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't list service account for cluster cluster-1: %v", err))
 	}
 	assert.Equal(t, 1, len(serviceAccounts), "1 service account was expected for cluster cluster-1")
 	for _, sa := range serviceAccounts {
-		assertCreateServiceAccounts(t, sa, "cluster-1")
+		assertCreateAppServiceAccounts(t, sa, "cluster-1")
 	}
 
-	// Update imagePullSecret for service account we created in "cluster-1" cluster.
+	// Update the imagePullSecret for service account we created in the "cluster-1" cluster.
 	serviceAccounts[0].ImagePullSecrets[0].Name = ""
-	_, err = managedClusterConnection.KubeClient.CoreV1().ServiceAccounts("test3").Update(context.TODO(), serviceAccounts[0], metav1.UpdateOptions{})
+	_, err = managedClusterConnection.KubeClient.CoreV1().ServiceAccounts("ns-test3").Update(context.TODO(), serviceAccounts[0], metav1.UpdateOptions{})
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't update service account for cluster cluster-1: %v", err))
 	}
 
 	// Call CreateServiceAccounts again, the update code will be executed to make the service account right.
-	err = CreateServiceAccounts(&mbPair, managedConnections)
+	err = CreateServiceAccounts("testBinding", imagePullSecrets, managedClusters, managedConnections)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't create service account: %v", err))
 	}
 
 	// Validate the service account was updated for the "cluster-1" cluster
-	serviceAccounts, err = managedClusterConnection.ServiceAccountLister.List(labels.Everything())
+	serviceAccounts, err = managedClusterConnection.ServiceAccountLister.List(k8slabels.Everything())
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't list service account for cluster cluster-1: %v", err))
 	}
 	assert.Equal(t, 1, len(serviceAccounts), "1 service account was expected for cluster cluster-1")
 	for _, sa := range serviceAccounts {
-		assertCreateServiceAccounts(t, sa, "cluster-1")
+		assertCreateAppServiceAccounts(t, sa, "cluster-1")
+	}
+}
+
+func TestCreateVMIServiceAccounts(t *testing.T) {
+	assert := assert.New(t)
+
+	// Setup the needed structures to test creating service accounts for a VMI binding.
+	managedClusters := getManagedClusters()
+	managedConnections := getManagedConnections()
+	createVMINamespaces(t, managedConnections)
+
+	// Create the expected service accounts
+	err := CreateServiceAccounts(constants.VmiSystemBindingName, []corev1.LocalObjectReference{}, managedClusters, managedConnections)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create service account: %v", err))
 	}
 
+	// Validate the service accounts created for the "local" cluster
+	managedClusterConnection := managedConnections["local"]
+	serviceAccounts, err := managedClusterConnection.ServiceAccountLister.List(k8slabels.Everything())
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't list service account for cluster local: %v", err))
+	}
+	assert.Equal(3, len(serviceAccounts), "3 service accounts were expected for cluster local")
+
+	for i, sa := range serviceAccounts {
+		assertCreateVMIServiceAccounts(t, sa, i, "local")
+	}
+
+	// Validate the service accounts created for the "cluster-1" cluster
+	managedClusterConnection = managedConnections["cluster-1"]
+	serviceAccounts, err = managedClusterConnection.ServiceAccountLister.List(k8slabels.Everything())
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't list service account for cluster local: %v", err))
+	}
+	assert.Equal(3, len(serviceAccounts), "3 service accounts were expected for cluster cluster-1")
+
+	for i, sa := range serviceAccounts {
+		assertCreateVMIServiceAccounts(t, sa, i, "cluster-1")
+	}
+}
+
+func getManagedClusters() map[string]*types.ManagedCluster {
+	return map[string]*types.ManagedCluster{
+		"local": {
+			Name:       "local",
+			Namespaces: []string{"ns-test1", "ns-test2"},
+		},
+		"cluster-1": {
+			Name:       "cluster-1",
+			Namespaces: []string{"ns-test3"},
+		},
+	}
 }
 
 func getManagedConnections() map[string]*util.ManagedClusterConnection {
@@ -85,110 +142,81 @@ func getManagedConnections() map[string]*util.ManagedClusterConnection {
 	}
 }
 
-func getAppMbPair() types.ModelBindingPair {
-	return types.ModelBindingPair{
-		Model: &v1beta1v8o.VerrazzanoModel{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "testModel",
-				Namespace: "default",
-			},
-			Spec: v1beta1v8o.VerrazzanoModelSpec{
-				Description: "A test model",
-			},
-		},
-		Binding: &v1beta1v8o.VerrazzanoBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "testBinding",
-				Namespace: "default",
-			},
-			Spec: v1beta1v8o.VerrazzanoBindingSpec{
-				Description: "A test binding",
-				ModelName:   "testModel",
-				Placement: []v1beta1v8o.VerrazzanoPlacement{
-					{
-						Name: "local",
-						Namespaces: []v1beta1v8o.KubernetesNamespace{
-							{
-								Name: "test1",
-								Components: []v1beta1v8o.BindingComponent{
-									{
-										Name: "test-1",
-									},
-								},
-							},
-							{
-								Name: "test2",
-								Components: []v1beta1v8o.BindingComponent{
-									{
-										Name: "test-2",
-									},
-								},
-							},
-						},
-					},
-					{
-						Name: "cluster-1",
-						Namespaces: []v1beta1v8o.KubernetesNamespace{
-							{
-								Name: "test3",
-								Components: []v1beta1v8o.BindingComponent{
-									{
-										Name: "test-3",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		ManagedClusters: map[string]*types.ManagedCluster{
-			"local": {
-				Name:       "local",
-				Namespaces: []string{"test1", "test2"},
-			},
-			"cluster-1": {
-				Name:       "cluster-1",
-				Namespaces: []string{"test3"},
-			},
-		},
-		ImagePullSecrets: []corev1.LocalObjectReference{
-			{
-				Name: "test-imagePullSecret",
-			},
-		},
-	}
-}
-
+// createAppNamespaces is a function to create the namespaces needed for a application binding.
 func createAppNamespaces(t *testing.T, managedConnections map[string]*util.ManagedClusterConnection) {
 	var ns = corev1.Namespace{}
 
 	clusterConnection := managedConnections["local"]
-	ns.Name = "test1"
+	ns.Name = "ns-test1"
 	_, err := clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't create namespace %s: %v", ns.Name, err))
 	}
-	ns.Name = "test2"
-	clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
+	ns.Name = "ns-test2"
+	_, err = clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't create namespace %s: %v", ns.Name, err))
 	}
 
 	clusterConnection = managedConnections["cluster-1"]
-	ns.Name = "test3"
-	clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
+	ns.Name = "ns-test3"
+	_, err = clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't create namespace %s: %v", ns.Name, err))
 	}
 }
 
-func assertCreateServiceAccounts(t *testing.T, sa *corev1.ServiceAccount, clusterName string) {
-	labels := util.GetManagedLabelsNoBinding(clusterName)
+// createVMINamespaces is a function to create the namespaces needed for a VMI binding.
+func createVMINamespaces(t *testing.T, managedConnections map[string]*util.ManagedClusterConnection) {
+	var ns = corev1.Namespace{}
 
+	clusterConnection := managedConnections["local"]
+	ns.Name = constants.LoggingNamespace
+	_, err := clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create namespace %s: %v", ns.Name, err))
+	}
+	ns.Name = constants.MonitoringNamespace
+	_, err = clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create namespace %s: %v", ns.Name, err))
+	}
+
+	clusterConnection = managedConnections["cluster-1"]
+	ns.Name = constants.LoggingNamespace
+	_, err = clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create namespace %s: %v", ns.Name, err))
+	}
+	ns.Name = constants.MonitoringNamespace
+	_, err = clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create namespace %s: %v", ns.Name, err))
+	}
+}
+
+func assertCreateAppServiceAccounts(t *testing.T, sa *corev1.ServiceAccount, clusterName string) {
 	assert := assert.New(t)
+
+	labels := util.GetManagedLabelsNoBinding(clusterName)
 
 	assert.Equal(constants.VerrazzanoNamespace, sa.Name, "namespace %s service account name name was not as expected", sa.Namespace)
 	assert.Equal(labels, sa.Labels, "namespace %s service account namespace label was not as expected", sa.Namespace)
 	assert.Equal("test-imagePullSecret", sa.ImagePullSecrets[0].Name, "namespace %s service account image pull secret was not as expected", sa.Namespace)
+}
+
+func assertCreateVMIServiceAccounts(t *testing.T, sa *corev1.ServiceAccount, index int, clusterName string) {
+	assert := assert.New(t)
+
+	labels := monitoring.GetMonitoringComponentLabels(clusterName, sa.Name)
+
+	assert.Equal(labels, sa.Labels, "namespace %s service account namespace label was not as expected", sa.Namespace)
+	assert.Equal([]corev1.LocalObjectReference{}, sa.ImagePullSecrets, "imagePullSecrets for service account should be nil")
+	if index == 0 {
+		assert.Equal(constants.FilebeatName, sa.Name, "service account has wrong name")
+	} else if index == 1 {
+		assert.Equal(constants.JournalbeatName, sa.Name, "service account has wrong name")
+	} else if index == 2 {
+		assert.Equal(constants.NodeExporterName, sa.Name, "service account has wrong name")
+	}
 }
