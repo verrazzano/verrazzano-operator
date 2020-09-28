@@ -60,6 +60,10 @@ func getManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		kubeClient: clusterConnection.KubeClient,
 	}
 
+	clusterConnection.ClusterRoleBindingLister = &simpleClusterRoleBindingLister{
+		kubeClient: clusterConnection.KubeClient,
+	}
+
 	clusterConnection.SecretLister = &simpleSecretLister{
 		kubeClient: clusterConnection.KubeClient,
 	}
