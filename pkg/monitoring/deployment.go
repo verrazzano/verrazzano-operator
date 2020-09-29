@@ -4,6 +4,7 @@
 package monitoring
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/golang/glog"
@@ -15,18 +16,19 @@ import (
 )
 
 // GetSystemDeployments constructs the necessary Deployments for the specified ManagedCluster for the System VMI.
-func GetSystemDeployments(managedClusterName, verrazzanoURI string, sec Secrets) []*appsv1.Deployment {
-	depLabels := util.GetManagedLabelsNoBinding(managedClusterName)
+func GetSystemDeployments(managedClusterName, verrazzanoURI string, labels map[string]string, sec Secrets) ([]*appsv1.Deployment, error) {
 	var deployments []*appsv1.Deployment
 
-	if verrazzanoURI == "" {
-		glog.V(4).Infof("Verrazzano URI must not be empty for prometheus pusher to work")
-	} else {
-		deployment := CreateDeployment(constants.MonitoringNamespace, constants.VmiSystemBindingName, depLabels, sec)
-		deployments = append(deployments, deployment)
+	if managedClusterName == "" {
+		return nil, errors.New("The managedClusterName parameter must not be empty")
 	}
+	if verrazzanoURI == "" {
+		return nil, errors.New("The verrazzanoURI parameter must not be empty")
+	}
+	deployment := CreateDeployment(constants.MonitoringNamespace, constants.VmiSystemBindingName, labels, sec)
+	deployments = append(deployments, deployment)
 
-	return deployments
+	return deployments, nil
 }
 
 // DeletePomPusher deletes the Prometheus Pusher deployment.
@@ -53,7 +55,7 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 			Namespace: namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: newVal(1),
+			Replicas: util.NewVal(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
@@ -114,14 +116,14 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 							},
 						},
 					},
-					TerminationGracePeriodSeconds: new64Val(1),
+					TerminationGracePeriodSeconds: util.New64Val(1),
 					Volumes: []corev1.Volume{
 						{
 							Name: "cert-vol",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
 									SecretName:  "system-tls",
-									DefaultMode: newVal(420),
+									DefaultMode: util.NewVal(420),
 								},
 							},
 						},
@@ -131,14 +133,4 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 		},
 	}
 	return pusherDeployment
-}
-
-func newVal(value int32) *int32 {
-	var val = value
-	return &val
-}
-
-func new64Val(value int64) *int64 {
-	var val = value
-	return &val
 }

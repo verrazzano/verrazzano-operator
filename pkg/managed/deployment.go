@@ -39,7 +39,11 @@ func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterCo
 
 		var deployments []*appsv1.Deployment
 		if mbPair.Binding.Name == constants.VmiSystemBindingName {
-			deployments = monitoring.GetSystemDeployments(clusterName, verrazzanoURI, sec)
+			deployments, err = monitoring.GetSystemDeployments(clusterName, verrazzanoURI, util.GetManagedLabelsNoBinding(clusterName), sec)
+			if err != nil {
+				glog.Errorf("Error getting the monitoring system deployments %v", err)
+				continue
+			}
 		} else {
 			deployments = newDeployments(mbPair.Binding, managedClusterObj, manifest, verrazzanoURI, sec)
 		}
