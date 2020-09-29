@@ -25,7 +25,7 @@ const wlsNamespace, wlsOperatorName, wlsBindingName = "test", "wls-operator", "m
 
 // TestInit ensures that a set of operators can be obtained from the provided set of listers.
 func TestInit(t *testing.T) {
-	// Get a set of clusters
+	// GIVEN an array of clusters and a model binding pair is provided
 	Operators = nil
 	clusters := testutil.GetTestClusters()
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
@@ -45,10 +45,9 @@ func TestInit(t *testing.T) {
 	for _, tt := range tests {
 		// add a WLSOperator to one of the clusters
 		t.Run(tt.name, func(t *testing.T) {
-			// append the WLS operator
+			// WHEN a WLS operator is appended to the cluster and the Init() method is invoked
 			createAndInsertWLSOperator(1, tt)
-			// Validate that there is the correct number of listers, the correct number of operators (1), and the
-			// operator has the expected name
+			// ThEN the single operator with the expected name will be found in the Operators slice
 			assert.Equal(t, tt.listers, listerSet, "Wrong number of listers")
 			assert.Equal(t, 1, len(Operators), "Wrong number of WLS operators")
 			assert.Equal(t, "wls-operator-mytestbinding-1", Operators[0].Name, "Operator has the wrong name")
@@ -58,7 +57,7 @@ func TestInit(t *testing.T) {
 
 //TestReturnNoOperators ensures that an empty response is returned if no operators are available
 func TestReturnNoOperators(t *testing.T) {
-	// ensure initialization will yield no operators
+	// GIVEN an empty model binding pair is provided
 	Operators = nil
 	emptyModelBindingPairs := make(map[string]*types.ModelBindingPair)
 	Init(controller.Listers{
@@ -67,13 +66,11 @@ func TestReturnNoOperators(t *testing.T) {
 	// setup http request processing
 	recorder := httptest.NewRecorder()
 	router := mux.NewRouter()
-	router.HandleFunc("/operators", func(w http.ResponseWriter, r *http.Request) {
-		ReturnAllOperators(w, r)
-	})
+	router.HandleFunc("/operators", ReturnAllOperators)
 	request, _ := http.NewRequest("GET", "/operators", nil)
-	// inovke HTTP request
+	// WHEN an HTTP request for the list of operators is submitted
 	router.ServeHTTP(recorder, request)
-	// assert response code 200
+	// THEN a HTTP OK response with an empty array body will be returned
 	assert.Equal(t, http.StatusOK, recorder.Code, "wrong response code")
 	var ops []Operator
 	err := json.Unmarshal(recorder.Body.Bytes(), &ops)
@@ -86,7 +83,7 @@ func TestReturnNoOperators(t *testing.T) {
 
 // TestReturnSingleOperator will test that a configured operator is returned
 func TestReturnSingleOperator(t *testing.T) {
-	// Get a set of clusters
+	// GIVEN an array of clusters and a model binding pair is provided
 	Operators = nil
 	clusters := testutil.GetTestClusters()
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
@@ -105,18 +102,15 @@ func TestReturnSingleOperator(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// append WLS operator
 			createAndInsertWLSOperator(1, tt)
 			// setup http request processing
 			recorder := httptest.NewRecorder()
 			router := mux.NewRouter()
-			router.HandleFunc("/operators/{id}", func(w http.ResponseWriter, r *http.Request) {
-				ReturnSingleOperator(w, r)
-			})
+			router.HandleFunc("/operators/{id}", ReturnSingleOperator)
 			request, _ := http.NewRequest("GET", "/operators/1", nil)
-			// inovke HTTP request
+			// WHEN a request is submitted for operator with ID "1"
 			router.ServeHTTP(recorder, request)
-			// assert response code 200
+			// THEN the response will has a HTTP OK status (200) with a single operator JSON response body
 			assert.Equal(t, http.StatusOK, recorder.Code, "wrong response code")
 			var op Operator
 			err := json.Unmarshal(recorder.Body.Bytes(), &op)
@@ -132,7 +126,7 @@ func TestReturnSingleOperator(t *testing.T) {
 
 //TestReturnAllOperators ensures that an array of operators is returned
 func TestReturnAllOperators(t *testing.T) {
-	// Get a set of clusters
+	// GIVEN an array of clusters and a model binding pair is provided
 	Operators = nil
 	clusters := testutil.GetTestClusters()
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
@@ -150,29 +144,26 @@ func TestReturnAllOperators(t *testing.T) {
 			listers: testutilcontroller.NewControllerListers(&clients, clusters, &modelBindingPairs)},
 	}
 	for _, tt := range tests {
-		// add a WLSOperator to one of the clusters
+		// add WLSOperators to both of the clusters
 		t.Run(tt.name, func(t *testing.T) {
-			// append the WLS Operator
 			createAndInsertWLSOperator(1, tt)
 			createAndInsertWLSOperator(2, tt)
 			// setup http request processing
 			recorder := httptest.NewRecorder()
 			router := mux.NewRouter()
-			router.HandleFunc("/operators", func(w http.ResponseWriter, r *http.Request) {
-				ReturnAllOperators(w, r)
-			})
+			router.HandleFunc("/operators", ReturnAllOperators)
 			request, _ := http.NewRequest("GET", "/operators", nil)
-			// inovke HTTP request
+			// WHEN a request is submitted for a listing of operators
 			router.ServeHTTP(recorder, request)
-			// assert response code 200
+			// THEN the response with have an HTTP OK status (200) with a JSON array of operators in the response body
 			assert.Equal(t, http.StatusOK, recorder.Code, "wrong response code")
 			var ops []Operator
 			err := json.Unmarshal(recorder.Body.Bytes(), &ops)
 			if err != nil {
 				t.Errorf("Error while reading response JSON: %s", err)
 			}
-			// Validate that there is the correct number of operators (1), and the
-			// operator has the expected name
+			// Validate that there is the correct number of operators (2), and the
+			// operators have the expected names
 			assert.Equal(t, 2, len(ops), "There should be one operator in the list")
 			assert.Equal(t, "wls-operator-mytestbinding-1", ops[0].Name, "Operator has the wrong name")
 			assert.Equal(t, "wls-operator-mytestbinding-2", ops[1].Name, "Operator has the wrong name")
@@ -182,7 +173,7 @@ func TestReturnAllOperators(t *testing.T) {
 
 //TestReturn404ForMissingOperator should return a 404 response for a request for a non-existent operator
 func TestReturn404ForMissingOperator(t *testing.T) {
-	// Get a set of clusters
+	// GIVEN an array of clusters and a model binding pair is provided
 	Operators = nil
 	clusters := testutil.GetTestClusters()
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
@@ -207,13 +198,11 @@ func TestReturn404ForMissingOperator(t *testing.T) {
 			// setup http request processing
 			recorder := httptest.NewRecorder()
 			router := mux.NewRouter()
-			router.HandleFunc("/operators/{id}", func(w http.ResponseWriter, r *http.Request) {
-				ReturnSingleOperator(w, r)
-			})
+			router.HandleFunc("/operators/{id}", ReturnSingleOperator)
 			request, _ := http.NewRequest("GET", "/operators/2", nil)
-			// inovke HTTP request
+			// WHEN a request is submitted for a non-existent operator (id=2)
 			router.ServeHTTP(recorder, request)
-			// assert response code 404
+			// THEN a NOT FOUND HTTP status response message will be returned
 			assert.Equal(t, http.StatusNotFound, recorder.Code, "wrong response code")
 		})
 	}
