@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -25,7 +24,10 @@ func GetSystemDeployments(managedClusterName, verrazzanoURI string, labels map[s
 	if verrazzanoURI == "" {
 		return nil, errors.New("The verrazzanoURI parameter must not be empty")
 	}
-	deployment := CreateDeployment(constants.MonitoringNamespace, constants.VmiSystemBindingName, labels, sec)
+	deployment, err := CreateDeployment(constants.MonitoringNamespace, constants.VmiSystemBindingName, labels, sec)
+	if err != nil {
+		return nil, err
+	}
 	deployments = append(deployments, deployment)
 
 	return deployments, nil
@@ -41,11 +43,11 @@ func pomPusherName(bindingName string) string {
 }
 
 // CreateDeployment creates prometheus pusher deployment on all clusters, based on a VerrazzanoApplicationBinding.
-func CreateDeployment(namespace string, bindingName string, labels map[string]string, sec Secrets) *appsv1.Deployment {
+func CreateDeployment(namespace string, bindingName string, labels map[string]string, sec Secrets)  (*appsv1.Deployment, error) {
 	payload := "match%5B%5D=%7Bjob%3D~%22" + bindingName + "%2E%2A%22%7D" // URL encoded : match[]={job=~"binding-name.*"}
 	password, err := sec.GetVmiPassword()
 	if err != nil {
-		glog.Errorf("Failed to retrieve secret %v", err)
+		return nil, err
 	}
 	image := util.GetPromtheusPusherImage()
 	pusherDeployment := &appsv1.Deployment{
@@ -132,5 +134,5 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 			},
 		},
 	}
-	return pusherDeployment
+	return pusherDeployment, nil
 }

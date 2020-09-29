@@ -100,10 +100,14 @@ func newDeployments(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types
 	// Does a Prometheus pusher need to be deployed to this cluster?
 	if deployPromPusher == true {
 		if verrazzanoURI == "" {
-			glog.V(4).Infof("Verrazzano URI must not be empty for prometheus pusher to work")
+			glog.Error("Verrazzano URI must not be empty for prometheus pusher to work")
 		} else {
-			deployment := monitoring.CreateDeployment(constants.MonitoringNamespace, binding.Name, depLabels, sec)
-			deployments = append(deployments, deployment)
+			deployment, err := monitoring.CreateDeployment(constants.MonitoringNamespace, binding.Name, depLabels, sec)
+			if err != nil {
+				glog.Error("Error creating monitoring deployment")
+			} else {
+				deployments = append(deployments, deployment)
+			}
 		}
 	}
 
