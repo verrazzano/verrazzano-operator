@@ -164,7 +164,7 @@ func TestReturnAllOperators(t *testing.T) {
 			}
 			// Validate that there is the correct number of operators (2), and the
 			// operators have the expected names
-			assert.Equal(t, 2, len(ops), "There should be one operator in the list")
+			assert.Equal(t, 2, len(ops), "There should be two operators in the list")
 			assert.Equal(t, "wls-operator-mytestbinding-1", ops[0].Name, "Operator has the wrong name")
 			assert.Equal(t, "wls-operator-mytestbinding-2", ops[1].Name, "Operator has the wrong name")
 		})
