@@ -82,9 +82,15 @@ func ReturnSingleOperator(w http.ResponseWriter, r *http.Request) {
 
 	glog.V(4).Info("GET /operators/" + key)
 
+	var found bool
 	for _, operator := range Operators {
 		if operator.ID == key {
 			json.NewEncoder(w).Encode(operator)
+			found = true
 		}
+	}
+
+	if !found {
+		w.WriteHeader(http.StatusNotFound)
 	}
 }
