@@ -83,7 +83,11 @@ func getVersion() string {
 
 // Derive the URL from the verrazzano URI by replacing the 'api' segment
 func deriveURL(s string) string {
-	return "https://" + s + "." + verrazzanoURI
+	if len(strings.TrimSpace(verrazzanoURI)) > 0 {
+		return "https://" + s + "." + verrazzanoURI
+	} else {
+		return ""
+	}
 }
 
 // GetVerrazzanoName returns the environment name portion of the verrazzanoUri
@@ -118,4 +122,9 @@ func GetPrometheusURL() string {
 // GetElasticURL returns Elasticsearch URL
 func GetElasticURL() string {
 	return deriveURL("elasticsearch.vmi.system")
+}
+
+// GetConsoleURL returns the Verrazzano Console URL
+func GetConsoleURL() string {
+	return deriveURL("console")
 }

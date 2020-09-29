@@ -3,6 +3,7 @@ module github.com/verrazzano/verrazzano-operator
 require (
 	github.com/Jeffail/gabs/v2 v2.3.0
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+	github.com/gordonklaus/ineffassign v0.0.0-20200809085317-e36bfde3bb78 // indirect
 	github.com/gorilla/mux v1.7.3
 	github.com/hashicorp/go-retryablehttp v0.6.6
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible // indirect
@@ -15,6 +16,8 @@ require (
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.24
 	github.com/verrazzano/verrazzano-wko-operator v0.0.12
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
+	golang.org/x/tools v0.0.0-20200929171317-ffa3839b1b15 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.2.8
 	istio.io/api v0.0.0-20200629210345-933b83065c19

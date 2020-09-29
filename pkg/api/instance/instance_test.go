@@ -14,42 +14,97 @@ const urlTemp = "https://%v.%v"
 
 const vzURI = "abc.v8o.example.com"
 
-// Test KeyCloak Url
-func TestGetKeyCloakUrl(t *testing.T) {
-	SetVerrazzanoURI(vzURI)
-	keycloakURL := fmt.Sprintf(urlTemp, "keycloak", vzURI)
-	assert.Equal(t, keycloakURL, GetKeyCloakURL(), "Expected KeyCloakUrl")
-
-	vzURI2 := "xyz.v8o.example.com"
-	SetVerrazzanoURI(vzURI2)
-	keycloakURL = fmt.Sprintf(urlTemp, "keycloak", vzURI2)
-	assert.Equal(t, keycloakURL, GetKeyCloakURL(), "Expected KeyCloakUrl")
+type uriTest struct {
+	name           string
+	expectedPrefix string
+	testChangedURI bool
+	verrazzanoURI  string
 }
 
-// Test Kinana Url
+// Test KeyCloak Url
+func TestGetKeyCloakUrl(t *testing.T) {
+	var tests = [...]uriTest{
+		{"With Verrazzano URI set", "keycloak", true, vzURI},
+		{"Without Verrazzano URI set", "", false, ""},
+	}
+	for _, tt := range tests {
+		runURLTestWithExpectedPrefix(t, tt, GetKeyCloakURL, tt.expectedPrefix)
+	}
+}
+
+// Test Kibana Url
 func TestGetKibanaUrl(t *testing.T) {
-	SetVerrazzanoURI(vzURI)
-	expectedURL := fmt.Sprintf(urlTemp, "kibana.vmi.system", vzURI)
-	assert.Equal(t, expectedURL, GetKibanaURL(), "Invalid Kibana Url")
+	var tests = [...]uriTest{
+		{"With Verrazzano URI set", "kibana.vmi.system", true, vzURI},
+		{"Without Verrazzano URI set", "", false, ""},
+	}
+	for _, tt := range tests {
+		runURLTestWithExpectedPrefix(t, tt, GetKibanaURL, tt.expectedPrefix)
+	}
 }
 
 // Test Grafana Url
 func TestGetGrafanaUrl(t *testing.T) {
-	SetVerrazzanoURI(vzURI)
-	expectedURL := fmt.Sprintf(urlTemp, "grafana.vmi.system", vzURI)
-	assert.Equal(t, expectedURL, GetGrafanaURL(), "Invalid Grafana Url")
+	var tests = [...]uriTest{
+		{"With Verrazzano URI set", "grafana.vmi.system", true, vzURI},
+		{"Without Verrazzano URI set", "", false, ""},
+	}
+	for _, tt := range tests {
+		runURLTestWithExpectedPrefix(t, tt, GetGrafanaURL, tt.expectedPrefix)
+	}
 }
 
 // Test Prometheus Url
 func TestGetPrometheusUrl(t *testing.T) {
-	SetVerrazzanoURI(vzURI)
-	expectedURL := fmt.Sprintf(urlTemp, "prometheus.vmi.system", vzURI)
-	assert.Equal(t, expectedURL, GetPrometheusURL(), "Invalid Prometheus Url")
+	var tests = [...]uriTest{
+		{"With Verrazzano URI set", "prometheus.vmi.system", true, vzURI},
+		{"Without Verrazzano URI set", "", false, ""},
+	}
+	for _, tt := range tests {
+		runURLTestWithExpectedPrefix(t, tt, GetPrometheusURL, tt.expectedPrefix)
+	}
 }
 
 // Test Elastic Search Url
 func TestGetElasticUrl(t *testing.T) {
-	SetVerrazzanoURI(vzURI)
-	expectedURL := fmt.Sprintf(urlTemp, "elasticsearch.vmi.system", vzURI)
-	assert.Equal(t, expectedURL, GetElasticURL(), "Invalid Elastic Url")
+	var tests = [...]uriTest{
+		{"With Verrazzano URI set", "elasticsearch.vmi.system", true, vzURI},
+		{"Without Verrazzano URI set", "", false, ""},
+	}
+	for _, tt := range tests {
+		runURLTestWithExpectedPrefix(t, tt, GetElasticURL, tt.expectedPrefix)
+	}
+}
+
+// Test Console Url
+func TestGetConsoleURL(t *testing.T) {
+	var tests = [...]uriTest{
+		{"With Verrazzano URI set", "console", true, vzURI},
+		{"Without Verrazzano URI set", "", false, ""},
+	}
+	for _, tt := range tests {
+		runURLTestWithExpectedPrefix(t, tt, GetConsoleURL, tt.expectedPrefix)
+	}
+}
+
+func runURLTestWithExpectedPrefix(t *testing.T, tt uriTest, methodUnderTest func() string, expectedURLPrefix string) {
+	//GIVEN the verrazzano URI is set
+	SetVerrazzanoURI(tt.verrazzanoURI)
+	expectedURL := fmt.Sprintf(urlTemp, expectedURLPrefix, vzURI)
+	if expectedURLPrefix == "" {
+		expectedURL = ""
+	}
+
+	//WHEN methodUnderTest is called, THEN assert the URL value is as expected
+	assert.Equal(t, expectedURL, methodUnderTest(), "URL not as expected")
+
+	if tt.testChangedURI {
+		vzURI2 := fmt.Sprintf("changed.%v", tt.verrazzanoURI)
+		//GIVEN the verrazzano URI is changed
+		SetVerrazzanoURI(vzURI2)
+		expectedURL = fmt.Sprintf(urlTemp, expectedURLPrefix, vzURI2)
+
+		//WHEN methodUnderTest is called, THEN assert the value changes as expected
+		assert.Equal(t, expectedURL, methodUnderTest(), "URL not as expected after changing Verrazzano URI")
+	}
 }
