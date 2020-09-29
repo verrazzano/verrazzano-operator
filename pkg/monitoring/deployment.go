@@ -19,10 +19,10 @@ func GetSystemDeployments(managedClusterName, verrazzanoURI string, labels map[s
 	var deployments []*appsv1.Deployment
 
 	if managedClusterName == "" {
-		return nil, errors.New("The managedClusterName parameter must not be empty")
+		return nil, errors.New("GetSystemDeployments managedClusterName parameter must not be empty")
 	}
 	if verrazzanoURI == "" {
-		return nil, errors.New("The verrazzanoURI parameter must not be empty")
+		return nil, errors.New("GetSystemDeployments verrazzanoURI parameter must not be empty")
 	}
 	deployment, err := CreateDeployment(constants.MonitoringNamespace, constants.VmiSystemBindingName, labels, sec)
 	if err != nil {
