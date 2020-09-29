@@ -37,6 +37,8 @@ func TestCreateDeployment(t *testing.T) {
 	const payload = "match%5B%5D=%7Bjob%3D~%22" + constants.VmiSystemBindingName + "%2E%2A%22%7D"
 	secrets, labels := getSecretsAndLabels()
 	deps, err := GetSystemDeployments(clusterName, url, labels, secrets)
+
+	// Assert the expected values
 	assert.NoError(err, "Error getting deployments")
 	assert.Len(deps, 1, "Expected 1 deployment")
 	assert.Len(deps, 1, "Expected 1 deployment")
