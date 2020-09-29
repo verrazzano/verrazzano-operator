@@ -27,6 +27,10 @@ const DefaultPort = int32(8080)
 // DefaultTargetPort constant for default Helidon target port
 const DefaultTargetPort = int32(8080)
 
+const envCohCluster = "COH_CLUSTER"
+const envCohCacheConfig = "COH_CACHE_CONFIG"
+const envCohPofConfig = "COH_POF_CONFIG"
+
 // CreateHelidonAppCR constructs a Helidon application custome resource.
 func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.VerrazzanoHelidon, mbPair *types.ModelBindingPair, labels map[string]string) *v1helidonapp.HelidonApp {
 	helidonApp := v1helidonapp.HelidonApp{}
@@ -97,10 +101,6 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 				// Only override if the ENV var is not explicitly defined in the model
 				if cohCluster != nil {
 					var env corev1.EnvVar
-					const envCohCluster = "COH_CLUSTER"
-					const envCohCacheConfig = "COH_CACHE_CONFIG"
-					const envCohPofConfig = "COH_POF_CONFIG"
-
 					if _, ok := envSet[envCohCluster]; !ok {
 						env.Name = envCohCluster
 						env.Value = cohConnection.Target
@@ -144,8 +144,8 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 	return &helidonApp
 }
 
-// CreateDeployment creates a deployment for the verrazzano-helidon-app-operator.
-func CreateDeployment(namespace string, labels map[string]string, image string) *appsv1.Deployment {
+// CreateAppOperatorDeployment creates a deployment for the verrazzano-helidon-app-operator.
+func CreateAppOperatorDeployment(namespace string, labels map[string]string, image, memoryRequest string) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      microOperatorName,
@@ -173,7 +173,7 @@ func CreateDeployment(namespace string, labels map[string]string, image string) 
 							Command:         []string{microOperatorName},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: resource.MustParse(util.GetHelidonMicroRequestMemory()),
+									corev1.ResourceMemory: resource.MustParse(memoryRequest),
 								},
 							},
 							Env: []corev1.EnvVar{

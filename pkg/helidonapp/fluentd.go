@@ -13,6 +13,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const fluentdConf = "fluentd.conf"
+
 // CreateFluentdConfigMap creates the Fluentd configmap for a given Helidon application
 func CreateFluentdConfigMap(app *v1beta1v8o.VerrazzanoHelidon, namespace string, labels map[string]string) *corev1.ConfigMap {
 	// fluentd parsing rules
@@ -92,7 +94,7 @@ func CreateFluentdConfigMap(app *v1beta1v8o.VerrazzanoHelidon, namespace string,
 		Data: func() map[string]string {
 			var data map[string]string
 			data = make(map[string]string)
-			data["fluentd.conf"] = parsingRules
+			data[fluentdConf] = parsingRules
 			return data
 		}(),
 	}

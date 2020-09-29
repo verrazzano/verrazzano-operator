@@ -98,7 +98,8 @@ func newDeployments(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types
 
 	// Does a Helidon Application need to be deployed to this cluster?  If so, deploy the micro-operator that will manage it.
 	if managedCluster.HelidonApps != nil && manifest.HelidonAppOperatorImage != "" {
-		deployment := helidonapp.CreateDeployment(managedNamespace, depLabels, manifest.HelidonAppOperatorImage)
+		deployment := helidonapp.CreateAppOperatorDeployment(managedNamespace, depLabels,
+			manifest.HelidonAppOperatorImage, util.GetHelidonMicroRequestMemory())
 		deployments = append(deployments, deployment)
 	}
 
