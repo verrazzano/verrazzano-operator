@@ -7,6 +7,7 @@ package local
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -28,7 +29,10 @@ func CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclie
 	glog.V(6).Infof("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the expected VMI
-	newVmi := createInstance(binding, verrazzanoURI, enableMonitoringStorage)
+	newVmi, err := createInstance(binding, verrazzanoURI, enableMonitoringStorage)
+	if err != nil {
+		return err
+	}
 
 	// Create or update VMIs
 	existingVmi, err := vmiLister.VerrazzanoMonitoringInstances(newVmi.Namespace).Get(newVmi.Name)
@@ -86,7 +90,11 @@ func createStorageOption(enableMonitoringStorage string) vmov1.Storage {
 }
 
 // Constructs the necessary VerrazzanoMonitoringInstance for the given VerrazzanoBinding
-func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string, enableMonitoringStorage string) *vmov1.VerrazzanoMonitoringInstance {
+func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string, enableMonitoringStorage string) (*vmov1.VerrazzanoMonitoringInstance, error) {
+	if verrazzanoURI == "" {
+		return nil, errors.New("verrazzanoURI must not be empty")
+	}
+
 	bindingLabels := util.GetLocalBindingLabels(binding)
 
 	storageOption := createStorageOption(enableMonitoringStorage)
@@ -148,5 +156,5 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 			},
 			ServiceType: "ClusterIP",
 		},
-	}
+	}, nil
 }

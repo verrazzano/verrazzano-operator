@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	verrazzanov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned/typed/vmcontroller/v1"
@@ -89,6 +88,69 @@ func TestCreateStorageOption(t *testing.T) {
 	}
 }
 
+func TestCreateInstance(t *testing.T) {
+	type args struct {
+		bindingName   string
+		verrazzanoURI string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"Valid",
+			args{
+				"testBinding",
+				"validURI",
+			},
+			false,
+		},
+		{
+			"Valid2",
+			args{
+				"testBinding2",
+				"validURI2",
+			},
+			false,
+		},
+		{
+			"Invalid",
+			args{
+				"testBinding",
+				"",
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := createInstance(createTestBinding(tt.args.bindingName), tt.args.verrazzanoURI, "")
+			if (err != nil) != tt.wantErr {
+				t.Errorf("createInstance() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err == nil {
+				if got.Name != tt.args.bindingName {
+					t.Errorf("createInstance() got Name = %v, want %v", got.Name, tt.args.bindingName)
+				}
+				if got.Namespace != constants.VerrazzanoNamespace {
+					t.Errorf("createInstance() got Namespace = %v, want %v", got.Namespace, constants.VerrazzanoNamespace)
+				}
+				if got.Spec.SecretsName != constants.VmiSecretName {
+					t.Errorf("createInstance() got Spec.SecretsName = %v, want %v", got.Spec.SecretName, constants.VmiSecretName)
+				}
+				if got.Spec.URI != "vmi."+tt.args.bindingName+"."+tt.args.verrazzanoURI {
+					t.Errorf("createInstance() got Spec.URI = %v, want %v", got.Spec.URI, "vmi."+tt.args.bindingName+"."+tt.args.verrazzanoURI)
+				}
+				if got.Spec.IngressTargetDNSName != "verrazzano-ingress."+tt.args.verrazzanoURI {
+					t.Errorf("createInstance() got Spec.IngressTargetDNSName = %v, want %v", got.Spec.IngressTargetDNSName, "verrazzano-ingress."+tt.args.verrazzanoURI)
+				}
+			}
+		})
+	}
+}
+
 func createTestBinding(bindingName string) *v1beta1v8o.VerrazzanoBinding {
 	binding := v1beta1v8o.VerrazzanoBinding{}
 	binding.Name = bindingName
@@ -96,20 +158,13 @@ func createTestBinding(bindingName string) *v1beta1v8o.VerrazzanoBinding {
 }
 
 func createTestInstanceWithDifferentURI(bindingName string) *vmov1.VerrazzanoMonitoringInstance {
-	return createInstance(createTestBinding(bindingName), "anotherVerrazzanoURI", "")
+	val, _ := createInstance(createTestBinding(bindingName), "anotherVerrazzanoURI", "")
+	return val
 }
 
 func createTestInstance(bindingName string) *vmov1.VerrazzanoMonitoringInstance {
-	return createInstance(createTestBinding(bindingName), "testVerrazzanoURI", "")
-}
-
-func TestCreateInstance(t *testing.T) {
-	vmi := createTestInstance("testBinding")
-	assert.Equal(t, "testBinding", vmi.Name, "right Name")
-	assert.Equal(t, constants.VerrazzanoNamespace, vmi.Namespace, "right Namespace")
-	assert.Equal(t, constants.VmiSecretName, vmi.Spec.SecretsName, "right SecretsName")
-	assert.Equal(t, "vmi.testBinding.testVerrazzanoURI", vmi.Spec.URI, "right URI")
-	assert.Equal(t, "verrazzano-ingress.testVerrazzanoURI", vmi.Spec.IngressTargetDNSName, "right IngressTargetDNSName")
+	val, _ := createInstance(createTestBinding(bindingName), "testVerrazzanoURI", "")
+	return val
 }
 
 // Fake VmoClientSet
