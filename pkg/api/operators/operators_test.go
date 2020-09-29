@@ -219,7 +219,7 @@ func TestReturn404ForMissingOperator(t *testing.T) {
 
 //createAndInsertWLSOperator will augment the clusters referenced by the listers with a WLSOperator in cluster2
 func createAndInsertWLSOperator(number int, tt struct {
-	name    string;
+	name    string
 	listers controller.Listers
 }) {
 	wlsOperator := createOperator(number)
