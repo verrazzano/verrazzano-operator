@@ -86,14 +86,16 @@ func assertCreateService(t *testing.T, existingService *corev1.ServiceList, clus
 		constants.ServiceAppLabel: constants.NodeExporterName,
 	}
 
-	assert.Equal(t, 1, len(existingService.Items), "one service should be found for cluster %s", clusterName)
-	assert.Equal(t, constants.NodeExporterName, existingService.Items[0].Name)
-	assert.Equal(t, constants.MonitoringNamespace, existingService.Items[0].Namespace)
-	assert.Equal(t, monitoring.GetNodeExporterLabels(clusterName), existingService.Items[0].Labels)
-	assert.Equal(t, labels, existingService.Items[0].Spec.Selector)
-	assert.Equal(t, corev1.ServiceType("ClusterIP"), existingService.Items[0].Spec.Type)
-	assert.Equal(t, "metrics", existingService.Items[0].Spec.Ports[0].Name)
-	assert.Equal(t, int32(9100), existingService.Items[0].Spec.Ports[0].Port)
-	assert.Equal(t, intstr.FromInt(9100), existingService.Items[0].Spec.Ports[0].TargetPort)
-	assert.Equal(t, corev1.Protocol("TCP"), existingService.Items[0].Spec.Ports[0].Protocol)
+	assert := assert.New(t)
+
+	assert.Equal(1, len(existingService.Items), "one service should be found for cluster %s", clusterName)
+	assert.Equal(constants.NodeExporterName, existingService.Items[0].Name)
+	assert.Equal(constants.MonitoringNamespace, existingService.Items[0].Namespace)
+	assert.Equal(monitoring.GetNodeExporterLabels(clusterName), existingService.Items[0].Labels)
+	assert.Equal(labels, existingService.Items[0].Spec.Selector)
+	assert.Equal(corev1.ServiceType("ClusterIP"), existingService.Items[0].Spec.Type)
+	assert.Equal("metrics", existingService.Items[0].Spec.Ports[0].Name)
+	assert.Equal(int32(9100), existingService.Items[0].Spec.Ports[0].Port)
+	assert.Equal(intstr.FromInt(9100), existingService.Items[0].Spec.Ports[0].TargetPort)
+	assert.Equal(corev1.Protocol("TCP"), existingService.Items[0].Spec.Ports[0].Protocol)
 }

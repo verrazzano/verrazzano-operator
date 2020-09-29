@@ -12,16 +12,20 @@ import (
 	v1meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Kind resource kind for CoherenceCluster
 const Kind = "CoherenceCluster"
-const ApiVersion = "coherenceclusters.coherence.oracle.com/v1"
 
+// APIVersion resource API version for CoherenceCluster
+const APIVersion = "coherenceclusters.coherence.oracle.com/v1"
+
+// CreateCR constructs the CoherenceCluster resource
 func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, cohBinding *v1beta1v8o.VerrazzanoCoherenceBinding, labels map[string]string) *v1coh.CoherenceCluster {
 	applicationImage := cluster.Image
 	cacheConfig := cluster.CacheConfig
 	coherenceCluster := v1coh.CoherenceCluster{
 		TypeMeta: v1meta.TypeMeta{
 			Kind:       Kind,
-			APIVersion: ApiVersion,
+			APIVersion: APIVersion,
 		},
 		ObjectMeta: v1meta.ObjectMeta{
 			Name:      cluster.Name,
@@ -34,9 +38,8 @@ func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, 
 					// Set replicas if specified in the binding or the default of 3 if not specified
 					if cohBinding.Replicas != nil {
 						return cohBinding.Replicas
-					} else {
-						return util.NewVal(3)
 					}
+					return util.NewVal(3)
 				}(),
 				// Make sure Coherence pods do not inject istio since Coherence does not work with istio
 				Annotations: map[string]string{
@@ -101,7 +104,7 @@ func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, 
 	return &coherenceCluster
 }
 
-// Update env variables for a given component
+// UpdateEnvVars update env variables for a given component
 func UpdateEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.EnvVar) {
 	if *envs != nil && len(*envs) != 0 {
 		for _, cluster := range mc.CohClusterCRs {

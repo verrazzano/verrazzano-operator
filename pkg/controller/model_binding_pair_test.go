@@ -5,7 +5,10 @@ package controller
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"reflect"
+	"sigs.k8s.io/yaml"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -23,6 +26,9 @@ import (
 )
 
 // TestProcessIngressConnections tests the processing of ingress connections in a ModelBindingPair.
+// GIVEN a managed cluster with a Ingress connection
+//  WHEN I create a new ModelBindingPair and add the Ingress connections
+//  THEN the expected ingress connections should be set on the ModelBindingPair
 func TestProcessIngressConnections(t *testing.T) {
 	ingressName := "bobbys-ingress"
 	namespace := "bobby"
@@ -64,6 +70,9 @@ func TestProcessIngressConnections(t *testing.T) {
 }
 
 // TestMultipleIngressBindings tests the processing of multiple ingress bindings
+// GIVEN a managed cluster with a multiple Ingress connection bindings
+//  WHEN I create a new ModelBindingPair and add the Ingress connections
+//  THEN the expected ingress connections should be set on the ModelBindingPair
 func TestMultipleIngressBindings(t *testing.T) {
 	ingressName := "bobbys-ingress"
 	namespace := "bobby"
@@ -97,7 +106,10 @@ func TestMultipleIngressBindings(t *testing.T) {
 	assert.Equal(t, 5, len(dest.Match), "Expected 6 matchRules")
 }
 
-// TestSockShopIngressBindings tests the parsing of ingress bindings from a test model.
+// TestSockShopIngressBindings tests the parsing of ingress bindings from a test SockShop model and binding.
+// GIVEN a test SockShop model with ingress bindings
+//  WHEN the model and binding are parsed
+//  THEN the expected ingress connections should be set on the ModelBindingPair
 func TestSockShopIngressBindings(t *testing.T) {
 	model, err := ReadModel("testdata/sockshop-model.yaml")
 	if err != nil {
@@ -118,39 +130,10 @@ func TestSockShopIngressBindings(t *testing.T) {
 	validateIngressBindings(t, pair, cluster, namespace, "wl-frontend-cluster-cluster-1.sockshop.svc.cluster.local", 8001)
 }
 
-func validateIngressBindings(t *testing.T, mbp *types.ModelBindingPair, cluster string, namespace string,
-	exptectedWlsHost string, expectedWlsPort int) {
-	assert.Equal(t, 2, len(mbp.ManagedClusters[cluster].Ingresses[namespace]), "Expected 1 Ingress")
-	frontendIngress := getIngress(t, cluster, namespace, "sockshop-frontend-ingress", mbp)
-	assert.Equal(t, 1, len(frontendIngress.Destination), "Expected 1 IngressDestination")
-	assert.Equal(t, 8088, frontendIngress.Destination[0].Port, "Expected IngressDestination Port")
-	wlIngress := getIngress(t, cluster, namespace, "wl-ingress", mbp)
-	assert.Equal(t, 1, len(wlIngress.Destination), "Expected 1 IngressDestination")
-	assert.Equal(t, exptectedWlsHost, wlIngress.Destination[0].Host, "Expected IngressDestination Host")
-	assert.Equal(t, expectedWlsPort, wlIngress.Destination[0].Port, "Expected IngressDestination Port")
-	userApp := getVerrazzanoHelidon(t, "user", mbp)
-	assert.Equal(t, uint(80), userApp.Port, "Expected user Port")
-	assert.Equal(t, uint(7001), userApp.TargetPort, "Expected user targetPort")
-	expectedMatch := []KvPair{
-		{k: "exact", v: "/"},
-		{k: "exact", v: "/cart"},
-		{k: "prefix", v: "/cart"},
-		{k: "exact", v: "/catalogue"},
-		{k: "exact", v: "/login"},
-		{k: "prefix", v: "/catalogue"},
-		{k: "prefix", v: "/css"},
-		{k: "prefix", v: "/js"},
-		{k: "prefix", v: "/img"},
-		{k: "regex", v: "^.*\\.(ico|png|jpg|html)$"},
-	}
-	assertMatch(t, frontendIngress.Destination[0].Match, expectedMatch...)
-	assert.Equal(t, 8, len(mbp.ManagedClusters[cluster].HelidonApps), "Expected 8 HelidonApps")
-	assertPorts(t, mbp, cluster, namespace, "frontend", 8088, 8079)
-	assertPorts(t, mbp, cluster, namespace, "carts", 8080, 8080)
-	assertPorts(t, mbp, cluster, namespace, "catalogue", 8080, 8080)
-	assertPorts(t, mbp, cluster, namespace, "user", 80, 7001)
-}
-
+// TestSockShopSimpleModelBinding tests the parsing of ingress bindings from a simple test SockShop model and binding.
+// GIVEN a simple test SockShop model with ingress bindings
+//  WHEN the model and binding are parsed
+//  THEN the expected ingress connections should be set on the ModelBindingPair
 func TestSockShopSimpleModelBinding(t *testing.T) {
 	model, err := ReadModel("testdata/sockshop-simple-model.yaml")
 	if err != nil {
@@ -193,65 +176,10 @@ func TestSockShopSimpleModelBinding(t *testing.T) {
 	}
 }
 
-func assertPorts(t *testing.T, pair *types.ModelBindingPair,
-	cluster, namespace, name string, port, targetPort int32) {
-	app := getHelidonApp(t, cluster, name, pair)
-	assert.Equal(t, name, app.Spec.Name,
-		fmt.Sprintf("Expected HelidonApp %v", name))
-	assert.Equal(t, port, app.Spec.Port,
-		fmt.Sprintf("Expected %v port", name))
-	assert.Equal(t, targetPort, app.Spec.TargetPort,
-		fmt.Sprintf("Expected %v targetPort", name))
-}
-
-func getIngress(t *testing.T, cluster, namespace, name string, pair *types.ModelBindingPair) *types.Ingress {
-	for _, i := range pair.ManagedClusters[cluster].Ingresses[namespace] {
-		if i.Name == name {
-			return i
-		}
-	}
-	t.Fatalf("Ingress %v not found", name)
-	return &types.Ingress{}
-}
-
-func getVerrazzanoHelidon(t *testing.T, name string, pair *types.ModelBindingPair) v8o.VerrazzanoHelidon {
-	for _, app := range pair.Model.Spec.HelidonApplications {
-		if app.Name == name {
-			return app
-		}
-	}
-	t.Fatalf("VerrazzanoHelidon %v not found", name)
-	return v8o.VerrazzanoHelidon{}
-}
-
-func getHelidonApp(t *testing.T, cluster, name string, pair *types.ModelBindingPair) *v1helidonapp.HelidonApp {
-	for _, app := range pair.ManagedClusters[cluster].HelidonApps {
-		if app.Name == name {
-			return app
-		}
-	}
-	t.Fatalf("VerrazzanoHelidon %v not found", name)
-	return &v1helidonapp.HelidonApp{}
-}
-
-type KvPair struct {
-	k string
-	v string
-}
-
-func assertMatch(t *testing.T, match []types.MatchRequest, expected ...KvPair) {
-	size := len(expected)
-	assert.Equal(t, size, len(match), fmt.Sprintf("Expected %v HttpMatch", size))
-	for i, pair := range expected {
-		uri := match[i].URI[pair.k]
-		assert.Equal(t, pair.v, uri, fmt.Sprintf("Expected match %v: %v", pair.k, pair.v))
-	}
-}
-
 // TestCreateModelBindingPair tests the creation of a ModelBindingPair.
-// A test model and binding located in testdata are used to create a model and a binding.
-// A new ModelBindingPair is created using the above test model/binding.
-// Assertions are then made on the fields of the ModelBindingPair.
+// Given a test model and binding which are located in testdata
+//  WHEN a new ModelBindingPair is created from the given test model/binding
+//  THEN the state of the new ModelBindingPair should reflect that of the model/binding
 func TestCreateModelBindingPair(t *testing.T) {
 	model, _ := ReadModel("testdata/sockshop-model.yaml")
 	binding, _ := ReadBinding("testdata/sockshop-binding.yaml")
@@ -267,8 +195,14 @@ func TestCreateModelBindingPair(t *testing.T) {
 	expectedClusterHelidonApps := map[string]map[string]struct{}{"cluster1": {"frontend": {}, "carts": {},
 		"catalogue": {}, "orders": {}, "payment": {}, "shipping": {}, "user": {}, "swagger": {}}}
 	expectedClusterNamespaces := map[string]map[string]struct{}{"cluster1": {"verrazzano-system": {}, "sockshop": {}, "verrazzano-sock-shop-binding": {}}}
+	expectedEnvVars := []corev1.EnvVar{{Name: "JAVA_OPTIONS", Value: "-Dweblogic.StdoutDebugEnabled=false"},
+		{Name: "USER_MEM_ARGS", Value: "-Djava.security.egd=file:/dev/./urandom -Xms64m -Xmx256m "},
+		{Name: "WL_HOME", Value: "/u01/oracle/wlserver"}, {Name: "MW_HOME", Value: "/u01/oracle"},
+		{Name: "HELIDON_PORT", Value: "8080"}, {Name: "HELIDON_HOSTNAME", Value: "catalogue.sockshop.svc.cluster.local"},
+	}
 	wlsDomain := &wls.Domain{ObjectMeta: metav1.ObjectMeta{Name: "wl-frontend", Namespace: "sockshop"},
-		Spec: wls.DomainSpec{Image: util.GetTestWlsFrontendImage(), LogHome: "/u01/oracle/user_projects/domains/wl-frontend/logs"}}
+		Spec: wls.DomainSpec{Image: util.GetTestWlsFrontendImage(), LogHome: "/u01/oracle/user_projects/domains/wl-frontend/logs",
+			ServerPod: wls.ServerPod{Env: expectedEnvVars}}}
 
 	expectedValues := MbpExpectedValues{
 		Binding:          binding,
@@ -283,6 +217,57 @@ func TestCreateModelBindingPair(t *testing.T) {
 	validateModelBindingPair(t, mbp, expectedValues)
 }
 
+// TestCreateModelBindingPairCoherence tests the creation of a ModelBindingPair with a Coherence component.
+// Given a test model and binding which contain a Coherence cluster
+//  WHEN a new ModelBindingPair is created from the given test model/binding
+//  THEN the state of the new ModelBindingPair should reflect that of the model/binding
+func TestCreateModelBindingPairCoherence(t *testing.T) {
+	model, err := ReadModel("testdata/coherence-model.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	binding, err := ReadBinding("testdata/coherence-binding.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var optImagePullSecrets []corev1.LocalObjectReference
+	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url", optImagePullSecrets)
+	assert.Equal(t, model, mbp.Model)
+	assert.Equal(t, binding, mbp.Binding)
+	assert.Equal(t, 1, len(mbp.ManagedClusters))
+
+	mc := mbp.ManagedClusters["local"]
+	assert.Equal(t, 2, len(mc.Namespaces))
+	assert.Contains(t, mc.Namespaces, "verrazzano-system")
+	assert.Contains(t, mc.Namespaces, "coherence")
+	assert.Equal(t, 1, len(mc.Secrets))
+	assert.Contains(t, mc.Secrets["coherence"], "github-packages")
+	assert.Contains(t, mc.Secrets["coherence"], "ocr")
+
+	cohOperatorCRs := mc.CohOperatorCRs
+	assert.Equal(t, 1, len(cohOperatorCRs))
+	cohOperatorCR := cohOperatorCRs[0]
+	assert.Equal(t, "coherence-coherence-operator", cohOperatorCR.Name)
+	assert.Equal(t, "coherence", cohOperatorCR.Namespace)
+
+	cohClusterCRs := mc.CohClusterCRs
+	assert.Equal(t, 1, len(cohClusterCRs))
+	cohClusterCR := cohClusterCRs[0]
+	assert.Equal(t, "test-coherence", cohClusterCR.Name)
+	assert.Equal(t, "coherence", cohClusterCR.Namespace)
+	assert.Equal(t, int32(3), *cohClusterCR.Spec.Replicas)
+
+	ports := cohClusterCR.Spec.Ports
+	assert.Equal(t, 1, len(ports))
+	assert.Equal(t, "extend", ports[0].Name)
+	assert.Equal(t, int32(9000), ports[0].Port)
+}
+
+// TestCreateModelBindingPairNoCluster tests the creation of a ModelBindingPair with no cluster
+// Given a test model and binding which don't contain a cluster
+//  WHEN a new ModelBindingPair is created from the given test model/binding
+//  THEN the state of the new ModelBindingPair should reflect that of the model/binding
 func TestCreateModelBindingPairNoCluster(t *testing.T) {
 	model, err := ReadModel("testdata/sockshop-model-no-cluster.yaml")
 	if err != nil {
@@ -309,8 +294,14 @@ func TestCreateModelBindingPairNoCluster(t *testing.T) {
 	expectedClusterHelidonApps := map[string]map[string]struct{}{"cluster1": {"frontend": {}, "carts": {},
 		"catalogue": {}, "orders": {}, "payment": {}, "shipping": {}, "user": {}, "swagger": {}}}
 	expectedClusterNamespaces := map[string]map[string]struct{}{"cluster1": {"verrazzano-system": {}, "sockshop": {}, "verrazzano-sock-shop-binding": {}}}
+	expectedEnvVars := []corev1.EnvVar{{Name: "JAVA_OPTIONS", Value: "-Dweblogic.StdoutDebugEnabled=false"},
+		{Name: "USER_MEM_ARGS", Value: "-Djava.security.egd=file:/dev/./urandom -Xms64m -Xmx256m "},
+		{Name: "WL_HOME", Value: "/u01/oracle/wlserver"}, {Name: "MW_HOME", Value: "/u01/oracle"},
+		{Name: "HELIDON_PORT", Value: "8080"}, {Name: "HELIDON_HOSTNAME", Value: "catalogue.sockshop.svc.cluster.local"},
+	}
 	wlsDomain := &wls.Domain{ObjectMeta: metav1.ObjectMeta{Name: "wl-frontend", Namespace: "sockshop"},
-		Spec: wls.DomainSpec{Image: util.GetTestWlsFrontendImage(), LogHome: "/u01/oracle/user_projects/domains/wl-frontend/logs"}}
+		Spec: wls.DomainSpec{Image: util.GetTestWlsFrontendImage(), LogHome: "/u01/oracle/user_projects/domains/wl-frontend/logs",
+			ServerPod: wls.ServerPod{Env: expectedEnvVars}}}
 
 	expectedValues := MbpExpectedValues{
 		Binding:          binding,
@@ -329,12 +320,11 @@ func TestCreateModelBindingPairNoCluster(t *testing.T) {
 	validateIngressBindings(t, mbp, cluster, namespace, "wl-frontend-adminserver.sockshop.svc.cluster.local", 7001)
 }
 
-// TestUpdateModelBindingPair tests the updating of a ModelBindingPair.
-// A test model and binding located in testdata are used to create a model and a binding.
-// A new ModelBindingPair is created using the above test model/binding.
-// A new model and binding are created from testdata to use as the updated state.
-// The original ModelBindingPair is updated with the new test mode/binding.
-// Assertions are then made on the fields of the ModelBindingPair.
+// TestUpdateModelBindingPair tests the updating of a ModelBindingPair(MBP).
+// GIVEN an existing ModelBindingPair
+//  WHEN I call UpdateModelBindingPair on the original MBP with a new model/binding
+//  THEN the original MBP is updated
+//   AND the state of the MBP properly reflects the update
 func TestUpdateModelBindingPair(t *testing.T) {
 	model, _ := ReadModel("testdata/sockshop-model.yaml")
 	binding, _ := ReadBinding("testdata/sockshop-binding.yaml")
@@ -358,8 +348,14 @@ func TestUpdateModelBindingPair(t *testing.T) {
 	expectedClusterHelidonApps := map[string]map[string]struct{}{"cluster1": {"frontend": {}, "carts": {}, "catalogue": {},
 		"orders": {}, "payment": {}, "shipping": {}, "user": {}, "swagger": {}}}
 	expectedClusterNamespaces := map[string]map[string]struct{}{"cluster1": {"verrazzano-system": {}, "sockshop": {}, "verrazzano-sock-shop-binding": {}}}
+	expectedEnvVars := []corev1.EnvVar{{Name: "JAVA_OPTIONS", Value: "-Dweblogic.StdoutDebugEnabled=false"},
+		{Name: "USER_MEM_ARGS", Value: "-Djava.security.egd=file:/dev/./urandom -Xms64m -Xmx256m "},
+		{Name: "WL_HOME", Value: "/u01/oracle/wlserver"}, {Name: "MW_HOME", Value: "/u01/oracle"},
+		{Name: "HELIDON_PORT", Value: "8080"}, {Name: "HELIDON_HOSTNAME", Value: "catalogue.sockshop.svc.cluster.local"},
+	}
 	wlsDomain := &wls.Domain{ObjectMeta: metav1.ObjectMeta{Name: "wl-frontend", Namespace: "sockshop"},
-		Spec: wls.DomainSpec{Image: util.GetTestWlsFrontendImage(), LogHome: "/u01/oracle/user_projects/domains/wl-frontend/logs"}}
+		Spec: wls.DomainSpec{Image: util.GetTestWlsFrontendImage(), LogHome: "/u01/oracle/user_projects/domains/wl-frontend/logs",
+			ServerPod: wls.ServerPod{Env: expectedEnvVars}}}
 	expectedValues := MbpExpectedValues{
 		Binding:          binding,
 		Model:            model,
@@ -397,8 +393,24 @@ func TestUpdateModelBindingPair(t *testing.T) {
 	}
 	// validate updated mbp
 	validateModelBindingPair(t, mbp, expectedValues)
+
+	// validate remote connection
+	remoteRestConns := mbp.ManagedClusters["cluster1"].RemoteRests
+	assert.Equal(t, 1, len(remoteRestConns))
+	remoteSockshopRestConns := remoteRestConns["sockshop"]
+	assert.Equal(t, 1, len(remoteSockshopRestConns))
+	remoteConn := remoteSockshopRestConns[0]
+	assert.Equal(t, "foobar", remoteConn.Name)
+	assert.Equal(t, uint32(8080), remoteConn.Port)
+	assert.Equal(t, "cluster2", remoteConn.RemoteClusterName)
+	assert.Equal(t, "sockshop", remoteConn.LocalNamespace)
+	assert.Equal(t, "sockshop2", remoteConn.RemoteNamespace)
 }
 
+// TestDatabaseBindings tests the creation of a ModelBindingPair with MYSQL database bindings
+// GIVEN a test model/binding with MYSQL database bindings
+//  WHEN a new ModelBindingPair is created from the test model/binding
+//  THEN the ModelBindingPair with contain the proper database bindings
 func TestDatabaseBindings(t *testing.T) {
 	model, _ := ReadModel("testdata/sockshop-model.yaml")
 	binding, _ := ReadBinding("testdata/sockshop-binding.yaml")
@@ -409,6 +421,225 @@ func TestDatabaseBindings(t *testing.T) {
 
 	// validate the returned mbp
 	validateDatabaseBindings(t, mbp, "cluster-1")
+}
+
+// TestDatabaseBindings tests the creation of a ModelBindingPair with MYSQL and Oracle database bindings
+// GIVEN a test model/binding with MYSQL and Oracle database bindings
+//  WHEN a new ModelBindingPair is created from the test model/binding
+//  THEN the ModelBindingPair with contain the proper MYSQL/Oracle database bindings
+func TestCreateOracleDatasourceModelConfig(t *testing.T) {
+	dbSecret := "test-db-secret"
+	dsName := "test-datasource-name"
+	dsTarget := "test-datasource-target"
+
+	// invoke function being tested
+	config := createOracleDatasourceModelConfig(dbSecret, dsName, dsTarget)
+
+	// parse returned config yaml into a map
+	var resultMap map[string]interface{}
+	err := yaml.Unmarshal([]byte(config), &resultMap)
+	if err != nil {
+		assert.Fail(t, fmt.Sprintf("An error occurred creating config %v", err))
+	}
+
+	// read expected config yaml file
+	filename, _ := filepath.Abs("testdata/oracle-ds-model-config.yaml")
+	expectedResults, err := ioutil.ReadFile(filename)
+	if err != nil {
+		assert.Fail(t, fmt.Sprintf("An error reading expected config %v", err))
+	}
+	// parse expected config into map
+	var expectedMap map[string]interface{}
+	err = yaml.Unmarshal(expectedResults, &expectedMap)
+	if err != nil {
+		assert.Fail(t, fmt.Sprintf("An error occurred creating config %v", err))
+	}
+
+	// compare actual config result to expected result
+	assert.True(t, reflect.DeepEqual(resultMap, expectedMap))
+}
+
+// TestAddRemoteRestConnectionAlreadyExists tests adding of an existing REST connection to a ModelBindingPair
+// GIVEN a ManagedCluster with existing REST connections
+//  WHEN I call addRemoteRest and attempt to add the connections that already exist
+//  THEN the connections being added should be ignored
+//   AND no exception should occur
+func TestAddRemoteRestConnectionAlreadyExists(t *testing.T) {
+	conn1 := types.RemoteRestConnection{Name: "conn1", RemoteClusterName: "remote-cluster-1", RemoteNamespace: "remote-ns",
+		LocalNamespace: "local-ns", Port: 12345}
+	conn2 := types.RemoteRestConnection{Name: "conn2", RemoteClusterName: "remote-cluster-2", RemoteNamespace: "remote-ns-2",
+		LocalNamespace: "local-ns-2", Port: 54321}
+
+	remoteConns := make(map[string][]*types.RemoteRestConnection)
+	remoteConns["local-ns"] = []*types.RemoteRestConnection{&conn1}
+	remoteConns["local-ns-2"] = []*types.RemoteRestConnection{&conn2}
+
+	mc := types.ManagedCluster{RemoteRests: remoteConns, Name: "cluster-1"}
+	remoteMc := types.ManagedCluster{Name: "cluster-2"}
+
+	addRemoteRest(&mc, "conn1", "local-ns", &remoteMc, "remote-ns", 12345,
+		"cluster-2", types.WLS)
+
+	assert.Equal(t, 2, len(remoteConns))
+}
+
+// TestAddRemoteRestNewConnectionAdd tests adding of a new REST connection to a ManagedCluster
+// GIVEN a test model/binding which represents a 'local' model
+// AND a test model/binding which represents a 'remote' model
+// AND a ModelBindingPair created from the test 'local' model/binding
+// AND a ModelBindingPair created from the test 'remote' model/binding
+// WHEN I call addRemoteRest to add a remote REST connection from a 'local' ManagedCluster to a 'remote' ManagedCluster
+// THEN the remote REST connection is properly added to the local ManagedCluster
+func TestAddRemoteRestNewConnectionAdd(t *testing.T) {
+	localModel, _ := ReadModel("testdata/sockshop-model-2.yaml")
+	localBinding, _ := ReadBinding("testdata/sockshop-binding-2.yaml")
+	var optImagePullSecrets []corev1.LocalObjectReference
+	localMbp := CreateModelBindingPair(localModel, localBinding, "/my/verrazzano/url", optImagePullSecrets)
+
+	remoteModel, _ := ReadModel("testdata/sockshop-model.yaml")
+	remoteBinding, _ := ReadBinding("testdata/sockshop-binding.yaml")
+	remoteMbp := CreateModelBindingPair(remoteModel, remoteBinding, "/my/verrazzano/url", optImagePullSecrets)
+
+	addRemoteRest(localMbp.ManagedClusters["cluster2"], "wl-frontend", "local-ns", remoteMbp.ManagedClusters["cluster1"],
+		"remote-ns", 12345, "cluster-1", types.WLS)
+
+	// ensure that remote rest connection is added to local mc
+	assert.Equal(t, 1, len(localMbp.ManagedClusters["cluster2"].RemoteRests))
+	remoteConns := localMbp.ManagedClusters["cluster2"].RemoteRests["local-ns"]
+	assert.Equal(t, 1, len(remoteConns))
+	remoteConn := remoteConns[0]
+	assert.Equal(t, "wl-frontend-cluster-cluster-1", remoteConn.Name)
+	assert.Equal(t, "remote-ns", remoteConn.RemoteNamespace)
+	assert.Equal(t, "local-ns", remoteConn.LocalNamespace)
+	assert.Equal(t, uint32(12345), remoteConn.Port)
+	assert.Equal(t, "cluster-1", remoteConn.RemoteClusterName)
+}
+
+// TestAddRemoteRestNewConnectionNotWLSType tests adding of a non-WLS type remote REST Connection to a ManagedCluster
+// GIVEN a test model/binding which represents a 'local' model
+// AND a test model/binding which represents a 'remote' model
+// AND a ModelBindingPair created from the test 'local' model/binding
+// AND a ModelBindingPair created from the test 'remote' model/binding
+// WHEN I call addRemoteRest to add a non-WLS remote REST connection from a 'local' ManagedCluster to a 'remote' ManagedCluster
+// THEN the non-WLS remote REST connection is properly added to the local ManagedCluster
+func TestAddRemoteRestNewConnectionNotWLSType(t *testing.T) {
+	localModel, _ := ReadModel("testdata/sockshop-model-2.yaml")
+	localBinding, _ := ReadBinding("testdata/sockshop-binding-2.yaml")
+	var optImagePullSecrets []corev1.LocalObjectReference
+	localMbp := CreateModelBindingPair(localModel, localBinding, "/my/verrazzano/url", optImagePullSecrets)
+
+	remoteModel, _ := ReadModel("testdata/sockshop-model.yaml")
+	remoteBinding, _ := ReadBinding("testdata/sockshop-binding.yaml")
+	remoteMbp := CreateModelBindingPair(remoteModel, remoteBinding, "/my/verrazzano/url", optImagePullSecrets)
+
+	addRemoteRest(localMbp.ManagedClusters["cluster2"], "test-rest", "local-ns", remoteMbp.ManagedClusters["cluster1"],
+		"remote-ns", 12345, "cluster-1", types.Coherence)
+
+	// ensure that remote rest connection is added to local mc
+	assert.Equal(t, 1, len(localMbp.ManagedClusters["cluster2"].RemoteRests))
+	remoteConns := localMbp.ManagedClusters["cluster2"].RemoteRests["local-ns"]
+	assert.Equal(t, 1, len(remoteConns))
+	remoteConn := remoteConns[0]
+	assert.Equal(t, "test-rest", remoteConn.Name)
+	assert.Equal(t, "remote-ns", remoteConn.RemoteNamespace)
+	assert.Equal(t, "local-ns", remoteConn.LocalNamespace)
+	assert.Equal(t, uint32(12345), remoteConn.Port)
+	assert.Equal(t, "cluster-1", remoteConn.RemoteClusterName)
+}
+
+// validateIngressBindings validates the ingress bindings for the provided ModelBindingPair
+func validateIngressBindings(t *testing.T, mbp *types.ModelBindingPair, cluster string, namespace string,
+	exptectedWlsHost string, expectedWlsPort int) {
+	assert.Equal(t, 2, len(mbp.ManagedClusters[cluster].Ingresses[namespace]), "Expected 1 Ingress")
+	frontendIngress := getIngress(t, cluster, namespace, "sockshop-frontend-ingress", mbp)
+	assert.Equal(t, 1, len(frontendIngress.Destination), "Expected 1 IngressDestination")
+	assert.Equal(t, 8088, frontendIngress.Destination[0].Port, "Expected IngressDestination Port")
+	wlIngress := getIngress(t, cluster, namespace, "wl-ingress", mbp)
+	assert.Equal(t, 1, len(wlIngress.Destination), "Expected 1 IngressDestination")
+	assert.Equal(t, exptectedWlsHost, wlIngress.Destination[0].Host, "Expected IngressDestination Host")
+	assert.Equal(t, expectedWlsPort, wlIngress.Destination[0].Port, "Expected IngressDestination Port")
+	userApp := getVerrazzanoHelidon(t, "user", mbp)
+	assert.Equal(t, uint(80), userApp.Port, "Expected user Port")
+	assert.Equal(t, uint(7001), userApp.TargetPort, "Expected user targetPort")
+	expectedMatch := []KvPair{
+		{k: "exact", v: "/"},
+		{k: "exact", v: "/cart"},
+		{k: "prefix", v: "/cart"},
+		{k: "exact", v: "/catalogue"},
+		{k: "exact", v: "/login"},
+		{k: "prefix", v: "/catalogue"},
+		{k: "prefix", v: "/css"},
+		{k: "prefix", v: "/js"},
+		{k: "prefix", v: "/img"},
+		{k: "regex", v: "^.*\\.(ico|png|jpg|html)$"},
+	}
+	assertMatch(t, frontendIngress.Destination[0].Match, expectedMatch...)
+	assert.Equal(t, 8, len(mbp.ManagedClusters[cluster].HelidonApps), "Expected 8 HelidonApps")
+	assertPorts(t, mbp, cluster, namespace, "frontend", 8088, 8079)
+	assertPorts(t, mbp, cluster, namespace, "carts", 8080, 8080)
+	assertPorts(t, mbp, cluster, namespace, "catalogue", 8080, 8080)
+	assertPorts(t, mbp, cluster, namespace, "user", 80, 7001)
+}
+
+// assertPorts validates the ports in the provided ModelBindingPair
+func assertPorts(t *testing.T, pair *types.ModelBindingPair,
+	cluster, namespace, name string, port, targetPort int32) {
+	app := getHelidonApp(t, cluster, name, pair)
+	assert.Equal(t, name, app.Spec.Name,
+		fmt.Sprintf("Expected HelidonApp %v", name))
+	assert.Equal(t, port, app.Spec.Port,
+		fmt.Sprintf("Expected %v port", name))
+	assert.Equal(t, targetPort, app.Spec.TargetPort,
+		fmt.Sprintf("Expected %v targetPort", name))
+}
+
+// getIngress gets the ingresses from the provided ModelBindingPair
+func getIngress(t *testing.T, cluster, namespace, name string, pair *types.ModelBindingPair) *types.Ingress {
+	for _, i := range pair.ManagedClusters[cluster].Ingresses[namespace] {
+		if i.Name == name {
+			return i
+		}
+	}
+	t.Fatalf("Ingress %v not found", name)
+	return &types.Ingress{}
+}
+
+// getVerrazzanoHelidon gets the Helidon applications from the given ModelBindingPair
+func getVerrazzanoHelidon(t *testing.T, name string, pair *types.ModelBindingPair) v8o.VerrazzanoHelidon {
+	for _, app := range pair.Model.Spec.HelidonApplications {
+		if app.Name == name {
+			return app
+		}
+	}
+	t.Fatalf("VerrazzanoHelidon %v not found", name)
+	return v8o.VerrazzanoHelidon{}
+}
+
+// getHelidonApp gets a specific Helidon application based on name from the given ModelBindingPair
+func getHelidonApp(t *testing.T, cluster, name string, pair *types.ModelBindingPair) *v1helidonapp.HelidonApp {
+	for _, app := range pair.ManagedClusters[cluster].HelidonApps {
+		if app.Name == name {
+			return app
+		}
+	}
+	t.Fatalf("VerrazzanoHelidon %v not found", name)
+	return &v1helidonapp.HelidonApp{}
+}
+
+// KvPair is a simple key/value pair
+type KvPair struct {
+	k string
+	v string
+}
+
+// assertMatch validates MatchRequests against expected key/value pairs
+func assertMatch(t *testing.T, match []types.MatchRequest, expected ...KvPair) {
+	size := len(expected)
+	assert.Equal(t, size, len(match), fmt.Sprintf("Expected %v HttpMatch", size))
+	for i, pair := range expected {
+		uri := match[i].URI[pair.k]
+		assert.Equal(t, pair.v, uri, fmt.Sprintf("Expected match %v: %v", pair.k, pair.v))
+	}
 }
 
 // MbpExpectedValues is a struct of expected ModelBindingPair state used in assertions
@@ -449,6 +680,7 @@ func validateModelBindingPair(t *testing.T,
 			assert.NotNil(t, expectedDomain, "Unexpected domain: "+wlsDomain.Name)
 			assert.Equal(t, expectedDomain.Namespace, wlsDomain.Namespace)
 			assert.Equal(t, expectedDomain.Spec.Image, wlsDomain.Spec.Image)
+			assert.Equal(t, expectedDomain.Spec.ServerPod.Env, wlsDomain.Spec.ServerPod.Env)
 			//assert.Equal(t, expectedDomain.Spec.LogHome, wlsDomain.Spec.LogHome)
 		}
 
@@ -463,7 +695,7 @@ func validateModelBindingPair(t *testing.T,
 	}
 }
 
-// validates that the datasource model config is created when databaseBindings are specified
+// validateDatabaseBindings validates that the datasource model config is created when databaseBindings are specified
 func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair, expectedTarget string) {
 
 	const datasourceConfigMap = `resources:
@@ -496,20 +728,23 @@ func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair, expecte
           JNDIName: [
             jdbc/socks2
           ]
+          GlobalTransactionsProtocol: TwoPhaseCommit
         JDBCDriverParams:
-          DriverName: com.mysql.cj.jdbc.Driver
-          URL: '@@SECRET:mysql2secret:url@@'
-          PasswordEncrypted: '@@SECRET:mysql2secret:password@@'
+          DriverName: oracle.jdbc.xa.client.OracleXADataSource
+          URL: '@@SECRET:oraclesecret:url@@'
+          PasswordEncrypted: '@@SECRET:oraclesecret:password@@'
           Properties:
             user:
-              Value: '@@SECRET:mysql2secret:username@@'
+              Value: '@@SECRET:oraclesecret:username@@'
+            oracle.net.CONNECT_TIMEOUT:
+              Value: 5000
+            oracle.jdbc.ReadTimeout:
+              Value: 30000
         JDBCConnectionPoolParams:
-          ConnectionReserveTimeoutSeconds: 10
           InitialCapacity: 0
-          MaxCapacity: 5
-          MinCapacity: 0
+          MaxCapacity: 1
+          TestTableName: SQL ISVALID
           TestConnectionsOnReserve: true
-          TestTableName: SQL SELECT 1
 `
 
 	managedClusters := mbp.ManagedClusters
@@ -519,7 +754,7 @@ func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair, expecte
 			if configMap.Name == "wl-frontend-wdt-config-map" {
 				for key, value := range configMap.Data {
 					assert.Equal(t, "datasource.yaml", key)
-					assert.Equal(t, fmt.Sprintf(datasourceConfigMap, expectedTarget, expectedTarget), value)
+					assert.YAMLEq(t, fmt.Sprintf(datasourceConfigMap, expectedTarget, expectedTarget), value)
 				}
 				break
 			}
@@ -528,7 +763,7 @@ func validateDatabaseBindings(t *testing.T, mbp *types.ModelBindingPair, expecte
 		for _, cluster := range cluster.WlsDomainCRs {
 			assert.Equal(t, cluster.Spec.Configuration.Model.ConfigMap, "wl-frontend-wdt-config-map")
 			assert.Contains(t, cluster.Spec.Configuration.Secrets, "mysqlsecret")
-			assert.Contains(t, cluster.Spec.Configuration.Secrets, "mysql2secret")
+			assert.Contains(t, cluster.Spec.Configuration.Secrets, "oraclesecret")
 			assert.Equal(t, cluster.Spec.Configuration.Model.RuntimeEncryptionSecret, "wl-frontend-runtime-encrypt-secret")
 			assert.Equal(t, cluster.Spec.DomainHomeSourceType, "FromModel")
 		}

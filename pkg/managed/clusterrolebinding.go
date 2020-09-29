@@ -19,14 +19,9 @@ import (
 )
 
 // CreateClusterRoleBindings creates/updates cluster role bindings needed for each managed cluster.
-func CreateClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func CreateClusterRoleBindings(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 
 	glog.V(6).Infof("Creating/updating ClusterRoleBindings for VerrazzanoBinding %s", mbPair.Binding.Name)
-
-	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return err
-	}
 
 	// Construct ClusterRoleBindings for each ManagedCluster
 	for clusterName := range mbPair.ManagedClusters {
@@ -60,7 +55,7 @@ func CreateClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedC
 }
 
 // CleanupOrphanedClusterRoleBindings deletes cluster role bindings that have been orphaned.
-func CleanupOrphanedClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allMbPairs map[string]*types.ModelBindingPair) error {
+func CleanupOrphanedClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Cleaning up orphaned ClusterRoleBindings for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Get the managed clusters that this binding does NOT apply to
@@ -131,20 +126,24 @@ func DeleteClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedC
 
 // Constructs the necessary Roles for the specified ManagedCluster in the given VerrazzanoBinding
 func newClusterRoleBindings(binding *v1beta1v8o.VerrazzanoBinding, managedClusterName string) []*rbacv1.ClusterRoleBinding {
-	roleLabels := util.GetManagedLabelsNoBinding(managedClusterName)
 	var clusterRoleBindings []*rbacv1.ClusterRoleBinding
 
 	// Append Cluster role bindings from system monitoring
 	if binding.Name == constants.VmiSystemBindingName {
 		clusterRoleBindings = append(clusterRoleBindings, monitoring.GetSystemClusterRoleBindings(managedClusterName)...)
-		return clusterRoleBindings
+	} else {
+		clusterRoleBindings = append(clusterRoleBindings, getManagedClusterRoleBinding(managedClusterName))
 	}
+	return clusterRoleBindings
+}
 
-	// Only generate a cluster role binding for the managed cluster namespace of the binding (which will have Verrazzano deployments)
+// getClusterRoleBinding generates a cluster role binding for the managed cluster namespace
+// of the binding (which will have Verrazzano deployments)
+func getManagedClusterRoleBinding(managedClusterName string) *rbacv1.ClusterRoleBinding {
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   util.GetServiceAccountNameForSystem(),
-			Labels: roleLabels,
+			Labels: util.GetManagedLabelsNoBinding(managedClusterName),
 		},
 		Subjects: []rbacv1.Subject{
 			{
@@ -159,7 +158,5 @@ func newClusterRoleBindings(binding *v1beta1v8o.VerrazzanoBinding, managedCluste
 			Name:     util.GetServiceAccountNameForSystem(),
 		},
 	}
-	clusterRoleBindings = append(clusterRoleBindings, clusterRoleBinding)
-
-	return clusterRoleBindings
+	return clusterRoleBinding
 }

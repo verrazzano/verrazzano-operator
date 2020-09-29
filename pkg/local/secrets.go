@@ -103,7 +103,7 @@ func UpdateAcmeDNSSecret(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet ku
 
 	glog.V(6).Infof("Updating Management Cluster secret %s for VerrazzanoBinding %s", name, binding.Name)
 	namespace := constants.VerrazzanoNamespace
-	acmeDNSKey := constants.AcmeDnsSecretKey
+	acmeDNSKey := constants.AcmeDNSSecretKey
 
 	// Get the cert-manager secret for acms-dns
 	secret, err := secretLister.Secrets(namespace).Get(name)

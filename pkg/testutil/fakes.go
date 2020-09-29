@@ -5,11 +5,21 @@ package testutil
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	fakecorev1 "k8s.io/client-go/kubernetes/typed/core/v1/fake"
+	k8stesting "k8s.io/client-go/testing"
+
+	"github.com/gorilla/mux"
 
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
 	istioClientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/clientset/versioned"
 	istioLister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/listers/networking.istio.io/v1alpha3"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -455,4 +465,146 @@ func (s simpleServiceNamespaceLister) List(selector labels.Selector) (ret []*v1.
 // retrieves the Service for a given namespace and name
 func (s simpleServiceNamespaceLister) Get(name string) (*v1.Service, error) {
 	return s.kubeClient.CoreV1().Services(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// ----- simpleServiceAccountLister
+// Simple ServiceAccountLister implementation.
+type simpleServiceAccountLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// list all Service Accounts
+func (s *simpleServiceAccountLister) List(selector labels.Selector) (ret []*v1.ServiceAccount, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var serviceAccounts []*v1.ServiceAccount
+	for _, namespace := range namespaces.Items {
+
+		list, err := s.ServiceAccounts(namespace.Name).List(selector)
+		if err != nil {
+			return nil, err
+		}
+		serviceAccounts = append(serviceAccounts, list...)
+	}
+	return serviceAccounts, nil
+}
+
+// returns an object that can list and get Service Accounts for the given namespace
+func (s *simpleServiceAccountLister) ServiceAccounts(namespace string) corelistersv1.ServiceAccountNamespaceLister {
+	return simpleServiceAccountNamespaceLister{
+		namespace:  namespace,
+		kubeClient: s.kubeClient,
+	}
+}
+
+type simpleServiceAccountNamespaceLister struct {
+	namespace  string
+	kubeClient kubernetes.Interface
+}
+
+// list all Service Accounts for a given namespace
+func (s simpleServiceAccountNamespaceLister) List(selector labels.Selector) (ret []*v1.ServiceAccount, err error) {
+	var serviceAccounts []*v1.ServiceAccount
+
+	list, err := s.kubeClient.CoreV1().ServiceAccounts(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		serviceAccount := list.Items[i]
+		if selector.Matches(labels.Set(serviceAccount.Labels)) {
+			serviceAccounts = append(serviceAccounts, &serviceAccount)
+		}
+	}
+	return serviceAccounts, nil
+}
+
+// retrieves the Service Account for a given namespace and name
+func (s simpleServiceAccountNamespaceLister) Get(name string) (*v1.ServiceAccount, error) {
+	return s.kubeClient.CoreV1().ServiceAccounts(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// simple ClusterRoleLister implementation
+type simpleClusterRoleLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// List lists all the ClusterRoles.
+func (s *simpleClusterRoleLister) List(selector labels.Selector) (ret []*rbacv1.ClusterRole, err error) {
+	var clusterRoles []*rbacv1.ClusterRole
+
+	list, err := s.kubeClient.RbacV1().ClusterRoles().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		clusterRole := list.Items[i]
+		if selector.Matches(labels.Set(clusterRole.Labels)) {
+			clusterRoles = append(clusterRoles, &clusterRole)
+		}
+	}
+	return clusterRoles, nil
+}
+
+// Get retrieves the ClusterRole for a given name.
+func (s *simpleClusterRoleLister) Get(name string) (*rbacv1.ClusterRole, error) {
+	return s.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// simpleClusterRoleBindingLister implements the ClusterRoleBindingLister interface.
+type simpleClusterRoleBindingLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// List lists all ClusterRoleBindings.
+func (s *simpleClusterRoleBindingLister) List(selector labels.Selector) (ret []*rbacv1.ClusterRoleBinding, err error) {
+	var bindings []*rbacv1.ClusterRoleBinding
+
+	list, err := s.kubeClient.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		binding := list.Items[i]
+		if selector.Matches(labels.Set(binding.Labels)) {
+			bindings = append(bindings, &binding)
+		}
+	}
+	return bindings, nil
+}
+
+// Get retrieves the ClusterRoleBinding for a given name.
+func (s *simpleClusterRoleBindingLister) Get(name string) (*rbacv1.ClusterRoleBinding, error) {
+	return s.kubeClient.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// InvokeHTTPHandler sets up a HTTP handler
+func InvokeHTTPHandler(request *http.Request, path string, handler func(http.ResponseWriter, *http.Request)) *httptest.ResponseRecorder {
+	responseRecorder := httptest.NewRecorder()
+	router := mux.NewRouter()
+	router.HandleFunc(path, handler)
+	router.ServeHTTP(responseRecorder, request)
+
+	return responseRecorder
+}
+
+//NewConfigMapLister creates a ConfigMapLister
+func NewConfigMapLister(kubeClient kubernetes.Interface) corelistersv1.ConfigMapLister {
+	return &simpleConfigMapLister{kubeClient: kubeClient}
+}
+
+//NewSecretLister creates a SecretLister
+func NewSecretLister(kubeClient kubernetes.Interface) corelistersv1.SecretLister {
+	return &simpleSecretLister{kubeClient: kubeClient}
+}
+
+//MockError mocks a fake kubernetes.Interface to return an expected error
+func MockError(kubeCli kubernetes.Interface, verb, resource string, obj runtime.Object) kubernetes.Interface {
+	kubeCli.CoreV1().(*fakecorev1.FakeCoreV1).PrependReactor(verb, resource,
+		func(action k8stesting.Action) (handled bool, ret runtime.Object, err error) {
+			return true, obj, fmt.Errorf("Error %s %s", verb, resource)
+		})
+	return kubeCli
 }

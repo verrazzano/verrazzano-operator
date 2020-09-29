@@ -144,7 +144,7 @@ func main() {
 	secrets.Init(controller.ListerSet())
 	apiserver.Init(controller.ListerSet())
 
-	instance.SetVerrazzanoUri(verrazzanoURI)
+	instance.SetVerrazzanoURI(verrazzanoURI)
 	apiserver.SetRealm(apiServerRealm)
 	// start REST handlers
 	go handleRequests()

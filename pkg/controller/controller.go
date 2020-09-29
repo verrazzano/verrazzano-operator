@@ -97,6 +97,7 @@ type Controller struct {
 	bindingSyncThreshold map[string]int
 }
 
+// Listers represents listers used by the controller.
 type Listers struct {
 	ManagedClusterLister *listers.VerrazzanoManagedClusterLister
 	ModelLister          *listers.VerrazzanoModelLister
@@ -105,6 +106,7 @@ type Listers struct {
 	KubeClientSet        *kubernetes.Interface
 }
 
+// ListerSet returns a list of listers used by the controller.
 func (c *Controller) ListerSet() Listers {
 	return Listers{
 		ManagedClusterLister: &c.verrazzanoManagedClusterLister,
@@ -245,10 +247,10 @@ func NewController(kubeconfig string, manifest *util.Manifest, masterURL string,
 	return controller, nil
 }
 
-// Install Global Entities
+// CreateUpdateGlobalEntities installs global entities
 func (c *Controller) CreateUpdateGlobalEntities() error {
 	// Create or update System VMI
-	// A synthetic binding will be constructed and passed to the generic CreateVmis API to create the System VMI
+	// A synthetic binding will be constructed and passed to the generic CreateUpdateVmi API to create the System VMI
 	systemBinding := &v1beta1v8o.VerrazzanoBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
@@ -256,7 +258,7 @@ func (c *Controller) CreateUpdateGlobalEntities() error {
 	}
 	glog.V(4).Info("Configuring System VMI...")
 	for {
-		err := local.CreateVmis(systemBinding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
+		err := local.CreateUpdateVmi(systemBinding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
 		if err != nil {
 			glog.Errorf("Failed to create System VMI %s: %v", constants.VmiSystemBindingName, err)
 		}
@@ -453,7 +455,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create ServiceAccounts
-	err = managed.CreateServiceAccounts(mbPair, c.managedClusterConnections)
+	err = managed.CreateServiceAccounts(mbPair.Binding.Name, mbPair.ImagePullSecrets, mbPair.ManagedClusters, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create service accounts for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -465,13 +467,13 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create ClusterRoles
-	err = managed.CreateClusterRoles(mbPair, c.managedClusterConnections)
+	err = managed.CreateClusterRoles(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create cluster roles for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create ClusterRoleBindings
-	err = managed.CreateClusterRoleBindings(mbPair, c.managedClusterConnections)
+	err = managed.CreateClusterRoleBindings(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create cluster role bindings for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -681,7 +683,7 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 	 * Create Artifacts in the Local Cluster
 	 **********************/
 	// Create VMIs
-	err = local.CreateVmis(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
+	err = local.CreateUpdateVmi(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
 	if err != nil {
 		glog.Errorf("Failed to create VMIs for binding %s: %v", binding.Name, err)
 	}
@@ -699,7 +701,7 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 	}
 
 	// Update the "bring your own DNS" credentials?
-	err = local.UpdateAcmeDNSSecret(binding, c.kubeClientSet, c.secretLister, constants.AcmeDnsSecret, c.verrazzanoURI)
+	err = local.UpdateAcmeDNSSecret(binding, c.kubeClientSet, c.secretLister, constants.AcmeDNSSecret, c.verrazzanoURI)
 	if err != nil {
 		glog.Errorf("Failed to update DNS credentials for binding %s: %v", binding.Name, err)
 	}
@@ -769,13 +771,13 @@ func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 	}
 
 	// Cleanup ClusterRoleBindings
-	err = managed.CleanupOrphanedClusterRoleBindings(mbPair, c.managedClusterConnections, c.modelBindingPairs)
+	err = managed.CleanupOrphanedClusterRoleBindings(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to cleanup ClusterRoleBindings for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup ClusterRoles
-	err = managed.CleanupOrphanedClusterRoles(mbPair, c.managedClusterConnections, c.modelBindingPairs)
+	err = managed.CleanupOrphanedClusterRoles(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to cleanup ClusterRoles for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -793,11 +795,11 @@ func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 	}
 }
 
-type KubeDeployment struct {
+type kubeDeployment struct {
 	kubeClientSet kubernetes.Interface
 }
 
-func (me *KubeDeployment) DeleteDeployment(namespace, name string) error {
+func (me *kubeDeployment) DeleteDeployment(namespace, name string) error {
 	dep, err := me.kubeClientSet.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if dep != nil {
 		return me.kubeClientSet.AppsV1().Deployments(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
@@ -825,7 +827,7 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	 * Delete Artifacts in the Local Cluster
 	 **********************/
 	// Delete VMIs
-	err := local.DeleteVmis(binding, c.vmoClientSet, c.vmiLister)
+	err := local.DeleteVmi(binding, c.vmoClientSet, c.vmiLister)
 	if err != nil {
 		glog.Errorf("Failed to delete VMIs for binding %s: %v", binding.Name, err)
 	}
@@ -869,7 +871,7 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 		return
 	}
 
-	err = monitoring.DeletePomPusher(binding.Name, &KubeDeployment{kubeClientSet: c.kubeClientSet})
+	err = monitoring.DeletePomPusher(binding.Name, &kubeDeployment{kubeClientSet: c.kubeClientSet})
 	if err != nil {
 		glog.Errorf("Failed to delete prometheus-pusher for binding %s: %v", mbPair.Binding.Name, err)
 	}

@@ -9,7 +9,6 @@ import (
 	"context"
 
 	"github.com/golang/glog"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
@@ -20,33 +19,28 @@ import (
 )
 
 // CreateServiceAccounts creates/updates service accounts needed for each managed cluster.
-func CreateServiceAccounts(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func CreateServiceAccounts(bindingName string, imagePullSecrets []corev1.LocalObjectReference, managedClusters map[string]*types.ManagedCluster, filteredConnections map[string]*util.ManagedClusterConnection) error {
 
-	glog.V(6).Infof("Creating/updating Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
-
-	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return err
-	}
+	glog.V(6).Infof("Creating/updating Deployments for VerrazzanoBinding %s", bindingName)
 
 	// Construct service account for each ManagedCluster
-	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
+	for clusterName, managedClusterObj := range managedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
 		var serviceAccounts []*corev1.ServiceAccount
-		if mbPair.Binding.Name == constants.VmiSystemBindingName {
-			// Add add the service accounts needed for monitoring and logging
+		if bindingName == constants.VmiSystemBindingName {
+			// Add the service accounts needed for monitoring and logging
 			for _, serviceAccountName := range monitoring.GetMonitoringComponents() {
-				serviceAccounts = append(serviceAccounts, newServiceAccounts(mbPair.Binding, managedClusterObj, serviceAccountName, monitoring.GetMonitoringComponentLabels(clusterName, serviceAccountName), monitoring.GetMonitoringNamespace(serviceAccountName), mbPair.ImagePullSecrets)...)
+				serviceAccounts = append(serviceAccounts, newServiceAccounts(bindingName, managedClusterObj, serviceAccountName, monitoring.GetMonitoringComponentLabels(clusterName, serviceAccountName), monitoring.GetMonitoringNamespace(serviceAccountName), imagePullSecrets)...)
 			}
 		} else {
-			serviceAccounts = newServiceAccounts(mbPair.Binding, managedClusterObj, util.GetServiceAccountNameForSystem(), util.GetManagedLabelsNoBinding(clusterName), "", mbPair.ImagePullSecrets)
+			serviceAccounts = newServiceAccounts(bindingName, managedClusterObj, util.GetServiceAccountNameForSystem(), util.GetManagedLabelsNoBinding(clusterName), "", imagePullSecrets)
 		}
 
 		// Create/Update ServiceAccount
-		err := createServiceAccount(mbPair.Binding, managedClusterConnection, serviceAccounts, clusterName)
+		err := createServiceAccount(managedClusterConnection, serviceAccounts, clusterName)
 		if err != nil {
 			return err
 		}
@@ -54,12 +48,10 @@ func CreateServiceAccounts(mbPair *types.ModelBindingPair, availableManagedClust
 	return nil
 }
 
-func createServiceAccount(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnection *util.ManagedClusterConnection, newServiceAccounts []*corev1.ServiceAccount, clusterName string) error {
+func createServiceAccount(managedClusterConnection *util.ManagedClusterConnection, newServiceAccounts []*corev1.ServiceAccount, clusterName string) error {
 	// Create/Update Service Account
-	var serviceAccountNames = []string{}
 
 	for _, newServiceAccount := range newServiceAccounts {
-		serviceAccountNames = append(serviceAccountNames, newServiceAccount.Name)
 		existingServiceAccount, err := managedClusterConnection.ServiceAccountLister.ServiceAccounts(newServiceAccount.Namespace).Get(newServiceAccount.Name)
 		if existingServiceAccount != nil {
 			specDiffs := diff.CompareIgnoreTargetEmpties(existingServiceAccount, newServiceAccount)
@@ -81,7 +73,7 @@ func createServiceAccount(binding *v1beta1v8o.VerrazzanoBinding, managedClusterC
 }
 
 // Constructs the necessary ServiceAccounts for the specified ManagedCluster in the given VerrazzanoBinding
-func newServiceAccounts(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.ManagedCluster, name string, labels map[string]string, namespaceName string, imagePullSecerts []corev1.LocalObjectReference) []*corev1.ServiceAccount {
+func newServiceAccounts(bindingName string, managedCluster *types.ManagedCluster, name string, labels map[string]string, namespaceName string, imagePullSecerts []corev1.LocalObjectReference) []*corev1.ServiceAccount {
 	var serviceAccounts []*corev1.ServiceAccount
 
 	for _, namespace := range managedCluster.Namespaces {
@@ -90,7 +82,7 @@ func newServiceAccounts(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *t
 				Name: name,
 				Namespace: func() string {
 					// Get namespace for monitoring components in case of System binding.
-					if binding.Name == constants.VmiSystemBindingName {
+					if bindingName == constants.VmiSystemBindingName {
 						return namespaceName
 					}
 					return namespace
@@ -101,7 +93,7 @@ func newServiceAccounts(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *t
 		}
 		serviceAccounts = append(serviceAccounts, serviceAccount)
 		// Only add service account resource once in case of system binding
-		if binding.Name == constants.VmiSystemBindingName {
+		if bindingName == constants.VmiSystemBindingName {
 			break
 		}
 	}

@@ -3,6 +3,7 @@
 
 package testutil
 
+// StringArrayContains checks if a string exists in array of strings.
 func StringArrayContains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {

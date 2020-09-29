@@ -119,6 +119,16 @@ pipeline {
             }
         }
 
+        stage('golint Check') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano-operator
+                    make go-lint
+                """
+            }
+        }
+
         stage('ineffassign Check') {
             when { not { buildingTag() } }
             steps {
@@ -166,12 +176,26 @@ pipeline {
                     make unit-test
                     make -B coverage
                     cp coverage.html ${WORKSPACE}
+                    cp coverage.xml ${WORKSPACE}
                     build/scripts/copy-junit-output.sh ${WORKSPACE} 
                 """
             }
             post {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
+                    cobertura(coberturaReportFile: 'coverage.xml',
+                      enableNewApi: true,
+                      autoUpdateHealth: true,
+                      autoUpdateStability: true,
+                      failUnstable: true,
+                      failUnhealthy: true,
+                      failNoReports: true,
+                      onlyStable: false,
+                      conditionalCoverageTargets: '80, 0, 0',
+                      fileCoverageTargets: '80, 0, 0',
+                      lineCoverageTargets: '80, 0, 0',
+                      packageCoverageTargets: '80, 0, 0',
+                    )
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
