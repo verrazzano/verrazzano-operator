@@ -183,6 +183,7 @@ func ReadModelBindingPair(modelPath string, bindingPath string, managedClusterPa
 		Model:           model,
 		Binding:         binding,
 		ManagedClusters: managedClusters,
+
 		ImagePullSecrets: []corev1.LocalObjectReference{
 			{
 				Name: "test-imagePullSecret",
