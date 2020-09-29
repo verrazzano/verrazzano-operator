@@ -11,6 +11,8 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
 	"github.com/verrazzano/verrazzano-operator/pkg/testutilcontroller"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -26,6 +28,8 @@ var modelBindingPairs = map[string]*types.ModelBindingPair{
 // THEN all the Grids should be returned
 // AND that the Grids returned should be the correct amount and have valid values
 func TestReturnAllGrids(t *testing.T) {
+	// GIVEN empty model binding pairs, managed clusters and fake kubernetes clients.
+	var clients kubernetes.Interface = k8sfake.NewSimpleClientset()
 	clusters := testutil.GetTestClusters()
 	type args struct {
 		w http.ResponseWriter
@@ -37,7 +41,7 @@ func TestReturnAllGrids(t *testing.T) {
 	}{
 		{
 			name:    "verifyReturnAllGrids",
-			listers: testutilcontroller.NewControllerListers(clusters, &modelBindingPairs),
+			listers: testutilcontroller.NewControllerListers(&clients, clusters, &modelBindingPairs),
 		},
 	}
 	for _, tt := range tests {
@@ -61,6 +65,8 @@ func TestReturnAllGrids(t *testing.T) {
 // THEN all the Grid with ID=0 should be returned
 // AND that the Grid returned should have the correct ID and have valid values
 func TestReturnSingleGrid(t *testing.T) {
+	// GIVEN empty model binding pairs, managed clusters and fake kubernetes clients.
+	var clients kubernetes.Interface = k8sfake.NewSimpleClientset()
 	clusters := testutil.GetTestClusters()
 	type args struct {
 		w http.ResponseWriter
@@ -72,7 +78,7 @@ func TestReturnSingleGrid(t *testing.T) {
 	}{
 		{
 			name:    "verifyReturnSingleGrid",
-			listers: testutilcontroller.NewControllerListers(clusters, &modelBindingPairs),
+			listers: testutilcontroller.NewControllerListers(&clients, clusters, &modelBindingPairs),
 		},
 	}
 	for _, tt := range tests {
@@ -101,6 +107,8 @@ func TestReturnSingleGrid(t *testing.T) {
 // THEN all no Grid should be returned
 // AND that the Grid returned should be empty
 func TestReturnSingleGridNotFound(t *testing.T) {
+	// GIVEN empty model binding pairs, managed clusters and fake kubernetes clients.
+	var clients kubernetes.Interface = k8sfake.NewSimpleClientset()
 	clusters := testutil.GetTestClusters()
 	type args struct {
 		w http.ResponseWriter
@@ -112,7 +120,7 @@ func TestReturnSingleGridNotFound(t *testing.T) {
 	}{
 		{
 			name:    "verifyReturnSingleGridNotFound",
-			listers: testutilcontroller.NewControllerListers(clusters, &modelBindingPairs),
+			listers: testutilcontroller.NewControllerListers(&clients, clusters, &modelBindingPairs),
 		},
 	}
 	for _, tt := range tests {
