@@ -20,7 +20,11 @@ var modelBindingPairs = map[string]*types.ModelBindingPair{
 	"test-pair-1": testutil.GetModelBindingPair(),
 }
 
-//  TestReturnAllGrids verifies that the single test-coherence grid entry is returned and valid
+// TestReturnAllGrids tests that all Grids are returned
+// GIVEN that Grids are configured
+// WHEN I call GetAllGrids
+// THEN all the Grids should be returned
+// AND that the Grids returned should be the correct amount and have valid values
 func TestReturnAllGrids(t *testing.T) {
 	clusters := testutil.GetTestClusters()
 	type args struct {
@@ -51,7 +55,11 @@ func TestReturnAllGrids(t *testing.T) {
 	}
 }
 
-//  TestReturnSingleGrid verifies that the grid entry with ID=0 is returned and valid
+// TestReturnSingleGrid tests that the Grid with ID=0 is returned
+// GIVEN that Grid with ID=0 exists
+// WHEN I call ReturnSingleGrid
+// THEN all the Grid with ID=0 should be returned
+// AND that the Grid returned should have the correct ID and have valid values
 func TestReturnSingleGrid(t *testing.T) {
 	clusters := testutil.GetTestClusters()
 	type args struct {
@@ -87,7 +95,11 @@ func TestReturnSingleGrid(t *testing.T) {
 	}
 }
 
-//  TestReturnSingleGridNotFound verifies that the grid entry with ID=100 is not found
+// TestReturnSingleGridNotFound tests that a Grid that doesn't exist is not found
+// GIVEN that Grid with ID=100 doesn't exist
+// WHEN I call ReturnSingleGrid
+// THEN all no Grid should be returned
+// AND that the Grid returned should be empty
 func TestReturnSingleGridNotFound(t *testing.T) {
 	clusters := testutil.GetTestClusters()
 	type args struct {
