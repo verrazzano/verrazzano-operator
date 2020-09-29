@@ -14,7 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/api/instance"
 )
 
-var allowedHttpMethods = []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"}
+var allowedHTTPMethods = []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"}
 var allowedHeaders = []string{"Accept", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization"}
 
 //TestEnableCors tests that the EnableCors method adds the expected Access-Control-Allow-Origin header to the response
@@ -58,8 +58,8 @@ func TestSetupOptionsResponse(t *testing.T) {
 		expectedAllowHeaders []string
 		args                 args
 	}{
-		{"With Verrazzano URI set", "https://console.somesuffix.xip.io", allowedHttpMethods, allowedHeaders, args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
-		{"Without Verrazzano URI set", "", allowedHttpMethods, allowedHeaders, args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
+		{"With Verrazzano URI set", "https://console.somesuffix.xip.io", allowedHTTPMethods, allowedHeaders, args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
+		{"Without Verrazzano URI set", "", allowedHTTPMethods, allowedHeaders, args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

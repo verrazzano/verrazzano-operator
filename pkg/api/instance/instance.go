@@ -85,9 +85,8 @@ func getVersion() string {
 func deriveURL(s string) string {
 	if len(strings.TrimSpace(verrazzanoURI)) > 0 {
 		return "https://" + s + "." + verrazzanoURI
-	} else {
-		return ""
 	}
+	return ""
 }
 
 // GetVerrazzanoName returns the environment name portion of the verrazzanoUri
