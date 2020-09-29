@@ -5,8 +5,13 @@ package testutil
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	fakecorev1 "k8s.io/client-go/kubernetes/typed/core/v1/fake"
+	k8stesting "k8s.io/client-go/testing"
 
 	"github.com/gorilla/mux"
 
@@ -583,4 +588,23 @@ func InvokeHTTPHandler(request *http.Request, path string, handler func(http.Res
 	router.ServeHTTP(responseRecorder, request)
 
 	return responseRecorder
+}
+
+//NewConfigMapLister creates a ConfigMapLister
+func NewConfigMapLister(kubeClient kubernetes.Interface) corelistersv1.ConfigMapLister {
+	return &simpleConfigMapLister{kubeClient: kubeClient}
+}
+
+//NewSecretLister creates a SecretLister
+func NewSecretLister(kubeClient kubernetes.Interface) corelistersv1.SecretLister {
+	return &simpleSecretLister{kubeClient: kubeClient}
+}
+
+//MockError mocks a fake kubernetes.Interface to return an expected error
+func MockError(kubeCli kubernetes.Interface, verb, resource string, obj runtime.Object) kubernetes.Interface {
+	kubeCli.CoreV1().(*fakecorev1.FakeCoreV1).PrependReactor(verb, resource,
+		func(action k8stesting.Action) (handled bool, ret runtime.Object, err error) {
+			return true, obj, fmt.Errorf("Error %s %s", verb, resource)
+		})
+	return kubeCli
 }
