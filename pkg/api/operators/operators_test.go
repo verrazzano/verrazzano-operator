@@ -165,10 +165,19 @@ func TestReturnAllOperators(t *testing.T) {
 			// Validate that there is the correct number of operators (2), and the
 			// operators have the expected names
 			assert.Equal(t, 2, len(ops), "There should be two operators in the list")
-			assert.Equal(t, "wls-operator-mytestbinding-1", ops[0].Name, "Operator has the wrong name")
-			assert.Equal(t, "wls-operator-mytestbinding-2", ops[1].Name, "Operator has the wrong name")
+			assert.True(t, foundByName(ops, "wls-operator-mytestbinding-1"), "Operator with name not found")
+			assert.True(t, foundByName(ops, "wls-operator-mytestbinding-2"), "Operator with name not found")
 		})
 	}
+}
+
+func foundByName(ops []Operator, key string) bool {
+	for _, op := range ops {
+		if op.Name == key {
+			return true
+		}
+	}
+	return false
 }
 
 //TestReturn404ForMissingOperator should return a 404 response for a request for a non-existent operator
