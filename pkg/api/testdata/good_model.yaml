@@ -1,0 +1,42 @@
+# Copyright (C) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: verrazzano.io/v1beta1
+kind: VerrazzanoModel
+metadata:
+  name: goodModel
+  namespace: default
+spec:
+  coherenceClusters:
+    - cacheConfig: ""
+      connections:
+        - ingress:
+            - name: test-ingress
+          rest:
+            - environmentVariableForHost: ""
+              environmentVariableForPort: ""
+              target: test-weblogic
+      name: test-coherence
+      ports:
+        - name: extend
+          port: 9000
+  helidonApplications:
+    - connections:
+        - coherence:
+            - address: ""
+              target: test-coherence
+          ingress:
+            - name: test-ingress
+      name: test-helidon
+      port: 8001
+      targetPort: 8002
+  weblogicDomains:
+    - connections:
+        - ingress:
+            - name: test-ingress
+          rest:
+            - environmentVariableForHost: ""
+              environmentVariableForPort: ""
+              target: test-helidon
+      name: test-weblogic
+status: {}

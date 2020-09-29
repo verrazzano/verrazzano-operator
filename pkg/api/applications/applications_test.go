@@ -24,7 +24,7 @@ import (
 )
 
 var modelBindingPairs = map[string]*types.ModelBindingPair{
-	"test-pair-1": testutil.GetModelBindingPair(),
+	"test-pair-1": testutil.ReadModelBindingPair("../../testutil/testdata/test_model.yaml", "../../testutil/testdata/test_binding.yaml"),
 }
 
 func TestInit(t *testing.T) {
@@ -149,8 +149,7 @@ func TestDeleteApplication(t *testing.T) {
 
 func TestUpdateApplication(t *testing.T) {
 	updateMbPairs := map[string]*types.ModelBindingPair{
-		"mbPairGood0": testutil.GetModelBindingPairWithNames("goodModel", "goodBinding", "default"),
-		//"mbPairGood1": testutil.GetModelBindingPairWithNames("tooGoodModel", "tooGoodBinding", "default"),
+		"mbPairGood0": testutil.ReadModelBindingPair("../testdata/good_model.yaml", "../testdata/good_binding.yaml"),
 	}
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
 	Init(testutilcontroller.NewControllerListers(&clients, testutil.GetTestClusters(), &updateMbPairs))

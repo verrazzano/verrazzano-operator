@@ -30,7 +30,7 @@ func TestInit(t *testing.T) {
 	clusters := testutil.GetTestClusters()
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
 	modelBindingPairs := map[string]*types.ModelBindingPair{
-		"test-pair-1": testutil.GetModelBindingPair(),
+		"test-pair-1": getModelBindingPair(),
 	}
 	type args struct {
 		listers controller.Listers
@@ -88,7 +88,7 @@ func TestReturnSingleOperator(t *testing.T) {
 	clusters := testutil.GetTestClusters()
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
 	modelBindingPairs := map[string]*types.ModelBindingPair{
-		"test-pair-1": testutil.GetModelBindingPair(),
+		"test-pair-1": getModelBindingPair(),
 	}
 	type args struct {
 		listers controller.Listers
@@ -131,7 +131,7 @@ func TestReturnAllOperators(t *testing.T) {
 	clusters := testutil.GetTestClusters()
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
 	modelBindingPairs := map[string]*types.ModelBindingPair{
-		"test-pair-1": testutil.GetModelBindingPair(),
+		"test-pair-1": getModelBindingPair(),
 	}
 	type args struct {
 		listers controller.Listers
@@ -187,7 +187,7 @@ func TestReturn404ForMissingOperator(t *testing.T) {
 	clusters := testutil.GetTestClusters()
 	var clients kubernetes.Interface = fake.NewSimpleClientset()
 	modelBindingPairs := map[string]*types.ModelBindingPair{
-		"test-pair-1": testutil.GetModelBindingPair(),
+		"test-pair-1": getModelBindingPair(),
 	}
 	type args struct {
 		listers controller.Listers
@@ -261,4 +261,12 @@ func createOperator(number int) v1wlsopr.WlsOperator {
 		Status: v1wlsopr.WlsOperatorStatus{},
 	}
 	return wlsOperator
+}
+
+// getModelBindingPair gets a test ModelBindingPair
+func getModelBindingPair() *types.ModelBindingPair {
+	return testutil.ReadModelBindingPair("../../testutil/testdata/test_model.yaml",
+		"../../testutil/testdata/test_binding.yaml",
+		"../../testutil/testdata/test_managed_cluster_1.yaml",
+		"../../testutil/testdata/test_managed_cluster_2.yaml")
 }

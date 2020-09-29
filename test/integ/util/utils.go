@@ -5,6 +5,7 @@ package util
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"io/ioutil"
 	"path/filepath"
 
@@ -153,6 +154,18 @@ func ReadBinding(path string) (*v1beta1v8o.VerrazzanoBinding, error) {
 	var vbnd v1beta1v8o.VerrazzanoBinding
 	err = yaml.Unmarshal(yamlFile, &vbnd)
 	return &vbnd, err
+}
+
+// ReadManagedCluster reads/unmarshal's ManagedCluster yaml file into a ManagedCluster.
+func ReadManagedCluster(path string) (*types.ManagedCluster, error) {
+	filename, _ := filepath.Abs(path)
+	yamlFile, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	var vmc types.ManagedCluster
+	err = yaml.Unmarshal(yamlFile, &vmc)
+	return &vmc, err
 }
 
 // WriteYmal writes/marshalls the obj to a yaml file.
