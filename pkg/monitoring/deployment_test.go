@@ -24,12 +24,12 @@ func (mock *MockDeployment) DeleteDeployment(namespace, name string) error {
 	return nil
 }
 
-// TestCreateAppServiceAccounts tests the creation of a VMI system deployment object.
+// TestGetSystemDeployments tests the creation of a VMI system deployment object.
 // GIVEN a set of values, such as secrets and labels
 //  WHEN I call GetSystemDeployments
 //  THEN there should be a singe deployment object created for the VMI system binding
 //   AND that object should have the expected values
-func TestCreateDeployment(t *testing.T) {
+func TestGetSystemDeployments(t *testing.T) {
 	assert := assert.New(t)
 
 	const clusterName = "cluster1"
@@ -90,11 +90,11 @@ func TestCreateDeployment(t *testing.T) {
 		"Incorrect volume secret DefaultMode")
 }
 
-// TestCreateDeploymentMissingClusterName tests the error handling of GetSystemDeployments
+// TestGetSystemDeploymentsNoClusterName tests the error handling of GetSystemDeployments
 // GIVEN an empty cluster name parameter
 //  WHEN I call GetSystemDeployments
 //  THEN an error should be returned
-func TestCreateDeploymentMissingClusterName(t *testing.T) {
+func TestGetSystemDeploymentsNoClusterName(t *testing.T) {
 	assert := assert.New(t)
 	const clusterName = ""
 	const url = "url"
@@ -104,11 +104,11 @@ func TestCreateDeploymentMissingClusterName(t *testing.T) {
 	assert.Nil(deps, "Expected nil deployments when cluster name is empty")
 }
 
-// TestCreateDeploymentMissingUrl tests the error handling of GetSystemDeployments
-// GIVEN an empty URI parameter
+// TestGetSystemDeploymentsNoUrl tests the error handling of GetSystemDeployments
+// GIVEN an empty URL parameter
 //  WHEN I call GetSystemDeployments
 //  THEN an error should be returned
-func TestCreateDeploymentMissingUrl(t *testing.T) {
+func TestGetSystemDeploymentsNoUrl(t *testing.T) {
 	assert := assert.New(t)
 	const clusterName = "cluster1"
 	const url = ""
@@ -122,7 +122,7 @@ func TestCreateDeploymentMissingUrl(t *testing.T) {
 // GIVEN a POM pusher deployment
 //  WHEN I call DeletePomPusher
 //  THEN the deployment should get deleted
-func TestDeletePomPusherDeployment(t *testing.T) {
+func TestDeletePomPusher(t *testing.T) {
 	assert := assert.New(t)
 	mock := &MockDeployment{}
 	bindingName := "hello"
