@@ -47,19 +47,21 @@ func TestReturnAllMicroservices(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			assert := assert.New(t)
+
 			var myMicroservices []Microservice
 			Init(tt.listers)
 			resp := httptest.NewRecorder()
 			ReturnAllMicroservices(resp, httptest.NewRequest("GET", "/microservices", nil))
-			assert.Equal(t, http.StatusOK, resp.Code, "expect the http return code to be http.StatusOk")
+			assert.Equal(http.StatusOK, resp.Code, "expect the http return code to be http.StatusOk")
 			json.NewDecoder(resp.Body).Decode(&myMicroservices)
-			assert.Len(t, myMicroservices, 2, "expect returned MicroServices Array to have 2 entries")
-			assert.Equal(t, "HelidonApp1", myMicroservices[0].Name, "expect Helidon App Name to be HelidonApp1")
-			assert.Equal(t, "cluster1", myMicroservices[0].Cluster, "expect Helidon App Cluster Name to be cluster1")
-			assert.Equal(t, "defaultOnMC1", myMicroservices[0].Namespace, "expect Helidon App Namespace to be defaultOnMC1")
-			assert.Equal(t, "HelidonApp2", myMicroservices[1].Name, "expect Helidon App Name to be HelidonApp2")
-			assert.Equal(t, "cluster2", myMicroservices[1].Cluster, "expect Helidon App Cluster Name to be cluster2")
-			assert.Equal(t, "defaultOnMC2", myMicroservices[1].Namespace, "expect Helidon App Namespace to be defaultOnMC2")
+			assert.Len(myMicroservices, 2, "expect returned MicroServices Array to have 2 entries")
+			assert.Equal("HelidonApp1", myMicroservices[0].Name, "expect Helidon App Name to be HelidonApp1")
+			assert.Equal("cluster1", myMicroservices[0].Cluster, "expect Helidon App Cluster Name to be cluster1")
+			assert.Equal("defaultOnMC1", myMicroservices[0].Namespace, "expect Helidon App Namespace to be defaultOnMC1")
+			assert.Equal("HelidonApp2", myMicroservices[1].Name, "expect Helidon App Name to be HelidonApp2")
+			assert.Equal("cluster2", myMicroservices[1].Cluster, "expect Helidon App Cluster Name to be cluster2")
+			assert.Equal("defaultOnMC2", myMicroservices[1].Namespace, "expect Helidon App Namespace to be defaultOnMC2")
 		})
 	}
 }
@@ -96,17 +98,20 @@ func TestReturnSingleMicroservice(t *testing.T) {
 				"id": "HelidonApp1",
 			}
 			var myMicroservice Microservice
+
+			assert := assert.New(t)
+
 			Init(tt.listers)
 			resp := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", "/microservices", nil)
 			req = mux.SetURLVars(req, vars)
 			ReturnSingleMicroservice(resp, req)
-			assert.Equal(t, http.StatusOK, resp.Code, "expect the http return code to be http.StatusOk")
+			assert.Equal(http.StatusOK, resp.Code, "expect the http return code to be http.StatusOk")
 			json.NewDecoder(resp.Body).Decode(&myMicroservice)
-			assert.Equal(t, "HelidonApp1", myMicroservice.ID, "expect the Microservice with ID = HelidonApp1 to be successfully returned")
-			assert.Equal(t, "HelidonApp1", myMicroservice.Name, "expect Microservice Name to be HelidonApp1")
-			assert.Equal(t, "cluster1", myMicroservice.Cluster, "expect Helidon App Cluster Name to be cluster1")
-			assert.Equal(t, "defaultOnMC1", myMicroservice.Namespace, "expect Helidon App Namespace to be defaultOnMC1")
+			assert.Equal("HelidonApp1", myMicroservice.ID, "expect the Microservice with ID = HelidonApp1 to be successfully returned")
+			assert.Equal("HelidonApp1", myMicroservice.Name, "expect Microservice Name to be HelidonApp1")
+			assert.Equal("cluster1", myMicroservice.Cluster, "expect Helidon App Cluster Name to be cluster1")
+			assert.Equal("defaultOnMC1", myMicroservice.Namespace, "expect Helidon App Namespace to be defaultOnMC1")
 		})
 	}
 }
@@ -143,17 +148,21 @@ func TestReturnSingleMicroserviceNotFound(t *testing.T) {
 				"id": "HelidonApp100",
 			}
 			var myMicroservice Microservice
+
+			assert := assert.New(t)
+
 			Init(tt.listers)
 			resp := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", "/microservices", nil)
 			req = mux.SetURLVars(req, vars)
 			ReturnSingleMicroservice(resp, req)
-			assert.Equal(t, http.StatusOK, resp.Code, "expect the http return code to be http.StatusOk")
+			assert.Equal(http.StatusOK, resp.Code, "expect the http return code to be http.StatusOk")
 			json.NewDecoder(resp.Body).Decode(&myMicroservice)
-			assert.Equal(t, "", myMicroservice.ID, "expect the Microservice with ID = HelidonApp100 to be Not Found")
-			assert.Equal(t, "", myMicroservice.Name, "expect Microservice Name to be empty")
-			assert.Equal(t, "", myMicroservice.Cluster, "expect Helidon App Cluster Name to be empty")
-			assert.Equal(t, "", myMicroservice.Namespace, "expect Helidon App Namespace to be empty")
+			assert.Empty(myMicroservice.ID, "expect the Microservice with ID = HelidonApp100 to be Not Found")
+			assert.Empty(myMicroservice.Name, "expect Microservice Name to be empty")
+			assert.Empty(myMicroservice.Cluster, "expect Helidon App Cluster Name to be empty")
+			assert.Empty(myMicroservice.Namespace, "expect Helidon App Namespace to be empty")
+			assert.Empty(myMicroservice.Namespace, "expect Helidon App Namespace to be empty")
 		})
 	}
 }
