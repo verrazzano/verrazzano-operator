@@ -8867,6 +8867,7 @@ golang.org/x/mod
 Copyright (c) 2009 The Go Authors. All rights reserved.
 // Copyright 2019 The Go Authors. All rights reserved.
 // Copyright 2018 The Go Authors. All rights reserved.
+// Copyright 2020 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
 
@@ -9771,6 +9772,11 @@ Copyright (c) 2016 Matthias Kadenbach
 Copyright (c) 2018 Dale Hui
 
 -------- Dependency
+github.com/gordonklaus/ineffassign
+-------- Copyrights
+Copyright (c) 2016 Gordon Klaus and contributors
+
+-------- Dependency
 github.com/gosuri/uitable
 -------- Copyrights
 Copyright (c) 2015, Greg Osuri
@@ -10487,6 +10493,7 @@ github.com/gobuffalo/packd
 github.com/gobuffalo/packr/v2
 github.com/gobwas/glob
 github.com/golang-migrate/migrate/v4
+github.com/gordonklaus/ineffassign
 github.com/gosuri/uitable
 github.com/hailocab/go-hostpool
 github.com/hashicorp/go-hclog
@@ -11781,4 +11788,4 @@ Creative Commons may be contacted at creativecommons.org.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 9a971baf7f3ef52e8bf8771cc8b33ae4
+License file based on go.mod with md5 sum: ab132dd5a710147bd774529cf9e839c4
