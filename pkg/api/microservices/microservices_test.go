@@ -165,7 +165,7 @@ func TestReturnSingleMicroserviceNotFound(t *testing.T) {
 			req := httptest.NewRequest("GET", "/microservices", nil)
 			req = mux.SetURLVars(req, vars)
 			ReturnSingleMicroservice(resp, req)
-			assert.Equal(http.StatusOK, resp.Code, "expect the http return code to be http.StatusOk")
+			assert.Equal(http.StatusNotFound, resp.Code, "expect the http return code to be http.StatusOk")
 			json.NewDecoder(resp.Body).Decode(&myMicroservice)
 			assert.Empty(myMicroservice.ID, "expect the Microservice with ID = HelidonApp100 to be Not Found")
 			assert.Empty(myMicroservice.Name, "expect Microservice Name to be empty")
