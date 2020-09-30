@@ -109,7 +109,7 @@ func newDeployments(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types
 		}
 		deployment, err := monitoring.CreateDeployment(constants.MonitoringNamespace, binding.Name, depLabels, sec)
 		if err != nil {
-			return nil, errors.New("Error creating monitoring deployment")
+			return nil, err
 		}
 		deployments = append(deployments, deployment)
 	}
