@@ -19,7 +19,7 @@ import (
 )
 
 var modelBindingPairs = map[string]*types.ModelBindingPair{
-	"test-pair-1": testutil.GetModelBindingPair(),
+	"test-pair-1": testutil.ReadModelBindingPair("../../testutil/testdata/test_model.yaml", "../../testutil/testdata/test_binding.yaml"),
 }
 
 // TestReturnAllGrids tests that all Grids are returned

@@ -1,0 +1,37 @@
+# Copyright (C) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+Name: cluster1
+ConfigMaps:
+  - data:
+      bar: bbb
+      foo: aaa
+    metadata:
+      name: test-configmap
+      namespace: test
+Ingresses:
+  test:
+    - Destination:
+        - DomainName: test.com
+          Host: testhost
+          Port: 8888
+      Name: test-ingress
+Namespaces:
+  - default
+  - test
+  - test2
+  - test3
+  - istio-system
+  - verrazzano-system
+RemoteRests:
+  test:
+    - LocalNamespace: test
+      Name: test-remote
+      Port: 8182
+      RemoteClusterName: cluster2
+      RemoteNamespace: test2
+    - LocalNamespace: test
+      Name: test2-remote
+      Port: 8183
+      RemoteClusterName: cluster2
+      RemoteNamespace: test3

@@ -8,7 +8,6 @@ package testutil
 import (
 	"context"
 
-	cohv1 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
 	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned/fake"
@@ -16,6 +15,7 @@ import (
 	domclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned/fake"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	testutil "github.com/verrazzano/verrazzano-operator/test/integ/util"
 	istioAuthClientset "istio.io/client-go/pkg/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
@@ -161,198 +161,28 @@ func getPods() []*corev1.Pod {
 	}
 }
 
-// GetModelBindingPairWithNames returns a test model and binding pair with the specified model and binding
-// names in given NS.
-func GetModelBindingPairWithNames(modelName string, bindingName string, ns string) *types.ModelBindingPair {
-	pair := GetModelBindingPair()
-	pair.Binding.Name = bindingName
-	pair.Model.Name = modelName
-	pair.Binding.Spec.ModelName = modelName
-	pair.Model.Namespace = ns
-	pair.Binding.Namespace = ns
-	return pair
-}
-
 // GetModelBindingPair returns a test model binding pair.
 func GetModelBindingPair() *types.ModelBindingPair {
+	return ReadModelBindingPair(
+		"../testutil/testdata/test_model.yaml",
+		"../testutil/testdata/test_binding.yaml",
+		"../testutil/testdata/test_managed_cluster_1.yaml", "../testutil/testdata/test_managed_cluster_2.yaml")
+}
+
+// ReadModelBindingPair returns a test model binding pair for the given model/binding/cluster descriptors.
+func ReadModelBindingPair(modelPath string, bindingPath string, managedClusterPaths ...string) *types.ModelBindingPair {
+	model, _ := testutil.ReadModel(modelPath)
+	binding, _ := testutil.ReadBinding(bindingPath)
+	managedClusters := map[string]*types.ManagedCluster{}
+
+	for _, managedClusterPath := range managedClusterPaths {
+		managedCluster, _ := testutil.ReadManagedCluster(managedClusterPath)
+		managedClusters[managedCluster.Name] = managedCluster
+	}
 	var pair = &types.ModelBindingPair{
-		Model: &v1beta1.VerrazzanoModel{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "testModel",
-				Namespace: "default",
-			},
-			Spec: v1beta1.VerrazzanoModelSpec{
-				Description: "",
-				WeblogicDomains: []v1beta1.VerrazzanoWebLogicDomain{
-					{
-						Name: "test-weblogic",
-						Connections: []v1beta1.VerrazzanoConnections{
-							{
-								Ingress: []v1beta1.VerrazzanoIngressConnection{
-									{
-										Name: "test-ingress",
-									},
-								},
-								Rest: []v1beta1.VerrazzanoRestConnection{
-									{
-										Target: "test-helidon",
-									},
-								},
-							},
-						},
-					},
-				},
-				CoherenceClusters: []v1beta1.VerrazzanoCoherenceCluster{
-					{
-						Name:  "test-coherence",
-						Image: "test-coherence-image:latest",
-						Ports: []cohv1.NamedPortSpec{
-							{
-								Name: "extend",
-								PortSpec: cohv1.PortSpec{
-									Port: 9000,
-								},
-							},
-						},
-						Connections: []v1beta1.VerrazzanoConnections{
-							{
-								Ingress: []v1beta1.VerrazzanoIngressConnection{
-									{
-										Name: "test-ingress",
-									},
-								},
-								Rest: []v1beta1.VerrazzanoRestConnection{
-									{
-										Target: "test-weblogic",
-									},
-								},
-							},
-						},
-					},
-				},
-				HelidonApplications: []v1beta1.VerrazzanoHelidon{
-					{
-						Name:       "test-helidon",
-						Port:       8001,
-						TargetPort: 8002,
-						Connections: []v1beta1.VerrazzanoConnections{
-							{
-								Ingress: []v1beta1.VerrazzanoIngressConnection{
-									{
-										Name: "test-ingress",
-									},
-								},
-								Coherence: []v1beta1.VerrazzanoCoherenceConnection{
-									{
-										Target: "test-coherence",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		Binding: &v1beta1.VerrazzanoBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "testBinding",
-				Namespace: "default",
-			},
-			Spec: v1beta1.VerrazzanoBindingSpec{
-				ModelName: "testModel",
-				Placement: []v1beta1.VerrazzanoPlacement{
-					{
-						Name: "local",
-						Namespaces: []v1beta1.KubernetesNamespace{
-							{
-								Name: "test",
-								Components: []v1beta1.BindingComponent{
-									{
-										Name: "test-coherence",
-									},
-								},
-							},
-							{
-								Name: "test2",
-								Components: []v1beta1.BindingComponent{
-									{
-										Name: "test-helidon",
-									},
-								},
-							},
-							{
-								Name: "test3",
-								Components: []v1beta1.BindingComponent{
-									{
-										Name: "test-weblogic",
-									},
-								},
-							},
-						},
-					},
-				},
-				IngressBindings: []v1beta1.VerrazzanoIngressBinding{
-					{
-						Name:    "test-ingress",
-						DnsName: "*",
-					},
-				},
-			},
-		},
-		ManagedClusters: map[string]*types.ManagedCluster{
-			"cluster1": {
-				Name:       "cluster1",
-				Namespaces: []string{"default", "test", "test2", "test3", "istio-system", "verrazzano-system"},
-				Ingresses: map[string][]*types.Ingress{
-					"test": {
-						{
-							Name: "test-ingress",
-							Destination: []*types.IngressDestination{
-								{
-									Host:       "testhost",
-									Port:       8888,
-									DomainName: "test.com",
-								},
-							},
-						},
-					},
-				},
-				RemoteRests: map[string][]*types.RemoteRestConnection{
-					"test": {
-						{
-							Name:              "test-remote",
-							RemoteNamespace:   "test2",
-							RemoteClusterName: "cluster2",
-							LocalNamespace:    "test",
-							Port:              8182,
-						},
-						{
-							Name:              "test2-remote",
-							RemoteNamespace:   "test3",
-							RemoteClusterName: "cluster2",
-							LocalNamespace:    "test",
-							Port:              8183,
-						},
-					},
-				},
-				ConfigMaps: []*corev1.ConfigMap{
-					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-configmap",
-							Namespace: "test",
-						},
-						Data: map[string]string{
-							"foo": "aaa",
-							"bar": "bbb",
-						},
-					},
-				},
-			},
-			"cluster2": {
-				Name:       "cluster2",
-				Namespaces: []string{"default", "test2"},
-			},
-		},
+		Model:           model,
+		Binding:         binding,
+		ManagedClusters: managedClusters,
 		ImagePullSecrets: []corev1.LocalObjectReference{
 			{
 				Name: "test-imagePullSecret",
@@ -369,5 +199,14 @@ func GetTestClusters() []v1beta1.VerrazzanoManagedCluster {
 			ObjectMeta: metav1.ObjectMeta{UID: "123-456-789", Name: "cluster1", Namespace: "default"},
 			Spec:       v1beta1.VerrazzanoManagedClusterSpec{Type: "testCluster", ServerAddress: "test.com", Description: "Test Cluster"},
 		},
+	}
+}
+
+// GetManifest gets a test Manifest.
+func GetManifest() util.Manifest {
+	return util.Manifest{
+		WlsMicroOperatorCrd:   "../testutil/testdata/test_wls_crd.yaml",
+		HelidonAppOperatorCrd: "../testutil/testdata/test_helidon_crd.yaml",
+		CohClusterOperatorCrd: "../testutil/testdata/test_coh_crd.yaml",
 	}
 }
