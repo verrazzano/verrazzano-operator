@@ -32,7 +32,6 @@ func getAllowedOrigins() string {
 	additionalOrigins := util.GetAccessControlAllowOrigins()
 	if additionalOrigins != "" {
 		return fmt.Sprintf("%s, %s", consoleURL, additionalOrigins)
-	} else {
-		return consoleURL
 	}
+	return consoleURL
 }
