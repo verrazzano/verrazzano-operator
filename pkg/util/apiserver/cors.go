@@ -4,14 +4,17 @@
 package apiserver
 
 import (
+	"fmt"
 	"net/http"
+
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/api/instance"
 )
 
 // EnableCors adds headers necessary for the browser running the UI to be able to call the API server
 func EnableCors(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", instance.GetConsoleURL())
+	(*w).Header().Set("Access-Control-Allow-Origin", getAllowedOrigins())
 	// The web UI expects to be able to see X-Total-Count, which is uses for paging result sets
 	(*w).Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 }
@@ -19,7 +22,17 @@ func EnableCors(w *http.ResponseWriter) {
 // SetupOptionsResponse creates the headers that are needed for a HTTP OPTIONS request
 // The web UI makes an OPTIONS request before each GET/POST/etc.
 func SetupOptionsResponse(w *http.ResponseWriter, req *http.Request) {
-	(*w).Header().Set("Access-Control-Allow-Origin", instance.GetConsoleURL())
+	(*w).Header().Set("Access-Control-Allow-Origin", getAllowedOrigins())
 	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+}
+
+func getAllowedOrigins() string {
+	consoleURL := instance.GetConsoleURL()
+	additionalOrigins := util.GetAccessControlAllowOrigins()
+	if additionalOrigins != "" {
+		return fmt.Sprintf("%s, %s", consoleURL, additionalOrigins)
+	} else {
+		return consoleURL
+	}
 }

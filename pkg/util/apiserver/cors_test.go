@@ -4,8 +4,10 @@
 package apiserver
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -73,6 +75,35 @@ func TestSetupOptionsResponse(t *testing.T) {
 			assert.Equal(t, tt.expectedAllowOrigin, tt.args.writer.Header().Get("Access-Control-Allow-Origin"))
 			assert.Equal(t, strings.Join(tt.expectedAllowMethods, ", "), tt.args.writer.Header().Get("Access-Control-Allow-Methods"))
 			assert.Equal(t, strings.Join(tt.expectedAllowHeaders, ", "), tt.args.writer.Header().Get("Access-Control-Allow-Headers"))
+		})
+	}
+}
+
+func Test_getAllowedOrigins(t *testing.T) {
+	vzURI := "something.v8o.oracledx.com"
+	defaultExpectedValue := fmt.Sprintf("https://console.%s", vzURI)
+	tests := []struct {
+		name              string
+		additionalOrigins []string
+	}{
+		{"no additional origins", []string{}},
+		{"one additional origin", []string{"http://localhost:8000"}},
+		{"multiple additional origins", []string{"http://localhost:8000", "http://localhost:8888"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			instance.SetVerrazzanoURI(vzURI)
+			expectedOrigins := []string{defaultExpectedValue}
+			if len(tt.additionalOrigins) != 0 {
+				expectedOrigins = append(expectedOrigins, tt.additionalOrigins...)
+			}
+			os.Setenv("ACCESS_CONTROL_ALLOW_ORIGINS", strings.Join(tt.additionalOrigins, ", "))
+			strActualOrigins := getAllowedOrigins()
+			actualOrigins := strings.Split(strActualOrigins, ", ")
+			for _, expected := range expectedOrigins {
+				assert.Contains(t, actualOrigins, expected)
+			}
+			os.Unsetenv("ACCESS_CONTROL_ALLOW_ORIGINS")
 		})
 	}
 }

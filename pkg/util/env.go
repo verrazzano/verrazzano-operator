@@ -32,6 +32,7 @@ const grafanaRequestMemory = "GRAFANA_REQUEST_MEMORY"
 const prometheusRequestMemory = "PROMETHEUS_REQUEST_MEMORY"
 const kibanaRequestMemory = "KIBANA_REQUEST_MEMORY"
 const esMasterNodeReplicas = "ES_MASTER_NODE_REPLICAS"
+const accessControlAllowOrigins = "ACCESS_CONTROL_ALLOW_ORIGINS"
 
 func getCohMicroImage() string {
 	return os.Getenv(cohMicroImage)
@@ -137,4 +138,8 @@ func GetElasticsearchMasterNodeReplicas() int32 {
 		}
 	}
 	return 3
+}
+
+func GetAccessControlAllowOrigins() string {
+	return os.Getenv(accessControlAllowOrigins)
 }
