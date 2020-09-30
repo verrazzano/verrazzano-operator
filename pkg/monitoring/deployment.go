@@ -4,9 +4,9 @@
 package monitoring
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -15,18 +15,22 @@ import (
 )
 
 // GetSystemDeployments constructs the necessary Deployments for the specified ManagedCluster for the System VMI.
-func GetSystemDeployments(managedClusterName, verrazzanoURI string, sec Secrets) []*appsv1.Deployment {
-	depLabels := util.GetManagedLabelsNoBinding(managedClusterName)
+func GetSystemDeployments(managedClusterName, verrazzanoURI string, labels map[string]string, sec Secrets) ([]*appsv1.Deployment, error) {
 	var deployments []*appsv1.Deployment
 
-	if verrazzanoURI == "" {
-		glog.V(4).Infof("Verrazzano URI must not be empty for prometheus pusher to work")
-	} else {
-		deployment := CreateDeployment(constants.MonitoringNamespace, constants.VmiSystemBindingName, depLabels, sec)
-		deployments = append(deployments, deployment)
+	if managedClusterName == "" {
+		return nil, errors.New("GetSystemDeployments managedClusterName parameter must not be empty")
 	}
+	if verrazzanoURI == "" {
+		return nil, errors.New("GetSystemDeployments verrazzanoURI parameter must not be empty")
+	}
+	deployment, err := CreateDeployment(constants.MonitoringNamespace, constants.VmiSystemBindingName, labels, sec)
+	if err != nil {
+		return nil, err
+	}
+	deployments = append(deployments, deployment)
 
-	return deployments
+	return deployments, nil
 }
 
 // DeletePomPusher deletes the Prometheus Pusher deployment.
@@ -39,11 +43,11 @@ func pomPusherName(bindingName string) string {
 }
 
 // CreateDeployment creates prometheus pusher deployment on all clusters, based on a VerrazzanoApplicationBinding.
-func CreateDeployment(namespace string, bindingName string, labels map[string]string, sec Secrets) *appsv1.Deployment {
+func CreateDeployment(namespace string, bindingName string, labels map[string]string, sec Secrets) (*appsv1.Deployment, error) {
 	payload := "match%5B%5D=%7Bjob%3D~%22" + bindingName + "%2E%2A%22%7D" // URL encoded : match[]={job=~"binding-name.*"}
 	password, err := sec.GetVmiPassword()
 	if err != nil {
-		glog.Errorf("Failed to retrieve secret %v", err)
+		return nil, err
 	}
 	image := util.GetPromtheusPusherImage()
 	pusherDeployment := &appsv1.Deployment{
@@ -53,7 +57,7 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 			Namespace: namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: newVal(1),
+			Replicas: util.NewVal(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
@@ -114,14 +118,14 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 							},
 						},
 					},
-					TerminationGracePeriodSeconds: new64Val(1),
+					TerminationGracePeriodSeconds: util.New64Val(1),
 					Volumes: []corev1.Volume{
 						{
 							Name: "cert-vol",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
 									SecretName:  "system-tls",
-									DefaultMode: newVal(420),
+									DefaultMode: util.NewVal(420),
 								},
 							},
 						},
@@ -130,15 +134,5 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 			},
 		},
 	}
-	return pusherDeployment
-}
-
-func newVal(value int32) *int32 {
-	var val = value
-	return &val
-}
-
-func new64Val(value int64) *int64 {
-	var val = value
-	return &val
+	return pusherDeployment, nil
 }
