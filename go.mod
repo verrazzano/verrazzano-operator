@@ -17,7 +17,7 @@ require (
 	github.com/verrazzano/verrazzano-wko-operator v0.0.12
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
-	golang.org/x/tools v0.0.0-20200929171317-ffa3839b1b15 // indirect
+	golang.org/x/tools v0.0.0-20200929210017-bce87a7896cc // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.2.8
 	istio.io/api v0.0.0-20200629210345-933b83065c19
