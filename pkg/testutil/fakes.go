@@ -18,11 +18,13 @@ import (
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
 	istioClientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/clientset/versioned"
 	istioLister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/listers/networking.istio.io/v1alpha3"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
+	appslistersv1 "k8s.io/client-go/listers/apps/v1"
 	corelistersv1 "k8s.io/client-go/listers/core/v1"
 )
 
@@ -598,6 +600,83 @@ func NewConfigMapLister(kubeClient kubernetes.Interface) corelistersv1.ConfigMap
 //NewSecretLister creates a SecretLister
 func NewSecretLister(kubeClient kubernetes.Interface) corelistersv1.SecretLister {
 	return &simpleSecretLister{kubeClient: kubeClient}
+}
+
+// simpleDaemonSetLister implements the DaemonSetLister interface.
+type simpleDaemonSetLister struct {
+	kubeClient kubernetes.Interface
+}
+
+// GetPodDaemonSets returns a list of DaemonSets that potentially match a pod.
+// Only the one specified in the Pod's ControllerRef will actually manage it.
+// Returns an error only if no matching DaemonSets are found.
+func (s *simpleDaemonSetLister) GetPodDaemonSets(pod *v1.Pod) ([]*appsv1.DaemonSet, error) {
+	// not currently needed for testing
+	panic("not currently supported")
+}
+
+// GetHistoryDaemonSets returns a list of DaemonSets that potentially
+// match a ControllerRevision. Only the one specified in the ControllerRevision's ControllerRef
+// will actually manage it.
+// Returns an error only if no matching DaemonSets are found.
+func (s *simpleDaemonSetLister) GetHistoryDaemonSets(history *appsv1.ControllerRevision) ([]*appsv1.DaemonSet, error) {
+	// not currently needed for testing
+	panic("not currently supported")
+}
+
+// List lists all DaemonSets in the indexer.
+func (s *simpleDaemonSetLister) List(selector labels.Selector) (ret []*appsv1.DaemonSet, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var sets []*appsv1.DaemonSet
+	for _, namespace := range namespaces.Items {
+
+		list, err := s.DaemonSets(namespace.Name).List(selector)
+		if err != nil {
+			return nil, err
+		}
+		sets = append(sets, list...)
+	}
+	return sets, nil
+}
+
+// DaemonSets returns an object that can list and get DaemonSets.
+func (s *simpleDaemonSetLister) DaemonSets(namespace string) appslistersv1.DaemonSetNamespaceLister {
+	return simpleDaemonSetNamespaceLister{
+		namespace:  namespace,
+		kubeClient: s.kubeClient,
+	}
+}
+
+// daemonSetNamespaceLister implements the DaemonSetNamespaceLister
+// interface.
+type simpleDaemonSetNamespaceLister struct {
+	namespace  string
+	kubeClient kubernetes.Interface
+}
+
+// List lists all DaemonSets in the indexer for a given namespace.
+func (s simpleDaemonSetNamespaceLister) List(selector labels.Selector) (ret []*appsv1.DaemonSet, err error) {
+	var sets []*appsv1.DaemonSet
+
+	list, err := s.kubeClient.AppsV1().DaemonSets(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		set := list.Items[i]
+		if selector.Matches(labels.Set(set.Labels)) {
+			sets = append(sets, &set)
+		}
+	}
+	return sets, nil
+}
+
+// Get retrieves the DaemonSet from the indexer for a given namespace and name.
+func (s simpleDaemonSetNamespaceLister) Get(name string) (*appsv1.DaemonSet, error) {
+	return s.kubeClient.AppsV1().DaemonSets(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 //MockError mocks a fake kubernetes.Interface to return an expected error

@@ -45,13 +45,15 @@ func TestCreateNamespaces(t *testing.T) {
 			if err != nil {
 				t.Errorf("can't get namespaces: %v", err)
 			}
-			assert.Equal(t, 6, len(namespaces.Items))
+			assert.Equal(t, 8, len(namespaces.Items))
 
 			assertNamespace(t, clusterConnection, "test", true)
 			assertNamespace(t, clusterConnection, "test2", true)
 			assertNamespace(t, clusterConnection, "test3", true)
 			assertNamespace(t, clusterConnection, "default", true)
 			assertNamespace(t, clusterConnection, "istio-system", true)
+			assertNamespace(t, clusterConnection, "logging", true)
+			assertNamespace(t, clusterConnection, "monitoring", true)
 		})
 	}
 }

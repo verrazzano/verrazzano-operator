@@ -515,7 +515,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create DaemonSets
-	err = managed.CreateDaemonSets(mbPair, c.managedClusterConnections, c.verrazzanoURI)
+	err = managed.CreateDaemonSets(mbPair, filteredConnections, c.verrazzanoURI)
 	if err != nil {
 		glog.Errorf("Failed to create DaemonSets for binding %s: %v", mbPair.Binding.Name, err)
 	}

@@ -17,7 +17,7 @@ import (
 )
 
 // CreateDaemonSets creates/updates daemon sets needed for each managed cluster.
-func CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string) error {
+func CreateDaemonSets(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string) error {
 
 	glog.V(6).Infof("Creating/updating daemonset for VerrazzanoBinding %s", mbPair.Binding.Name)
 
@@ -25,11 +25,6 @@ func CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterCon
 	if mbPair.Binding.Name != constants.VmiSystemBindingName {
 		glog.V(6).Infof("Skip creating Daemon sets for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
 		return nil
-	}
-
-	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return err
 	}
 
 	// Construct deployments for each ManagedCluster
