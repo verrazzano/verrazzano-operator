@@ -26,7 +26,10 @@ import (
 // AND that the Microservices returned should be the correct amount and have valid values
 func TestReturnAllMicroservices(t *testing.T) {
 	var modelBindingPairs = map[string]*types.ModelBindingPair{
-		"test-pair-1": testutil.GetModelBindingPair(),
+		"test-pair-1": testutil.ReadModelBindingPair(
+			"../../testutil/testdata/test_model.yaml",
+			"../../testutil/testdata/test_binding.yaml",
+			"../../testutil/testdata/test_managed_cluster_1.yaml", "../../testutil/testdata/test_managed_cluster_2.yaml"),
 	}
 	// GIVEN empty model binding pairs, managed clusters and fake kubernetes clients.
 	var clients kubernetes.Interface = k8sfake.NewSimpleClientset()
@@ -73,7 +76,10 @@ func TestReturnAllMicroservices(t *testing.T) {
 // AND that the Microservice returned should have the correct ID and have valid values
 func TestReturnSingleMicroservice(t *testing.T) {
 	var modelBindingPairs = map[string]*types.ModelBindingPair{
-		"test-pair-1": testutil.GetModelBindingPair(),
+		"test-pair-1": testutil.ReadModelBindingPair(
+			"../../testutil/testdata/test_model.yaml",
+			"../../testutil/testdata/test_binding.yaml",
+			"../../testutil/testdata/test_managed_cluster_1.yaml", "../../testutil/testdata/test_managed_cluster_2.yaml"),
 	}
 	// GIVEN empty model binding pairs, managed clusters and fake kubernetes clients.
 	var clients kubernetes.Interface = k8sfake.NewSimpleClientset()
@@ -123,7 +129,10 @@ func TestReturnSingleMicroservice(t *testing.T) {
 // AND that the MicroService returned should be empty
 func TestReturnSingleMicroserviceNotFound(t *testing.T) {
 	var modelBindingPairs = map[string]*types.ModelBindingPair{
-		"test-pair-1": testutil.GetModelBindingPair(),
+		"test-pair-1": testutil.ReadModelBindingPair(
+			"../../testutil/testdata/test_model.yaml",
+			"../../testutil/testdata/test_binding.yaml",
+			"../../testutil/testdata/test_managed_cluster_1.yaml", "../../testutil/testdata/test_managed_cluster_2.yaml"),
 	}
 	// GIVEN empty model binding pairs, managed clusters and fake kubernetes clients.
 	var clients kubernetes.Interface = k8sfake.NewSimpleClientset()
