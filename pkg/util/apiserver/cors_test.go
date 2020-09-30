@@ -27,19 +27,27 @@ func TestEnableCors(t *testing.T) {
 	}
 	tests := []struct {
 		name                string
+		referer             string
 		expectedAllowOrigin string
 		args                args
 	}{
-		{"With Verrazzano URI set", "https://console.somesuffix.xip.io", args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
-		{"Without Verrazzano URI set", "", args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
+		{"With Verrazzano URI set", "https://console.somesuffix.xip.io",
+			"https://console.somesuffix.xip.io",
+			args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
+		{"Without Verrazzano URI set", "http://localhost",
+			"", args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
+		{"Referer does not match", "http://localhost",
+			"", args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			//GIVEN the Verrazzano URI suffix is set
 			instance.SetVerrazzanoURI(tt.args.verrazzanoURI)
-
+			req, err := http.NewRequest("GET", "http://someUrl", nil)
+			assert.Nil(t, err, "Error creating test request")
+			req.Header.Add("Referer", tt.referer)
 			//WHEN EnableCors is called
-			EnableCors(&tt.args.writer)
+			EnableCors(req, &tt.args.writer)
 
 			//THEN it returns the expected Access-Control-Allow-Origin header value
 			assert.Equal(t, tt.expectedAllowOrigin, tt.args.writer.Header().Get("Access-Control-Allow-Origin"))
@@ -55,21 +63,35 @@ func TestSetupOptionsResponse(t *testing.T) {
 	}
 	tests := []struct {
 		name                 string
+		referer              string
 		expectedAllowOrigin  string
 		expectedAllowMethods []string
 		expectedAllowHeaders []string
 		args                 args
 	}{
-		{"With Verrazzano URI set", "https://console.somesuffix.xip.io", allowedHTTPMethods, allowedHeaders, args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
-		{"Without Verrazzano URI set", "", allowedHTTPMethods, allowedHeaders, args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
+		{"With Verrazzano URI set", "https://console.somesuffix.xip.io",
+			"https://console.somesuffix.xip.io",
+			allowedHTTPMethods, allowedHeaders,
+			args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
+
+		{"Without Verrazzano URI set", "", "",
+			allowedHTTPMethods, allowedHeaders,
+			args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
+
+		{"Referer does not match", "http://localhost", "",
+			allowedHTTPMethods, allowedHeaders,
+			args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			//GIVEN the Verrazzano URI suffix is set
 			instance.SetVerrazzanoURI(tt.args.verrazzanoURI)
+			req, err := http.NewRequest("GET", "http://someUrl", nil)
+			assert.Nil(t, err, "Error creating test request")
+			req.Header.Add("Referer", tt.referer)
 
 			//WHEN SetupOptionsResponse is called
-			SetupOptionsResponse(&tt.args.writer, nil)
+			SetupOptionsResponse(&tt.args.writer, req)
 
 			//THEN it returns the expected CORS header values
 			assert.Equal(t, tt.expectedAllowOrigin, tt.args.writer.Header().Get("Access-Control-Allow-Origin"))
@@ -79,29 +101,38 @@ func TestSetupOptionsResponse(t *testing.T) {
 	}
 }
 
-func Test_getAllowedOrigins(t *testing.T) {
+func Test_getAllowedOrigin(t *testing.T) {
 	vzURI := "something.v8o.oracledx.com"
 	defaultExpectedValue := fmt.Sprintf("https://console.%s", vzURI)
 	tests := []struct {
 		name              string
+		referer           string
 		additionalOrigins []string
+		refererAllowed    bool
 	}{
-		{"no additional origins", []string{}},
-		{"one additional origin", []string{"http://localhost:8000"}},
-		{"multiple additional origins", []string{"http://localhost:8000", "http://localhost:8888"}},
+		{"origin matches default", defaultExpectedValue, []string{}, true},
+		{"origin matches default with additional origin", defaultExpectedValue, []string{"http://localhost:8000"}, true},
+		{"origin matches single additional origin", "http://localhost:8000", []string{"http://localhost:8000"}, true},
+		{"origin matches one of additional origins", "http://localhost:8888", []string{"http://localhost:8000", "http://localhost:8888"}, true},
+		{"origin matches default with multiple additional origins", defaultExpectedValue, []string{"http://localhost:8000", "http://localhost:8888"}, true},
+		{"negative test origin matches none", "http://somethingelse", []string{"http://localhost:8000", "http://localhost:8888"}, false},
+		{"negative test origin does not match default", "http://somethingelse", []string{}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// GIVEN the verrazzano URI suffix and an ACCESS_CONTROL_ALLOW_ORIGINS override env var
 			instance.SetVerrazzanoURI(vzURI)
-			expectedOrigins := []string{defaultExpectedValue}
-			if len(tt.additionalOrigins) != 0 {
-				expectedOrigins = append(expectedOrigins, tt.additionalOrigins...)
-			}
 			os.Setenv("ACCESS_CONTROL_ALLOW_ORIGINS", strings.Join(tt.additionalOrigins, ", "))
-			strActualOrigins := getAllowedOrigins()
-			actualOrigins := strings.Split(strActualOrigins, ", ")
-			for _, expected := range expectedOrigins {
-				assert.Contains(t, actualOrigins, expected)
+
+			// WHEN getAllowedOrigin is called for a referer value
+			actualOrigin := getAllowedOrigin(tt.referer)
+
+			// THEN, if the referer is allowed, it should be returned in the allowed origin,
+			// otherwise empty string should be returned
+			if tt.refererAllowed {
+				assert.Equal(t, tt.referer, actualOrigin)
+			} else {
+				assert.Empty(t, actualOrigin)
 			}
 			os.Unsetenv("ACCESS_CONTROL_ALLOW_ORIGINS")
 		})
