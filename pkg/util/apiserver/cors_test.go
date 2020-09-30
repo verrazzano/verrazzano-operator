@@ -46,6 +46,7 @@ func TestEnableCors(t *testing.T) {
 			req, err := http.NewRequest("GET", "http://someUrl", nil)
 			assert.Nil(t, err, "Error creating test request")
 			req.Header.Add("Referer", tt.referer)
+
 			//WHEN EnableCors is called
 			EnableCors(req, &tt.args.writer)
 
@@ -93,7 +94,7 @@ func TestSetupOptionsResponse(t *testing.T) {
 			//WHEN SetupOptionsResponse is called
 			SetupOptionsResponse(&tt.args.writer, req)
 
-			//THEN it returns the expected CORS header values
+			//THEN it writes the expected CORS header values
 			assert.Equal(t, tt.expectedAllowOrigin, tt.args.writer.Header().Get("Access-Control-Allow-Origin"))
 			assert.Equal(t, strings.Join(tt.expectedAllowMethods, ", "), tt.args.writer.Header().Get("Access-Control-Allow-Methods"))
 			assert.Equal(t, strings.Join(tt.expectedAllowHeaders, ", "), tt.args.writer.Header().Get("Access-Control-Allow-Headers"))
