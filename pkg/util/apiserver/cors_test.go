@@ -31,15 +31,25 @@ func TestEnableCors(t *testing.T) {
 		expectedAllowOrigin string
 		args                args
 	}{
-		{"Verrazzano URI is set", "https://console.somesuffix.xip.io",
-			"https://console.somesuffix.xip.io",
-			args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
-		{"Without Verrazzano URI set", "http://localhost",
-			"", args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
-		{"Without Verrazzano URI set and different port Origin", "http://localhost:8000",
-			"", args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
-		{"Origin does not match", "http://localhost",
-			"", args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
+		{name: "Verrazzano URI is set",
+			origin:              "https://console.somesuffix.xip.io",
+			expectedAllowOrigin: "https://console.somesuffix.xip.io",
+			args:                args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
+
+		{name: "Without Verrazzano URI set",
+			origin:              "http://localhost",
+			expectedAllowOrigin: "",
+			args:                args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
+
+		{name: "Without Verrazzano URI set and different port Origin",
+			origin:              "http://localhost:8000",
+			expectedAllowOrigin: "",
+			args:                args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
+
+		{name: "Origin does not match",
+			origin:              "http://localhost",
+			expectedAllowOrigin: "",
+			args:                args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -72,18 +82,26 @@ func TestSetupOptionsResponse(t *testing.T) {
 		expectedAllowHeaders []string
 		args                 args
 	}{
-		{"With Verrazzano URI set", "https://console.somesuffix.xip.io",
-			"https://console.somesuffix.xip.io",
-			allowedHTTPMethods, allowedHeaders,
-			args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
+		{name: "With Verrazzano URI set",
+			origin:               "https://console.somesuffix.xip.io",
+			expectedAllowOrigin:  "https://console.somesuffix.xip.io",
+			expectedAllowMethods: allowedHTTPMethods,
+			expectedAllowHeaders: allowedHeaders,
+			args:                 args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
 
-		{"Without Verrazzano URI set", "", "",
-			allowedHTTPMethods, allowedHeaders,
-			args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
+		{name: "Without Verrazzano URI set",
+			origin:               "",
+			expectedAllowOrigin:  "",
+			expectedAllowMethods: allowedHTTPMethods,
+			expectedAllowHeaders: allowedHeaders,
+			args:                 args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
 
-		{"Origin does not match", "http://localhost", "",
-			allowedHTTPMethods, allowedHeaders,
-			args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
+		{name: "Origin does not match",
+			origin:               "http://localhost",
+			expectedAllowOrigin:  "",
+			expectedAllowMethods: allowedHTTPMethods,
+			expectedAllowHeaders: allowedHeaders,
+			args:                 args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -113,11 +131,30 @@ func Test_getAllowedOrigin(t *testing.T) {
 		additionalOrigin string
 		originAllowed    bool
 	}{
-		{"origin matches default", defaultExpectedValue, "", true},
-		{"origin matches default with additional origin", defaultExpectedValue, "http://localhost:8000", true},
-		{"origin matches additional origin", "http://localhost:8000", "http://localhost:8000", true},
-		{"negative test origin matches none", "http://somethingelse", "http://localhost:8000", false},
-		{"negative test origin does not match default", "http://somethingelse", "", false},
+		{name: "origin matches default",
+			origin:           defaultExpectedValue,
+			additionalOrigin: "",
+			originAllowed:    true},
+
+		{name: "origin matches default with additional origin",
+			origin:           defaultExpectedValue,
+			additionalOrigin: "http://localhost:8000",
+			originAllowed:    true},
+
+		{name: "origin matches additional origin",
+			origin:           "http://localhost:8000",
+			additionalOrigin: "http://localhost:8000",
+			originAllowed:    true},
+
+		{name: "negative test origin matches none",
+			origin:           "http://somethingelse",
+			additionalOrigin: "http://localhost:8000",
+			originAllowed:    false},
+
+		{name: "negative test origin does not match default",
+			origin:           "http://somethingelse",
+			additionalOrigin: "",
+			originAllowed:    false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
