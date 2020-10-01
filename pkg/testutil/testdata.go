@@ -64,6 +64,10 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		kubeClient: clusterConnection.KubeClient,
 	}
 
+	clusterConnection.DaemonSetLister = &simpleDaemonSetLister{
+		kubeClient: clusterConnection.KubeClient,
+	}
+
 	clusterConnection.SecretLister = &simpleSecretLister{
 		kubeClient: clusterConnection.KubeClient,
 	}
@@ -91,6 +95,10 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace(pod.Namespace, clusterName), metav1.CreateOptions{})
 		clusterConnection.KubeClient.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	}
+	clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace("logging", ""), metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace("monitoring", ""), metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace("istio-system", ""), metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Pods("istio-system").Create(context.TODO(), getPod("prometheus-pod", "istio-system", "123.99.0.1"), metav1.CreateOptions{})
 
 	clusterConnection.KubeClient.CoreV1().Services(IstioSystemNamespace).Create(context.TODO(),
 		&corev1.Service{
@@ -121,7 +129,7 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 }
 
 func getNamespace(name string, clusterName string) *corev1.Namespace {
-	if name == "istio-system" || name == "verrazzano-system" {
+	if clusterName == "" {
 		return &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
@@ -154,7 +162,6 @@ func getPod(name string, ns string, podIP string) *corev1.Pod {
 
 func getPods() []*corev1.Pod {
 	return []*corev1.Pod{
-		getPod("prometheus-pod", "istio-system", "123.99.0.1"),
 		getPod("test-pod", "test", "123.99.0.2"),
 		getPod("test2-pod", "test2", "123.99.0.3"),
 		getPod("test3-pod", "test3", "123.99.0.4"),

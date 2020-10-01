@@ -99,7 +99,6 @@ func TestCreateVMIServiceAccounts(t *testing.T) {
 	// Setup the needed structures to test creating service accounts for a VMI binding.
 	managedClusters := getManagedClusters()
 	managedConnections := getManagedConnections()
-	createVMINamespaces(t, managedConnections)
 
 	// Create the expected service accounts
 	err := CreateServiceAccounts(constants.VmiSystemBindingName, []corev1.LocalObjectReference{}, managedClusters, managedConnections)
@@ -172,35 +171,6 @@ func createAppNamespaces(t *testing.T, managedConnections map[string]*util.Manag
 
 	clusterConnection = managedConnections["cluster-1"]
 	ns.Name = "ns-test3"
-	_, err = clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
-	if err != nil {
-		t.Fatal(fmt.Sprintf("can't create namespace %s: %v", ns.Name, err))
-	}
-}
-
-// createVMINamespaces creates the namespaces needed for a VMI binding.
-func createVMINamespaces(t *testing.T, managedConnections map[string]*util.ManagedClusterConnection) {
-	var ns = corev1.Namespace{}
-
-	clusterConnection := managedConnections["local"]
-	ns.Name = constants.LoggingNamespace
-	_, err := clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
-	if err != nil {
-		t.Fatal(fmt.Sprintf("can't create namespace %s: %v", ns.Name, err))
-	}
-	ns.Name = constants.MonitoringNamespace
-	_, err = clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
-	if err != nil {
-		t.Fatal(fmt.Sprintf("can't create namespace %s: %v", ns.Name, err))
-	}
-
-	clusterConnection = managedConnections["cluster-1"]
-	ns.Name = constants.LoggingNamespace
-	_, err = clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
-	if err != nil {
-		t.Fatal(fmt.Sprintf("can't create namespace %s: %v", ns.Name, err))
-	}
-	ns.Name = constants.MonitoringNamespace
 	_, err = clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't create namespace %s: %v", ns.Name, err))
