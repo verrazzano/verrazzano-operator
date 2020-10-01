@@ -140,7 +140,7 @@ func GetElasticsearchMasterNodeReplicas() int32 {
 	return 3
 }
 
-// GetAccessControlAllowOrigins returns the additional allowed origins for API requests - these
+// GetAccessControlAllowOrigin returns the additional allowed origins for API requests - these
 // will be added to the Access-Control-Allow-Origins response header of the API
 func GetAccessControlAllowOrigin() string {
 	return os.Getenv(accessControlAllowOrigin)
