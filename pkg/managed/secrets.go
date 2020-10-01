@@ -89,16 +89,6 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 
 	var secrets []*corev1.Secret
 
-	for namespace, secretNames := range managedCluster.Secrets {
-		for _, secretName := range secretNames {
-			secretObj, err := newSecret(secretName, namespace, kubeClientSet, nil, nil)
-			if err != nil {
-				continue
-			}
-			secrets = append(secrets, secretObj)
-		}
-	}
-
 	// For each database binding check to see if there are any corresponding WebLogic domain connections
 	binding := mbPair.Binding
 	for _, databaseBinding := range binding.Spec.DatabaseBindings {
@@ -127,12 +117,34 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 					glog.V(6).Infof("Getting namespace for domain %s is giving error %s", domain.Name, err)
 					continue
 				}
+
 				// Create the new secret in the domain's namespace from the secret named in this database binding
 				labels := make(map[string]string)
 				labels["weblogic.domainUID"] = domain.Name
 				secretObj, err := newSecret(secretName, namespace, kubeClientSet, data, labels)
 				if err != nil {
+					// TODO: why info and level 6?
 					glog.V(6).Infof("Copying secret %s to namespace %s for database binding %s is giving error %s", secretName, namespace, databaseBinding.Name, err)
+					continue
+				}
+				secrets = append(secrets, secretObj)
+			}
+		}
+	}
+
+	for namespace, secretNames := range managedCluster.Secrets {
+		for _, secretName := range secretNames {
+			found := false
+			for _, secret := range secrets {
+				if secret.Name == secretName && secret.Namespace == namespace {
+					found = true
+					break
+				}
+			}
+			if !found {
+				secretObj, err := newSecret(secretName, namespace, kubeClientSet, nil, nil)
+				if err != nil {
+					// TODO: why is error ignored?
 					continue
 				}
 				secrets = append(secrets, secretObj)

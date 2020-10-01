@@ -57,11 +57,11 @@ func createUpdateConfigMaps(managedClusterConnection *util.ManagedClusterConnect
 		specDiffs := diff.CompareIgnoreTargetEmpties(existingcm, newConfigMap)
 		if specDiffs != "" {
 			glog.V(6).Infof("ConfigMap %s : Spec differences %s", newConfigMap.Name, specDiffs)
-			glog.V(4).Infof("Updating ConfigMap %s in cluster %s", newConfigMap.Name, clusterName)
+			glog.V(4).Infof("Updating ConfigMap %s:%s in cluster %s", newConfigMap.Namespace, newConfigMap.Name, clusterName)
 			_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newConfigMap.Namespace).Update(context.TODO(), newConfigMap, metav1.UpdateOptions{})
 		}
 	} else {
-		glog.V(4).Infof("Creating ConfigMap %s in cluster %s", newConfigMap.Name, clusterName)
+		glog.V(4).Infof("Creating ConfigMap %s:%s in cluster %s", newConfigMap.Namespace, newConfigMap.Name, clusterName)
 		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newConfigMap.Namespace).Create(context.TODO(), newConfigMap, metav1.CreateOptions{})
 	}
 	if err != nil {
@@ -91,7 +91,7 @@ func CleanupOrphanedConfigMaps(mbPair *types.ModelBindingPair, availableManagedC
 		}
 		// Delete these ConfigMaps since none are expected on this cluster
 		for _, configMap := range existingConfigMapsList {
-			glog.V(4).Infof("Deleting ConfigMap %s in cluster %s", configMap.Name, clusterName)
+			glog.V(4).Infof("Deleting ConfigMap %s:%s in cluster %s", configMap.Namespace, configMap.Name, clusterName)
 			err := managedClusterConnection.KubeClient.CoreV1().ConfigMaps(configMap.Namespace).Delete(context.TODO(), configMap.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err

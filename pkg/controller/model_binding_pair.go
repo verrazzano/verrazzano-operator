@@ -21,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsdom"
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsopr"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -285,6 +286,89 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						virtualSerivceDestinationPort := int(helidonCR.Spec.Port) //service.port
 						processIngressConnections(mc, app.Connections, namespace.Name, nil,
 							getHelidonDestinationHost(helidonCR), virtualSerivceDestinationPort, &mbPair.Binding.Spec.IngressBindings)
+					}
+				}
+			}
+
+			// Does this namespace contain any generic components
+			genericComponents := mbPair.Model.Spec.GenericComponents
+			for _, generic := range genericComponents {
+				_, found := compNames[generic.Name]
+				if found {
+					namespace, _ := util.GetComponentNamespace(generic.Name, mbPair.Binding)
+					genericLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
+
+					// Create deployment for genericComponent
+					for _, deployment := range generic.Deployments {
+						// TODO: move to genericComponent.go
+						deploy := &appsv1.Deployment{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      deployment.Name,
+								Namespace: namespace,
+								Labels: func() map[string]string {
+									if len(deployment.Labels) == 0 {
+										return genericLabels
+									}
+									for key, value := range deployment.Labels {
+										genericLabels[key] = value
+									}
+									return genericLabels
+								}(),
+								Annotations: deployment.Annotations,
+							},
+							Spec: deployment.Spec,
+						}
+						mc.Deployments = append(mc.Deployments, deploy)
+
+						// Capture any image pull secrets
+						for _, secret := range deploy.Spec.Template.Spec.ImagePullSecrets {
+							addSecret(mc, secret.Name, namespace)
+						}
+
+						// Capture any secrets referenced in container env variables
+						// TODO: need to work out how to handle optional secret refs
+						for _, container := range deploy.Spec.Template.Spec.Containers {
+							for _, env := range container.Env {
+								if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil {
+									addSecret(mc, env.ValueFrom.SecretKeyRef.Name, namespace)
+								}
+							}
+						}
+					}
+
+					// Create config map for genericComponent
+					for _, configMap := range generic.ConfigMaps {
+						// TODO: move to genericComponent.go
+						cm := &corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      configMap.Name,
+								Namespace: namespace,
+								Labels: func() map[string]string {
+									if len(configMap.Labels) == 0 {
+										return genericLabels
+									}
+									for key, value := range configMap.Labels {
+										genericLabels[key] = value
+									}
+									return genericLabels
+								}(),
+								Annotations: configMap.Annotations,
+							},
+							Data: func() map[string]string {
+								if len(configMap.Data) == 0 {
+									return nil
+								}
+								return configMap.Data
+							}(),
+							BinaryData: func() map[string][]byte {
+								if len(configMap.BinaryData) == 0 {
+									return nil
+								}
+								return configMap.BinaryData
+							}(),
+							Immutable: configMap.Immutable,
+						}
+						mc.ConfigMaps = append(mc.ConfigMaps, cm)
 					}
 				}
 			}
