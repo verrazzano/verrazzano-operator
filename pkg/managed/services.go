@@ -6,6 +6,8 @@ package managed
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/labels"
+
 	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
@@ -22,23 +24,25 @@ func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 
 	glog.V(6).Infof("Creating/updating Service for VerrazzanoBinding %s", mbPair.Binding.Name)
 
-	// If binding is not System binding, skip creating Services
-	if mbPair.Binding.Name != constants.VmiSystemBindingName {
-		glog.V(6).Infof("Skip creating Services for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
-		return nil
-	}
-
 	// Construct services for each ManagedCluster
-	for clusterName := range mbPair.ManagedClusters {
+	for clusterName, mc := range mbPair.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
+		var services []*corev1.Service
 		// Construct the set of expected Services
-		newServices := newServices(clusterName)
+		if mbPair.Binding.Name == constants.VmiSystemBindingName {
+			services = newServices(clusterName)
+		} else {
+			// Add services from genericComponents
+			for _, service := range mc.Services {
+				services = append(services, service)
+			}
+		}
 
 		// Create or update Services
-		for _, newService := range newServices {
+		for _, newService := range services {
 			existingService, err := managedClusterConnection.ServiceLister.Services(newService.Namespace).Get(newService.Name)
 			if existingService != nil {
 				specDiffs := diff.CompareIgnoreTargetEmpties(existingService, newService)
@@ -59,13 +63,45 @@ func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 	return nil
 }
 
+// DeleteServices deletes services for a given binding.
+func DeleteServices(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	glog.V(6).Infof("Deleting Services for VerrazzanoBinding %s", mbPair.Binding.Name)
+
+	// Parse out the managed clusters that this binding applies to
+	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+	if err != nil {
+		return nil
+	}
+
+	// Delete Services associated with the given VerrazzanoBinding (based on labels selectors)
+	for clusterName, managedClusterConnection := range filteredConnections {
+		managedClusterConnection.Lock.RLock()
+		defer managedClusterConnection.Lock.RUnlock()
+
+		selector := labels.SelectorFromSet(util.GetManagedLabelsNoBinding(clusterName))
+
+		existingServiceList, err := managedClusterConnection.ServiceLister.List(selector)
+		if err != nil {
+			return err
+		}
+		for _, service := range existingServiceList {
+			glog.V(4).Infof("Deleting Service %s:%s", service.Namespace, service.Name)
+			err := managedClusterConnection.KubeClient.CoreV1().Services(service.Namespace).Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // Constructs the necessary Service for the specified ManagedCluster
 func newServices(managedClusterName string) []*corev1.Service {
 	roleLabels := monitoring.GetNodeExporterLabels(managedClusterName)
 	labels := map[string]string{
 		constants.ServiceAppLabel: constants.NodeExporterName,
 	}
-	var Services []*corev1.Service
+	var services []*corev1.Service
 
 	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{},
@@ -87,7 +123,7 @@ func newServices(managedClusterName string) []*corev1.Service {
 			Type:     "ClusterIP",
 		},
 	}
-	Services = append(Services, service)
+	services = append(services, service)
 
-	return Services
+	return services
 }

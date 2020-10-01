@@ -94,11 +94,11 @@ type ManagedCluster struct {
 	// Deployments for this cluster
 	Deployments []*appsv1.Deployment
 
-	// ConfigMaps for this cluster
-	ConfigMaps []*corev1.ConfigMap
-
 	// Services for this cluster
 	Services []*corev1.Service
+
+	// ConfigMaps for this cluster
+	ConfigMaps []*corev1.ConfigMap
 
 	// Remote rest connections (istio ServicEntries) to generate within each namespace for this cluster
 	RemoteRests map[string][]*RemoteRestConnection

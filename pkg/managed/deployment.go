@@ -21,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsopr"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // CreateDeployments creates/updates deployments needed for each managed cluster.
@@ -58,9 +59,7 @@ func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterCo
 		}
 
 		// Create/Update Deployments
-		var deploymentNames []string
 		for _, newDeployment := range deployments {
-			deploymentNames = append(deploymentNames, newDeployment.Name)
 			existingDeployment, err := managedClusterConnection.DeploymentLister.Deployments(newDeployment.Namespace).Get(newDeployment.Name)
 			if existingDeployment != nil {
 				specDiffs := diff.CompareIgnoreTargetEmpties(existingDeployment, newDeployment)
@@ -73,6 +72,38 @@ func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterCo
 				glog.V(4).Infof("Creating deployment %s:%s in cluster %s", newDeployment.Namespace, newDeployment.Name, clusterName)
 				_, err = managedClusterConnection.KubeClient.AppsV1().Deployments(newDeployment.Namespace).Create(context.TODO(), newDeployment, metav1.CreateOptions{})
 			}
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// DeleteDeployments deletes deployments for a given binding.
+func DeleteDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	glog.V(6).Infof("Deleting Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
+
+	// Parse out the managed clusters that this binding applies to
+	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+	if err != nil {
+		return nil
+	}
+
+	// Delete Deployments associated with the given VerrazzanoBinding (based on labels selectors)
+	for clusterName, managedClusterConnection := range filteredConnections {
+		managedClusterConnection.Lock.RLock()
+		defer managedClusterConnection.Lock.RUnlock()
+
+		selector := labels.SelectorFromSet(util.GetManagedLabelsNoBinding(clusterName))
+
+		existingDeploymentList, err := managedClusterConnection.DeploymentLister.List(selector)
+		if err != nil {
+			return err
+		}
+		for _, deployment := range existingDeploymentList {
+			glog.V(4).Infof("Deleting Deployment %s:%s", deployment.Namespace, deployment.Name)
+			err := managedClusterConnection.KubeClient.AppsV1().Deployments(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}

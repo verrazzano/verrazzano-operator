@@ -298,79 +298,81 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 					namespace, _ := util.GetComponentNamespace(generic.Name, mbPair.Binding)
 					genericLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
 
-					// Create deployment for genericComponent
-					for _, deployment := range generic.Deployments {
-						// TODO: move to genericComponent.go
-						deploy := &appsv1.Deployment{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:      deployment.Name,
-								Namespace: namespace,
-								Labels: func() map[string]string {
-									if len(deployment.Labels) == 0 {
-										return genericLabels
-									}
-									for key, value := range deployment.Labels {
-										genericLabels[key] = value
-									}
-									return genericLabels
-								}(),
-								Annotations: deployment.Annotations,
-							},
-							Spec: func() appsv1.DeploymentSpec {
-								return *deployment.Spec.DeepCopy()
-							}(),
-						}
-						mc.Deployments = append(mc.Deployments, deploy)
-
-						// Capture any image pull secrets
-						for _, secret := range deploy.Spec.Template.Spec.ImagePullSecrets {
-							addSecret(mc, secret.Name, namespace)
-						}
-
-						// Capture any secrets referenced in container env variables
-						// TODO: need to work out how to handle optional secret refs
-						for _, container := range deploy.Spec.Template.Spec.Containers {
-							for _, env := range container.Env {
-								if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil {
-									addSecret(mc, env.ValueFrom.SecretKeyRef.Name, namespace)
+					// Create k8s deployment for genericComponent
+					// TODO: move to genericComponent.go
+					deploy := &appsv1.Deployment{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      generic.Name,
+							Namespace: namespace,
+							Labels:    genericLabels,
+						},
+						Spec: appsv1.DeploymentSpec{
+							Replicas: func() *int32 {
+								if generic.Replicas == nil {
+									return util.NewVal(1)
 								}
-							}
-						}
+								return generic.Replicas
+							}(),
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"verrazzano.name": generic.Name,
+								},
+							},
+							Template: corev1.PodTemplateSpec{
+								ObjectMeta: metav1.ObjectMeta{
+									Labels: map[string]string{
+										"verrazzano.name": generic.Name,
+									},
+								},
+								Spec: generic.Deployment,
+							},
+						},
+					}
+					mc.Deployments = append(mc.Deployments, deploy)
+
+					// Create k8s service for genericComponent
+					// TODO: move to genericComponent.go
+					service := &corev1.Service{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      generic.Name,
+							Namespace: namespace,
+							Labels:    genericLabels,
+						},
+						Spec: corev1.ServiceSpec{
+							Selector: map[string]string{
+								"verrazzano.name": generic.Name,
+							},
+							Ports: []corev1.ServicePort{},
+							Type:  corev1.ServiceTypeClusterIP,
+						},
 					}
 
-					// Create config map for genericComponent
-					for _, configMap := range generic.ConfigMaps {
-						// TODO: move to genericComponent.go
-						cm := &corev1.ConfigMap{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:      configMap.Name,
-								Namespace: namespace,
-								Labels: func() map[string]string {
-									if len(configMap.Labels) == 0 {
-										return genericLabels
-									}
-									for key, value := range configMap.Labels {
-										genericLabels[key] = value
-									}
-									return genericLabels
-								}(),
-								Annotations: configMap.Annotations,
-							},
-							Data: func() map[string]string {
-								if len(configMap.Data) == 0 {
-									return nil
-								}
-								return configMap.Data
-							}(),
-							BinaryData: func() map[string][]byte {
-								if len(configMap.BinaryData) == 0 {
-									return nil
-								}
-								return configMap.BinaryData
-							}(),
-							Immutable: configMap.Immutable,
+					// Add all container ports to the k8s service
+					for _, container := range generic.Deployment.Containers {
+						for _, port := range container.Ports {
+							sp := corev1.ServicePort{
+								Name:     port.Name,
+								Protocol: port.Protocol,
+								Port:     port.ContainerPort,
+							}
+							service.Spec.Ports = append(service.Spec.Ports, sp)
 						}
-						mc.ConfigMaps = append(mc.ConfigMaps, cm)
+					}
+					mc.Services = append(mc.Services, service)
+
+					// Capture any image pull secrets
+					for _, secret := range deploy.Spec.Template.Spec.ImagePullSecrets {
+						addSecret(mc, secret.Name, namespace)
+					}
+
+					// Capture any secrets referenced in container env variables
+					// TODO: need to work out how to handle optional secret refs
+					for _, container := range deploy.Spec.Template.Spec.Containers {
+						for _, env := range container.Env {
+							if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil {
+								addSecret(mc, env.ValueFrom.SecretKeyRef.Name, namespace)
+							}
+						}
 					}
 				}
 			}

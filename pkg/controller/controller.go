@@ -490,7 +490,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 		glog.Errorf("Failed to create service entries for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
-	// Create Service for Node Exporter
+	// Create Services
 	err = managed.CreateServices(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create service for binding %s: %v", mbPair.Binding.Name, err)
@@ -876,7 +876,7 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 		glog.Errorf("Failed to delete prometheus-pusher for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
-	// Delete Namespaces - this will also cleanup any deployments, Ingresses,
+	// Delete Namespaces - this will also cleanup any Ingresses,
 	// ServiceEntries, ServiceAccounts, ConfigMaps and Secrets within the namespace
 	err = managed.DeleteNamespaces(mbPair, c.managedClusterConnections, true)
 	if err != nil {
