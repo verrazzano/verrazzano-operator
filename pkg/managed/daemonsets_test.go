@@ -4,7 +4,6 @@ package managed
 
 import (
 	"context"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
@@ -20,11 +19,11 @@ import (
 const verrazzanoURI = "test"
 const clusterName1 = "cluster1"
 
-// TestCreateDaemonSets tests the creation of daemon sets
+// TestCreateDaemonSets tests that the creation of daemon sets is skipped when the binding name
+// does not equal 'system'... CreateDaemonSets skips creating Daemon sets if binding is not System binding
 // GIVEN a cluster which does not have any daemon sets
 //  WHEN I call CreateDaemonSets with a binding named 'testBinding'
 //  THEN there should be no daemon sets created
-// assert that if binding is not System binding, skip creating Daemon sets
 func TestCreateDaemonSets(t *testing.T) {
 	assert := assert.New(t)
 
@@ -33,16 +32,13 @@ func TestCreateDaemonSets(t *testing.T) {
 	clusterConnection := clusterConnections[clusterName1]
 
 	err := CreateDaemonSets(modelBindingPair, clusterConnections, "test")
-	if err != nil {
-		t.Fatalf("got an error from CreateDaemonSets: %v", err)
-	}
+	assert.Nil(err, "got an error from CreateDaemonSets: %v", err)
 	lister := clusterConnection.DaemonSetLister
 
 	selector := labels.Everything()
 	sets, err := lister.List(selector)
-	if err != nil {
-		t.Fatal(fmt.Sprintf("can't get daemon sets: %v", err))
-	}
+	assert.Nil(err, "can't get daemon sets: %v", err)
+
 	// assert creating Daemon sets was skipped
 	assert.Empty(sets, "expected no deamon sets")
 }
@@ -52,6 +48,7 @@ func TestCreateDaemonSets(t *testing.T) {
 //  WHEN I call CreateDaemonSets with a binding named 'system'
 //  THEN there should be a set of system daemon sets created for the specified ManagedCluster
 func TestCreateDaemonSetsVmiSystem(t *testing.T) {
+	assert := assert.New(t)
 
 	modelBindingPair := testutil.GetModelBindingPair()
 	clusterConnections := testutil.GetManagedClusterConnections()
@@ -60,9 +57,8 @@ func TestCreateDaemonSetsVmiSystem(t *testing.T) {
 	modelBindingPair.Binding.Name = constants.VmiSystemBindingName
 
 	err := CreateDaemonSets(modelBindingPair, clusterConnections, verrazzanoURI)
-	if err != nil {
-		t.Fatalf("got an error from CreateDaemonSets: %v", err)
-	}
+	assert.Nil(err, "got an error from CreateDaemonSets: %v", err)
+
 	// assert that the daemon sets in the given cluster match the expected daemon sets
 	assertExpectedDaemonSets(t, clusterConnection, monitoring.SystemDaemonSets(clusterName1, verrazzanoURI))
 }
@@ -73,6 +69,8 @@ func TestCreateDaemonSetsVmiSystem(t *testing.T) {
 //  WHEN I call CreateDaemonSets with a binding named 'system'
 //  THEN there should be a set of system daemon sets;  2 created & 1 updated(filebeat) for the specified ManagedCluster
 func TestCreateDaemonSetsUpdateExistingSet(t *testing.T) {
+	assert := assert.New(t)
+
 	modelBindingPair := testutil.GetModelBindingPair()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections[clusterName1]
@@ -86,14 +84,11 @@ func TestCreateDaemonSetsUpdateExistingSet(t *testing.T) {
 		},
 	}
 	_, err := clusterConnection.KubeClient.AppsV1().DaemonSets("logging").Create(context.TODO(), &ds, metav1.CreateOptions{})
-	if err != nil {
-		t.Fatal(fmt.Sprintf("can't create daemon sets: %v", err))
-	}
+	assert.Nil(err, "can't create daemon sets: %v", err)
 
 	err = CreateDaemonSets(modelBindingPair, clusterConnections, verrazzanoURI)
-	if err != nil {
-		t.Fatalf("got an error from CreateDaemonSets: %v", err)
-	}
+	assert.Nil(err, "got an error from CreateDaemonSets: %v", err)
+
 	// assert that the daemon sets in the given cluster match the expected daemon sets
 	assertExpectedDaemonSets(t, clusterConnection, monitoring.SystemDaemonSets(clusterName1, verrazzanoURI))
 }
@@ -106,9 +101,7 @@ func assertExpectedDaemonSets(t *testing.T, clusterConnection *util.ManagedClust
 	lister := clusterConnection.DaemonSetLister
 	selector := labels.Everything()
 	daemonSets, err := lister.List(selector)
-	if err != nil {
-		t.Fatal(fmt.Sprintf("can't get daemon sets: %v", err))
-	}
+	assert.Nil(err, "can't get daemon sets: %v", err)
 
 	// assert that the daemon sets from the cluster match the expected
 	assert.Len(daemonSets, len(expectedDaemonSets), "can't match the expected daemon sets")
@@ -121,8 +114,6 @@ func assertExpectedDaemonSets(t *testing.T, clusterConnection *util.ManagedClust
 				break
 			}
 		}
-		if !matched {
-			t.Fatalf("can't match the expected daemon set %v", expected)
-		}
+		assert.True(matched, "can't match the expected daemon set %v", expected)
 	}
 }

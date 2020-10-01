@@ -607,20 +607,13 @@ type simpleDaemonSetLister struct {
 	kubeClient kubernetes.Interface
 }
 
-// GetPodDaemonSets returns a list of DaemonSets that potentially match a pod.
-// Only the one specified in the Pod's ControllerRef will actually manage it.
-// Returns an error only if no matching DaemonSets are found.
+// GetPodDaemonSets is not currently needed for testing.  Leaving unimplemented.
 func (s *simpleDaemonSetLister) GetPodDaemonSets(pod *v1.Pod) ([]*appsv1.DaemonSet, error) {
-	// not currently needed for testing
 	panic("not currently supported")
 }
 
-// GetHistoryDaemonSets returns a list of DaemonSets that potentially
-// match a ControllerRevision. Only the one specified in the ControllerRevision's ControllerRef
-// will actually manage it.
-// Returns an error only if no matching DaemonSets are found.
+// GetHistoryDaemonSets is not currently needed for testing.  Leaving unimplemented.
 func (s *simpleDaemonSetLister) GetHistoryDaemonSets(history *appsv1.ControllerRevision) ([]*appsv1.DaemonSet, error) {
-	// not currently needed for testing
 	panic("not currently supported")
 }
 
