@@ -4823,7 +4823,7 @@ github.com/docker/libtrust
 Code and documentation copyright 2014 Docker, inc. Code released under the Apache 2.0 license.
 
 -------- Dependency
-github.com/docker/spdystream [uses Creative Commons license for doc, included at the end of this file]
+github.com/docker/spdystream [uses Creative Commons license for doc - see CC license at end of file]
 -------- Copyrights
    Copyright 2014-2015 Docker, Inc.
 Copyright © 2014-2015 Docker, Inc. All rights reserved, except as follows. Code is released under the Apache 2.0 license. The README.md file, and files in the "docs" folder are licensed under the Creative Commons Attribution 4.0 International License under the terms and conditions set forth in the file "LICENSE.docs". You may obtain a duplicate copy of the same license, titled CC-BY-SA-4.0, at http://creativecommons.org/licenses/by/4.0/.
@@ -8867,7 +8867,6 @@ golang.org/x/mod
 Copyright (c) 2009 The Go Authors. All rights reserved.
 // Copyright 2019 The Go Authors. All rights reserved.
 // Copyright 2018 The Go Authors. All rights reserved.
-// Copyright 2020 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
 
@@ -9544,7 +9543,7 @@ github.com/armon/circbuf
 Copyright (c) 2013 Armon Dadgar
 
 -------- Dependency
-github.com/armon/go-metrics [uses Creative Commons license for doc, included at the end of this file]
+github.com/armon/go-metrics [uses Creative Commons license for doc - see CC license at end of file]
 -------- Copyrights
 Copyright (c) 2013 Armon Dadgar
 
@@ -9772,11 +9771,6 @@ Copyright (c) 2016 Matthias Kadenbach
 Copyright (c) 2018 Dale Hui
 
 -------- Dependency
-github.com/gordonklaus/ineffassign
--------- Copyrights
-Copyright (c) 2016 Gordon Klaus and contributors
-
--------- Dependency
 github.com/gosuri/uitable
 -------- Copyrights
 Copyright (c) 2015, Greg Osuri
@@ -9944,7 +9938,6 @@ Portions Copyright (C) 2011 Blake Mizerany
 -------- Dependency
 github.com/lightstep/lightstep-tracer-common/golang/gogo
 -------- Copyrights
-Copyright (c) 2015-2019 LightStep
 
 -------- Dependency
 github.com/lightstep/lightstep-tracer-go
@@ -10493,7 +10486,6 @@ github.com/gobuffalo/packd
 github.com/gobuffalo/packr/v2
 github.com/gobwas/glob
 github.com/golang-migrate/migrate/v4
-github.com/gordonklaus/ineffassign
 github.com/gosuri/uitable
 github.com/hailocab/go-hostpool
 github.com/hashicorp/go-hclog
@@ -11200,14 +11192,8 @@ github.com/go-bindata/go-bindata/v3
 -------- Copyrights
 	return fmt.Sprintf("%s %d.%d.%s (Go runtime %s).\nCopyright (c) 2010-2013, Jim Teeuwen.",
 
--------- Dependency
-github.com/jteeuwen/go-bindata
--------- Copyrights
-	return fmt.Sprintf("%s %d.%d.%s (Go runtime %s).\nCopyright (c) 2010-2013, Jim Teeuwen.",
-
 ======== Dependencies Summary
 github.com/go-bindata/go-bindata/v3
-github.com/jteeuwen/go-bindata
 
 ======== License used by Dependencies
 This work is subject to the CC0 1.0 Universal (CC0 1.0) Public Domain Dedication
@@ -11788,4 +11774,4 @@ Creative Commons may be contacted at creativecommons.org.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: ab132dd5a710147bd774529cf9e839c4
+License file based on go.mod with md5 sum: 9a6bacedd1b606f12ade631e5167fc9d
