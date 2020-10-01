@@ -16,6 +16,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// TestCreateHelidonAppCR tests the creation of HelidonApp
+// GIVEN a ModelBindingPair with a VerrazzanoHelidonBinding in VerrazzanoBinding
+//  WHEN CreateHelidonAppCR is called with a VerrazzanoHelidon and the ModelBindingPair
+//  THEN there should be a HelidonApp created for the specified VerrazzanoHelidon
 func TestCreateHelidonAppCR(t *testing.T) {
 	mcName, namespace, appName := "myCluster", "myNs", "myHelidonApp"
 	vzHelidon := vz.VerrazzanoHelidon{Name: appName}
@@ -37,6 +41,10 @@ func TestCreateHelidonAppCR(t *testing.T) {
 	assert.Equal(t, int32(targetPort), helidonApp.Spec.TargetPort, "Expected TargetPort")
 }
 
+// TestCreateHelidonAppWithCoherenceCluster tests the creation of HelidonApp with VerrazzanoCoherenceCluster
+// GIVEN a ModelBindingPair with VerrazzanoCoherenceCluster in VerrazzanoModel and a VerrazzanoHelidonBinding in VerrazzanoBinding
+//  WHEN CreateHelidonAppCR is called with a VerrazzanoHelidon and the ModelBindingPair
+//  THEN there should be a HelidonApp created with coherence env vars
 func TestCreateHelidonAppWithCoherenceCluster(t *testing.T) {
 	mcName, namespace, appName := "myCluster", "myNs", "myHelidonApp"
 	vzHelidon := vz.VerrazzanoHelidon{Name: appName}
@@ -62,6 +70,10 @@ func TestCreateHelidonAppWithCoherenceCluster(t *testing.T) {
 	assert.NotNil(t, findEnv(helidonApp.Spec.Env, myEnvVar.Name))
 }
 
+// TestCreateHelidonAppWithWrongCoherenceCluster tests the creation of HelidonApp witn an invalid VerrazzanoCoherenceConnection
+// GIVEN a ModelBindingPair with VerrazzanoCoherenceCluster in VerrazzanoModel and a VerrazzanoHelidonBinding in VerrazzanoBinding
+//  WHEN CreateHelidonAppCR is called with a VerrazzanoHelidon witn an invalid VerrazzanoCoherenceConnection
+//  THEN there should be a HelidonApp created without coherence env vars
 func TestCreateHelidonAppWithWrongCoherenceCluster(t *testing.T) {
 	mcName, namespace, appName := "myCluster", "myNs", "myHelidonApp"
 	vzHelidon := vz.VerrazzanoHelidon{Name: appName}
