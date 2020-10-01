@@ -31,10 +31,12 @@ func TestEnableCors(t *testing.T) {
 		expectedAllowOrigin string
 		args                args
 	}{
-		{"With Verrazzano URI set", "https://console.somesuffix.xip.io",
+		{"Verrazzano URI is set", "https://console.somesuffix.xip.io",
 			"https://console.somesuffix.xip.io",
 			args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
 		{"Without Verrazzano URI set", "http://localhost",
+			"", args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
+		{"Without Verrazzano URI set and different port Origin", "http://localhost:8000",
 			"", args{verrazzanoURI: "", writer: http.ResponseWriter(httptest.NewRecorder())}},
 		{"Origin does not match", "http://localhost",
 			"", args{verrazzanoURI: "somesuffix.xip.io", writer: http.ResponseWriter(httptest.NewRecorder())}},
@@ -106,24 +108,22 @@ func Test_getAllowedOrigin(t *testing.T) {
 	vzURI := "something.v8o.oracledx.com"
 	defaultExpectedValue := fmt.Sprintf("https://console.%s", vzURI)
 	tests := []struct {
-		name              string
-		origin            string
-		additionalOrigins []string
-		originAllowed     bool
+		name             string
+		origin           string
+		additionalOrigin string
+		originAllowed    bool
 	}{
-		{"origin matches default", defaultExpectedValue, []string{}, true},
-		{"origin matches default with additional origin", defaultExpectedValue, []string{"http://localhost:8000"}, true},
-		{"origin matches single additional origin", "http://localhost:8000", []string{"http://localhost:8000"}, true},
-		{"origin matches one of additional origins", "http://localhost:8888", []string{"http://localhost:8000", "http://localhost:8888"}, true},
-		{"origin matches default with multiple additional origins", defaultExpectedValue, []string{"http://localhost:8000", "http://localhost:8888"}, true},
-		{"negative test origin matches none", "http://somethingelse", []string{"http://localhost:8000", "http://localhost:8888"}, false},
-		{"negative test origin does not match default", "http://somethingelse", []string{}, false},
+		{"origin matches default", defaultExpectedValue, "", true},
+		{"origin matches default with additional origin", defaultExpectedValue, "http://localhost:8000", true},
+		{"origin matches additional origin", "http://localhost:8000", "http://localhost:8000", true},
+		{"negative test origin matches none", "http://somethingelse", "http://localhost:8000", false},
+		{"negative test origin does not match default", "http://somethingelse", "", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// GIVEN the verrazzano URI suffix and an ACCESS_CONTROL_ALLOW_ORIGINS override env var
 			instance.SetVerrazzanoURI(vzURI)
-			os.Setenv("ACCESS_CONTROL_ALLOW_ORIGINS", strings.Join(tt.additionalOrigins, ", "))
+			os.Setenv("ACCESS_CONTROL_ALLOW_ORIGIN", tt.additionalOrigin)
 
 			// WHEN getAllowedOrigin is called for a origin value
 			actualOrigin := getAllowedOrigin(tt.origin)

@@ -32,7 +32,7 @@ const grafanaRequestMemory = "GRAFANA_REQUEST_MEMORY"
 const prometheusRequestMemory = "PROMETHEUS_REQUEST_MEMORY"
 const kibanaRequestMemory = "KIBANA_REQUEST_MEMORY"
 const esMasterNodeReplicas = "ES_MASTER_NODE_REPLICAS"
-const accessControlAllowOrigins = "ACCESS_CONTROL_ALLOW_ORIGINS"
+const accessControlAllowOrigin = "ACCESS_CONTROL_ALLOW_ORIGIN"
 
 func getCohMicroImage() string {
 	return os.Getenv(cohMicroImage)
@@ -142,6 +142,6 @@ func GetElasticsearchMasterNodeReplicas() int32 {
 
 // GetAccessControlAllowOrigins returns the additional allowed origins for API requests - these
 // will be added to the Access-Control-Allow-Origins response header of the API
-func GetAccessControlAllowOrigins() string {
-	return os.Getenv(accessControlAllowOrigins)
+func GetAccessControlAllowOrigin() string {
+	return os.Getenv(accessControlAllowOrigin)
 }

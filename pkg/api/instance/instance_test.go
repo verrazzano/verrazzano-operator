@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const urlTemp = "https://%v.%v"
+const urlTemplate = "https://%v.%v"
 
 const vzURI = "abc.v8o.example.com"
 
@@ -90,7 +90,7 @@ func TestGetConsoleURL(t *testing.T) {
 func runURLTestWithExpectedPrefix(t *testing.T, tt uriTest, methodUnderTest func() string, expectedURLPrefix string) {
 	//GIVEN the verrazzano URI is set
 	SetVerrazzanoURI(tt.verrazzanoURI)
-	expectedURL := fmt.Sprintf(urlTemp, expectedURLPrefix, vzURI)
+	expectedURL := fmt.Sprintf(urlTemplate, expectedURLPrefix, vzURI)
 	if expectedURLPrefix == "" {
 		expectedURL = ""
 	}
@@ -102,7 +102,7 @@ func runURLTestWithExpectedPrefix(t *testing.T, tt uriTest, methodUnderTest func
 		vzURI2 := fmt.Sprintf("changed.%v", tt.verrazzanoURI)
 		//GIVEN the verrazzano URI is changed
 		SetVerrazzanoURI(vzURI2)
-		expectedURL = fmt.Sprintf(urlTemp, expectedURLPrefix, vzURI2)
+		expectedURL = fmt.Sprintf(urlTemplate, expectedURLPrefix, vzURI2)
 
 		//WHEN methodUnderTest is called, THEN assert the value changes as expected
 		assert.Equal(t, expectedURL, methodUnderTest(), "URL not as expected after changing Verrazzano URI")

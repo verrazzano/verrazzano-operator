@@ -81,7 +81,7 @@ func getVersion() string {
 	return "0.1.0"
 }
 
-// Derive the URL from the verrazzano URI by replacing the 'api' segment
+// Derive the URL from the verrazzano URI by prefixing with the given URL segment
 func deriveURL(s string) string {
 	if len(strings.TrimSpace(verrazzanoURI)) > 0 {
 		return "https://" + s + "." + verrazzanoURI

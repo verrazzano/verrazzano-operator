@@ -5,7 +5,6 @@ package apiserver
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 
@@ -29,17 +28,13 @@ func SetupOptionsResponse(w *http.ResponseWriter, req *http.Request) {
 	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 }
 
+// getAllowedOrigin returns the value to be used for the Access-Control-Allow-Origin response header
+// based on whether or not an additional allowed origin is set
 func getAllowedOrigin(origin string) string {
 	consoleURL := instance.GetConsoleURL()
-	additionalOrigins := util.GetAccessControlAllowOrigins()
-	var allOrigins []string = []string{consoleURL}
-	if additionalOrigins != "" {
-		allOrigins = append(allOrigins, strings.Split(additionalOrigins, ", ")...)
-	}
-	for _, allowedOrigin := range allOrigins {
-		if strings.TrimSpace(allowedOrigin) == strings.TrimSpace(origin) {
-			return origin
-		}
+	additionalOrigin := util.GetAccessControlAllowOrigin()
+	if consoleURL == origin || additionalOrigin == origin {
+		return origin
 	}
 	return ""
 }
