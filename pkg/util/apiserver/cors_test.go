@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/api/instance"
@@ -160,7 +162,13 @@ func Test_getAllowedOrigin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// GIVEN the verrazzano URI suffix and an ACCESS_CONTROL_ALLOW_ORIGINS override env var
 			instance.SetVerrazzanoURI(vzURI)
-			os.Setenv("ACCESS_CONTROL_ALLOW_ORIGIN", tt.additionalOrigin)
+			util.GetEnvFunc = func(key string) string {
+				if key == "ACCESS_CONTROL_ALLOW_ORIGIN" {
+					return tt.additionalOrigin
+				} else {
+					return os.Getenv(key)
+				}
+			}
 
 			// WHEN getAllowedOrigin is called for a origin value
 			actualOrigin := getAllowedOrigin(tt.origin)
@@ -172,7 +180,6 @@ func Test_getAllowedOrigin(t *testing.T) {
 			} else {
 				assert.Empty(t, actualOrigin)
 			}
-			os.Unsetenv("ACCESS_CONTROL_ALLOW_ORIGINS")
 		})
 	}
 }
