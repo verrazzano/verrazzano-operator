@@ -316,7 +316,9 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 								}(),
 								Annotations: deployment.Annotations,
 							},
-							Spec: deployment.Spec,
+							Spec: func() appsv1.DeploymentSpec {
+								return *deployment.Spec.DeepCopy()
+							}(),
 						}
 						mc.Deployments = append(mc.Deployments, deploy)
 

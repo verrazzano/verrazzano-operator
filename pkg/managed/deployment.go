@@ -46,10 +46,14 @@ func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterCo
 				continue
 			}
 		} else {
-			deployments, err = newDeployments(mbPair.Binding, managedClusterObj, manifest, verrazzanoURI, sec)
+			deployments, err = newSystemDeployments(mbPair.Binding, managedClusterObj, manifest, verrazzanoURI, sec)
 			if err != nil {
 				glog.Errorf("Error creating new deployments %v", err)
 				continue
+			}
+			// Add deployments from genericComponents
+			for _, deployment := range managedClusterObj.Deployments {
+				deployments = append(deployments, deployment)
 			}
 		}
 
@@ -77,8 +81,8 @@ func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterCo
 	return nil
 }
 
-// Constructs the necessary Deployments for the specified ManagedCluster in the given VerrazzanoBinding
-func newDeployments(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.ManagedCluster, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
+// Constructs the necessary Verrazzano system deployments for the specified ManagedCluster in the given VerrazzanoBinding
+func newSystemDeployments(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.ManagedCluster, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
 	managedNamespace := util.GetManagedClusterNamespaceForSystem()
 	deployPromPusher := true //temporary variable to create pusher deployment
 	depLabels := util.GetManagedLabelsNoBinding(managedCluster.Name)
