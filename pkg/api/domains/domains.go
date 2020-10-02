@@ -179,9 +179,15 @@ func ReturnSingleDomain(w http.ResponseWriter, r *http.Request) {
 
 	glog.V(4).Info("GET /domains/" + key)
 
+	var found bool
 	for _, domains := range Domains {
 		if domains.ID == key {
+			found = true
 			json.NewEncoder(w).Encode(domains)
 		}
+	}
+
+	if !found {
+		w.WriteHeader(http.StatusNotFound)
 	}
 }
