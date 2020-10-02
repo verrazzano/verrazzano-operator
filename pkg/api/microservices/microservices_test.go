@@ -58,13 +58,24 @@ func TestReturnAllMicroservices(t *testing.T) {
 			ReturnAllMicroservices(resp, httptest.NewRequest("GET", "/microservices", nil))
 			assert.Equal(http.StatusOK, resp.Code, "expect the http return code to be http.StatusOk")
 			json.NewDecoder(resp.Body).Decode(&myMicroservices)
-			assert.Len(myMicroservices, 2, "expect returned MicroServices Array to have 2 entries")
-			assert.Equal("HelidonApp1", myMicroservices[0].Name, "expect Helidon App Name to be HelidonApp1")
-			assert.Equal("cluster1", myMicroservices[0].Cluster, "expect Helidon App Cluster Name to be cluster1")
-			assert.Equal("defaultOnMC1", myMicroservices[0].Namespace, "expect Helidon App Namespace to be defaultOnMC1")
-			assert.Equal("HelidonApp2", myMicroservices[1].Name, "expect Helidon App Name to be HelidonApp2")
-			assert.Equal("cluster2", myMicroservices[1].Cluster, "expect Helidon App Cluster Name to be cluster2")
-			assert.Equal("defaultOnMC2", myMicroservices[1].Namespace, "expect Helidon App Namespace to be defaultOnMC2")
+			// assert that the returned microservices match the expected microservices
+			expectedMicroservices := []Microservice{
+				{Cluster: "cluster1", Name: "HelidonApp1", Namespace: "defaultOnMC1"},
+				{Cluster: "cluster2", Name: "HelidonApp2", Namespace: "defaultOnMC2"},
+			}
+			assert.Len(myMicroservices, len(expectedMicroservices), "expect returned MicroServices Array to have %d entries", len(expectedMicroservices))
+
+			for _, expectedMicroservice := range expectedMicroservices {
+				found := false
+				for _, microservice := range myMicroservices {
+					if expectedMicroservice.Name == microservice.Name && expectedMicroservice.Namespace == microservice.Namespace &&
+						expectedMicroservice.Cluster == microservice.Cluster {
+						found = true
+						break
+					}
+				}
+				assert.True(found, "didn't find expected microservice %v", expectedMicroservice)
+			}
 		})
 	}
 }
