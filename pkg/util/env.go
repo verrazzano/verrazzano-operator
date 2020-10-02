@@ -11,6 +11,10 @@ import (
 )
 
 // This file contains all of the env vars used by the Verrazzano Operator
+
+// GetEnvFunc stores the GetEnv function in a variable, so that tests can override it
+var GetEnvFunc = os.Getenv
+
 // Define the ENV vars
 
 const cohMicroImage = "COH_MICRO_IMAGE"
@@ -32,37 +36,38 @@ const grafanaRequestMemory = "GRAFANA_REQUEST_MEMORY"
 const prometheusRequestMemory = "PROMETHEUS_REQUEST_MEMORY"
 const kibanaRequestMemory = "KIBANA_REQUEST_MEMORY"
 const esMasterNodeReplicas = "ES_MASTER_NODE_REPLICAS"
+const accessControlAllowOrigin = "ACCESS_CONTROL_ALLOW_ORIGIN"
 
 func getCohMicroImage() string {
-	return os.Getenv(cohMicroImage)
+	return GetEnvFunc(cohMicroImage)
 }
 
 func getHelidonMicroImage() string {
-	return os.Getenv(helidonMicroImage)
+	return GetEnvFunc(helidonMicroImage)
 }
 
 func getWlsMicroImage() string {
-	return os.Getenv(wlsMicroImage)
+	return GetEnvFunc(wlsMicroImage)
 }
 
 // GetPromtheusPusherImage returns the Prometheus Pusher image.
 func GetPromtheusPusherImage() string {
-	return os.Getenv(prometheusPusherImage)
+	return GetEnvFunc(prometheusPusherImage)
 }
 
 // GetNodeExporterImage returns the Node Exporter image.
 func GetNodeExporterImage() string {
-	return os.Getenv(nodeExporterImage)
+	return GetEnvFunc(nodeExporterImage)
 }
 
 // GetFilebeatImage returns the Filebeats image.
 func GetFilebeatImage() string {
-	return os.Getenv(filebeatImage)
+	return GetEnvFunc(filebeatImage)
 }
 
 // GetJournalbeatImage returns the Journabeats image.
 func GetJournalbeatImage() string {
-	return os.Getenv(journalbeatImage)
+	return GetEnvFunc(journalbeatImage)
 }
 
 // GetTestWlsFrontendImage returns a dummy application image for tests.
@@ -72,62 +77,62 @@ func GetTestWlsFrontendImage() string {
 
 // GetWeblogicOperatorImage returns the WebLogic Kubernetes Operator image.
 func GetWeblogicOperatorImage() string {
-	return os.Getenv(weblogicOperatorImage)
+	return GetEnvFunc(weblogicOperatorImage)
 }
 
 // GetFluentdImage returns the Fluentd image.
 func GetFluentdImage() string {
-	return os.Getenv(fluentdImage)
+	return GetEnvFunc(fluentdImage)
 }
 
 // GetCohMicroRequestMemory returns the Coherence micro operator memory request resource.
 func GetCohMicroRequestMemory() string {
-	return os.Getenv(cohMicroRequestMemory)
+	return GetEnvFunc(cohMicroRequestMemory)
 }
 
 // GetHelidonMicroRequestMemory returns the Helidon App micro operator memory request resource.
 func GetHelidonMicroRequestMemory() string {
-	return os.Getenv(helidonMicroRequestMemory)
+	return GetEnvFunc(helidonMicroRequestMemory)
 }
 
 // GetWlsMicroRequestMemory returns the Weblogic micro operator memory request resource.
 func GetWlsMicroRequestMemory() string {
-	return os.Getenv(wlsMicroRequestMemory)
+	return GetEnvFunc(wlsMicroRequestMemory)
 }
 
 // GetElasticsearchMasterNodeRequestMemory returns the Elasticsearch master memory request resource.
 func GetElasticsearchMasterNodeRequestMemory() string {
-	return os.Getenv(esMasterNodeRequestMemory)
+	return GetEnvFunc(esMasterNodeRequestMemory)
 }
 
 // GetElasticsearchIngestNodeRequestMemory returns the Elasticsearch injest memory request resource.
 func GetElasticsearchIngestNodeRequestMemory() string {
-	return os.Getenv(esIngestNodeRequestMemory)
+	return GetEnvFunc(esIngestNodeRequestMemory)
 }
 
 // GetElasticsearchDataNodeRequestMemory returns the Elasticsearch data memory request resource.
 func GetElasticsearchDataNodeRequestMemory() string {
-	return os.Getenv(esDataNodeRequestMemory)
+	return GetEnvFunc(esDataNodeRequestMemory)
 }
 
 // GetGrafanaRequestMemory returns the Grafana memory request resource.
 func GetGrafanaRequestMemory() string {
-	return os.Getenv(grafanaRequestMemory)
+	return GetEnvFunc(grafanaRequestMemory)
 }
 
 // GetPrometheusRequestMemory returns the Prometheus memory request resource.
 func GetPrometheusRequestMemory() string {
-	return os.Getenv(prometheusRequestMemory)
+	return GetEnvFunc(prometheusRequestMemory)
 }
 
 // GetKibanaRequestMemory returns the Kibana memory request resource.
 func GetKibanaRequestMemory() string {
-	return os.Getenv(kibanaRequestMemory)
+	return GetEnvFunc(kibanaRequestMemory)
 }
 
 // GetElasticsearchMasterNodeReplicas returns the Elasticsearch master replicas.
 func GetElasticsearchMasterNodeReplicas() int32 {
-	value := os.Getenv(esMasterNodeReplicas)
+	value := GetEnvFunc(esMasterNodeReplicas)
 	if len(value) != 0 {
 		count, err := strconv.ParseInt(value, 10, 32)
 		if err != nil {
@@ -137,4 +142,10 @@ func GetElasticsearchMasterNodeReplicas() int32 {
 		}
 	}
 	return 3
+}
+
+// GetAccessControlAllowOrigin returns the additional allowed origins for API requests - these
+// will be added to the Access-Control-Allow-Origins response header of the API
+func GetAccessControlAllowOrigin() string {
+	return GetEnvFunc(accessControlAllowOrigin)
 }
