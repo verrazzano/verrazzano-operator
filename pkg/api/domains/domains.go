@@ -177,17 +177,15 @@ func ReturnSingleDomain(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /domains/" + key)
+	glog.V(4).Info("GET /domain/" + key)
 
-	var found bool
-	for _, domains := range Domains {
-		if domains.ID == key {
-			found = true
-			json.NewEncoder(w).Encode(domains)
+	for _, domain := range Domains {
+		if domain.ID == key {
+			json.NewEncoder(w).Encode(domain)
+			return
 		}
 	}
 
-	if !found {
-		w.WriteHeader(http.StatusNotFound)
-	}
+	w.WriteHeader(http.StatusNotFound)
+
 }
