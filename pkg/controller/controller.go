@@ -758,6 +758,18 @@ func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 		glog.Errorf("Failed to cleanup custom resources for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
+	// Cleanup Deployments for generic components
+	err = managed.CleanupOrphanedDeployments(mbPair, c.managedClusterConnections)
+	if err != nil {
+		glog.Errorf("Failed to cleanup deployments for binding %s: %v", mbPair.Binding.Name, err)
+	}
+
+	// Cleanup Services for generic components
+	err = managed.CleanupOrphanedServices(mbPair, c.managedClusterConnections)
+	if err != nil {
+		glog.Errorf("Failed to cleanup services for binding %s: %v", mbPair.Binding.Name, err)
+	}
+
 	// Cleanup ServiceEntries
 	err = managed.CleanupOrphanedServiceEntries(mbPair, c.managedClusterConnections)
 	if err != nil {
@@ -854,6 +866,20 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	err = managed.DeleteCustomResources(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to delete custom resources for binding %s: %v", mbPair.Binding.Name, err)
+		return
+	}
+
+	// Delete Deployments for generic components
+	err = managed.DeleteDeployments(mbPair, c.managedClusterConnections)
+	if err != nil {
+		glog.Errorf("Failed to delete deployments for binding %s: %v", mbPair.Binding.Name, err)
+		return
+	}
+
+	// Delete Services for generic components
+	err = managed.DeleteServices(mbPair, c.managedClusterConnections)
+	if err != nil {
+		glog.Errorf("Failed to delete services for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 

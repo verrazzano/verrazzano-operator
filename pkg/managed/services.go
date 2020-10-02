@@ -78,7 +78,7 @@ func DeleteServices(mbPair *types.ModelBindingPair, availableManagedClusterConne
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(util.GetManagedLabelsNoBinding(clusterName))
+		selector := labels.SelectorFromSet(util.GetManagedBindingLabels(mbPair.Binding, clusterName))
 
 		existingServiceList, err := managedClusterConnection.ServiceLister.List(selector)
 		if err != nil {
@@ -92,6 +92,76 @@ func DeleteServices(mbPair *types.ModelBindingPair, availableManagedClusterConne
 			}
 		}
 	}
+	return nil
+}
+
+// CleanupOrphanedServices deletes services that have been orphaned.  Services can be orphaned when a binding
+// has been changed to not require a service or the service was moved to a different cluster.
+func CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	glog.V(6).Infof("Cleaning up orphaned Services for VerrazzanoBinding %s", mbPair.Binding.Name)
+
+	// Get the managed clusters that this binding applies to
+	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+	if err != nil {
+		return nil
+	}
+	for clusterName, mc := range mbPair.ManagedClusters {
+		managedClusterConnection := matchedClusters[clusterName]
+		managedClusterConnection.Lock.RLock()
+		defer managedClusterConnection.Lock.RUnlock()
+
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+
+		// Get the set of expected Service names
+		var serviceNames []string
+		for _, service := range mc.Services {
+			serviceNames = append(serviceNames, service.Name)
+		}
+
+		// Get list of Services that exist for this cluster and given binding
+		existingServiceList, err := managedClusterConnection.ServiceLister.List(selector)
+		if err != nil {
+			return err
+		}
+
+		// Delete any Services not expected on this cluster
+		for _, service := range existingServiceList {
+			if !util.Contains(serviceNames, service.Name) {
+				glog.V(4).Infof("Deleting Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
+				err := managedClusterConnection.KubeClient.CoreV1().Services(service.Namespace).Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	// Get the managed clusters that this binding does NOT apply to
+	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+
+	for clusterName, managedClusterConnection := range unmatchedClusters {
+		managedClusterConnection.Lock.RLock()
+		defer managedClusterConnection.Lock.RUnlock()
+
+		// Get rid of any Services with the specified binding
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+
+		// Get list of Services for this cluster and given binding
+		existingServiceList, err := managedClusterConnection.ServiceLister.List(selector)
+		if err != nil {
+			return err
+		}
+
+		// Delete these Services since they are no longer needed on this cluster.
+		for _, service := range existingServiceList {
+			glog.V(4).Infof("Deleting Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
+			err := managedClusterConnection.KubeClient.CoreV1().Services(service.Namespace).Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 

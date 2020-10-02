@@ -95,7 +95,7 @@ func DeleteDeployments(mbPair *types.ModelBindingPair, availableManagedClusterCo
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(util.GetManagedLabelsNoBinding(clusterName))
+		selector := labels.SelectorFromSet(util.GetManagedBindingLabels(mbPair.Binding, clusterName))
 
 		existingDeploymentList, err := managedClusterConnection.DeploymentLister.List(selector)
 		if err != nil {
@@ -109,6 +109,77 @@ func DeleteDeployments(mbPair *types.ModelBindingPair, availableManagedClusterCo
 			}
 		}
 	}
+	return nil
+}
+
+// CleanupOrphanedDeployments deletes deployments that have been orphaned.   Deployments can be orphaned when a binding
+// has been changed to not require a deployment or the deployment was moved to a different cluster.
+func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	glog.V(6).Infof("Cleaning up orphaned Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
+
+	// Get the managed clusters that this binding applies to
+	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+	if err != nil {
+		return nil
+	}
+
+	for clusterName, mc := range mbPair.ManagedClusters {
+		managedClusterConnection := matchedClusters[clusterName]
+		managedClusterConnection.Lock.RLock()
+		defer managedClusterConnection.Lock.RUnlock()
+
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+
+		// Get the set of expected Deployment names
+		var deploymentNames []string
+		for _, deployment := range mc.Deployments {
+			deploymentNames = append(deploymentNames, deployment.Name)
+		}
+
+		// Get list of Deployments that exist for this cluster and given binding
+		existingDeploymentList, err := managedClusterConnection.DeploymentLister.List(selector)
+		if err != nil {
+			return err
+		}
+
+		// Delete any Deployments not expected on this cluster
+		for _, deployment := range existingDeploymentList {
+			if !util.Contains(deploymentNames, deployment.Name) {
+				glog.V(4).Infof("Deleting Deployment %s:%s in cluster %s", deployment.Namespace, deployment.Name, clusterName)
+				err := managedClusterConnection.KubeClient.AppsV1().Deployments(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{})
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	// Get the managed clusters that this binding does NOT apply to
+	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+
+	for clusterName, managedClusterConnection := range unmatchedClusters {
+		managedClusterConnection.Lock.RLock()
+		defer managedClusterConnection.Lock.RUnlock()
+
+		// Get rid of any Deployments with the specified binding
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+
+		// Get list of Deployments for this cluster and given binding
+		existingDeploymentList, err := managedClusterConnection.DeploymentLister.List(selector)
+		if err != nil {
+			return err
+		}
+
+		// Delete these Deployments since they are no longer needed on this cluster.
+		for _, deployment := range existingDeploymentList {
+			glog.V(4).Infof("Deleting Deployment %s:%s in cluster %s", deployment.Namespace, deployment.Name, clusterName)
+			err := managedClusterConnection.KubeClient.AppsV1().Deployments(deployment.Namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
