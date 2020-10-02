@@ -16,6 +16,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// TestCreateHelidonAppCR tests the creation of HelidonApp
+// GIVEN a ModelBindingPair with a VerrazzanoHelidonBinding in VerrazzanoBinding
+//  WHEN CreateHelidonAppCR is called with a VerrazzanoHelidon and the ModelBindingPair
+//  THEN there should be a HelidonApp created for the specified VerrazzanoHelidon
 func TestCreateHelidonAppCR(t *testing.T) {
 	mcName, namespace, appName := "myCluster", "myNs", "myHelidonApp"
 	vzHelidon := vz.VerrazzanoHelidon{Name: appName}
@@ -35,6 +39,54 @@ func TestCreateHelidonAppCR(t *testing.T) {
 	helidonApp = CreateHelidonAppCR(mcName, namespace, &vzHelidon, &mbPair, labels)
 	assert.Equal(t, int32(port), helidonApp.Spec.Port, "Expected Port")
 	assert.Equal(t, int32(targetPort), helidonApp.Spec.TargetPort, "Expected TargetPort")
+}
+
+// TestCreateHelidonAppWithCoherenceCluster tests the creation of HelidonApp with VerrazzanoCoherenceCluster
+// GIVEN a ModelBindingPair with VerrazzanoCoherenceCluster in VerrazzanoModel and a VerrazzanoHelidonBinding in VerrazzanoBinding
+//  WHEN CreateHelidonAppCR is called with a VerrazzanoHelidon and the ModelBindingPair
+//  THEN there should be a HelidonApp created with coherence env vars
+func TestCreateHelidonAppWithCoherenceCluster(t *testing.T) {
+	mcName, namespace, appName := "myCluster", "myNs", "myHelidonApp"
+	vzHelidon := vz.VerrazzanoHelidon{Name: appName}
+	mbPair := types.ModelBindingPair{Binding: &vz.VerrazzanoBinding{Spec: vz.VerrazzanoBindingSpec{}}}
+	mbPair.Binding.Spec.HelidonBindings = []vz.VerrazzanoHelidonBinding{{Name: appName}}
+	labels := make(map[string]string)
+	imgPullSec := corev1.LocalObjectReference{Name: "myImagePullSecret"}
+	vzHelidon.ImagePullSecrets = []corev1.LocalObjectReference{imgPullSec}
+	myEnvVar := corev1.EnvVar{Name: "myEnvVar", Value: "123"}
+	vzHelidon.Env = []corev1.EnvVar{myEnvVar}
+	cohCluster := vz.VerrazzanoCoherenceCluster{Name: "myCohCluster"}
+	vzHelidon.Connections = []vz.VerrazzanoConnections{{Coherence: []vz.VerrazzanoCoherenceConnection{{Target: cohCluster.Name}}}}
+	mbPair.Model = &vz.VerrazzanoModel{
+		Spec: vz.VerrazzanoModelSpec{CoherenceClusters: []vz.VerrazzanoCoherenceCluster{cohCluster}},
+	}
+	helidonApp := CreateHelidonAppCR(mcName, namespace, &vzHelidon, &mbPair, labels)
+	assert.Equal(t, 1, len(helidonApp.Spec.ImagePullSecrets), "Expected ImagePullSecrets size")
+	assert.Equal(t, imgPullSec.Name, helidonApp.Spec.ImagePullSecrets[0].Name, "Expected ImagePullSecret")
+	assert.Equal(t, 4, len(helidonApp.Spec.Env), "Expected EnvVars size")
+	assert.NotNil(t, findEnv(helidonApp.Spec.Env, envCohCluster))
+	assert.NotNil(t, findEnv(helidonApp.Spec.Env, envCohCacheConfig))
+	assert.NotNil(t, findEnv(helidonApp.Spec.Env, envCohPofConfig))
+	assert.NotNil(t, findEnv(helidonApp.Spec.Env, myEnvVar.Name))
+}
+
+// TestCreateHelidonAppWithWrongCoherenceCluster tests the creation of HelidonApp witn an invalid VerrazzanoCoherenceConnection
+// GIVEN a ModelBindingPair with VerrazzanoCoherenceCluster in VerrazzanoModel and a VerrazzanoHelidonBinding in VerrazzanoBinding
+//  WHEN CreateHelidonAppCR is called with a VerrazzanoHelidon witn an invalid VerrazzanoCoherenceConnection
+//  THEN there should be a HelidonApp created without coherence env vars
+func TestCreateHelidonAppWithWrongCoherenceCluster(t *testing.T) {
+	mcName, namespace, appName := "myCluster", "myNs", "myHelidonApp"
+	vzHelidon := vz.VerrazzanoHelidon{Name: appName}
+	mbPair := types.ModelBindingPair{Binding: &vz.VerrazzanoBinding{Spec: vz.VerrazzanoBindingSpec{}}}
+	mbPair.Binding.Spec.HelidonBindings = []vz.VerrazzanoHelidonBinding{{Name: appName}}
+	labels := make(map[string]string)
+	vzHelidon.Env = []corev1.EnvVar{{Name: "myEnvVar", Value: "123"}}
+	vzHelidon.Connections = []vz.VerrazzanoConnections{{Coherence: []vz.VerrazzanoCoherenceConnection{{Target: "Wrong"}}}}
+	mbPair.Model = &vz.VerrazzanoModel{
+		Spec: vz.VerrazzanoModelSpec{CoherenceClusters: []vz.VerrazzanoCoherenceCluster{{Name: "myCohCluster"}}},
+	}
+	helidonApp := CreateHelidonAppCR(mcName, namespace, &vzHelidon, &mbPair, labels)
+	assert.Equal(t, 1, len(helidonApp.Spec.Env), "Expected EnvVars size")
 }
 
 // Test using default value for enabling Fluentd
@@ -151,4 +203,25 @@ func findEnv(envvars []corev1.EnvVar, name string) *corev1.EnvVar {
 		}
 	}
 	return nil
+}
+
+func TestCreateDeployment(t *testing.T) {
+	ns := "my-v8o-test"
+	img := "ghcr.io/verrazzano/verrazzano-helidon-app-operator:test"
+	dep := CreateAppOperatorDeployment(ns, map[string]string{"x": "y"}, img, "10Mi")
+	assert.Equal(t, ns, dep.Namespace, "Expected namespace")
+	assert.Equal(t, img, dep.Spec.Template.Spec.Containers[0].Image, "Expected image")
+}
+
+func TestUpdateEnvVars(t *testing.T) {
+	mc := &types.ManagedCluster{}
+	app := &v1helidonapp.HelidonApp{}
+	app.Name = "myHeliApp"
+	mc.HelidonApps = []*v1helidonapp.HelidonApp{app}
+	ev1 := corev1.EnvVar{Name: "Xxx", Value: "111"}
+	ev2 := corev1.EnvVar{Name: "Yyy", Value: "222"}
+	UpdateEnvVars(mc, app.Name, &[]corev1.EnvVar{ev1, ev2})
+	assert.Equal(t, 2, len(app.Spec.Env), "Expected EnvVars size")
+	assert.Equal(t, ev1.Value, findEnv(app.Spec.Env, ev1.Name).Value, "Expected EnvVar")
+	assert.Equal(t, ev2.Value, findEnv(app.Spec.Env, ev2.Name).Value, "Expected EnvVar")
 }
