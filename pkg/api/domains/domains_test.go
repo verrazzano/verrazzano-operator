@@ -41,7 +41,8 @@ func TestInit(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// WHEN a WLS domain is appended to the cluster and the Init() method is invoked
-			createAndInsertWLSDomain(tt)
+			createAndInsertWLSDomain("cluster1", "test-weblogic", tt)
+			Init(tt.listers)
 			// THEN the single domain with the expected name will be found in the Domains slice
 			assert.Equal(t, tt.listers, listerSet, "Wrong number of listers")
 			assert.Equal(t, 1, len(Domains), "Wrong number of Domains")
@@ -94,7 +95,9 @@ func TestReturnAllDomains(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// GIVEN an array of clusters and a model binding pair that includes a reference to a WLS Domain
-			createAndInsertWLSDomain(tt)
+			createAndInsertWLSDomain("cluster1", "test-weblogic", tt)
+			createAndInsertWLSDomain("cluster2", "test-coherence", tt)
+			Init(tt.listers)
 			// setup http request processing
 			response := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "/domains", nil)
@@ -109,8 +112,9 @@ func TestReturnAllDomains(t *testing.T) {
 			}
 			// Validate that there is the correct number of domains, and the
 			// domains have the expected namespaces
-			assert.Equal(t, 1, len(domains), "Wrong number of domains in the list")
-			assert.Equal(t, "test3", domains[0].Namespace, "Domain has the wrong namespace")
+			assert.Equal(t, 2, len(domains), "Wrong number of domains in the list")
+			assert.Equal(t, "test-weblogic", domains[0].ID, "Domain has the wrong namespace")
+			assert.Equal(t, "test-coherence", domains[1].ID, "Domain has the wrong namespace")
 		})
 	}
 }
@@ -135,7 +139,8 @@ func TestReturn404ForMissingDomain(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// GIVEN an array of clusters and a model binding pair that reference a WLS domain
-			createAndInsertWLSDomain(tt)
+			createAndInsertWLSDomain("cluster1", "test-weblogic", tt)
+			Init(tt.listers)
 			// setup http request processing
 			vars := map[string]string{
 				"id": "non-existent",
@@ -171,7 +176,8 @@ func TestReturnSingleDomain(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// GIVEN an array of clusters and a model binding pair referencing a WLS domain
-			createAndInsertWLSDomain(tt)
+			createAndInsertWLSDomain("cluster1", "test-weblogic", tt)
+			Init(tt.listers)
 			// setup http request processing
 			vars := map[string]string{
 				"id": "test-weblogic",
@@ -196,35 +202,35 @@ func TestReturnSingleDomain(t *testing.T) {
 }
 
 //createAndInsertWLSDomain will augment the clusters referenced by the listers with a WLSDomain
-func createAndInsertWLSDomain(tt struct {
+func createAndInsertWLSDomain(clusterName string, domainName string, tt struct {
 	name    string
 	listers controller.Listers
 }) {
-	wlsDomain := createDomain()
-	clusterName := "cluster1"
+	wlsDomain := createDomain(domainName)
 out:
 	for _, mbp := range *tt.listers.ModelBindingPairs {
 		// grab all of the domains
 		for _, mc := range mbp.ManagedClusters {
-			mc.WlsDomainCRs = make([]*v8weblogic.Domain, 1)
 			if mc.Name == clusterName {
+				if mc.WlsDomainCRs == nil {
+					mc.WlsDomainCRs = make([]*v8weblogic.Domain, 1)
+				}
 				mc.WlsDomainCRs[0] = &wlsDomain
 				break out
 			}
 		}
 	}
-	Init(tt.listers)
 }
 
 //createDomain creates a test WLS domain
-func createDomain() v8weblogic.Domain {
+func createDomain(domainName string) v8weblogic.Domain {
 	domain := v8weblogic.Domain{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "WlsDomain",
 			APIVersion: "verrazzano.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-weblogic",
+			Name:      domainName,
 			UID:       "3",
 			Namespace: "test3",
 			Labels:    make(map[string]string),
