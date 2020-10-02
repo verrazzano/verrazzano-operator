@@ -41,7 +41,7 @@ func TestInit(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// WHEN a WLS domain is appended to the cluster and the Init() method is invoked
-			createAndInsertWLSDomain("cluster1", "test-weblogic", tt)
+			createAndInsertWLSDomain("cluster1", "test-weblogic", tt.listers)
 			Init(tt.listers)
 			// THEN the single domain with the expected name will be found in the Domains slice
 			assert.Equal(t, tt.listers, listerSet, "Wrong number of listers")
@@ -95,8 +95,8 @@ func TestReturnAllDomains(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// GIVEN an array of clusters and a model binding pair that includes a reference to a WLS Domain
-			createAndInsertWLSDomain("cluster1", "test-weblogic", tt)
-			createAndInsertWLSDomain("cluster2", "test-coherence", tt)
+			createAndInsertWLSDomain("cluster1", "test-weblogic", tt.listers)
+			createAndInsertWLSDomain("cluster2", "test-coherence", tt.listers)
 			Init(tt.listers)
 			// setup http request processing
 			response := httptest.NewRecorder()
@@ -139,7 +139,7 @@ func TestReturn404ForMissingDomain(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// GIVEN an array of clusters and a model binding pair that reference a WLS domain
-			createAndInsertWLSDomain("cluster1", "test-weblogic", tt)
+			createAndInsertWLSDomain("cluster1", "test-weblogic", tt.listers)
 			Init(tt.listers)
 			// setup http request processing
 			vars := map[string]string{
@@ -176,7 +176,7 @@ func TestReturnSingleDomain(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// GIVEN an array of clusters and a model binding pair referencing a WLS domain
-			createAndInsertWLSDomain("cluster1", "test-weblogic", tt)
+			createAndInsertWLSDomain("cluster1", "test-weblogic", tt.listers)
 			Init(tt.listers)
 			// setup http request processing
 			vars := map[string]string{
@@ -202,13 +202,10 @@ func TestReturnSingleDomain(t *testing.T) {
 }
 
 //createAndInsertWLSDomain will augment the clusters referenced by the listers with a WLSDomain
-func createAndInsertWLSDomain(clusterName string, domainName string, tt struct {
-	name    string
-	listers controller.Listers
-}) {
+func createAndInsertWLSDomain(clusterName string, domainName string, listers controller.Listers) {
 	wlsDomain := createDomain(domainName)
 out:
-	for _, mbp := range *tt.listers.ModelBindingPairs {
+	for _, mbp := range *listers.ModelBindingPairs {
 		// grab all of the domains
 		for _, mc := range mbp.ManagedClusters {
 			if mc.Name == clusterName {
