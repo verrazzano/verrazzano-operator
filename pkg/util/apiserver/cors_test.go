@@ -165,9 +165,8 @@ func Test_getAllowedOrigin(t *testing.T) {
 			util.GetEnvFunc = func(key string) string {
 				if key == "ACCESS_CONTROL_ALLOW_ORIGIN" {
 					return tt.additionalOrigin
-				} else {
-					return os.Getenv(key)
 				}
+				return os.Getenv(key)
 			}
 
 			// WHEN getAllowedOrigin is called for a origin value

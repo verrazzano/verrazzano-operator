@@ -12,7 +12,7 @@ import (
 
 // This file contains all of the env vars used by the Verrazzano Operator
 
-// Store the GetEnv function in a variable, so that tests can override it
+// GetEnvFunc stores the GetEnv function in a variable, so that tests can override it
 var GetEnvFunc = os.Getenv
 
 // Define the ENV vars
