@@ -5,6 +5,7 @@ package grids
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -85,9 +86,17 @@ func ReturnSingleGrid(w http.ResponseWriter, r *http.Request) {
 
 	glog.V(4).Info("GET /grids/" + key)
 
+	foundApplication := false
 	for _, grids := range Grids {
 		if grids.ID == key {
+			foundApplication = true
 			json.NewEncoder(w).Encode(grids)
 		}
+	}
+
+	if !foundApplication {
+		msg := fmt.Sprintf("Grid with ID %v not found", key)
+		http.Error(w, msg, http.StatusNotFound)
+		return
 	}
 }

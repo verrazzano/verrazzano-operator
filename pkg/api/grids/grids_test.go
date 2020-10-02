@@ -134,7 +134,7 @@ func TestReturnSingleGridNotFound(t *testing.T) {
 			req := httptest.NewRequest("GET", "/grids", nil)
 			req = mux.SetURLVars(req, vars)
 			ReturnSingleGrid(resp, req)
-			assert.Equal(t, http.StatusOK, resp.Code, "expect the http return code to be http.StatusOk")
+			assert.Equal(t, http.StatusNotFound, resp.Code, "expect the http return code to be http.StatusNotFound")
 			json.NewDecoder(resp.Body).Decode(&myGrid)
 			assert.Equal(t, "", myGrid.ID, "expect no Grid to be found for ID 100")
 		})
