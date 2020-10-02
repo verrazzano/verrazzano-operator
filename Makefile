@@ -127,7 +127,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: build
-build: go-mod check
+build: go-mod
 	docker build --pull \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
