@@ -30,7 +30,7 @@ func TestSetupSignalHandler(t *testing.T) {
 			proc.Signal(syscall.SIGTERM)
 			// NOTE: If the SIGTERM is not sent, the pulling a value off the channel will block
 			msg := <-gotStopCh
-			assert.NotNil(msg, "Expect SigTerm to cause close on SignalHandler Channel and msg returned from channel to be not nil")
+			assert.NotNil(msg, "expect SigTerm to cause close on SignalHandler Channel and msg returned from channel to be not nil")
 
 		})
 	}
