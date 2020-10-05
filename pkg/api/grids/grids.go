@@ -89,8 +89,9 @@ func ReturnSingleGrid(w http.ResponseWriter, r *http.Request) {
 	foundApplication := false
 	for _, grids := range Grids {
 		if grids.ID == key {
-			foundApplication = true
 			json.NewEncoder(w).Encode(grids)
+			foundApplication = true
+			break
 		}
 	}
 
