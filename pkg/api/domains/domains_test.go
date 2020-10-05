@@ -113,8 +113,8 @@ func TestReturnAllDomains(t *testing.T) {
 			// Validate that there is the correct number of domains, and the
 			// domains have the expected namespaces
 			assert.Equal(t, 2, len(domains), "Wrong number of domains in the list")
-			assert.Equal(t, "test-weblogic", domains[0].ID, "Domain has the wrong namespace")
-			assert.Equal(t, "test-coherence", domains[1].ID, "Domain has the wrong namespace")
+			assert.True(t, foundByID(domains, "test-weblogic"), "Domain has the wrong ID")
+			assert.True(t, foundByID(domains, "test-coherence"), "Domain has the wrong ID")
 		})
 	}
 }
@@ -233,36 +233,79 @@ func createDomain(domainName string) v8weblogic.Domain {
 			Labels:    make(map[string]string),
 		},
 		Spec: v8weblogic.DomainSpec{
-			AdminServer:                         v8weblogic.AdminServer{},
+			AdminServer: v8weblogic.AdminServer{
+				AdminService: v8weblogic.AdminService{
+					Channels: func() []v8weblogic.Channel {
+						var channels []v8weblogic.Channel
+
+						channels = append(channels, v8weblogic.Channel{
+							ChannelName: "default",
+						})
+
+						channels = append(channels, v8weblogic.Channel{
+							ChannelName: "T3Channel",
+						})
+						return channels
+
+					}(),
+				},
+			},
 			AllowReplicasBelowMinDynClusterSize: false,
-			Clusters:                            nil,
-			ConfigOverrides:                     "",
-			ConfigOverrideSecrets:               nil,
-			Configuration:                       v8weblogic.Configuration{},
-			DataHome:                            "",
-			DomainHome:                          "",
-			DomainHomeInImage:                   false,
-			DomainHomeSourceType:                "",
-			DomainUID:                           "",
-			HttpAccessLogInLogHome:              false,
-			Image:                               "",
-			ImagePullPolicy:                     "",
-			ImagePullSecrets:                    nil,
-			IncludeServerOutInPodLog:            false,
-			IntrospectVersion:                   "",
-			LogHome:                             "",
-			LogHomeEnabled:                      false,
-			ManagedServers:                      nil,
-			MaxClusterConcurrentStartup:         0,
-			Replicas:                            nil,
-			RestartVersion:                      "",
-			ServerPod:                           v8weblogic.ServerPod{},
-			ServerService:                       v8weblogic.ServerService{},
-			ServerStartPolicy:                   "",
-			ServerStartState:                    "",
-			WebLogicCredentialsSecret:           corev1.SecretReference{},
+			Clusters: func() []v8weblogic.Cluster {
+				var clusters []v8weblogic.Cluster
+
+				clusters = append(clusters, v8weblogic.Cluster{
+					ClusterName: "test1",
+				})
+
+				return clusters
+
+			}(),
+			ConfigOverrides:             "",
+			ConfigOverrideSecrets:       nil,
+			Configuration:               v8weblogic.Configuration{},
+			DataHome:                    "",
+			DomainHome:                  "",
+			DomainHomeInImage:           true,
+			DomainHomeSourceType:        "",
+			DomainUID:                   "",
+			HttpAccessLogInLogHome:      false,
+			Image:                       "",
+			ImagePullPolicy:             "",
+			ImagePullSecrets:            nil,
+			IncludeServerOutInPodLog:    false,
+			IntrospectVersion:           "",
+			LogHome:                     "",
+			LogHomeEnabled:              false,
+			ManagedServers:              nil,
+			MaxClusterConcurrentStartup: 0,
+			Replicas:                    nil,
+			RestartVersion:              "",
+			ServerPod:                   v8weblogic.ServerPod{},
+			ServerService:               v8weblogic.ServerService{},
+			ServerStartPolicy:           "",
+			ServerStartState:            "",
+			WebLogicCredentialsSecret:   corev1.SecretReference{},
 		},
-		Status: v8weblogic.DomainStatus{},
+		Status: v8weblogic.DomainStatus{
+			Servers: func() []v8weblogic.ServerStatus {
+				var servers []v8weblogic.ServerStatus
+
+				servers = append(servers, v8weblogic.ServerStatus{
+					ClusterName: "test1",
+					NodeName:    "node1",
+					ServerName:  "testmanaged",
+				})
+
+				servers = append(servers, v8weblogic.ServerStatus{
+					ClusterName: "test2",
+					NodeName:    "node2",
+					ServerName:  "testadmin",
+				})
+				return servers
+
+			}(),
+		},
 	}
 	return domain
 }
@@ -274,3 +317,14 @@ func getModelBindingPair() *types.ModelBindingPair {
 		"../../testutil/testdata/test_managed_cluster_1.yaml",
 		"../../testutil/testdata/test_managed_cluster_2.yaml")
 }
+
+//foundByName returns the domain if the array contains it
+func foundByID(domain []Domain, key string) bool {
+	for _, domain := range Domains {
+		if domain.ID == key {
+			return true
+		}
+	}
+	return false
+}
+
