@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	istio "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -97,7 +98,7 @@ func TestSimpleNamespaceLister(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get namespaces: %v", err))
 	}
-	assert.Equal(t, 4, len(namespaces))
+	assert.Equal(t, 6, len(namespaces))
 
 	namespace, err := l.Get("test")
 	if err != nil {
@@ -607,6 +608,85 @@ func TestSimpleClusterRoleBindingLister(t *testing.T) {
 		t.Fatal(fmt.Sprintf("got an error trying to get a cluster role binding: %v", err))
 	}
 	assert.Equal(t, "test2", clusterRoleBinding.Name, "expected the cluster role binding to be named test")
+}
+
+// TestSimpleDaemonSetLister tests the functionality of simpleDaemonSetLister
+// GIVEN a cluster which has no existing daemon sets
+//  WHEN I create two daemon sets and a simpleDaemonSetLister
+//  THEN the lister should list exactly two daemon sets given an everything selector
+//   AND the lister should list exactly one specific daemon set given a label selector
+//   AND the lister should get a specific daemon set when requested by name
+func TestSimpleDaemonSetLister(t *testing.T) {
+	assert := assert.New(t)
+
+	clusterConnections := GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	ds := appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+			Labels: map[string]string{
+				"label1": "foo",
+			},
+		},
+	}
+	_, err := clusterConnection.KubeClient.AppsV1().DaemonSets("test").Create(context.TODO(), &ds, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create daemon sets: %v", err))
+	}
+
+	ds = appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test2",
+			Namespace: "test2",
+		},
+	}
+	_, err = clusterConnection.KubeClient.AppsV1().DaemonSets("test2").Create(context.TODO(), &ds, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create daemon sets: %v", err))
+	}
+
+	l := simpleDaemonSetLister{
+		clusterConnection.KubeClient,
+	}
+	selector := labels.Everything()
+	// get the daemon set list for all namespaces
+	sets, err := l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get daemon sets: %v", err))
+	}
+	assert.Len(sets, 2, "expected 2 daemon sets")
+
+	// list daemon sets through the lister with a label selector
+	requirement, err := labels.NewRequirement("label1", selection.Equals, []string{"foo"})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to create a requirement: %v", err))
+	}
+	selector = labels.NewSelector().Add(*requirement)
+	sets, err = l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't list daemon sets: %v", err))
+	}
+	assert.Len(sets, 1, "expected 1 daemon set")
+	assert.Equal("test", sets[0].Name, "unexpected daemon set name")
+
+	// get the list for the 'test' namespace
+	nsl := l.DaemonSets("test")
+	daemonSets, err := nsl.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get daemon sets: %v", err))
+	}
+	assert.Len(daemonSets, 1, "expected 1 daemon set")
+	assert.Equal("test", sets[0].Name, "unexpected daemon set name")
+
+	// get a daemon set by name
+	pod, err := nsl.Get("test")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get daemon sets: %v", err))
+	}
+	assert.Equal("test", pod.Name, "unexpected daemon set name")
+	assert.Equal("test", pod.Namespace, "unexpected daemon set namespace")
 }
 
 func createConfigMap(t *testing.T, name string, clusterConnection *util.ManagedClusterConnection) {

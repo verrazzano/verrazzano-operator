@@ -5,6 +5,7 @@ package microservices
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -76,9 +77,17 @@ func ReturnSingleMicroservice(w http.ResponseWriter, r *http.Request) {
 
 	glog.V(4).Info("GET /microservices/" + key)
 
+	foundApplication := false
 	for _, microservices := range Microservices {
 		if microservices.ID == key {
+			foundApplication = true
 			json.NewEncoder(w).Encode(microservices)
 		}
+	}
+
+	if !foundApplication {
+		msg := fmt.Sprintf("Microservice with ID %v not found", key)
+		http.Error(w, msg, http.StatusNotFound)
+		return
 	}
 }

@@ -35,3 +35,17 @@ RemoteRests:
       Port: 8183
       RemoteClusterName: cluster2
       RemoteNamespace: test3
+HelidonApps:
+  - metadata:
+      creationTimestamp: null
+    spec:
+      description: HelidonApp Deployed to ManagedCluster1
+      image: HelidonApp1:latest
+      imagePullPolicy: Always
+      name: HelidonApp1
+      namespace: defaultOnMC1
+      port: 8011
+      serviceAccountName: george
+      targetPort: 8001
+    status: {}
+

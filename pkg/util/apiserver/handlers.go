@@ -14,7 +14,7 @@ import (
 // or delegate to the actual handler on real requests
 func CORSHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		EnableCors(&w)
+		EnableCors(r, &w)
 		if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
 			// CORS preflight request
 			SetupOptionsResponse(&w, r)
