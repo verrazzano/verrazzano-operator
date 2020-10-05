@@ -327,4 +327,3 @@ func foundByID(domain []Domain, key string) bool {
 	}
 	return false
 }
-
