@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/cohcluster"
 	"github.com/verrazzano/verrazzano-operator/pkg/cohoperator"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano-operator/pkg/genericcomp"
 	"github.com/verrazzano/verrazzano-operator/pkg/helidonapp"
 	"github.com/verrazzano/verrazzano-operator/pkg/managed"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
@@ -374,6 +375,17 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 							}
 						}
 					}
+
+					mc.GenericComponents = append(mc.GenericComponents, &generic)
+
+					// NOTE:
+					// Initial implementation uses the first service port value for the ingress connection.  In the
+					// future, we must allow for multiple ingress connections for generic components with different
+					// service ports.
+					virtualSerivceDestinationPort := int(service.Spec.Ports[0].Port)
+					processIngressConnections(mc, generic.Connections, namespace, nil,
+						getGenericComponentDestinationHost(generic.Name, namespace),
+						virtualSerivceDestinationPort, &mbPair.Binding.Spec.IngressBindings)
 				}
 			}
 		}
@@ -429,6 +441,20 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 							createRemoteRestConnections(mbPair, mc, connection.Rest, namespace.Name)
 							envVars := getRestConnectionEnvVars(mbPair, connection.Rest, app.Name)
 							helidonapp.UpdateEnvVars(mc, app.Name, envVars)
+						}
+					}
+				}
+			}
+
+			genericComponents := mbPair.Model.Spec.GenericComponents
+			if genericComponents != nil {
+				for _, generic := range genericComponents {
+					_, found := compNames[generic.Name]
+					if found {
+						for _, connection := range generic.Connections {
+							createRemoteRestConnections(mbPair, mc, connection.Rest, namespace.Name)
+							envVars := getRestConnectionEnvVars(mbPair, connection.Rest, generic.Name)
+							genericcomp.UpdateEnvVars(mc, generic.Name, envVars)
 						}
 					}
 				}
@@ -710,6 +736,21 @@ func getTargetTypePort(managedCluster *types.ManagedCluster, target string) (typ
 		}
 	}
 
+	// NOTE:
+	// Initial implementation uses the first service port value for the rest connection.  In the
+	// future, we must allow for multiple rest connections for generic components with different
+	// service ports.
+	for _, generic := range managedCluster.GenericComponents {
+		if generic.Name == target {
+			for _, service := range managedCluster.Services {
+				if generic.Name == service.Name {
+					return types.Generic, uint32(service.Spec.Ports[0].Port), nil
+				}
+			}
+		}
+		return types.Generic, 0, fmt.Errorf("component %s of type Generic does not have a matching service port", target)
+	}
+
 	for _, coh := range managedCluster.CohClusterCRs {
 		if coh.Name == target {
 			return types.Coherence, 0, fmt.Errorf("component %s of type Coherence cannot be target of rest connection", target)
@@ -767,6 +808,10 @@ func getDomainClusterServiceName(domainSpec *v8weblogic.DomainSpec) string {
 
 func getDomainAdminServerServiceName(domainSpec *v8weblogic.DomainSpec) string {
 	return fmt.Sprintf("%s-%s", domainSpec.DomainUID, managed.GetDomainAdminServerNameAsInAddress())
+}
+
+func getGenericComponentDestinationHost(name string, namespace string) string {
+	return fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace)
 }
 
 // Utility function to generate the destination host name for a helidon app
