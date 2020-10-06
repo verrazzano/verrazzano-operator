@@ -10,7 +10,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.10
-	github.com/verrazzano/verrazzano-crd-generator v0.3.34-0.20201001185134-2a3fca73c1d2
+	github.com/verrazzano/verrazzano-crd-generator v0.3.34
 	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.9
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.24
 	github.com/verrazzano/verrazzano-wko-operator v0.0.12
