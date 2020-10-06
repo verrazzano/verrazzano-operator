@@ -35,7 +35,6 @@ var (
 	helidonAppOperatorDeployment string
 	enableMonitoringStorage      string
 	apiServerRealm               string
-	startAPIServer               bool
 	startController              bool
 )
 
@@ -133,9 +132,7 @@ func main() {
 	apiServerExited := make(chan bool)
 
 	// start the REST API Server (for web ui)
-	if startAPIServer {
-		startRestAPIServer(controller.ListerSet(), apiServerExited)
-	}
+	startRestAPIServer(controller.ListerSet(), apiServerExited)
 
 	if startController {
 		// start the controller
@@ -175,6 +172,5 @@ func init() {
 	flag.StringVar(&helidonAppOperatorDeployment, "helidonAppOperatorDeployment", "", "--helidonAppOperatorDeployment=false disables helidonAppOperatorDeployment")
 	flag.StringVar(&enableMonitoringStorage, "enableMonitoringStorage", "", "Enable storage for monitoring.  The default is true. 'false' means monitoring storage is disabled.")
 	flag.StringVar(&apiServerRealm, "apiServerRealm", "", "API Server Realm on Keycloak")
-	flag.BoolVar(&startAPIServer, "startApiServer", true, "Whether to start the API server (true by default)")
 	flag.BoolVar(&startController, "startController", true, "Whether to start the Kubernetes controller (true by default)")
 }
