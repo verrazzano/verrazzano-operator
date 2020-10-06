@@ -13,10 +13,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"os"
 	"reflect"
 	"testing"
 )
+
+var origGetEnvFunc = util.GetEnvFunc
 
 // TestCreateDeployments tests the creation of deployments.
 // GIVEN a cluster which does not have any deployments
@@ -34,13 +35,9 @@ func TestCreateDeployments(t *testing.T) {
 		constants.VmiSecretName: vmiSecret,
 	}}
 
-	// set env vars needed for test; set them back when the test completes
-	defer setEnv(t, "WLS_MICRO_REQUEST_MEMORY", os.Getenv("WLS_MICRO_REQUEST_MEMORY"))
-	setEnv(t, "WLS_MICRO_REQUEST_MEMORY", "2.5Gi")
-	defer setEnv(t, "COH_MICRO_REQUEST_MEMORY", os.Getenv("COH_MICRO_REQUEST_MEMORY"))
-	setEnv(t, "COH_MICRO_REQUEST_MEMORY", "2.5Gi")
-	defer setEnv(t, "HELIDON_MICRO_REQUEST_MEMORY", os.Getenv("HELIDON_MICRO_REQUEST_MEMORY"))
-	setEnv(t, "HELIDON_MICRO_REQUEST_MEMORY", "2.5Gi")
+	// temporarily set util.GetEnvFunc to mock response
+	util.GetEnvFunc = getenv
+	defer func() { util.GetEnvFunc = origGetEnvFunc }()
 
 	err := CreateDeployments(modelBindingPair, clusterConnections, &manifest, "testURI", secrets)
 	assert.Nil(err, "got an error from CreateDeployments: %v", err)
@@ -65,13 +62,9 @@ func TestCreateDeploymentsUpdateExisting(t *testing.T) {
 		constants.VmiSecretName: vmiSecret,
 	}}
 
-	// set env vars needed for test; set them back when the test completes
-	defer setEnv(t, "WLS_MICRO_REQUEST_MEMORY", os.Getenv("WLS_MICRO_REQUEST_MEMORY"))
-	setEnv(t, "WLS_MICRO_REQUEST_MEMORY", "2.5Gi")
-	defer setEnv(t, "COH_MICRO_REQUEST_MEMORY", os.Getenv("COH_MICRO_REQUEST_MEMORY"))
-	setEnv(t, "COH_MICRO_REQUEST_MEMORY", "2.5Gi")
-	defer setEnv(t, "HELIDON_MICRO_REQUEST_MEMORY", os.Getenv("HELIDON_MICRO_REQUEST_MEMORY"))
-	setEnv(t, "HELIDON_MICRO_REQUEST_MEMORY", "2.5Gi")
+	// temporarily set util.GetEnvFunc to mock response
+	util.GetEnvFunc = getenv
+	defer func() { util.GetEnvFunc = origGetEnvFunc }()
 
 	deployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -104,13 +97,9 @@ func TestCreateDeploymentsVmiSystem(t *testing.T) {
 		constants.VmiSecretName: vmiSecret,
 	}}
 
-	// set env vars needed for test; set them back when the test completes
-	defer setEnv(t, "WLS_MICRO_REQUEST_MEMORY", os.Getenv("WLS_MICRO_REQUEST_MEMORY"))
-	setEnv(t, "WLS_MICRO_REQUEST_MEMORY", "2.5Gi")
-	defer setEnv(t, "COH_MICRO_REQUEST_MEMORY", os.Getenv("COH_MICRO_REQUEST_MEMORY"))
-	setEnv(t, "COH_MICRO_REQUEST_MEMORY", "2.5Gi")
-	defer setEnv(t, "HELIDON_MICRO_REQUEST_MEMORY", os.Getenv("HELIDON_MICRO_REQUEST_MEMORY"))
-	setEnv(t, "HELIDON_MICRO_REQUEST_MEMORY", "2.5Gi")
+	// temporarily set util.GetEnvFunc to mock response
+	util.GetEnvFunc = getenv
+	defer func() { util.GetEnvFunc = origGetEnvFunc }()
 
 	modelBindingPair.Binding.Name = constants.VmiSystemBindingName
 	err := CreateDeployments(modelBindingPair, clusterConnections, &manifest, "testURI", secrets)
@@ -122,10 +111,12 @@ func TestCreateDeploymentsVmiSystem(t *testing.T) {
 	assertExpectedDeployments(t, clusterConnection, expectedDeployments)
 }
 
-// setEnv sets the given environment variables and asserts that no error is returned
-func setEnv(t *testing.T, key, value string) {
-	err := os.Setenv(key, value)
-	assert.Nil(t, err, "got an error setting environment variable: %v", err)
+// getenv returns a mocked response for keys used by these tests
+func getenv(key string) string {
+	if key == "WLS_MICRO_REQUEST_MEMORY" || key == "COH_MICRO_REQUEST_MEMORY" || key == "HELIDON_MICRO_REQUEST_MEMORY" {
+		return "2.5Gi"
+	}
+	return origGetEnvFunc(key)
 }
 
 // assertDeployments validates that the expected deployments have been created
