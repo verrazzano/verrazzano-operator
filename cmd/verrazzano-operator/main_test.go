@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var allHttpMethods = []string{http.MethodGet, http.MethodPatch, http.MethodPut, http.MethodDelete,
+var allHTTPMethods = []string{http.MethodGet, http.MethodPatch, http.MethodPut, http.MethodDelete,
 	http.MethodConnect, http.MethodOptions, http.MethodPost, http.MethodTrace}
 
 var readMethods []string = []string{http.MethodGet}
@@ -18,39 +18,39 @@ var readUpdateDeleteMethods = []string{http.MethodGet, http.MethodPut, http.Meth
 var readPatchDeleteMethods = []string{http.MethodGet, http.MethodPatch, http.MethodDelete}
 
 var expectedRequestPaths = map[string][]string{
-	addApiPrefix("/"):                       allHttpMethods,
-	addApiPrefix("/instance"):               readMethods,
-	addApiPrefix("/applications"):           readCreateMethods,
-	addApiPrefix("/applications/1"):         readUpdateDeleteMethods,
-	addApiPrefix("/clusters"):               readMethods,
-	addApiPrefix("/clusters/3"):             readMethods,
-	addApiPrefix("/domains"):                readMethods,
-	addApiPrefix("/domains/25"):             readMethods,
-	addApiPrefix("/grids/"):                 readMethods,
-	addApiPrefix("/grids/someid"):           readMethods,
-	addApiPrefix("/images/"):                readMethods,
-	addApiPrefix("/images/someImgid"):       readMethods,
-	addApiPrefix("/jobs/"):                  readMethods,
-	addApiPrefix("/jobs/someJobid"):         readMethods,
-	addApiPrefix("/microservices/"):         readMethods,
-	addApiPrefix("/microservices/someMsId"): readMethods,
-	addApiPrefix("/operators/"):             readMethods,
-	addApiPrefix("/operators/someOpId"):     readMethods,
-	addApiPrefix("/secrets"):                readCreateMethods,
-	addApiPrefix("/secrets/someSecretId"):   readPatchDeleteMethods,
+	addAPIPrefix("/"):                       allHTTPMethods,
+	addAPIPrefix("/instance"):               readMethods,
+	addAPIPrefix("/applications"):           readCreateMethods,
+	addAPIPrefix("/applications/1"):         readUpdateDeleteMethods,
+	addAPIPrefix("/clusters"):               readMethods,
+	addAPIPrefix("/clusters/3"):             readMethods,
+	addAPIPrefix("/domains"):                readMethods,
+	addAPIPrefix("/domains/25"):             readMethods,
+	addAPIPrefix("/grids/"):                 readMethods,
+	addAPIPrefix("/grids/someid"):           readMethods,
+	addAPIPrefix("/images/"):                readMethods,
+	addAPIPrefix("/images/someImgid"):       readMethods,
+	addAPIPrefix("/jobs/"):                  readMethods,
+	addAPIPrefix("/jobs/someJobid"):         readMethods,
+	addAPIPrefix("/microservices/"):         readMethods,
+	addAPIPrefix("/microservices/someMsId"): readMethods,
+	addAPIPrefix("/operators/"):             readMethods,
+	addAPIPrefix("/operators/someOpId"):     readMethods,
+	addAPIPrefix("/secrets"):                readCreateMethods,
+	addAPIPrefix("/secrets/someSecretId"):   readPatchDeleteMethods,
 }
 
-func addApiPrefix(path string) string {
+func addAPIPrefix(path string) string {
 	return fmt.Sprintf("%s%s", apiVersionPrefix, path)
 }
 
 // Only routes under the apiVersionPrefix should be registered - sample a few without the prefix to
 // make sure they are not registered
 var unexpectedRequestPaths = map[string][]string{
-	"/":               allHttpMethods,
-	"/instance":       allHttpMethods,
-	"/applications/":  allHttpMethods,
-	"/jobs/someJobId": allHttpMethods,
+	"/":               allHTTPMethods,
+	"/instance":       allHTTPMethods,
+	"/applications/":  allHTTPMethods,
+	"/jobs/someJobId": allHTTPMethods,
 }
 
 // Test_registerPathHandlers tests that registerPathHandlers registers the expected routes
@@ -153,7 +153,7 @@ func assertExpected(t *testing.T, rootRouter *mux.Router, method string, path st
 // e.g. if given {"GET", "PUT"}, then it returns a list of all http methods other than GET and PUT
 func getComplementaryMethods(methods []string) []string {
 	complementaryMethods := []string{}
-	for _, eachMethod := range allHttpMethods {
+	for _, eachMethod := range allHTTPMethods {
 		if !sliceContains(methods, eachMethod) {
 			complementaryMethods = append(complementaryMethods, eachMethod)
 		}
