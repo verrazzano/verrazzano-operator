@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
+
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 
 	"github.com/stretchr/testify/assert"
@@ -15,25 +17,33 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // TestCreateServicesAppBinding model/binding is for application binding - no service is created.
 func TestCreateServicesAppBinding(t *testing.T) {
-	err := CreateServices(testutil.GetModelBindingPair(), testutil.GetManagedClusterConnections())
-	if err != nil {
-		t.Fatal(fmt.Sprintf("can't create service: %v", err))
-	}
+	assert := assert.New(t)
 
-	for clusterName := range testutil.GetModelBindingPair().ManagedClusters {
-		managedClusterConnection := testutil.GetManagedClusterConnections()[clusterName]
-		existingServices, err := managedClusterConnection.ServiceLister.Services(constants.MonitoringNamespace).List(labels.Everything())
-		if err != nil {
-			t.Fatal(fmt.Sprintf("can't list service for cluster %s: %v", err, clusterName))
-		}
-		assert.Equal(t, 0, len(existingServices), "no services should be found for cluster %s", clusterName)
-	}
+	modelBindingPair := testutil.GetModelBindingPair()
+	clusterConnections := testutil.GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	err := CreateServices(modelBindingPair, clusterConnections)
+	assert.Nil(err, "got an error from CreateServices: %v", err)
+
+	services, err := clusterConnection.KubeClient.CoreV1().Services("test").List(context.TODO(), metav1.ListOptions{})
+	assert.Nil(err, "got an error listing services: %v", err)
+	assert.Equal(1, len(services.Items), "expected exactly 1 service in the test namespace")
+	assert.Equal("test-generic", services.Items[0].Name, "service name not equal to expected value")
+	assert.Equal("test", services.Items[0].Namespace, "service namespace not equal to expected value")
+	assert.Equal(util.GetManagedBindingLabels(modelBindingPair.Binding, "cluster1"), services.Items[0].Labels, "labels not equal to expected value")
+	selector := map[string]string{"verrazzano.name": "test-generic"}
+	assert.Equal(selector, services.Items[0].Spec.Selector, "selector not equal to expected value")
+	assert.Equal(corev1.ServiceType("ClusterIP"), services.Items[0].Spec.Type, "service type not equal to expected value")
+	assert.Equal("test-port", services.Items[0].Spec.Ports[0].Name, "port name not equal to expected value")
+	assert.Equal(int32(8090), services.Items[0].Spec.Ports[0].Port, "port not equal to expected value")
+	assert.Equal(intstr.FromInt(0), services.Items[0].Spec.Ports[0].TargetPort, "target port name not equal to expected value")
+	assert.Equal(corev1.Protocol("TCP"), services.Items[0].Spec.Ports[0].Protocol, "protocol name not equal to expected value")
 }
 
 // TestCreateServicesVMIBinding model/binding for VMI system binding - Node Exporter service is created.
@@ -55,7 +65,7 @@ func TestCreateServicesVMIBinding(t *testing.T) {
 		if err != nil {
 			t.Fatal(fmt.Sprintf("can't list service for cluster %s: %v", err, clusterName))
 		}
-		assertCreateService(t, existingService, clusterName)
+		assertCreateServiceVMI(t, existingService, clusterName)
 
 		// Update the port value so when we call CreateServices again the update code is executed.
 		existingService.Items[0].Spec.Ports[0].Port = 9200
@@ -77,11 +87,11 @@ func TestCreateServicesVMIBinding(t *testing.T) {
 		if err != nil {
 			t.Fatal(fmt.Sprintf("can't list service for cluster %s: %v", err, clusterName))
 		}
-		assertCreateService(t, existingService, clusterName)
+		assertCreateServiceVMI(t, existingService, clusterName)
 	}
 }
 
-func assertCreateService(t *testing.T, existingService *corev1.ServiceList, clusterName string) {
+func assertCreateServiceVMI(t *testing.T, existingService *corev1.ServiceList, clusterName string) {
 	labels := map[string]string{
 		constants.ServiceAppLabel: constants.NodeExporterName,
 	}

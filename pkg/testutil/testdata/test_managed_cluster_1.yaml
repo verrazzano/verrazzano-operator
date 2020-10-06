@@ -105,5 +105,21 @@ Deployments:
                   name: test-port
                   protocol: TCP
     status: {}
-
-
+Services:
+  - metadata:
+      creationTimestamp: null
+      name: test-generic
+      namespace: test
+      labels:
+        k8s-app: verrazzano.io
+        verrazzano.binding: testBinding
+        verrazzano.cluster: cluster1
+    spec:
+      ports:
+        - name: test-port
+          port: 8090
+          protocol: TCP
+      selector:
+        verrazzano.name: test-generic
+      type: ClusterIP
+    status: {}
