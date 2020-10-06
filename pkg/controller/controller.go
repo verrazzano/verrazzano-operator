@@ -862,6 +862,11 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	 * Delete Artifacts in the Managed Cluster
 	 **********************/
 
+	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
+	if err != nil {
+		glog.Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
+	}
+
 	// Delete Custom Resources
 	err = managed.DeleteCustomResources(mbPair, c.managedClusterConnections)
 	if err != nil {
@@ -870,14 +875,14 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	}
 
 	// Delete Deployments for generic components
-	err = managed.DeleteDeployments(mbPair, c.managedClusterConnections)
+	err = managed.DeleteDeployments(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to delete deployments for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
 	// Delete Services for generic components
-	err = managed.DeleteServices(mbPair, c.managedClusterConnections)
+	err = managed.DeleteServices(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to delete services for binding %s: %v", mbPair.Binding.Name, err)
 		return

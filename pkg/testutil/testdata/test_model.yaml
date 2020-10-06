@@ -40,4 +40,15 @@ spec:
               environmentVariableForPort: ""
               target: test-helidon
       name: test-weblogic
+  genericComponents:
+    - name: test-generic
+      deployment:
+        containers:
+          - image: generic-image:1.0
+            name: test-generic-image
+            imagePullPolicy: IfNotPresent
+            ports:
+              - containerPort: 8090
+                name: test-port
+                protocol: TCP
 status: {}

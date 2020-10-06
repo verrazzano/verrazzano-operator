@@ -77,14 +77,8 @@ func CreateDeployments(mbPair *types.ModelBindingPair, filteredConnections map[s
 }
 
 // DeleteDeployments deletes deployments for a given binding.
-func DeleteDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func DeleteDeployments(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Deleting Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
-
-	// Parse out the managed clusters that this binding applies to
-	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return nil
-	}
 
 	// Delete Deployments associated with the given VerrazzanoBinding (based on labels selectors)
 	for clusterName, managedClusterConnection := range filteredConnections {

@@ -70,4 +70,40 @@ WlsOperator:
     namespace: test
     serviceAccount: test
   status: {}
+GenericComponents:
+  - name: test-generic
+    deployment:
+      replicas: 2
+      containers:
+        - image: generic-image:1.0
+          name: test-generic-image
+Deployments:
+  - metadata:
+      creationTimestamp: null
+      name: test-generic
+      namespace: test
+      labels:
+        k8s-app: verrazzano.io
+        verrazzano.binding: testBinding
+        verrazzano.cluster: cluster1
+    spec:
+      replicas: 2
+      selector:
+        matchLabels:
+          verrazzano.name: test-generic
+      template:
+        metadata:
+          labels:
+            verrazzano.name: test-generic
+        spec:
+          containers:
+            - image: generic-image:1.0
+              imagePullPolicy: IfNotPresent
+              name: test-generic-image
+              ports:
+                - containerPort: 8090
+                  name: test-port
+                  protocol: TCP
+    status: {}
+
 

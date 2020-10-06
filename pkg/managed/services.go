@@ -64,14 +64,8 @@ func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 }
 
 // DeleteServices deletes services for a given binding.
-func DeleteServices(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func DeleteServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Deleting Services for VerrazzanoBinding %s", mbPair.Binding.Name)
-
-	// Parse out the managed clusters that this binding applies to
-	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return nil
-	}
 
 	// Delete Services associated with the given VerrazzanoBinding (based on labels selectors)
 	for clusterName, managedClusterConnection := range filteredConnections {
