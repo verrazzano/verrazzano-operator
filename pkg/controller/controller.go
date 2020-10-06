@@ -497,7 +497,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create Deployments
-	err = managed.CreateDeployments(mbPair, filteredConnections, c.Manifest, c.verrazzanoURI, c.secrets)
+	err = managed.CreateDeployments(mbPair, c.managedClusterConnections, c.Manifest, c.verrazzanoURI, c.secrets)
 	if err != nil {
 		glog.Errorf("Failed to create deployments for binding %s: %v", mbPair.Binding.Name, err)
 	}

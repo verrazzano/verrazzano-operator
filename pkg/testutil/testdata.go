@@ -68,10 +68,6 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		kubeClient: clusterConnection.KubeClient,
 	}
 
-	clusterConnection.DeploymentLister = &simpleDeploymentLister{
-		kubeClient: clusterConnection.KubeClient,
-	}
-
 	clusterConnection.SecretLister = &simpleSecretLister{
 		kubeClient: clusterConnection.KubeClient,
 	}
@@ -216,11 +212,8 @@ func GetTestClusters() []v1beta1.VerrazzanoManagedCluster {
 // GetManifest gets a test Manifest.
 func GetManifest() util.Manifest {
 	return util.Manifest{
-		WlsMicroOperatorImage:   "WlsOperator1:latest",
-		WlsMicroOperatorCrd:     "../testutil/testdata/test_wls_crd.yaml",
-		HelidonAppOperatorImage: "HelidonApp1:latest",
-		HelidonAppOperatorCrd:   "../testutil/testdata/test_helidon_crd.yaml",
-		CohClusterOperatorImage: "CohCluster1:latest",
-		CohClusterOperatorCrd:   "../testutil/testdata/test_coh_crd.yaml",
+		WlsMicroOperatorCrd:   "../testutil/testdata/test_wls_crd.yaml",
+		HelidonAppOperatorCrd: "../testutil/testdata/test_helidon_crd.yaml",
+		CohClusterOperatorCrd: "../testutil/testdata/test_coh_crd.yaml",
 	}
 }

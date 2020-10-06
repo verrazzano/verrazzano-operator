@@ -6,7 +6,6 @@ package testutil
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"net/http"
 	"net/http/httptest"
 
@@ -680,105 +679,4 @@ func MockError(kubeCli kubernetes.Interface, verb, resource string, obj runtime.
 			return true, obj, fmt.Errorf("Error %s %s", verb, resource)
 		})
 	return kubeCli
-}
-
-// simpleDeploymentLister implements the DeploymentLister interface.
-type simpleDeploymentLister struct {
-	kubeClient kubernetes.Interface
-}
-
-func (s simpleDeploymentLister) List(selector labels.Selector) (ret []*appsv1.Deployment, err error) {
-	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-	var deployments []*appsv1.Deployment
-	for _, namespace := range namespaces.Items {
-
-		list, err := s.Deployments(namespace.Name).List(selector)
-		if err != nil {
-			return nil, err
-		}
-		deployments = append(deployments, list...)
-	}
-	return deployments, nil
-}
-
-func (s simpleDeploymentLister) Deployments(namespace string) appslistersv1.DeploymentNamespaceLister {
-	return simpleDeploymentNamespaceLister{
-		namespace:  namespace,
-		kubeClient: s.kubeClient,
-	}
-}
-
-// deploymentNamespaceLister implements the DeploymentNamespaceLister
-// interface.
-type simpleDeploymentNamespaceLister struct {
-	namespace  string
-	kubeClient kubernetes.Interface
-}
-
-func (s simpleDeploymentNamespaceLister) List(selector labels.Selector) (ret []*appsv1.Deployment, err error) {
-	var deployments []*appsv1.Deployment
-
-	list, err := s.kubeClient.AppsV1().Deployments(s.namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-	for i := range list.Items {
-		deployment := list.Items[i]
-		if selector.Matches(labels.Set(deployment.Labels)) {
-			deployments = append(deployments, &deployment)
-		}
-	}
-	return deployments, nil
-}
-
-func (s simpleDeploymentNamespaceLister) Get(name string) (*appsv1.Deployment, error) {
-	return s.kubeClient.AppsV1().Deployments(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
-}
-
-// FakeSecrets is a fake Secrets implementation
-type FakeSecrets struct {
-	Secrets map[string]*v1.Secret
-}
-
-// Get returns a secret for a given secret name and namespace.
-func (s *FakeSecrets) Get(name string) (*v1.Secret, error) {
-	return s.Secrets[name], nil
-}
-
-// Create creates a secret for a given secret name and namespace.
-func (s *FakeSecrets) Create(newSecret *v1.Secret) (*v1.Secret, error) {
-	s.Secrets[newSecret.Name] = newSecret
-	return newSecret, nil
-}
-
-// Update updates a secret for a given secret name and namespace.
-func (s *FakeSecrets) Update(newSecret *v1.Secret) (*v1.Secret, error) {
-	s.Secrets[newSecret.Name] = newSecret
-	return newSecret, nil
-}
-
-// List returns a list of secrets for given namespace and selector.
-func (s *FakeSecrets) List(ns string, selector labels.Selector) (ret []*v1.Secret, err error) {
-	var secrets []*v1.Secret
-	for i := range s.Secrets {
-		secret := s.Secrets[i]
-		if secret.Namespace == ns && selector.Matches(labels.Set(secret.Labels)) {
-			secrets = append(secrets, secret)
-		}
-	}
-	return secrets, nil
-}
-
-// Delete deletes a secret for a given secret name and namespace.
-func (s *FakeSecrets) Delete(ns, name string) error {
-	delete(s.Secrets, name)
-	return nil
-}
-
-// GetVmiPassword returns a Verrazzano Monitoring Instance password for given namespace.
-func (s *FakeSecrets) GetVmiPassword() (string, error) {
-	return monitoring.GetVmiPassword(s)
 }
