@@ -25,13 +25,8 @@ import (
 )
 
 // CreateDeployments creates/updates deployments needed for each managed cluster.
-func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) error {
+func CreateDeployments(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) error {
 	glog.V(6).Infof("Creating/updating Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
-
-	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
-	if err != nil {
-		return err
-	}
 
 	// Construct deployments for each ManagedCluster
 	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
@@ -40,6 +35,7 @@ func CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterCo
 		defer managedClusterConnection.Lock.RUnlock()
 
 		var deployments []*appsv1.Deployment
+		var err error
 		if mbPair.Binding.Name == constants.VmiSystemBindingName {
 			deployments, err = monitoring.GetSystemDeployments(clusterName, verrazzanoURI, util.GetManagedLabelsNoBinding(clusterName), sec)
 			if err != nil {
