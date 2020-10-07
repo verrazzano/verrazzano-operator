@@ -118,8 +118,8 @@ func Test_initFlags(t *testing.T) {
 	initFlags(stringVarFunc, boolVarFunc)
 
 	// THEN assert that the expected command line flags are initialized
-	assert.Equal(t, len(expectedStringFlags), len(foundStringFlags))
-	assert.Equal(t, len(expectedBoolFlags), len(foundBoolFlags))
+	assert.Len(t, foundStringFlags, len(expectedStringFlags))
+	assert.Len(t, foundBoolFlags, len(expectedBoolFlags))
 	for expectedName, expectedValue := range expectedStringFlags {
 		assert.Equal(t, expectedValue, foundStringFlags[expectedName])
 	}
@@ -132,7 +132,7 @@ func Test_initFlags(t *testing.T) {
 // http method and path
 func assertNotExpected(t *testing.T, rootRouter *mux.Router, method string, path string) {
 	req, err := http.NewRequest(method, path, nil)
-	assert.Nil(t, err, "Unexpected error creating test http request for path "+path)
+	assert.NoError(t, err, "creating test http request for path "+path)
 	routeMatch := &mux.RouteMatch{}
 	assert.False(t, rootRouter.Match(req, routeMatch),
 		fmt.Sprintf("Unexpected Match found for '%s %s'", method, path))
@@ -141,17 +141,16 @@ func assertNotExpected(t *testing.T, rootRouter *mux.Router, method string, path
 // assertExpected asserts that the rootRouter contains a match for the given http method and path
 func assertExpected(t *testing.T, rootRouter *mux.Router, method string, path string) {
 	req, err := http.NewRequest(method, path, nil)
-	assert.Nil(t, err, "Unexpected error creating test http request for path "+path)
+	assert.NoError(t, err, "creating test http request for path "+path)
 	routeMatch := &mux.RouteMatch{}
 
 	// assert that the match for given request path and request method was found
 	assert.True(t, rootRouter.Match(req, routeMatch),
 		fmt.Sprintf("Matcher for '%s %s' not found", method, path))
 
-	assert.Nil(t, routeMatch.MatchErr,
-		fmt.Sprintf("Error matching path %s: %s", path, routeMatch.MatchErr))
+	assert.NoError(t, routeMatch.MatchErr,
+		fmt.Sprintf("when matching path %s: %s", path, routeMatch.MatchErr))
 
-	fmt.Printf("Matched %s %s\n", method, path)
 }
 
 // getComplementaryMethods returns the list of all http methods that are NOT in the given list
