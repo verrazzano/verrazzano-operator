@@ -104,6 +104,9 @@ Deployments:
                 - containerPort: 8090
                   name: test-port
                   protocol: TCP
+          initContainers:
+            - image: generic-image:2.0
+              name: test-generic-image2
     status: {}
 Services:
   - metadata:

@@ -118,8 +118,9 @@ func AddEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.EnvVa
 						for index, container := range deployment.Spec.Template.Spec.Containers {
 							for _, env := range *envs {
 								found := false
-								for _, cenv := range container.Env {
+								for i, cenv := range container.Env {
 									if cenv.Name == env.Name {
+										container.Env[i].Value = env.Value
 										found = true
 									}
 								}
@@ -129,6 +130,22 @@ func AddEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.EnvVa
 								}
 							}
 							deployment.Spec.Template.Spec.Containers[index] = *container.DeepCopy()
+						}
+						for index, initcontainer := range deployment.Spec.Template.Spec.InitContainers {
+							for _, env := range *envs {
+								found := false
+								for i, cenv := range initcontainer.Env {
+									if cenv.Name == env.Name {
+										initcontainer.Env[i].Value = env.Value
+										found = true
+									}
+								}
+								// Only add env variable to init container if the env variable does not already exist.
+								if !found {
+									initcontainer.Env = append(initcontainer.Env, env)
+								}
+							}
+							deployment.Spec.Template.Spec.InitContainers[index] = *initcontainer.DeepCopy()
 						}
 						return
 					}
