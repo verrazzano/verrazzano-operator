@@ -62,7 +62,7 @@ func handleRequests(apiServerFinished chan bool, rootRouter *mux.Router) {
 
 func registerPathHandlers(rootRouter *mux.Router) *mux.Router {
 	apiRouter := rootRouter.PathPrefix(apiVersionPrefix).Subrouter()
-	// All paths registered below are after path prefix "/api"
+	// All paths registered below are after path prefix specified in the apiVersionPrefix variable
 	apiRouter.HandleFunc("/", homePage)
 
 	// There is only 1
