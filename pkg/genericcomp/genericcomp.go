@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// GenericComponentSelectorLabel defines the selector label for generic component resources.
 const GenericComponentSelectorLabel = "verrazzano.name"
 
 // NewDeployment constructs a deployment for a generic component.
