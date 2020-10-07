@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
+
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
@@ -157,18 +159,9 @@ func assertExpected(t *testing.T, rootRouter *mux.Router, method string, path st
 func getComplementaryMethods(methods []string) []string {
 	complementaryMethods := []string{}
 	for _, eachMethod := range allHTTPMethods {
-		if !sliceContains(methods, eachMethod) {
+		if !util.Contains(methods, eachMethod) {
 			complementaryMethods = append(complementaryMethods, eachMethod)
 		}
 	}
 	return complementaryMethods
-}
-
-func sliceContains(theSlice []string, itemToFind string) bool {
-	for _, item := range theSlice {
-		if item == itemToFind {
-			return true
-		}
-	}
-	return false
 }
