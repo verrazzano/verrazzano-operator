@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/verrazzano/verrazzano-operator/pkg/genericcomp"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
@@ -201,13 +203,13 @@ func TestCleanupOrphanedDeploymentsInvalidBinding(t *testing.T) {
 			}(),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"verrazzano.name": "test-generic",
+					genericcomp.GenericComponentSelectorLabel: "test-generic",
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"verrazzano.name": "test-generic",
+						genericcomp.GenericComponentSelectorLabel: "test-generic",
 					},
 				},
 				Spec: corev1.PodSpec{

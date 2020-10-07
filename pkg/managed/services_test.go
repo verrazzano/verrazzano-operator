@@ -7,6 +7,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/verrazzano/verrazzano-operator/pkg/genericcomp"
+
 	"github.com/stretchr/testify/assert"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
@@ -155,7 +157,7 @@ func TestCleanupOrphanedServicesInvalidBinding(t *testing.T) {
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				"verrazzano.name": "test-generic",
+				genericcomp.GenericComponentSelectorLabel: "test-generic",
 			},
 			Type: corev1.ServiceTypeClusterIP,
 			Ports: []corev1.ServicePort{
@@ -185,7 +187,7 @@ func TestCleanupOrphanedServicesInvalidBinding(t *testing.T) {
 
 func assertCreateServiceAppBinding(t *testing.T, services *corev1.ServiceList, binding *v1beta1v8o.VerrazzanoBinding) {
 	selector := map[string]string{
-		"verrazzano.name": "test-generic",
+		genericcomp.GenericComponentSelectorLabel: "test-generic",
 	}
 
 	assert := assert.New(t)

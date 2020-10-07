@@ -22,7 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsdom"
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsopr"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -299,81 +298,18 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 					namespace, _ := util.GetComponentNamespace(generic.Name, mbPair.Binding)
 					genericLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
 
-					// Create k8s deployment for genericComponent
-					// TODO: move to genericComponent.go
-					deploy := &appsv1.Deployment{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      generic.Name,
-							Namespace: namespace,
-							Labels:    genericLabels,
-						},
-						Spec: appsv1.DeploymentSpec{
-							Replicas: func() *int32 {
-								if generic.Replicas == nil {
-									return util.NewVal(1)
-								}
-								return generic.Replicas
-							}(),
-							Selector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"verrazzano.name": generic.Name,
-								},
-							},
-							Template: corev1.PodTemplateSpec{
-								ObjectMeta: metav1.ObjectMeta{
-									Labels: map[string]string{
-										"verrazzano.name": generic.Name,
-									},
-								},
-								Spec: generic.Deployment,
-							},
-						},
-					}
+					// Create the k8s deployment for this generic component
+					deploy := genericcomp.NewDeployment(generic, namespace, genericLabels)
 					mc.Deployments = append(mc.Deployments, deploy)
 
-					// Create k8s service for genericComponent
-					// TODO: move to genericComponent.go
-					service := &corev1.Service{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      generic.Name,
-							Namespace: namespace,
-							Labels:    genericLabels,
-						},
-						Spec: corev1.ServiceSpec{
-							Selector: map[string]string{
-								"verrazzano.name": generic.Name,
-							},
-							Ports: []corev1.ServicePort{},
-							Type:  corev1.ServiceTypeClusterIP,
-						},
-					}
-
-					// Add all container ports to the k8s service
-					for _, container := range generic.Deployment.Containers {
-						for _, port := range container.Ports {
-							sp := corev1.ServicePort{
-								Name:     port.Name,
-								Protocol: port.Protocol,
-								Port:     port.ContainerPort,
-							}
-							service.Spec.Ports = append(service.Spec.Ports, sp)
-						}
-					}
+					// Create k8s service for this generic component
+					service := genericcomp.NewService(generic, namespace, genericLabels)
 					mc.Services = append(mc.Services, service)
 
-					// Capture any image pull secrets
-					for _, secret := range deploy.Spec.Template.Spec.ImagePullSecrets {
-						addSecret(mc, secret.Name, namespace)
-					}
-
-					// Capture any secrets referenced in container env variables
-					// TODO: need to work out how to handle optional secret refs
-					for _, container := range deploy.Spec.Template.Spec.Containers {
-						for _, env := range container.Env {
-							if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil {
-								addSecret(mc, env.ValueFrom.SecretKeyRef.Name, namespace)
-							}
-						}
+					// Get all the secrets required by the generic component deployment
+					secrets := genericcomp.GetSecrets(*deploy)
+					for _, secret := range secrets {
+						addSecret(mc, secret, namespace)
 					}
 
 					mc.GenericComponents = append(mc.GenericComponents, &generic)
@@ -454,7 +390,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						for _, connection := range generic.Connections {
 							createRemoteRestConnections(mbPair, mc, connection.Rest, namespace.Name)
 							envVars := getRestConnectionEnvVars(mbPair, connection.Rest, generic.Name)
-							genericcomp.UpdateEnvVars(mc, generic.Name, envVars)
+							genericcomp.AddEnvVars(mc, generic.Name, envVars)
 						}
 					}
 				}
