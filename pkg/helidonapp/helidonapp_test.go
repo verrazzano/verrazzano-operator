@@ -70,9 +70,9 @@ func TestCreateHelidonAppWithCoherenceCluster(t *testing.T) {
 	assert.NotNil(t, findEnv(helidonApp.Spec.Env, myEnvVar.Name))
 }
 
-// TestCreateHelidonAppWithWrongCoherenceCluster tests the creation of HelidonApp witn an invalid VerrazzanoCoherenceConnection
+// TestCreateHelidonAppWithWrongCoherenceCluster tests the creation of HelidonApp with an invalid VerrazzanoCoherenceConnection
 // GIVEN a ModelBindingPair with VerrazzanoCoherenceCluster in VerrazzanoModel and a VerrazzanoHelidonBinding in VerrazzanoBinding
-//  WHEN CreateHelidonAppCR is called with a VerrazzanoHelidon witn an invalid VerrazzanoCoherenceConnection
+//  WHEN CreateHelidonAppCR is called with a VerrazzanoHelidon with an invalid VerrazzanoCoherenceConnection
 //  THEN there should be a HelidonApp created without coherence env vars
 func TestCreateHelidonAppWithWrongCoherenceCluster(t *testing.T) {
 	mcName, namespace, appName := "myCluster", "myNs", "myHelidonApp"
