@@ -123,7 +123,6 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 				labels["weblogic.domainUID"] = domain.Name
 				secretObj, err := newSecret(secretName, namespace, kubeClientSet, data, labels)
 				if err != nil {
-					// TODO: why info and level 6?
 					glog.V(6).Infof("Copying secret %s to namespace %s for database binding %s is giving error %s", secretName, namespace, databaseBinding.Name, err)
 					continue
 				}
@@ -144,7 +143,6 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 			if !found {
 				secretObj, err := newSecret(secretName, namespace, kubeClientSet, nil, nil)
 				if err != nil {
-					// TODO: why is error ignored?
 					continue
 				}
 				secrets = append(secrets, secretObj)
