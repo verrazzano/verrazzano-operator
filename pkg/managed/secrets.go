@@ -134,6 +134,7 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 	for namespace, secretNames := range managedCluster.Secrets {
 		for _, secretName := range secretNames {
 			found := false
+			// Filter out duplicate secrets
 			for _, secret := range secrets {
 				if secret.Name == secretName && secret.Namespace == namespace {
 					found = true
