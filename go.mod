@@ -12,7 +12,7 @@ require (
 	github.com/verrazzano/verrazzano-crd-generator v0.3.33
 	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.9
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.24
-	github.com/verrazzano/verrazzano-wko-operator v0.0.12
+	github.com/verrazzano/verrazzano-wko-operator v0.0.13
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
