@@ -129,20 +129,19 @@ func UpdateEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.En
 
 // Add environment variables to containers
 func addContainerEnvs(envs *[]corev1.EnvVar, containers []corev1.Container) {
-	for index, container := range containers {
+	for containerIndex, _ := range containers {
 		for _, env := range *envs {
 			found := false
-			for i, cenv := range container.Env {
+			for envIndex, cenv := range containers[containerIndex].Env {
 				if cenv.Name == env.Name {
-					container.Env[i].Value = env.Value
+					containers[containerIndex].Env[envIndex].Value = env.Value
 					found = true
 				}
 			}
 			// Only add env variable to container if the env variable does not already exist.
 			if !found {
-				container.Env = append(container.Env, env)
+				containers[containerIndex].Env = append(containers[containerIndex].Env, env)
 			}
 		}
-		containers[index] = *container.DeepCopy()
 	}
 }

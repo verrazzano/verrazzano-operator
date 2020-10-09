@@ -194,7 +194,7 @@ func TestUpdateEnvVars(t *testing.T) {
 			Name:  "test_env2",
 			Value: "test_value2",
 		},
-		// environment variable that already exist - will be replaced
+		// environment variable that already exist - will be replaced because it has a different value
 		{
 			Name:  "test_env1",
 			Value: "test_value3",
@@ -223,4 +223,28 @@ func TestUpdateEnvVars(t *testing.T) {
 	UpdateEnvVars(mc, "test-generic", &[]corev1.EnvVar{})
 	assert.Equal(2, len(mc.Deployments[0].Spec.Template.Spec.Containers[0].Env), "environment variable list length not equal to expected value")
 	assert.Equal(2, len(mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env), "environment variable list length not equal to expected value")
+
+	envs = []corev1.EnvVar{
+		{
+			Name:  "test_env1",
+			Value: "test_value1",
+		},
+		{
+			Name:  "test_env2",
+			Value: "test_value2",
+		},
+		// environment variable that already exist - will not be replaced because value is the same
+		{
+			Name:  "test_env1",
+			Value: "test_value1",
+		},
+	}
+
+	UpdateEnvVars(mc, "test-generic", &envs)
+	assert.Equal(2, len(mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env), "environment variable list length not equal to expected value")
+	assert.Equal("test_env1", mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env[0].Name, "environment variable name not equal to expected value")
+	assert.Equal("test_value1", mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env[0].Value, "environment variable value not equal to expected value")
+	assert.Equal("test_env2", mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env[1].Name, "environment variable name not equal to expected value")
+	assert.Equal("test_value2", mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env[1].Value, "environment variable value not equal to expected value")
+
 }
