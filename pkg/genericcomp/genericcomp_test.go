@@ -175,11 +175,11 @@ func TestGetSecrets(t *testing.T) {
 	assert.Equal("test-secret-ref2", secrets[2], "secret not equal to expected value")
 }
 
-// TestAddEnvVars tests env variables are added to a generic component deployment
+// TestUpdateEnvVars tests env variables are added to a generic component deployment
 // GIVEN a managed cluster struct, a generic component name, and a list of environment variables to add
-//  WHEN I call AddEnvVars
+//  WHEN I call UpdateEnvVars
 //  THEN the environment variables are added to a generic component deployment
-func TestAddEnvVars(t *testing.T) {
+func TestUpdateEnvVars(t *testing.T) {
 	assert := assert.New(t)
 
 	modelBindingPair := testutil.GetModelBindingPair()
@@ -201,7 +201,7 @@ func TestAddEnvVars(t *testing.T) {
 		},
 	}
 
-	AddEnvVars(mc, "test-generic", &envs)
+	UpdateEnvVars(mc, "test-generic", &envs)
 	assert.Equal(2, len(mc.Deployments[0].Spec.Template.Spec.Containers[0].Env), "environment variable list length not equal to expected value")
 	assert.Equal("test_env1", mc.Deployments[0].Spec.Template.Spec.Containers[0].Env[0].Name, "environment variable name not equal to expected value")
 	assert.Equal("test_value3", mc.Deployments[0].Spec.Template.Spec.Containers[0].Env[0].Value, "environment variable value not equal to expected value")
@@ -215,13 +215,12 @@ func TestAddEnvVars(t *testing.T) {
 	assert.Equal("test_value2", mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env[1].Value, "environment variable value not equal to expected value")
 
 	// Specify nil for env vars - should be no change
-	AddEnvVars(mc, "test-generic", nil)
+	UpdateEnvVars(mc, "test-generic", nil)
 	assert.Equal(2, len(mc.Deployments[0].Spec.Template.Spec.Containers[0].Env), "environment variable list length not equal to expected value")
 	assert.Equal(2, len(mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env), "environment variable list length not equal to expected value")
 
 	// Specify empty env vars array - should be no change
-	AddEnvVars(mc, "test-generic", &[]corev1.EnvVar{})
+	UpdateEnvVars(mc, "test-generic", &[]corev1.EnvVar{})
 	assert.Equal(2, len(mc.Deployments[0].Spec.Template.Spec.Containers[0].Env), "environment variable list length not equal to expected value")
 	assert.Equal(2, len(mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env), "environment variable list length not equal to expected value")
-
 }

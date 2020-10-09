@@ -108,8 +108,8 @@ func GetSecrets(deploy appsv1.Deployment) []string {
 	return secrets
 }
 
-// AddEnvVars adds environment variables to a generic components deployment container.
-func AddEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.EnvVar) {
+// UpdateEnvVars adds environment variables to a generic components deployment container.
+func UpdateEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.EnvVar) {
 	if envs == nil || len(*envs) == 0 {
 		return
 	}
@@ -127,7 +127,7 @@ func AddEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.EnvVa
 	}
 }
 
-// add environment variables to containers
+// Add environment variables to containers
 func addContainerEnvs(envs *[]corev1.EnvVar, containers []corev1.Container) {
 	for index, container := range containers {
 		for _, env := range *envs {

@@ -344,6 +344,8 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 				compNames[s.Name] = s
 			}
 
+			// Process rest connections for WebLogic domains identifying rest connections across clusters
+			// and adding needed environment variables
 			domains := mbPair.Model.Spec.WeblogicDomains
 			if domains != nil {
 				for _, domain := range domains {
@@ -358,6 +360,8 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 				}
 			}
 
+			// Process rest connections for Coherence clusters identifying rest connections across clusters
+			// and adding needed environment variables
 			cohClusters := mbPair.Model.Spec.CoherenceClusters
 			if cohClusters != nil {
 				for _, cluster := range cohClusters {
@@ -372,6 +376,8 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 				}
 			}
 
+			// Process rest connections for Helidon applications identifying rest connections across clusters
+			// and adding needed environment variables
 			helidonApps := mbPair.Model.Spec.HelidonApplications
 			if helidonApps != nil {
 				for _, app := range helidonApps {
@@ -386,6 +392,8 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 				}
 			}
 
+			// Process rest connections for generic components identifying rest connections across clusters
+			// and adding needed environment variables
 			genericComponents := mbPair.Model.Spec.GenericComponents
 			if genericComponents != nil {
 				for _, generic := range genericComponents {
@@ -394,7 +402,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						for _, connection := range generic.Connections {
 							createRemoteRestConnections(mbPair, mc, connection.Rest, namespace.Name)
 							envVars := getRestConnectionEnvVars(mbPair, connection.Rest, generic.Name)
-							genericcomp.AddEnvVars(mc, generic.Name, envVars)
+							genericcomp.UpdateEnvVars(mc, generic.Name, envVars)
 						}
 					}
 				}
