@@ -146,6 +146,11 @@ func TestNewService(t *testing.T) {
 	assert.Equal("test-port", service.Spec.Ports[0].Name, "service port name not equal to expected value")
 	assert.Equal(int32(8095), service.Spec.Ports[0].Port, "service port name not equal to expected value")
 	assert.Equal(corev1.ProtocolTCP, service.Spec.Ports[0].Protocol, "service port name not equal to expected value")
+
+	// No container ports specified then no new service is needed.
+	generic.Deployment.Containers[0].Ports = []corev1.ContainerPort{}
+	service = NewService(generic, "test-namespace", labels)
+	assert.Nil(service, "service should be nil")
 }
 
 // TestGetSecrets tests that a list of secrets is returned
@@ -208,4 +213,15 @@ func TestAddEnvVars(t *testing.T) {
 	assert.Equal("test_value3", mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env[0].Value, "environment variable value not equal to expected value")
 	assert.Equal("test_env2", mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env[1].Name, "environment variable name not equal to expected value")
 	assert.Equal("test_value2", mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env[1].Value, "environment variable value not equal to expected value")
+
+	// Specify nil for env vars - should be no change
+	AddEnvVars(mc, "test-generic", nil)
+	assert.Equal(2, len(mc.Deployments[0].Spec.Template.Spec.Containers[0].Env), "environment variable list length not equal to expected value")
+	assert.Equal(2, len(mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env), "environment variable list length not equal to expected value")
+
+	// Specify empty env vars array - should be no change
+	AddEnvVars(mc, "test-generic", &[]corev1.EnvVar{})
+	assert.Equal(2, len(mc.Deployments[0].Spec.Template.Spec.Containers[0].Env), "environment variable list length not equal to expected value")
+	assert.Equal(2, len(mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env), "environment variable list length not equal to expected value")
+
 }

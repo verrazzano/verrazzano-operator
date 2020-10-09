@@ -42,18 +42,18 @@ func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 		}
 
 		// Create or update Services
-		for _, newService := range services {
-			existingService, err := managedClusterConnection.ServiceLister.Services(newService.Namespace).Get(newService.Name)
+		for _, service := range services {
+			existingService, err := managedClusterConnection.ServiceLister.Services(service.Namespace).Get(service.Name)
 			if existingService != nil {
-				specDiffs := diff.CompareIgnoreTargetEmpties(existingService, newService)
+				specDiffs := diff.CompareIgnoreTargetEmpties(existingService, service)
 				if specDiffs != "" {
-					glog.V(6).Infof("Service %s : Spec differences %s", newService.Name, specDiffs)
-					glog.V(4).Infof("Updating Service %s:%s in cluster %s", newService.Namespace, newService.Name, clusterName)
-					_, err = managedClusterConnection.KubeClient.CoreV1().Services(newService.Namespace).Update(context.TODO(), newService, metav1.UpdateOptions{})
+					glog.V(6).Infof("Service %s : Spec differences %s", service.Name, specDiffs)
+					glog.V(4).Infof("Updating Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
+					_, err = managedClusterConnection.KubeClient.CoreV1().Services(service.Namespace).Update(context.TODO(), service, metav1.UpdateOptions{})
 				}
 			} else {
-				glog.V(4).Infof("Creating Service %s:%s in cluster %s", newService.Namespace, newService.Name, clusterName)
-				_, err = managedClusterConnection.KubeClient.CoreV1().Services(newService.Namespace).Create(context.TODO(), newService, metav1.CreateOptions{})
+				glog.V(4).Infof("Creating Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
+				_, err = managedClusterConnection.KubeClient.CoreV1().Services(service.Namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 			}
 			if err != nil {
 				return err

@@ -81,7 +81,7 @@ func TestCreateServicesVMIBinding(t *testing.T) {
 
 // TestDeleteServices tests that an existing service is properly deleted.
 // GIVEN a cluster which has an existing generic component service (test-generic)
-//  WHEN I call CreateServices
+//  WHEN I call DeleteServices
 //  THEN we delete only the service (test-generic) for the generic component
 func TestDeleteServices(t *testing.T) {
 	assert := assert.New(t)

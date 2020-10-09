@@ -49,20 +49,7 @@ func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, namespace stri
 
 // NewService constructs a service for a generic component.
 func NewService(generic v1beta1v8o.VerrazzanoGenericComponent, namespace string, labels map[string]string) *corev1.Service {
-	service := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      generic.Name,
-			Namespace: namespace,
-			Labels:    labels,
-		},
-		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{
-				GenericComponentSelectorLabel: generic.Name,
-			},
-			Ports: []corev1.ServicePort{},
-			Type:  corev1.ServiceTypeClusterIP,
-		},
-	}
+	service := &corev1.Service{}
 
 	// Add all container ports to the k8s service
 	for _, container := range generic.Deployment.Containers {
@@ -80,6 +67,13 @@ func NewService(generic v1beta1v8o.VerrazzanoGenericComponent, namespace string,
 	if len(service.Spec.Ports) == 0 {
 		return nil
 	}
+
+	service.Name = generic.Name
+	service.Namespace = namespace
+	service.Labels = labels
+
+	service.Spec.Selector = map[string]string{GenericComponentSelectorLabel: generic.Name}
+	service.Spec.Type = corev1.ServiceTypeClusterIP
 
 	return service
 }
@@ -116,47 +110,39 @@ func GetSecrets(deploy appsv1.Deployment) []string {
 
 // AddEnvVars adds environment variables to a generic components deployment container.
 func AddEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.EnvVar) {
-	if *envs != nil && len(*envs) != 0 {
-		for _, generic := range mc.GenericComponents {
-			if generic.Name == component {
-				for _, deployment := range mc.Deployments {
-					if deployment.Name == component {
-						for index, container := range deployment.Spec.Template.Spec.Containers {
-							for _, env := range *envs {
-								found := false
-								for i, cenv := range container.Env {
-									if cenv.Name == env.Name {
-										container.Env[i].Value = env.Value
-										found = true
-									}
-								}
-								// Only add env variable to container if the env variable does not already exist.
-								if !found {
-									container.Env = append(container.Env, env)
-								}
-							}
-							deployment.Spec.Template.Spec.Containers[index] = *container.DeepCopy()
-						}
-						for index, initcontainer := range deployment.Spec.Template.Spec.InitContainers {
-							for _, env := range *envs {
-								found := false
-								for i, cenv := range initcontainer.Env {
-									if cenv.Name == env.Name {
-										initcontainer.Env[i].Value = env.Value
-										found = true
-									}
-								}
-								// Only add env variable to init container if the env variable does not already exist.
-								if !found {
-									initcontainer.Env = append(initcontainer.Env, env)
-								}
-							}
-							deployment.Spec.Template.Spec.InitContainers[index] = *initcontainer.DeepCopy()
-						}
-						return
-					}
+	if envs == nil || len(*envs) == 0 {
+		return
+	}
+
+	for _, generic := range mc.GenericComponents {
+		if generic.Name == component {
+			for _, deployment := range mc.Deployments {
+				if deployment.Name == component {
+					addContainerEnvs(envs, deployment.Spec.Template.Spec.Containers)
+					addContainerEnvs(envs, deployment.Spec.Template.Spec.InitContainers)
+					return
 				}
 			}
 		}
+	}
+}
+
+// add environment variables to containers
+func addContainerEnvs(envs *[]corev1.EnvVar, containers []corev1.Container) {
+	for index, container := range containers {
+		for _, env := range *envs {
+			found := false
+			for i, cenv := range container.Env {
+				if cenv.Name == env.Name {
+					container.Env[i].Value = env.Value
+					found = true
+				}
+			}
+			// Only add env variable to container if the env variable does not already exist.
+			if !found {
+				container.Env = append(container.Env, env)
+			}
+		}
+		containers[index] = *container.DeepCopy()
 	}
 }

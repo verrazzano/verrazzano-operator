@@ -490,16 +490,16 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 		glog.Errorf("Failed to create service entries for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
-	// Create Services
-	err = managed.CreateServices(mbPair, filteredConnections)
-	if err != nil {
-		glog.Errorf("Failed to create service for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
 	// Create Deployments
 	err = managed.CreateDeployments(mbPair, filteredConnections, c.Manifest, c.verrazzanoURI, c.secrets)
 	if err != nil {
 		glog.Errorf("Failed to create deployments for binding %s: %v", mbPair.Binding.Name, err)
+	}
+
+	// Create Services
+	err = managed.CreateServices(mbPair, filteredConnections)
+	if err != nil {
+		glog.Errorf("Failed to create service for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create Custom Resources
@@ -758,16 +758,16 @@ func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 		glog.Errorf("Failed to cleanup custom resources for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
-	// Cleanup Deployments for generic components
-	err = managed.CleanupOrphanedDeployments(mbPair, c.managedClusterConnections)
-	if err != nil {
-		glog.Errorf("Failed to cleanup deployments for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
 	// Cleanup Services for generic components
 	err = managed.CleanupOrphanedServices(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to cleanup services for binding %s: %v", mbPair.Binding.Name, err)
+	}
+
+	// Cleanup Deployments for generic components
+	err = managed.CleanupOrphanedDeployments(mbPair, c.managedClusterConnections)
+	if err != nil {
+		glog.Errorf("Failed to cleanup deployments for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup ServiceEntries
@@ -874,17 +874,17 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 		return
 	}
 
-	// Delete Deployments for generic components
-	err = managed.DeleteDeployments(mbPair, filteredConnections)
-	if err != nil {
-		glog.Errorf("Failed to delete deployments for binding %s: %v", mbPair.Binding.Name, err)
-		return
-	}
-
 	// Delete Services for generic components
 	err = managed.DeleteServices(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to delete services for binding %s: %v", mbPair.Binding.Name, err)
+		return
+	}
+
+	// Delete Deployments for generic components
+	err = managed.DeleteDeployments(mbPair, filteredConnections)
+	if err != nil {
+		glog.Errorf("Failed to delete deployments for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
