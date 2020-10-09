@@ -5,8 +5,8 @@
 #
 # Code coverage generation
 CVG_EXCLUDE="${CVG_EXCLUDE:-test}"
-
-go test -coverpkg=./... -coverprofile ./coverage.cov $(go list ./... |  grep -Ev "${CVG_EXCLUDE}")
+go test -coverpkg=./... -coverprofile ./coverageTmp.cov $(go list ./... |  grep -Ev "${CVG_EXCLUDE}")
+cat ./coverageTmp.cov | grep -v 'pkg\/testutil/' | grep -v 'pkg/testutilcontroller/' | grep -v '/test/integ/' > ./coverage.cov
 
 # Display the global code coverage.  This generates the total number the badge uses
 go tool cover -func=coverage.cov

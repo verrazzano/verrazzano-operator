@@ -13,5 +13,6 @@ no_licenses.txt
 thirdparty_licenses
 index.yaml
 /coverage.cov
+/coverageTmp.cov
 /coverage.html
 /coverage.xml
