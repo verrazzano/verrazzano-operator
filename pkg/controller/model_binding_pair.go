@@ -304,7 +304,9 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 
 					// Create k8s service for this generic component
 					service := genericcomp.NewService(generic, namespace, genericLabels)
-					mc.Services = append(mc.Services, service)
+					if service != nil {
+						mc.Services = append(mc.Services, service)
+					}
 
 					// Get all the secrets required by the generic component deployment
 					secrets := genericcomp.GetSecrets(*deploy)
@@ -318,10 +320,12 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 					// Initial implementation uses the first service port value for the ingress connection.  In the
 					// future, we must allow for multiple ingress connections for generic components with different
 					// service ports.
-					virtualSerivceDestinationPort := int(service.Spec.Ports[0].Port)
-					processIngressConnections(mc, generic.Connections, namespace, nil,
-						getGenericComponentDestinationHost(generic.Name, namespace),
-						virtualSerivceDestinationPort, &mbPair.Binding.Spec.IngressBindings)
+					if service != nil {
+						virtualSerivceDestinationPort := int(service.Spec.Ports[0].Port)
+						processIngressConnections(mc, generic.Connections, namespace, nil,
+							getGenericComponentDestinationHost(generic.Name, namespace),
+							virtualSerivceDestinationPort, &mbPair.Binding.Spec.IngressBindings)
+					}
 				}
 			}
 		}

@@ -76,6 +76,11 @@ func NewService(generic v1beta1v8o.VerrazzanoGenericComponent, namespace string,
 		}
 	}
 
+	// No ports then no need for a service
+	if len(service.Spec.Ports) == 0 {
+		return nil
+	}
+
 	return service
 }
 
