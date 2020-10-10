@@ -346,7 +346,7 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 
 // DeleteCustomResources deletes custom resources for a given binding.
 func DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Deleting ServiceAccount for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
+	glog.V(6).Infof("Deleting Custom Resources for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
 
 	// Parse out the managed clusters that this binding applies to
 	managedClusters, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)

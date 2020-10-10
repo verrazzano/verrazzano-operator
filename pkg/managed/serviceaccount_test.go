@@ -153,7 +153,7 @@ func getManagedConnections() map[string]*util.ManagedClusterConnection {
 	}
 }
 
-// createAppNamespaces creates the namespaces needed for a application binding.
+// createAppNamespaces creates the namespaces needed for an application binding.
 func createAppNamespaces(t *testing.T, managedConnections map[string]*util.ManagedClusterConnection) {
 	var ns = corev1.Namespace{}
 

@@ -16,6 +16,7 @@ spec:
       namespaces:
         - components:
             - name: test-coherence
+            - name: test-generic
           name: test
         - components:
             - name: test-helidon

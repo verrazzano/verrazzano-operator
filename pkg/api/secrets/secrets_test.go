@@ -243,7 +243,7 @@ func TestUpdateSecretWhereSecretDoesNotExists(t *testing.T) {
 	recorder := testutil.InvokeHTTPHandler(request, "/secret/{id}", UpdateSecret)
 
 	// THEN test the http response code and body is correct.
-	assert.Equal(http.StatusNotFound, recorder.Code, "Should return a HTTP not foudn status.")
+	assert.Equal(http.StatusNotFound, recorder.Code, "Should return a HTTP not found status.")
 	assert.Contains(string(recorder.Body.Bytes()), "test-secret-uid-1", "Should return a body containing the attempted secret id.")
 
 	// THEN test that the update was not applied to the kubernetes secrets.
