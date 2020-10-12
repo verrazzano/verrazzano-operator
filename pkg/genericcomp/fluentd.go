@@ -29,6 +29,7 @@ func CreateFluentdConfigMap(componentName string, namespace string, labels map[s
   pos_file "/tmp/#{ENV['APPLICATION_NAME']}.log.pos"
   read_from_head true
   tag "#{ENV['APPLICATION_NAME']}"
+  format none
 </source>
 <filter **>
   @type parser
