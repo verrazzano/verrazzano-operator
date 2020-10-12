@@ -5,8 +5,33 @@ package testutil
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	cohv1beta1 "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/apis/verrazzano/v1beta1"
+	cohoprclientset "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/clientset/versioned"
+	cohoprclientsetbeta1 "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/clientset/versioned/typed/verrazzano/v1beta1"
+	cohoprlister "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/listers/verrazzano/v1beta1"
+	cohv1 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
+	v8 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
+	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned"
+	cohclulister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/listers/coherence/v1"
+	domclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned"
+	domlister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/listers/weblogic/v8"
+	helidionv1beta1 "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
+	helidonclientset "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/clientset/versioned"
+	helidionclientsetbeta1 "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/clientset/versioned/typed/verrazzano/v1beta1"
+	helidionlister "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/listers/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
+	"github.com/verrazzano/verrazzano-wko-operator/pkg/apis/verrazzano/v1beta1"
+	wlsoprclientset "github.com/verrazzano/verrazzano-wko-operator/pkg/client/clientset/versioned"
+	wlsoprclientsetbeta1 "github.com/verrazzano/verrazzano-wko-operator/pkg/client/clientset/versioned/typed/verrazzano/v1beta1"
+	wlsoprlister "github.com/verrazzano/verrazzano-wko-operator/pkg/client/listers/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/discovery"
+	discoveryfake "k8s.io/client-go/discovery/fake"
+	"k8s.io/client-go/rest"
+	restfake "k8s.io/client-go/rest/fake"
 	"net/http"
 	"net/http/httptest"
 
@@ -126,7 +151,7 @@ type simpleConfigMapNamespaceLister struct {
 	kubeClient kubernetes.Interface
 }
 
-// List lists all ConfigMaps in the indexer for a given namespace.
+// List lists all ConfigMaps for a given namespace.
 func (s simpleConfigMapNamespaceLister) List(selector labels.Selector) (ret []*v1.ConfigMap, err error) {
 	var configMaps []*v1.ConfigMap
 
@@ -143,7 +168,7 @@ func (s simpleConfigMapNamespaceLister) List(selector labels.Selector) (ret []*v
 	return configMaps, nil
 }
 
-// Get retrieves the ConfigMap from the indexer for a given namespace and name.
+// Get retrieves the ConfigMap for a given namespace and name.
 func (s simpleConfigMapNamespaceLister) Get(name string) (*v1.ConfigMap, error) {
 	return s.kubeClient.CoreV1().ConfigMaps(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
@@ -186,14 +211,14 @@ type simpleSecretNamespaceLister struct {
 }
 
 // List all secret for a given namespace
-func (s simpleSecretNamespaceLister) List(selector labels.Selector) (ret []*v1.Secret, err error) {
+func (s simpleSecretNamespaceLister) List(labels.Selector) (ret []*v1.Secret, err error) {
 
 	list, err := s.kubeClient.CoreV1().Secrets(s.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 	var secrets []*v1.Secret = nil
-	var items []v1.Secret = list.Items
+	var items = list.Items
 	for i := range items {
 		secrets = append(secrets, &items[i])
 	}
@@ -392,7 +417,7 @@ type simpleServiceEntryNamespaceLister struct {
 }
 
 // lists all ServiceEntries for a given namespace
-func (s simpleServiceEntryNamespaceLister) List(selector labels.Selector) (ret []*v1alpha3.ServiceEntry, err error) {
+func (s simpleServiceEntryNamespaceLister) List(labels.Selector) (ret []*v1alpha3.ServiceEntry, err error) {
 	var entries []*v1alpha3.ServiceEntry
 
 	list, err := s.istioClientSet.NetworkingV1alpha3().ServiceEntries(s.namespace).List(context.TODO(), metav1.ListOptions{})
@@ -609,16 +634,16 @@ type simpleDaemonSetLister struct {
 }
 
 // GetPodDaemonSets is not currently needed for testing.  Leaving unimplemented.
-func (s *simpleDaemonSetLister) GetPodDaemonSets(pod *v1.Pod) ([]*appsv1.DaemonSet, error) {
+func (s *simpleDaemonSetLister) GetPodDaemonSets(*v1.Pod) ([]*appsv1.DaemonSet, error) {
 	panic("not currently supported")
 }
 
 // GetHistoryDaemonSets is not currently needed for testing.  Leaving unimplemented.
-func (s *simpleDaemonSetLister) GetHistoryDaemonSets(history *appsv1.ControllerRevision) ([]*appsv1.DaemonSet, error) {
+func (s *simpleDaemonSetLister) GetHistoryDaemonSets(*appsv1.ControllerRevision) ([]*appsv1.DaemonSet, error) {
 	panic("not currently supported")
 }
 
-// List lists all DaemonSets in the indexer.
+// List lists all DaemonSets.
 func (s *simpleDaemonSetLister) List(selector labels.Selector) (ret []*appsv1.DaemonSet, err error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -651,7 +676,7 @@ type simpleDaemonSetNamespaceLister struct {
 	kubeClient kubernetes.Interface
 }
 
-// List lists all DaemonSets in the indexer for a given namespace.
+// List lists all DaemonSets for a given namespace.
 func (s simpleDaemonSetNamespaceLister) List(selector labels.Selector) (ret []*appsv1.DaemonSet, err error) {
 	var sets []*appsv1.DaemonSet
 
@@ -668,7 +693,7 @@ func (s simpleDaemonSetNamespaceLister) List(selector labels.Selector) (ret []*a
 	return sets, nil
 }
 
-// Get retrieves the DaemonSet from the indexer for a given namespace and name.
+// Get retrieves the DaemonSet for a given namespace and name.
 func (s simpleDaemonSetNamespaceLister) Get(name string) (*appsv1.DaemonSet, error) {
 	return s.kubeClient.AppsV1().DaemonSets(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
@@ -677,7 +702,7 @@ func (s simpleDaemonSetNamespaceLister) Get(name string) (*appsv1.DaemonSet, err
 func MockError(kubeCli kubernetes.Interface, verb, resource string, obj runtime.Object) kubernetes.Interface {
 	kubeCli.CoreV1().(*fakecorev1.FakeCoreV1).PrependReactor(verb, resource,
 		func(action k8stesting.Action) (handled bool, ret runtime.Object, err error) {
-			return true, obj, fmt.Errorf("Error %s %s", verb, resource)
+			return true, obj, fmt.Errorf("error %s %s", verb, resource)
 		})
 	return kubeCli
 }
@@ -773,7 +798,7 @@ func (s *FakeSecrets) List(ns string, selector labels.Selector) (ret []*v1.Secre
 }
 
 // Delete deletes a secret for a given secret name and namespace.
-func (s *FakeSecrets) Delete(ns, name string) error {
+func (s *FakeSecrets) Delete(_, name string) error {
 	delete(s.Secrets, name)
 	return nil
 }
@@ -781,4 +806,587 @@ func (s *FakeSecrets) Delete(ns, name string) error {
 // GetVmiPassword returns a Verrazzano Monitoring Instance password for given namespace.
 func (s *FakeSecrets) GetVmiPassword() (string, error) {
 	return monitoring.GetVmiPassword(s)
+}
+
+// ----- simpleCohClusterLister
+// simpleCohClusterLister implements the CohClusterLister interface.
+type simpleCohClusterLister struct {
+	kubeClient      kubernetes.Interface
+	cohOprClientSet cohoprclientset.Interface
+}
+
+// List lists all CohClusters.
+func (s *simpleCohClusterLister) List(selector labels.Selector) (ret []*cohv1beta1.CohCluster, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var clusters []*cohv1beta1.CohCluster
+	for _, namespace := range namespaces.Items {
+
+		list, err := s.CohClusters(namespace.Name).List(selector)
+		if err != nil {
+			return nil, err
+		}
+		clusters = append(clusters, list...)
+	}
+	return clusters, nil
+}
+
+// CohClusters returns an object that can list and get CohClusters.
+func (s *simpleCohClusterLister) CohClusters(namespace string) cohoprlister.CohClusterNamespaceLister {
+	return simpleCohClusterNamespaceLister{
+		namespace:       namespace,
+		cohOprClientSet: s.cohOprClientSet,
+	}
+}
+
+// simpleCohClusterNamespaceLister implements the CohClusterNamespaceLister interface.
+type simpleCohClusterNamespaceLister struct {
+	namespace       string
+	cohOprClientSet cohoprclientset.Interface
+}
+
+// List lists all CohClusters for a given namespace.
+func (s simpleCohClusterNamespaceLister) List(selector labels.Selector) (ret []*cohv1beta1.CohCluster, err error) {
+	var clusters []*cohv1beta1.CohCluster
+
+	list, err := s.cohOprClientSet.VerrazzanoV1beta1().CohClusters(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		cluster := list.Items[i]
+		if selector.Matches(labels.Set(cluster.Labels)) {
+			clusters = append(clusters, &cluster)
+		}
+	}
+	return clusters, nil
+}
+
+// Get retrieves the CohCluster for a given namespace and name.
+func (s simpleCohClusterNamespaceLister) Get(name string) (*cohv1beta1.CohCluster, error) {
+	return s.cohOprClientSet.VerrazzanoV1beta1().CohClusters(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// ----- simpleCoherenceClusterLister
+// simpleCoherenceClusterLister implements the CoherenceClusterLister interface.
+type simpleCoherenceClusterLister struct {
+	kubeClient          kubernetes.Interface
+	cohClusterClientSet cohcluclientset.Interface
+}
+
+// List lists all CoherenceClusters.
+func (s *simpleCoherenceClusterLister) List(selector labels.Selector) (ret []*cohv1.CoherenceCluster, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var clusters []*cohv1.CoherenceCluster
+	for _, namespace := range namespaces.Items {
+
+		list, err := s.CoherenceClusters(namespace.Name).List(selector)
+		if err != nil {
+			return nil, err
+		}
+		clusters = append(clusters, list...)
+	}
+	return clusters, nil
+}
+
+// CoherenceClusters returns an object that can list and get CoherenceClusters.
+func (s *simpleCoherenceClusterLister) CoherenceClusters(namespace string) cohclulister.CoherenceClusterNamespaceLister {
+	return simpleCoherenceClusterNamespaceLister{
+		namespace:       namespace,
+		cohOprClientSet: s.cohClusterClientSet,
+	}
+}
+
+// coherenceClusterNamespaceLister implements the CoherenceClusterNamespaceLister interface.
+type simpleCoherenceClusterNamespaceLister struct {
+	namespace       string
+	cohOprClientSet cohcluclientset.Interface
+}
+
+// List lists all CoherenceClusters for a given namespace.
+func (s simpleCoherenceClusterNamespaceLister) List(selector labels.Selector) (ret []*cohv1.CoherenceCluster, err error) {
+	var clusters []*cohv1.CoherenceCluster
+
+	list, err := s.cohOprClientSet.CoherenceV1().CoherenceClusters(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		cluster := list.Items[i]
+		if selector.Matches(labels.Set(cluster.Labels)) {
+			clusters = append(clusters, &cluster)
+		}
+	}
+	return clusters, nil
+}
+
+// Get retrieves the CoherenceCluster for a given namespace and name.
+func (s simpleCoherenceClusterNamespaceLister) Get(name string) (*cohv1.CoherenceCluster, error) {
+	return s.cohOprClientSet.CoherenceV1().CoherenceClusters(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// ----- simpleHelidonAppLister
+// simpleHelidonAppLister implements the HelidonAppLister interface.
+type simpleHelidonAppLister struct {
+	kubeClient       kubernetes.Interface
+	helidonClientSet helidonclientset.Interface
+}
+
+// List lists all HelidonApps.
+func (s *simpleHelidonAppLister) List(selector labels.Selector) (ret []*helidionv1beta1.HelidonApp, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var apps []*helidionv1beta1.HelidonApp
+	for _, namespace := range namespaces.Items {
+
+		list, err := s.HelidonApps(namespace.Name).List(selector)
+		if err != nil {
+			return nil, err
+		}
+		apps = append(apps, list...)
+	}
+	return apps, nil
+}
+
+// HelidonApps returns an object that can list and get HelidonApps.
+func (s *simpleHelidonAppLister) HelidonApps(namespace string) helidionlister.HelidonAppNamespaceLister {
+	return simpleHelidonAppNamespaceLister{
+		namespace:        namespace,
+		helidonClientSet: s.helidonClientSet,
+	}
+}
+
+// simpleHelidonAppNamespaceLister implements the HelidonAppNamespaceLister interface.
+type simpleHelidonAppNamespaceLister struct {
+	namespace        string
+	helidonClientSet helidonclientset.Interface
+}
+
+// List lists all HelidonApps for a given namespace.
+func (s simpleHelidonAppNamespaceLister) List(selector labels.Selector) (ret []*helidionv1beta1.HelidonApp, err error) {
+	var apps []*helidionv1beta1.HelidonApp
+
+	list, err := s.helidonClientSet.VerrazzanoV1beta1().HelidonApps(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		app := list.Items[i]
+		if selector.Matches(labels.Set(app.Labels)) {
+			apps = append(apps, &app)
+		}
+	}
+	return apps, nil
+}
+
+// Get retrieves the HelidonApp for a given namespace and name.
+func (s simpleHelidonAppNamespaceLister) Get(name string) (*helidionv1beta1.HelidonApp, error) {
+	return s.helidonClientSet.VerrazzanoV1beta1().HelidonApps(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// ----- simpleDomainLister
+// simpleDomainLister implements the DomainLister interface.
+type simpleDomainLister struct {
+	kubeClient      kubernetes.Interface
+	domainClientSet domclientset.Interface
+}
+
+// List lists all Domains.`
+func (s *simpleDomainLister) List(selector labels.Selector) (ret []*v8.Domain, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var domains []*v8.Domain
+	for _, namespace := range namespaces.Items {
+		list, err := s.Domains(namespace.Name).List(selector)
+		if err != nil {
+			return nil, err
+		}
+		domains = append(domains, list...)
+	}
+	return domains, nil
+}
+
+// Domains returns an object that can list and get Domains.
+func (s *simpleDomainLister) Domains(namespace string) domlister.DomainNamespaceLister {
+	return simpleDomainNamespaceLister{
+		namespace:       namespace,
+		domainClientSet: s.domainClientSet,
+	}
+}
+
+// simpleDomainNamespaceLister implements the DomainNamespaceLister interface.
+type simpleDomainNamespaceLister struct {
+	namespace       string
+	domainClientSet domclientset.Interface
+}
+
+// List lists all Domains for a given namespace.
+func (s simpleDomainNamespaceLister) List(selector labels.Selector) (ret []*v8.Domain, err error) {
+	var domains []*v8.Domain
+
+	list, err := s.domainClientSet.WeblogicV8().Domains(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		domain := list.Items[i]
+		if selector.Matches(labels.Set(domain.Labels)) {
+			domains = append(domains, &domain)
+		}
+	}
+	return domains, nil
+}
+
+// Get retrieves the Domain for a given namespace and name.
+func (s simpleDomainNamespaceLister) Get(name string) (*v8.Domain, error) {
+	return s.domainClientSet.WeblogicV8().Domains(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// ----- simpleWlsOperatorLister
+// simpleWlsOperatorLister implements the WlsOperatorLister interface.
+type simpleWlsOperatorLister struct {
+	kubeClient      kubernetes.Interface
+	wlsOprClientSet wlsoprclientset.Interface
+}
+
+// List lists all WlsOperators.
+func (s *simpleWlsOperatorLister) List(selector labels.Selector) (ret []*v1beta1.WlsOperator, err error) {
+	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var apps []*v1beta1.WlsOperator
+	for _, namespace := range namespaces.Items {
+
+		list, err := s.WlsOperators(namespace.Name).List(selector)
+		if err != nil {
+			return nil, err
+		}
+		apps = append(apps, list...)
+	}
+	return apps, nil
+}
+
+// WlsOperators returns an object that can list and get WlsOperators.
+func (s *simpleWlsOperatorLister) WlsOperators(namespace string) wlsoprlister.WlsOperatorNamespaceLister {
+	return simpleWlsOperatorNamespaceLister{
+		namespace:       namespace,
+		wlsOprClientSet: s.wlsOprClientSet,
+	}
+}
+
+// simpleWlsOperatorNamespaceLister implements the WlsOperatorNamespaceLister interface.
+type simpleWlsOperatorNamespaceLister struct {
+	namespace       string
+	wlsOprClientSet wlsoprclientset.Interface
+}
+
+// List lists all WlsOperators for a given namespace.
+func (s simpleWlsOperatorNamespaceLister) List(selector labels.Selector) (ret []*v1beta1.WlsOperator, err error) {
+	var apps []*v1beta1.WlsOperator
+
+	list, err := s.wlsOprClientSet.VerrazzanoV1beta1().WlsOperators(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		op := list.Items[i]
+		if selector.Matches(labels.Set(op.Labels)) {
+			apps = append(apps, &op)
+		}
+	}
+	return apps, nil
+}
+
+// Get retrieves the WlsOperator for a given namespace and name.
+func (s simpleWlsOperatorNamespaceLister) Get(name string) (*v1beta1.WlsOperator, error) {
+	return s.wlsOprClientSet.VerrazzanoV1beta1().WlsOperators(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// ----- fakeWlsOperators
+// fakeWlsOperators implements WlsOperatorInterface
+type fakeWlsOperators struct {
+	ops map[string]*v1beta1.WlsOperator
+}
+
+func (c fakeWlsOperators) Create(_ context.Context, wlsOperator *v1beta1.WlsOperator, _ metav1.CreateOptions) (*v1beta1.WlsOperator, error) {
+	c.ops[wlsOperator.Name] = wlsOperator
+	return wlsOperator, nil
+}
+
+func (c fakeWlsOperators) Update(_ context.Context, wlsOperator *v1beta1.WlsOperator, _ metav1.UpdateOptions) (*v1beta1.WlsOperator, error) {
+	c.ops[wlsOperator.Name] = wlsOperator
+	return wlsOperator, nil
+}
+
+func (c fakeWlsOperators) Delete(_ context.Context, name string, _ metav1.DeleteOptions) error {
+	delete(c.ops, name)
+	return nil
+}
+
+func (c fakeWlsOperators) DeleteCollection(context.Context, metav1.DeleteOptions, metav1.ListOptions) error {
+	c.ops = make(map[string]*v1beta1.WlsOperator)
+	return nil
+}
+
+func (c fakeWlsOperators) Get(_ context.Context, name string, _ metav1.GetOptions) (*v1beta1.WlsOperator, error) {
+	return c.ops[name], nil
+}
+
+func (c fakeWlsOperators) List(context.Context, metav1.ListOptions) (*v1beta1.WlsOperatorList, error) {
+	items := make([]v1beta1.WlsOperator, 0, len(c.ops))
+	for _, item := range c.ops {
+		items = append(items, *item)
+	}
+	return &v1beta1.WlsOperatorList{Items: items}, nil
+}
+
+func (c fakeWlsOperators) Watch(context.Context, metav1.ListOptions) (watch.Interface, error) {
+	return watch.NewFake(), nil
+}
+
+func (c fakeWlsOperators) Patch(context.Context, string, types.PatchType, []byte, metav1.PatchOptions, ...string) (result *v1beta1.WlsOperator, err error) {
+	return nil, errors.New("the Patch function is not implemented")
+}
+
+// ----- fakeHelidonApps
+// fakeHelidonApps implements HelidonAppInterface
+type fakeHelidonApps struct {
+	apps map[string]*helidionv1beta1.HelidonApp
+}
+
+func (c fakeHelidonApps) Create(_ context.Context, helidonApp *helidionv1beta1.HelidonApp, _ metav1.CreateOptions) (*helidionv1beta1.HelidonApp, error) {
+	c.apps[helidonApp.Name] = helidonApp
+	return helidonApp, nil
+}
+
+func (c fakeHelidonApps) Update(_ context.Context, helidonApp *helidionv1beta1.HelidonApp, _ metav1.UpdateOptions) (*helidionv1beta1.HelidonApp, error) {
+	c.apps[helidonApp.Name] = helidonApp
+	return helidonApp, nil
+}
+
+func (c fakeHelidonApps) Delete(_ context.Context, name string, _ metav1.DeleteOptions) error {
+	delete(c.apps, name)
+	return nil
+}
+
+func (c fakeHelidonApps) DeleteCollection(_ context.Context, _ metav1.DeleteOptions, _ metav1.ListOptions) error {
+	c.apps = make(map[string]*helidionv1beta1.HelidonApp)
+	return nil
+}
+
+func (c fakeHelidonApps) Get(_ context.Context, name string, _ metav1.GetOptions) (*helidionv1beta1.HelidonApp, error) {
+	return c.apps[name], nil
+}
+
+func (c fakeHelidonApps) List(_ context.Context, _ metav1.ListOptions) (*helidionv1beta1.HelidonAppList, error) {
+	items := make([]helidionv1beta1.HelidonApp, 0, len(c.apps))
+	for _, item := range c.apps {
+		items = append(items, *item)
+	}
+	return &helidionv1beta1.HelidonAppList{Items: items}, nil
+}
+
+func (c fakeHelidonApps) Watch(_ context.Context, _ metav1.ListOptions) (watch.Interface, error) {
+	return watch.NewFake(), nil
+}
+
+func (c fakeHelidonApps) Patch(_ context.Context, _ string, _ types.PatchType, _ []byte, _ metav1.PatchOptions, _ ...string) (result *helidionv1beta1.HelidonApp, err error) {
+	return nil, errors.New("the Patch function is not implemented")
+}
+
+// ----- fakeCohClusters
+// fakeCohClusters implements CohClusterInterface
+type fakeCohClusters struct {
+	clusters map[string]*cohv1beta1.CohCluster
+}
+
+func (c fakeCohClusters) Create(_ context.Context, cohCluster *cohv1beta1.CohCluster, _ metav1.CreateOptions) (*cohv1beta1.CohCluster, error) {
+	c.clusters[cohCluster.Name] = cohCluster
+	return cohCluster, nil
+}
+
+func (c fakeCohClusters) Update(_ context.Context, cohCluster *cohv1beta1.CohCluster, _ metav1.UpdateOptions) (*cohv1beta1.CohCluster, error) {
+	c.clusters[cohCluster.Name] = cohCluster
+	return cohCluster, nil
+}
+
+func (c fakeCohClusters) Delete(_ context.Context, name string, _ metav1.DeleteOptions) error {
+	delete(c.clusters, name)
+	return nil
+}
+
+func (c fakeCohClusters) DeleteCollection(context.Context, metav1.DeleteOptions, metav1.ListOptions) error {
+	c.clusters = make(map[string]*cohv1beta1.CohCluster)
+	return nil
+}
+
+func (c fakeCohClusters) Get(_ context.Context, name string, _ metav1.GetOptions) (*cohv1beta1.CohCluster, error) {
+	return c.clusters[name], nil
+}
+
+func (c fakeCohClusters) List(context.Context, metav1.ListOptions) (*cohv1beta1.CohClusterList, error) {
+	items := make([]cohv1beta1.CohCluster, 0, len(c.clusters))
+	for _, item := range c.clusters {
+		items = append(items, *item)
+	}
+	return &cohv1beta1.CohClusterList{Items: items}, nil
+}
+
+func (c fakeCohClusters) Watch(context.Context, metav1.ListOptions) (watch.Interface, error) {
+	return watch.NewFake(), nil
+}
+
+func (c fakeCohClusters) Patch(context.Context, string, types.PatchType, []byte, metav1.PatchOptions, ...string) (result *cohv1beta1.CohCluster, err error) {
+	return nil, errors.New("the Patch function is not implemented")
+}
+
+// ----- fakeWlsVerrazzanoV1beta1Client
+// fakeWlsVerrazzanoV1beta1Client is used to interact with features provided by the verrazzano.io group.
+type fakeWlsVerrazzanoV1beta1Client struct {
+	operators map[string]*fakeWlsOperators
+}
+
+func newWlsVerrazzanoV1beta1Client() *fakeWlsVerrazzanoV1beta1Client {
+	return &fakeWlsVerrazzanoV1beta1Client{
+		operators: make(map[string]*fakeWlsOperators),
+	}
+}
+
+func (c fakeWlsVerrazzanoV1beta1Client) RESTClient() rest.Interface {
+	return &restfake.RESTClient{}
+}
+
+func (c fakeWlsVerrazzanoV1beta1Client) WlsOperators(namespace string) wlsoprclientsetbeta1.WlsOperatorInterface {
+	if c.operators[namespace] == nil {
+		c.operators[namespace] = &fakeWlsOperators{
+			ops: make(map[string]*v1beta1.WlsOperator),
+		}
+	}
+	return c.operators[namespace]
+}
+
+// ----- fakeHelidonVerrazzanoV1beta1Client
+// fakeHelidonVerrazzanoV1beta1Client is used to interact with features provided by the verrazzano.io group.
+type fakeHelidonVerrazzanoV1beta1Client struct {
+	apps map[string]*fakeHelidonApps
+}
+
+func newHelidonVerrazzanoV1beta1() *fakeHelidonVerrazzanoV1beta1Client {
+	return &fakeHelidonVerrazzanoV1beta1Client{
+		apps: make(map[string]*fakeHelidonApps),
+	}
+}
+
+func (c fakeHelidonVerrazzanoV1beta1Client) RESTClient() rest.Interface {
+	return &restfake.RESTClient{}
+}
+
+func (c fakeHelidonVerrazzanoV1beta1Client) HelidonApps(namespace string) helidionclientsetbeta1.HelidonAppInterface {
+	if c.apps[namespace] == nil {
+		c.apps[namespace] = &fakeHelidonApps{
+			apps: make(map[string]*helidionv1beta1.HelidonApp),
+		}
+	}
+	return c.apps[namespace]
+}
+
+// ----- fakeCohVerrazzanoV1beta1Client
+// fakeCohVerrazzanoV1beta1Client is used to interact with features provided by the verrazzano.io group.
+type fakeCohVerrazzanoV1beta1Client struct {
+	clusters map[string]*fakeCohClusters
+}
+
+func newCohVerrazzanoV1beta1() *fakeCohVerrazzanoV1beta1Client {
+	return &fakeCohVerrazzanoV1beta1Client{
+		clusters: make(map[string]*fakeCohClusters),
+	}
+}
+
+func (c fakeCohVerrazzanoV1beta1Client) RESTClient() rest.Interface {
+	return &restfake.RESTClient{}
+}
+
+func (c fakeCohVerrazzanoV1beta1Client) CohClusters(namespace string) cohoprclientsetbeta1.CohClusterInterface {
+	if c.clusters[namespace] == nil {
+		c.clusters[namespace] = &fakeCohClusters{
+			clusters: make(map[string]*cohv1beta1.CohCluster),
+		}
+	}
+	return c.clusters[namespace]
+}
+
+// FakeWlsOprClientset implements verrazzano-wko-operator Interface
+type FakeWlsOprClientset struct {
+	wlsVerrazzanoV1beta1 *fakeWlsVerrazzanoV1beta1Client
+}
+
+// NewWlsOprClientset returns a new WLS operator client set fake
+func NewWlsOprClientset() *FakeWlsOprClientset {
+	return &FakeWlsOprClientset{
+		wlsVerrazzanoV1beta1: newWlsVerrazzanoV1beta1Client(),
+	}
+}
+
+// Discovery retrieves the DiscoveryClient
+func (c FakeWlsOprClientset) Discovery() discovery.DiscoveryInterface {
+	return &discoveryfake.FakeDiscovery{}
+}
+
+// VerrazzanoV1beta1 returns the fake WlsVerrazzanoV1beta1Client
+func (c FakeWlsOprClientset) VerrazzanoV1beta1() wlsoprclientsetbeta1.VerrazzanoV1beta1Interface {
+	return c.wlsVerrazzanoV1beta1
+}
+
+// FakeHelidionClientset implements verrazzano-helidon-app-operator Interface
+type FakeHelidionClientset struct {
+	helidonVerrazzanoV1beta1 *fakeHelidonVerrazzanoV1beta1Client
+}
+
+// NewHelidionClientset returns a new Helidon client set fake
+func NewHelidionClientset() *FakeHelidionClientset {
+	return &FakeHelidionClientset{
+		helidonVerrazzanoV1beta1: newHelidonVerrazzanoV1beta1(),
+	}
+}
+
+// Discovery retrieves the DiscoveryClient
+func (c FakeHelidionClientset) Discovery() discovery.DiscoveryInterface {
+	return &discoveryfake.FakeDiscovery{}
+}
+
+// VerrazzanoV1beta1 returns the fake HelidonVerrazzanoV1beta1Client
+func (c FakeHelidionClientset) VerrazzanoV1beta1() helidionclientsetbeta1.VerrazzanoV1beta1Interface {
+	return c.helidonVerrazzanoV1beta1
+}
+
+// FakeCohOprClientset implements verrazzano-coh-cluster-operator Interface
+type FakeCohOprClientset struct {
+	cohVerrazzanoV1beta1 *fakeCohVerrazzanoV1beta1Client
+}
+
+// NewCohOprClientset returns a new Coherence operator client set fake
+func NewCohOprClientset() *FakeCohOprClientset {
+	return &FakeCohOprClientset{
+		cohVerrazzanoV1beta1: newCohVerrazzanoV1beta1(),
+	}
+}
+
+// Discovery retrieves the DiscoveryClient
+func (c FakeCohOprClientset) Discovery() discovery.DiscoveryInterface {
+	return &discoveryfake.FakeDiscovery{}
+}
+
+// VerrazzanoV1beta1 returns the fake CohVerrazzanoV1beta1Client
+func (c FakeCohOprClientset) VerrazzanoV1beta1() cohoprclientsetbeta1.VerrazzanoV1beta1Interface {
+	return c.cohVerrazzanoV1beta1
 }
