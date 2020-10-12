@@ -14,6 +14,43 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 )
 
+// TestIntrospectorJobActiveDeadlineSecondsWithDefaultValue tests using default value for introspector job active deadline.
+// GIVEN a default Verrazzano weblogic domain, model and binding
+// WHEN a WLS domain CR is created without an override
+// THEN verify the correct default value is used for IntrospectorJobActiveDeadlineSeconds
+func TestIntrospectorJobActiveDeadlineSecondsWithDefaultValue(t *testing.T) {
+	vzWeblogicDomain := createWeblogicDomainModel("testDomain", true)
+	mbPair := types.ModelBindingPair{
+		Binding: &vz.VerrazzanoBinding{
+			Spec: vz.VerrazzanoBindingSpec{},
+		},
+		VerrazzanoURI: "test.v8o.xyz.com",
+	}
+	labels := make(map[string]string)
+	secrets := []string{}
+	wlsDomainCR := CreateWlsDomainCR("testNamespace", vzWeblogicDomain, &mbPair, labels, "testConfigMap", secrets)
+	assert.Equal(t, 600, wlsDomainCR.Spec.Configuration.IntrospectorJobActiveDeadlineSeconds, "Expect default value to be used.")
+}
+
+// TestIntrospectorJobActiveDeadlineSecondsWithOverrideValue tests using override value for introspector job active deadline.
+// GIVEN a Verrazzano weblogic domain, model and binding with an override value for IntrospectorJobActiveDeadlineSeconds
+// WHEN a WLS domain CR is created with an override for IntrospectorJobActiveDeadlineSeconds
+// THEN verify the correct value is used for IntrospectorJobActiveDeadlineSeconds
+func TestIntrospectorJobActiveDeadlineSecondsWithOverrideValue(t *testing.T) {
+	vzWeblogicDomain := createWeblogicDomainModel("testDomain", true)
+	vzWeblogicDomain.DomainCRValues.Configuration.IntrospectorJobActiveDeadlineSeconds = 900
+	mbPair := types.ModelBindingPair{
+		Binding: &vz.VerrazzanoBinding{
+			Spec: vz.VerrazzanoBindingSpec{},
+		},
+		VerrazzanoURI: "test.v8o.xyz.com",
+	}
+	labels := make(map[string]string)
+	secrets := []string{}
+	wlsDomainCR := CreateWlsDomainCR("testNamespace", vzWeblogicDomain, &mbPair, labels, "testConfigMap", secrets)
+	assert.Equal(t, 900, wlsDomainCR.Spec.Configuration.IntrospectorJobActiveDeadlineSeconds, "Expect override value to be used.")
+}
+
 // Test using default value for enabling Fluentd
 func TestFluentdEnabledDefault(t *testing.T) {
 	namespace, domainName := "myNs", "myDomain"
