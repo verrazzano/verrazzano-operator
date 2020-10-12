@@ -8,8 +8,9 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
-	"sigs.k8s.io/yaml"
 	"testing"
+
+	"sigs.k8s.io/yaml"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -262,6 +263,53 @@ func TestCreateModelBindingPairCoherence(t *testing.T) {
 	assert.Equal(t, 1, len(ports))
 	assert.Equal(t, "extend", ports[0].Name)
 	assert.Equal(t, int32(9000), ports[0].Port)
+}
+
+// TestCreateModelBindingPairGeneric tests the creation of a ModelBindingPair with a generic component.
+// Given a test model and binding which contain a GenericComponent
+//  WHEN a new ModelBindingPair is created from the given test model/binding
+//  THEN the state of the new ModelBindingPair should reflect that of the model/binding
+func TestCreateModelBindingPairGeneric(t *testing.T) {
+	model, err := ReadModel("testdata/generic-model.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	binding, err := ReadBinding("testdata/generic-binding.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var optImagePullSecrets []corev1.LocalObjectReference
+	mbp := CreateModelBindingPair(model, binding, "/my/verrazzano/url", optImagePullSecrets)
+	assert.Equal(t, model, mbp.Model)
+	assert.Equal(t, binding, mbp.Binding)
+	assert.Equal(t, 1, len(mbp.ManagedClusters))
+
+	mc := mbp.ManagedClusters["local"]
+	assert.Equal(t, 2, len(mc.Namespaces))
+	assert.Contains(t, mc.Namespaces, "verrazzano-system")
+	assert.Contains(t, mc.Namespaces, "generic")
+	assert.Equal(t, 1, len(mc.Secrets))
+	assert.Contains(t, mc.Secrets["generic"], "github-packages")
+	assert.Contains(t, mc.Secrets["generic"], "ocr")
+
+	genericComponents := mc.GenericComponents
+	assert.Equal(t, 1, len(genericComponents))
+	genericComponent := genericComponents[0]
+	assert.Equal(t, "test-generic", genericComponent.Name)
+	assert.Equal(t, int32(2), *genericComponent.Replicas)
+
+	deployments := mc.Deployments
+	assert.Equal(t, 1, len(deployments))
+	deployment := deployments[0]
+	assert.Equal(t, "test-generic", deployment.Name)
+	assert.Equal(t, "generic", deployment.Namespace)
+
+	services := mc.Services
+	assert.Equal(t, 1, len(services))
+	service := services[0]
+	assert.Equal(t, "test-generic", service.Name)
+	assert.Equal(t, "generic", service.Namespace)
 }
 
 // TestCreateModelBindingPairNoCluster tests the creation of a ModelBindingPair with no cluster

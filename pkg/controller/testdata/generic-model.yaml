@@ -1,0 +1,30 @@
+# Copyright (c) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: verrazzano.io/v1beta1
+kind: VerrazzanoModel
+metadata:
+  name: generic-model
+  namespace: default
+spec:
+  description: "Test Generic Component model"
+  genericComponents:
+    - name: "test-generic"
+      replicas: 2
+      deployment:
+        containers:
+          - image: generic-image:1.0
+            name: test-generic-image
+            imagePullPolicy: IfNotPresent
+            ports:
+              - containerPort: 8090
+                name: test-port
+                protocol: TCP
+        imagePullSecrets:
+          - name: github-packages
+          - name: ocr
+      connections:
+        - rest:
+            - target: "test-generic"
+              environmentVariableForHost: "BACKEND_HOSTNAME"
+              environmentVariableForPort: "BACKEND_PORT"

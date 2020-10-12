@@ -12,6 +12,7 @@ import (
 	v8weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	v1wlsopr "github.com/verrazzano/verrazzano-wko-operator/pkg/apis/verrazzano/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -25,8 +26,10 @@ const (
 	Helidon ComponentType = 1
 	// Coherence component type
 	Coherence ComponentType = 2
+	// Generic component type
+	Generic ComponentType = 3
 	// Unknown component type
-	Unknown ComponentType = 3
+	Unknown ComponentType = 4
 )
 
 // IngressDestination represents a destination ingress.
@@ -88,6 +91,12 @@ type ManagedCluster struct {
 	// Names of ingresses to generate within each namespace for this cluster
 	Ingresses map[string][]*Ingress
 
+	// Deployments for this cluster
+	Deployments []*appsv1.Deployment
+
+	// Services for this cluster
+	Services []*corev1.Service
+
 	// ConfigMaps for this cluster
 	ConfigMaps []*corev1.ConfigMap
 
@@ -108,6 +117,9 @@ type ManagedCluster struct {
 
 	// Coherence cluster CRs for this cluster
 	CohClusterCRs []*v1cohcluster.CoherenceCluster
+
+	// Generic components for this cluster
+	GenericComponents []*v1beta1v8o.VerrazzanoGenericComponent
 }
 
 // ModelBindingPair represents an instance of a model/binding pair and

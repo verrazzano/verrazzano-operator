@@ -104,7 +104,7 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 					if domainCRValues.Configuration.IntrospectorJobActiveDeadlineSeconds > 0 {
 						return domainCRValues.Configuration.IntrospectorJobActiveDeadlineSeconds
 					}
-					return 300 // Default to 300 seconds if not specified in domainCRValues
+					return 60 * 10 // Default to 10 minutes if not specified in domainCRValues
 				}(),
 				Istio: v8weblogic.Istio{
 					// Istio is always enabled for WebLogic domains in Verrazzano
