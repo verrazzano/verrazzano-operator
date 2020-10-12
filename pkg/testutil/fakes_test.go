@@ -1082,6 +1082,18 @@ func TestSimpleHelidonAppLister(t *testing.T) {
 	}
 	assert.Equal("test", app.Name, "unexpected helidon app name")
 	assert.Equal("test", app.Namespace, "unexpected helidon app namespace")
+
+	err = clusterConnection.HelidonClientSet.VerrazzanoV1beta1().HelidonApps("test").Delete(context.TODO(), "test", metav1.DeleteOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create operator: %v", err))
+	}
+	selector = labels.Everything()
+	// get the deployment list for all namespaces
+	apps, err = l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get helidon apps: %v", err))
+	}
+	assert.Len(apps, 1, "expected 1 helidon app")
 }
 
 // TestSimpleCohClusterLister tests the functionality of simpleCohClusterLister
