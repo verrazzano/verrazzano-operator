@@ -61,7 +61,7 @@ type simplePodLister struct {
 }
 
 // list all Pods
-func (s *simplePodLister) List(selector labels.Selector) (ret []*v1.Pod, err error) {
+func (s *simplePodLister) List(selector labels.Selector) ([]*v1.Pod, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ type simplePodNamespaceLister struct {
 }
 
 // list all Pods for a given namespace
-func (s simplePodNamespaceLister) List(selector labels.Selector) (ret []*v1.Pod, err error) {
+func (s simplePodNamespaceLister) List(selector labels.Selector) ([]*v1.Pod, error) {
 	var pods []*v1.Pod
 
 	list, err := s.kubeClient.CoreV1().Pods(s.namespace).List(context.TODO(), metav1.ListOptions{})
@@ -100,9 +100,8 @@ func (s simplePodNamespaceLister) List(selector labels.Selector) (ret []*v1.Pod,
 		return nil, err
 	}
 	for i := range list.Items {
-		pod := list.Items[i]
-		if selector.Matches(labels.Set(pod.Labels)) {
-			pods = append(pods, &pod)
+		if selector.Matches(labels.Set(list.Items[i].Labels)) {
+			pods = append(pods, &list.Items[i])
 		}
 	}
 	return pods, nil
@@ -119,7 +118,7 @@ type simpleConfigMapLister struct {
 }
 
 // lists all ConfigMaps
-func (s *simpleConfigMapLister) List(selector labels.Selector) (ret []*v1.ConfigMap, err error) {
+func (s *simpleConfigMapLister) List(selector labels.Selector) ([]*v1.ConfigMap, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -152,7 +151,7 @@ type simpleConfigMapNamespaceLister struct {
 }
 
 // List lists all ConfigMaps for a given namespace.
-func (s simpleConfigMapNamespaceLister) List(selector labels.Selector) (ret []*v1.ConfigMap, err error) {
+func (s simpleConfigMapNamespaceLister) List(selector labels.Selector) ([]*v1.ConfigMap, error) {
 	var configMaps []*v1.ConfigMap
 
 	list, err := s.kubeClient.CoreV1().ConfigMaps(s.namespace).List(context.TODO(), metav1.ListOptions{})
@@ -160,9 +159,8 @@ func (s simpleConfigMapNamespaceLister) List(selector labels.Selector) (ret []*v
 		return nil, err
 	}
 	for i := range list.Items {
-		configMap := list.Items[i]
-		if selector.Matches(labels.Set(configMap.Labels)) {
-			configMaps = append(configMaps, &configMap)
+		if selector.Matches(labels.Set(list.Items[i].Labels)) {
+			configMaps = append(configMaps, &list.Items[i])
 		}
 	}
 	return configMaps, nil
@@ -180,7 +178,7 @@ type simpleSecretLister struct {
 }
 
 // List all secrets
-func (s *simpleSecretLister) List(selector labels.Selector) (ret []*v1.Secret, err error) {
+func (s *simpleSecretLister) List(selector labels.Selector) ([]*v1.Secret, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -211,7 +209,7 @@ type simpleSecretNamespaceLister struct {
 }
 
 // List all secret for a given namespace
-func (s simpleSecretNamespaceLister) List(labels.Selector) (ret []*v1.Secret, err error) {
+func (s simpleSecretNamespaceLister) List(labels.Selector) ([]*v1.Secret, error) {
 
 	list, err := s.kubeClient.CoreV1().Secrets(s.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -237,7 +235,7 @@ type simpleNamespaceLister struct {
 }
 
 // list all Namespaces
-func (s *simpleNamespaceLister) List(selector labels.Selector) (ret []*v1.Namespace, err error) {
+func (s *simpleNamespaceLister) List(selector labels.Selector) ([]*v1.Namespace, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -245,9 +243,8 @@ func (s *simpleNamespaceLister) List(selector labels.Selector) (ret []*v1.Namesp
 
 	var list []*v1.Namespace
 	for i := range namespaces.Items {
-		namespace := namespaces.Items[i]
-		if selector.Matches(labels.Set(namespace.Labels)) {
-			list = append(list, &namespace)
+		if selector.Matches(labels.Set(namespaces.Items[i].Labels)) {
+			list = append(list, &namespaces.Items[i])
 		}
 	}
 	return list, nil
@@ -266,7 +263,7 @@ type simpleGatewayLister struct {
 }
 
 // list all Gateways
-func (s *simpleGatewayLister) List(selector labels.Selector) (ret []*v1alpha3.Gateway, err error) {
+func (s *simpleGatewayLister) List(selector labels.Selector) ([]*v1alpha3.Gateway, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -297,7 +294,7 @@ type simpleGatewayNamespaceLister struct {
 }
 
 // lists all Gateways for a given namespace
-func (s simpleGatewayNamespaceLister) List(selector labels.Selector) (ret []*v1alpha3.Gateway, err error) {
+func (s simpleGatewayNamespaceLister) List(selector labels.Selector) ([]*v1alpha3.Gateway, error) {
 	var gateways []*v1alpha3.Gateway
 
 	list, err := s.istioClientSet.NetworkingV1alpha3().Gateways(s.namespace).List(context.TODO(), metav1.ListOptions{})
@@ -305,9 +302,8 @@ func (s simpleGatewayNamespaceLister) List(selector labels.Selector) (ret []*v1a
 		return nil, err
 	}
 	for i := range list.Items {
-		gateway := list.Items[i]
-		if selector.Matches(labels.Set(gateway.Labels)) {
-			gateways = append(gateways, &gateway)
+		if selector.Matches(labels.Set(list.Items[i].Labels)) {
+			gateways = append(gateways, &list.Items[i])
 		}
 	}
 	return gateways, nil
@@ -326,7 +322,7 @@ type simpleVirtualServiceLister struct {
 }
 
 // lists all VirtualServices
-func (s *simpleVirtualServiceLister) List(selector labels.Selector) (ret []*v1alpha3.VirtualService, err error) {
+func (s *simpleVirtualServiceLister) List(selector labels.Selector) ([]*v1alpha3.VirtualService, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -357,7 +353,7 @@ type simpleVirtualServiceNamespaceLister struct {
 }
 
 // lists all VirtualServices for a given namespace
-func (s simpleVirtualServiceNamespaceLister) List(selector labels.Selector) (ret []*v1alpha3.VirtualService, err error) {
+func (s simpleVirtualServiceNamespaceLister) List(selector labels.Selector) ([]*v1alpha3.VirtualService, error) {
 	var services []*v1alpha3.VirtualService
 
 	list, err := s.istioClientSet.NetworkingV1alpha3().VirtualServices(s.namespace).List(context.TODO(), metav1.ListOptions{})
@@ -365,9 +361,8 @@ func (s simpleVirtualServiceNamespaceLister) List(selector labels.Selector) (ret
 		return nil, err
 	}
 	for i := range list.Items {
-		service := list.Items[i]
-		if selector.Matches(labels.Set(service.Labels)) {
-			services = append(services, &service)
+		if selector.Matches(labels.Set(list.Items[i].Labels)) {
+			services = append(services, &list.Items[i])
 		}
 	}
 	return services, nil
@@ -386,7 +381,7 @@ type simpleServiceEntryLister struct {
 }
 
 // lists all ServiceEntries
-func (s *simpleServiceEntryLister) List(selector labels.Selector) (ret []*v1alpha3.ServiceEntry, err error) {
+func (s *simpleServiceEntryLister) List(selector labels.Selector) ([]*v1alpha3.ServiceEntry, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -417,7 +412,7 @@ type simpleServiceEntryNamespaceLister struct {
 }
 
 // lists all ServiceEntries for a given namespace
-func (s simpleServiceEntryNamespaceLister) List(labels.Selector) (ret []*v1alpha3.ServiceEntry, err error) {
+func (s simpleServiceEntryNamespaceLister) List(labels.Selector) ([]*v1alpha3.ServiceEntry, error) {
 	var entries []*v1alpha3.ServiceEntry
 
 	list, err := s.istioClientSet.NetworkingV1alpha3().ServiceEntries(s.namespace).List(context.TODO(), metav1.ListOptions{})
@@ -425,8 +420,7 @@ func (s simpleServiceEntryNamespaceLister) List(labels.Selector) (ret []*v1alpha
 		return nil, err
 	}
 	for i := range list.Items {
-		entry := list.Items[i]
-		entries = append(entries, &entry)
+		entries = append(entries, &list.Items[i])
 	}
 	return entries, nil
 }
@@ -443,7 +437,7 @@ type simpleServiceLister struct {
 }
 
 // list all Services
-func (s *simpleServiceLister) List(selector labels.Selector) (ret []*v1.Service, err error) {
+func (s *simpleServiceLister) List(selector labels.Selector) ([]*v1.Service, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -474,7 +468,7 @@ type simpleServiceNamespaceLister struct {
 }
 
 // list all Services for a given namespace
-func (s simpleServiceNamespaceLister) List(selector labels.Selector) (ret []*v1.Service, err error) {
+func (s simpleServiceNamespaceLister) List(selector labels.Selector) ([]*v1.Service, error) {
 	var services []*v1.Service
 
 	list, err := s.kubeClient.CoreV1().Services(s.namespace).List(context.TODO(), metav1.ListOptions{})
@@ -482,9 +476,8 @@ func (s simpleServiceNamespaceLister) List(selector labels.Selector) (ret []*v1.
 		return nil, err
 	}
 	for i := range list.Items {
-		service := list.Items[i]
-		if selector.Matches(labels.Set(service.Labels)) {
-			services = append(services, &service)
+		if selector.Matches(labels.Set(list.Items[i].Labels)) {
+			services = append(services, &list.Items[i])
 		}
 	}
 	return services, nil
@@ -502,7 +495,7 @@ type simpleServiceAccountLister struct {
 }
 
 // list all Service Accounts
-func (s *simpleServiceAccountLister) List(selector labels.Selector) (ret []*v1.ServiceAccount, err error) {
+func (s *simpleServiceAccountLister) List(selector labels.Selector) ([]*v1.ServiceAccount, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -533,7 +526,7 @@ type simpleServiceAccountNamespaceLister struct {
 }
 
 // list all Service Accounts for a given namespace
-func (s simpleServiceAccountNamespaceLister) List(selector labels.Selector) (ret []*v1.ServiceAccount, err error) {
+func (s simpleServiceAccountNamespaceLister) List(selector labels.Selector) ([]*v1.ServiceAccount, error) {
 	var serviceAccounts []*v1.ServiceAccount
 
 	list, err := s.kubeClient.CoreV1().ServiceAccounts(s.namespace).List(context.TODO(), metav1.ListOptions{})
@@ -541,9 +534,8 @@ func (s simpleServiceAccountNamespaceLister) List(selector labels.Selector) (ret
 		return nil, err
 	}
 	for i := range list.Items {
-		serviceAccount := list.Items[i]
-		if selector.Matches(labels.Set(serviceAccount.Labels)) {
-			serviceAccounts = append(serviceAccounts, &serviceAccount)
+		if selector.Matches(labels.Set(list.Items[i].Labels)) {
+			serviceAccounts = append(serviceAccounts, &list.Items[i])
 		}
 	}
 	return serviceAccounts, nil
@@ -560,7 +552,7 @@ type simpleClusterRoleLister struct {
 }
 
 // List lists all the ClusterRoles.
-func (s *simpleClusterRoleLister) List(selector labels.Selector) (ret []*rbacv1.ClusterRole, err error) {
+func (s *simpleClusterRoleLister) List(selector labels.Selector) ([]*rbacv1.ClusterRole, error) {
 	var clusterRoles []*rbacv1.ClusterRole
 
 	list, err := s.kubeClient.RbacV1().ClusterRoles().List(context.TODO(), metav1.ListOptions{})
@@ -568,9 +560,8 @@ func (s *simpleClusterRoleLister) List(selector labels.Selector) (ret []*rbacv1.
 		return nil, err
 	}
 	for i := range list.Items {
-		clusterRole := list.Items[i]
-		if selector.Matches(labels.Set(clusterRole.Labels)) {
-			clusterRoles = append(clusterRoles, &clusterRole)
+		if selector.Matches(labels.Set(list.Items[i].Labels)) {
+			clusterRoles = append(clusterRoles, &list.Items[i])
 		}
 	}
 	return clusterRoles, nil
@@ -587,7 +578,7 @@ type simpleClusterRoleBindingLister struct {
 }
 
 // List lists all ClusterRoleBindings.
-func (s *simpleClusterRoleBindingLister) List(selector labels.Selector) (ret []*rbacv1.ClusterRoleBinding, err error) {
+func (s *simpleClusterRoleBindingLister) List(selector labels.Selector) ([]*rbacv1.ClusterRoleBinding, error) {
 	var bindings []*rbacv1.ClusterRoleBinding
 
 	list, err := s.kubeClient.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{})
@@ -595,9 +586,8 @@ func (s *simpleClusterRoleBindingLister) List(selector labels.Selector) (ret []*
 		return nil, err
 	}
 	for i := range list.Items {
-		binding := list.Items[i]
-		if selector.Matches(labels.Set(binding.Labels)) {
-			bindings = append(bindings, &binding)
+		if selector.Matches(labels.Set(list.Items[i].Labels)) {
+			bindings = append(bindings, &list.Items[i])
 		}
 	}
 	return bindings, nil
@@ -644,7 +634,7 @@ func (s *simpleDaemonSetLister) GetHistoryDaemonSets(*appsv1.ControllerRevision)
 }
 
 // List lists all DaemonSets.
-func (s *simpleDaemonSetLister) List(selector labels.Selector) (ret []*appsv1.DaemonSet, err error) {
+func (s *simpleDaemonSetLister) List(selector labels.Selector) ([]*appsv1.DaemonSet, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -677,7 +667,7 @@ type simpleDaemonSetNamespaceLister struct {
 }
 
 // List lists all DaemonSets for a given namespace.
-func (s simpleDaemonSetNamespaceLister) List(selector labels.Selector) (ret []*appsv1.DaemonSet, err error) {
+func (s simpleDaemonSetNamespaceLister) List(selector labels.Selector) ([]*appsv1.DaemonSet, error) {
 	var sets []*appsv1.DaemonSet
 
 	list, err := s.kubeClient.AppsV1().DaemonSets(s.namespace).List(context.TODO(), metav1.ListOptions{})
@@ -712,7 +702,7 @@ type simpleDeploymentLister struct {
 	kubeClient kubernetes.Interface
 }
 
-func (s simpleDeploymentLister) List(selector labels.Selector) (ret []*appsv1.Deployment, err error) {
+func (s simpleDeploymentLister) List(selector labels.Selector) ([]*appsv1.Deployment, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -743,7 +733,7 @@ type simpleDeploymentNamespaceLister struct {
 	kubeClient kubernetes.Interface
 }
 
-func (s simpleDeploymentNamespaceLister) List(selector labels.Selector) (ret []*appsv1.Deployment, err error) {
+func (s simpleDeploymentNamespaceLister) List(selector labels.Selector) ([]*appsv1.Deployment, error) {
 	var deployments []*appsv1.Deployment
 
 	list, err := s.kubeClient.AppsV1().Deployments(s.namespace).List(context.TODO(), metav1.ListOptions{})
@@ -751,9 +741,8 @@ func (s simpleDeploymentNamespaceLister) List(selector labels.Selector) (ret []*
 		return nil, err
 	}
 	for i := range list.Items {
-		deployment := list.Items[i]
-		if selector.Matches(labels.Set(deployment.Labels)) {
-			deployments = append(deployments, &deployment)
+		if selector.Matches(labels.Set(list.Items[i].Labels)) {
+			deployments = append(deployments, &list.Items[i])
 		}
 	}
 	return deployments, nil
@@ -786,12 +775,11 @@ func (s *FakeSecrets) Update(newSecret *v1.Secret) (*v1.Secret, error) {
 }
 
 // List returns a list of secrets for given namespace and selector.
-func (s *FakeSecrets) List(ns string, selector labels.Selector) (ret []*v1.Secret, err error) {
+func (s *FakeSecrets) List(ns string, selector labels.Selector) ([]*v1.Secret, error) {
 	var secrets []*v1.Secret
 	for i := range s.Secrets {
-		secret := s.Secrets[i]
-		if secret.Namespace == ns && selector.Matches(labels.Set(secret.Labels)) {
-			secrets = append(secrets, secret)
+		if s.Secrets[i].Namespace == ns && selector.Matches(labels.Set(s.Secrets[i].Labels)) {
+			secrets = append(secrets, s.Secrets[i])
 		}
 	}
 	return secrets, nil
@@ -816,7 +804,7 @@ type simpleCohClusterLister struct {
 }
 
 // List lists all CohClusters.
-func (s *simpleCohClusterLister) List(selector labels.Selector) (ret []*cohv1beta1.CohCluster, err error) {
+func (s *simpleCohClusterLister) List(selector labels.Selector) ([]*cohv1beta1.CohCluster, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -848,7 +836,7 @@ type simpleCohClusterNamespaceLister struct {
 }
 
 // List lists all CohClusters for a given namespace.
-func (s simpleCohClusterNamespaceLister) List(selector labels.Selector) (ret []*cohv1beta1.CohCluster, err error) {
+func (s simpleCohClusterNamespaceLister) List(selector labels.Selector) ([]*cohv1beta1.CohCluster, error) {
 	var clusters []*cohv1beta1.CohCluster
 
 	list, err := s.cohOprClientSet.VerrazzanoV1beta1().CohClusters(s.namespace).List(context.TODO(), metav1.ListOptions{})
@@ -856,9 +844,8 @@ func (s simpleCohClusterNamespaceLister) List(selector labels.Selector) (ret []*
 		return nil, err
 	}
 	for i := range list.Items {
-		cluster := list.Items[i]
-		if selector.Matches(labels.Set(cluster.Labels)) {
-			clusters = append(clusters, &cluster)
+		if selector.Matches(labels.Set(list.Items[i].Labels)) {
+			clusters = append(clusters, &list.Items[i])
 		}
 	}
 	return clusters, nil
@@ -877,7 +864,7 @@ type simpleCoherenceClusterLister struct {
 }
 
 // List lists all CoherenceClusters.
-func (s *simpleCoherenceClusterLister) List(selector labels.Selector) (ret []*cohv1.CoherenceCluster, err error) {
+func (s *simpleCoherenceClusterLister) List(selector labels.Selector) ([]*cohv1.CoherenceCluster, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -909,17 +896,16 @@ type simpleCoherenceClusterNamespaceLister struct {
 }
 
 // List lists all CoherenceClusters for a given namespace.
-func (s simpleCoherenceClusterNamespaceLister) List(selector labels.Selector) (ret []*cohv1.CoherenceCluster, err error) {
+func (s simpleCoherenceClusterNamespaceLister) List(selector labels.Selector) ([]*cohv1.CoherenceCluster, error) {
 	var clusters []*cohv1.CoherenceCluster
 
-	list, err := s.cohOprClientSet.CoherenceV1().CoherenceClusters(s.namespace).List(context.TODO(), metav1.ListOptions{})
+	clusterList, err := s.cohOprClientSet.CoherenceV1().CoherenceClusters(s.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	for i := range list.Items {
-		cluster := list.Items[i]
-		if selector.Matches(labels.Set(cluster.Labels)) {
-			clusters = append(clusters, &cluster)
+	for i := range clusterList.Items {
+		if selector.Matches(labels.Set(clusterList.Items[i].Labels)) {
+			clusters = append(clusters, &clusterList.Items[i])
 		}
 	}
 	return clusters, nil
@@ -938,7 +924,7 @@ type simpleHelidonAppLister struct {
 }
 
 // List lists all HelidonApps.
-func (s *simpleHelidonAppLister) List(selector labels.Selector) (ret []*helidionv1beta1.HelidonApp, err error) {
+func (s *simpleHelidonAppLister) List(selector labels.Selector) ([]*helidionv1beta1.HelidonApp, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -970,7 +956,7 @@ type simpleHelidonAppNamespaceLister struct {
 }
 
 // List lists all HelidonApps for a given namespace.
-func (s simpleHelidonAppNamespaceLister) List(selector labels.Selector) (ret []*helidionv1beta1.HelidonApp, err error) {
+func (s simpleHelidonAppNamespaceLister) List(selector labels.Selector) ([]*helidionv1beta1.HelidonApp, error) {
 	var apps []*helidionv1beta1.HelidonApp
 
 	list, err := s.helidonClientSet.VerrazzanoV1beta1().HelidonApps(s.namespace).List(context.TODO(), metav1.ListOptions{})
@@ -978,9 +964,8 @@ func (s simpleHelidonAppNamespaceLister) List(selector labels.Selector) (ret []*
 		return nil, err
 	}
 	for i := range list.Items {
-		app := list.Items[i]
-		if selector.Matches(labels.Set(app.Labels)) {
-			apps = append(apps, &app)
+		if selector.Matches(labels.Set(list.Items[i].Labels)) {
+			apps = append(apps, &list.Items[i])
 		}
 	}
 	return apps, nil
@@ -999,7 +984,7 @@ type simpleDomainLister struct {
 }
 
 // List lists all Domains.`
-func (s *simpleDomainLister) List(selector labels.Selector) (ret []*v8.Domain, err error) {
+func (s *simpleDomainLister) List(selector labels.Selector) ([]*v8.Domain, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -1030,7 +1015,7 @@ type simpleDomainNamespaceLister struct {
 }
 
 // List lists all Domains for a given namespace.
-func (s simpleDomainNamespaceLister) List(selector labels.Selector) (ret []*v8.Domain, err error) {
+func (s simpleDomainNamespaceLister) List(selector labels.Selector) ([]*v8.Domain, error) {
 	var domains []*v8.Domain
 
 	list, err := s.domainClientSet.WeblogicV8().Domains(s.namespace).List(context.TODO(), metav1.ListOptions{})
@@ -1038,9 +1023,8 @@ func (s simpleDomainNamespaceLister) List(selector labels.Selector) (ret []*v8.D
 		return nil, err
 	}
 	for i := range list.Items {
-		domain := list.Items[i]
-		if selector.Matches(labels.Set(domain.Labels)) {
-			domains = append(domains, &domain)
+		if selector.Matches(labels.Set(list.Items[i].Labels)) {
+			domains = append(domains, &list.Items[i])
 		}
 	}
 	return domains, nil
@@ -1059,7 +1043,7 @@ type simpleWlsOperatorLister struct {
 }
 
 // List lists all WlsOperators.
-func (s *simpleWlsOperatorLister) List(selector labels.Selector) (ret []*v1beta1.WlsOperator, err error) {
+func (s *simpleWlsOperatorLister) List(selector labels.Selector) ([]*v1beta1.WlsOperator, error) {
 	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -1091,20 +1075,19 @@ type simpleWlsOperatorNamespaceLister struct {
 }
 
 // List lists all WlsOperators for a given namespace.
-func (s simpleWlsOperatorNamespaceLister) List(selector labels.Selector) (ret []*v1beta1.WlsOperator, err error) {
-	var apps []*v1beta1.WlsOperator
+func (s simpleWlsOperatorNamespaceLister) List(selector labels.Selector) ([]*v1beta1.WlsOperator, error) {
+	var ops []*v1beta1.WlsOperator
 
 	list, err := s.wlsOprClientSet.VerrazzanoV1beta1().WlsOperators(s.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 	for i := range list.Items {
-		op := list.Items[i]
-		if selector.Matches(labels.Set(op.Labels)) {
-			apps = append(apps, &op)
+		if selector.Matches(labels.Set(list.Items[i].Labels)) {
+			ops = append(ops, &list.Items[i])
 		}
 	}
-	return apps, nil
+	return ops, nil
 }
 
 // Get retrieves the WlsOperator for a given namespace and name.
