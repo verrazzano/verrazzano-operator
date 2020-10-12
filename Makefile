@@ -152,9 +152,61 @@ unit-test: go-install
 coverage: unit-test
 	./build/scripts/coverage.sh html
 
+#
+# Tests-related tasks
+#
+CLUSTER_NAME = verrazzano-operator
+GITHUB_PATH = github.com/verrazzano
+CRDGEN_PATH = ${GITHUB_PATH}/verrazzano-crd-generator
+CRD_PATH = deploy/crds
+VMI_CRD_PATH = ${GITHUB_PATH}/verrazzano-monitoring-operator/k8s/crds
+CERTS = build/admission-controller-cert
+VERRAZZANO_NS = verrazzano-system
+DEPLOY = build/deploy
+
 .PHONY: integ-test
-integ-test: go-install
-	$(GO) test -v ./test/integ/ -timeout 30m --kubeconfig=${KUBECONFIG} --namespace=${K8S_NAMESPACE} --runid=${INTEG_RUN_ID}
+integ-test: build create-cluster
+	echo 'Load docker image for the verrazzano-operator...'
+	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+
+	echo 'Create resources needed by the verrazzano-operator...'
+	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml
+	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomodels_crd.yaml
+	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanobindings_crd.yaml
+	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanobindings_crd.yaml
+	kubectl create -f vendor/${VMI_CRD_PATH}/verrazzano-monitoring-operator-crds.yaml
+
+	echo 'Deploy verrazzano operator ...'
+	kubectl create namespace ${VERRAZZANO_NS}
+	./test/certs/create-cert.sh
+	kubectl create secret generic verrazzano -n ${VERRAZZANO_NS} \
+			--from-file=cert.pem=${CERTS}/verrazzano-crt.pem \
+			--from-file=key.pem=${CERTS}/verrazzano-key.pem
+	./test/create-deployment.sh ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG}
+	kubectl apply -f ${DEPLOY}/deployment.yaml
+
+	echo 'Run tests...'
+	ginkgo -v --keepGoing -cover test/integ/... || IGNORE=FAILURE
+
+.PHONY: create-cluster
+create-cluster:
+ifdef JENKINS_URL
+	./build/scripts/cleanup.sh ${CLUSTER_NAME}
+endif
+	echo 'Create cluster...'
+	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster \
+		--name ${CLUSTER_NAME} \
+		--wait 5m \
+		--config=test/kind-config.yaml
+	kubectl config set-context kind-${CLUSTER_NAME}
+ifdef JENKINS_URL
+	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.IPAddress' | sed 's/"//g'`:6443|g" ${HOME}/.kube/config
+	cat ${HOME}/.kube/config | grep server
+endif
+
+.PHONY: delete-cluster
+delete-cluster:
+	kind delete cluster --name ${CLUSTER_NAME}
 
 #
 # Kubernetes-related tasks
