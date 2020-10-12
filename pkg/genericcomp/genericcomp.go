@@ -16,8 +16,8 @@ import (
 const GenericComponentSelectorLabel = "verrazzano.name"
 
 // NewDeployment constructs a deployment for a generic component.
-func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, namespace string, labels map[string]string) *appsv1.Deployment {
-	return &appsv1.Deployment{
+func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, binding *v1beta1v8o.VerrazzanoBinding, namespace string, labels map[string]string) *appsv1.Deployment {
+	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      generic.Name,
 			Namespace: namespace,
@@ -45,6 +45,21 @@ func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, namespace stri
 			},
 		},
 	}
+
+	// Include fluentd needed resource if fluentd integration is enabled
+	if IsFluentdEnabled(&generic) {
+		// Add fluentd container
+		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, createFluentdContainer(binding, generic.Name))
+
+		// Add fluentd volumes
+		volumes := createFluentdVolHostPaths()
+		for _, volume := range *volumes {
+			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
+		}
+		deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, createFluentdVolConfigMap(generic.Name))
+	}
+
+	return &deploy
 }
 
 // NewService constructs a service for a generic component.
@@ -144,4 +159,13 @@ func addContainerEnvs(envs *[]corev1.EnvVar, containers []corev1.Container) {
 			}
 		}
 	}
+}
+
+// IsFluentdEnabled checks if Fluentd integration is enabled for this generic component.
+func IsFluentdEnabled(generic *v1beta1v8o.VerrazzanoGenericComponent) bool {
+	if generic.FluentdEnabled == nil {
+		return true
+	}
+
+	return *generic.FluentdEnabled
 }

@@ -299,7 +299,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 					genericLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
 
 					// Create the k8s deployment for this generic component
-					deploy := genericcomp.NewDeployment(generic, namespace, genericLabels)
+					deploy := genericcomp.NewDeployment(generic, mbPair.Binding, namespace, genericLabels)
 					mc.Deployments = append(mc.Deployments, deploy)
 
 					// Create k8s service for this generic component
@@ -315,6 +315,14 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 					}
 
 					mc.GenericComponents = append(mc.GenericComponents, &generic)
+
+					// Include Fluentd, if Fluentd integration is enabled for this generic component
+					if genericcomp.IsFluentdEnabled(&generic) {
+						configMap := genericcomp.CreateFluentdConfigMap(generic.Name, namespace, genericLabels)
+						mc.ConfigMaps = append(mc.ConfigMaps, configMap)
+						// Add secret for binding to the namespace, it contains the credentials fluentd needs for ElasticSearch
+						addSecret(mc, constants.VmiSecretName, namespace)
+					}
 
 					// NOTE:
 					// Initial implementation uses the first service port value for the ingress connection.  In the
