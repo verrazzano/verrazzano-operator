@@ -4,9 +4,8 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Code coverage generation
-CVG_EXCLUDE="${CVG_EXCLUDE:-test}"
-go test -coverpkg=./... -coverprofile ./coverageTmp.cov $(go list ./... |  grep -Ev "${CVG_EXCLUDE}")
-cat ./coverageTmp.cov | grep -v 'pkg\/testutil/' | grep -v 'pkg/testutilcontroller/' | grep -v '/test/integ/' > ./coverage.cov
+# Excludes test utility packages and the test directory
+go test -coverprofile ./coverage.cov $(go list ./... | grep -Ev github.com/verrazzano/verrazzano-operator/test | grep -Ev github.com/verrazzano/verrazzano-operator/pkg/testutil | grep -Ev github.com/verrazzano/verrazzano-operator/pkg/testutilcontroller)
 
 # Display the global code coverage.  This generates the total number the badge uses
 go tool cover -func=coverage.cov
