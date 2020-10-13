@@ -187,13 +187,16 @@ integ-test:
 #	kubectl create -f vendor/${VMI_PATH}/${VMI_CRD_PATH}/verrazzano-monitoring-operator-crds.yaml
 
 	echo 'Deploy verrazzano operator ...'
-#	kubectl create namespace ${VERRAZZANO_NS}
-#	./test/certs/create-cert.sh
-#	kubectl create secret generic verrazzano -n ${VERRAZZANO_NS} \
-#			--from-file=cert.pem=${CERTS}/verrazzano-crt.pem \
-#			--from-file=key.pem=${CERTS}/verrazzano-key.pem
+	kubectl create namespace ${VERRAZZANO_NS}
+	./test/certs/create-cert.sh
+	kubectl create secret generic verrazzano -n ${VERRAZZANO_NS} \
+			--from-file=cert.pem=${CERTS}/verrazzano-crt.pem \
+			--from-file=key.pem=${CERTS}/verrazzano-key.pem
+	echo ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG}
+	./test/create-deployment.sh ghcr.io/verrazzano/verrazzano-operator v0.0.103-222cd4a-1
 #	./test/create-deployment.sh ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG}
-#	kubectl apply -f ${DEPLOY}/deployment.yaml
+
+	kubectl apply -f ${DEPLOY}/deployment.yaml
 
 	echo 'Run tests...'
 	# ginkgo -v --keepGoing -cover test/integ/... || IGNORE=FAILURE

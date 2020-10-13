@@ -252,7 +252,7 @@ spec:
     spec:
       containers:
         - name: verrazzano-operator
-          imagePullPolicy: never
+          imagePullPolicy: Always
           image: IMAGE_NAME:IMAGE_TAG
           args:
             - --v=4
