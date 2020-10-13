@@ -7,7 +7,6 @@ package testutil
 
 import (
 	"context"
-
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
 	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned/fake"
@@ -42,7 +41,10 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		KubeClient:                  fake.NewSimpleClientset(),
 		KubeExtClientSet:            apiextensionsclient.NewSimpleClientset(),
 		VerrazzanoOperatorClientSet: clientset.NewSimpleClientset(),
+		WlsOprClientSet:             NewWlsOprClientset(),
 		DomainClientSet:             domclientset.NewSimpleClientset(),
+		HelidonClientSet:            NewHelidionClientset(),
+		CohOprClientSet:             NewCohOprClientset(),
 		CohClusterClientSet:         cohcluclientset.NewSimpleClientset(),
 		IstioClientSet:              istioClientsetFake.NewSimpleClientset(),
 		IstioAuthClientSet:          istioAuthClientset.NewSimpleClientset(),
@@ -93,6 +95,31 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 	clusterConnection.IstioServiceEntryLister = &simpleServiceEntryLister{
 		kubeClient:     clusterConnection.KubeClient,
 		istioClientSet: clusterConnection.IstioClientSet,
+	}
+
+	clusterConnection.CohOperatorLister = &simpleCohClusterLister{
+		kubeClient:      clusterConnection.KubeClient,
+		cohOprClientSet: clusterConnection.CohOprClientSet,
+	}
+
+	clusterConnection.CohClusterLister = &simpleCoherenceClusterLister{
+		kubeClient:          clusterConnection.KubeClient,
+		cohClusterClientSet: clusterConnection.CohClusterClientSet,
+	}
+
+	clusterConnection.HelidonLister = &simpleHelidonAppLister{
+		kubeClient:       clusterConnection.KubeClient,
+		helidonClientSet: clusterConnection.HelidonClientSet,
+	}
+
+	clusterConnection.WlsOperatorLister = &simpleWlsOperatorLister{
+		kubeClient:      clusterConnection.KubeClient,
+		wlsOprClientSet: clusterConnection.WlsOprClientSet,
+	}
+
+	clusterConnection.DomainLister = &simpleDomainLister{
+		kubeClient:      clusterConnection.KubeClient,
+		domainClientSet: clusterConnection.DomainClientSet,
 	}
 
 	for _, pod := range getPods() {
