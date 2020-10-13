@@ -14,10 +14,8 @@ import (
 
 const fluentdConf = "fluentd.conf"
 
-// CreateFluentdConfigMap creates the Fluentd configmap for a given generic application
-func CreateFluentdConfigMap(componentName string, namespace string, labels map[string]string) *corev1.ConfigMap {
-	// fluentd parsing rules
-	parsingRules := `<label @FLUENT_LOG>
+// FluentdConfiguration fluentd rules for reading/parsing generic component log files
+const FluentdConfiguration = `<label @FLUENT_LOG>
   <match fluent.*>
     @type stdout
   </match>
@@ -48,6 +46,9 @@ func CreateFluentdConfigMap(componentName string, namespace string, labels map[s
   flush_interval 10s
 </match>
 `
+
+// CreateFluentdConfigMap creates the Fluentd configmap for a given generic application
+func CreateFluentdConfigMap(componentName string, namespace string, labels map[string]string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getFluentdConfigMapName(componentName),
@@ -57,7 +58,7 @@ func CreateFluentdConfigMap(componentName string, namespace string, labels map[s
 		Data: func() map[string]string {
 			var data map[string]string
 			data = make(map[string]string)
-			data[fluentdConf] = parsingRules
+			data[fluentdConf] = FluentdConfiguration
 			return data
 		}(),
 	}
