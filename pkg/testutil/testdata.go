@@ -131,6 +131,45 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 	clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace("istio-system", ""), metav1.CreateOptions{})
 	clusterConnection.KubeClient.CoreV1().Pods("istio-system").Create(context.TODO(), getPod("prometheus-pod", "istio-system", "123.99.0.1"), metav1.CreateOptions{})
 
+	// create test secrets to associate to default namespace
+	clusterConnection.KubeClient.CoreV1().Secrets("default").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testSecret1",
+			Namespace: "default",
+		},
+	}, metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Secrets("default").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testMysqlSecret",
+			Namespace: "default",
+		},
+	}, metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Secrets("test").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testSecret1",
+			Namespace: "test",
+		},
+		Data: map[string][]byte{"dummy": {'a', 'b', 'c'}},
+	}, metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Secrets("verrazzano-system").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testSecret2",
+			Namespace: "verrazzano-system",
+		},
+	}, metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Secrets("default").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test2Secret1",
+			Namespace: "default",
+		},
+	}, metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Secrets("default").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test2Secret2",
+			Namespace: "default",
+		},
+	}, metav1.CreateOptions{})
+
 	clusterConnection.KubeClient.CoreV1().Services(IstioSystemNamespace).Create(context.TODO(),
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
