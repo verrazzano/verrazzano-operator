@@ -39,6 +39,8 @@ spec:
             - environmentVariableForHost: ""
               environmentVariableForPort: ""
               target: test-helidon
+          database:
+            - target: mysql
       name: test-weblogic
   genericComponents:
     - name: test-generic

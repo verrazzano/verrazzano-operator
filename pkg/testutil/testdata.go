@@ -7,7 +7,6 @@ package testutil
 
 import (
 	"context"
-
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
 	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned/fake"
@@ -42,7 +41,10 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		KubeClient:                  fake.NewSimpleClientset(),
 		KubeExtClientSet:            apiextensionsclient.NewSimpleClientset(),
 		VerrazzanoOperatorClientSet: clientset.NewSimpleClientset(),
+		WlsOprClientSet:             NewWlsOprClientset(),
 		DomainClientSet:             domclientset.NewSimpleClientset(),
+		HelidonClientSet:            NewHelidionClientset(),
+		CohOprClientSet:             NewCohOprClientset(),
 		CohClusterClientSet:         cohcluclientset.NewSimpleClientset(),
 		IstioClientSet:              istioClientsetFake.NewSimpleClientset(),
 		IstioAuthClientSet:          istioAuthClientset.NewSimpleClientset(),
@@ -95,6 +97,31 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		istioClientSet: clusterConnection.IstioClientSet,
 	}
 
+	clusterConnection.CohOperatorLister = &simpleCohClusterLister{
+		kubeClient:      clusterConnection.KubeClient,
+		cohOprClientSet: clusterConnection.CohOprClientSet,
+	}
+
+	clusterConnection.CohClusterLister = &simpleCoherenceClusterLister{
+		kubeClient:          clusterConnection.KubeClient,
+		cohClusterClientSet: clusterConnection.CohClusterClientSet,
+	}
+
+	clusterConnection.HelidonLister = &simpleHelidonAppLister{
+		kubeClient:       clusterConnection.KubeClient,
+		helidonClientSet: clusterConnection.HelidonClientSet,
+	}
+
+	clusterConnection.WlsOperatorLister = &simpleWlsOperatorLister{
+		kubeClient:      clusterConnection.KubeClient,
+		wlsOprClientSet: clusterConnection.WlsOprClientSet,
+	}
+
+	clusterConnection.DomainLister = &simpleDomainLister{
+		kubeClient:      clusterConnection.KubeClient,
+		domainClientSet: clusterConnection.DomainClientSet,
+	}
+
 	for _, pod := range getPods() {
 		clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace(pod.Namespace, clusterName), metav1.CreateOptions{})
 		clusterConnection.KubeClient.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
@@ -103,6 +130,45 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 	clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace("monitoring", ""), metav1.CreateOptions{})
 	clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace("istio-system", ""), metav1.CreateOptions{})
 	clusterConnection.KubeClient.CoreV1().Pods("istio-system").Create(context.TODO(), getPod("prometheus-pod", "istio-system", "123.99.0.1"), metav1.CreateOptions{})
+
+	// create test secrets to associate to default namespace
+	clusterConnection.KubeClient.CoreV1().Secrets("default").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testSecret1",
+			Namespace: "default",
+		},
+	}, metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Secrets("default").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testMysqlSecret",
+			Namespace: "default",
+		},
+	}, metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Secrets("test").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testSecret1",
+			Namespace: "test",
+		},
+		Data: map[string][]byte{"dummy": {'a', 'b', 'c'}},
+	}, metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Secrets("verrazzano-system").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testSecret2",
+			Namespace: "verrazzano-system",
+		},
+	}, metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Secrets("default").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test2Secret1",
+			Namespace: "default",
+		},
+	}, metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Secrets("default").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test2Secret2",
+			Namespace: "default",
+		},
+	}, metav1.CreateOptions{})
 
 	clusterConnection.KubeClient.CoreV1().Services(IstioSystemNamespace).Create(context.TODO(),
 		&corev1.Service{

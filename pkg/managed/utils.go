@@ -5,6 +5,7 @@ package managed
 
 import (
 	"io/ioutil"
+	"k8s.io/client-go/rest"
 	"os"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
@@ -30,90 +31,146 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+// functions to set client sets
+var newKubernetesClientSet = func(c *rest.Config) (kubernetes.Interface, error) {
+	clientSet, err := kubernetes.NewForConfig(c)
+	return clientSet, err
+}
+
+var newVerrazzanoOperatorClientSet = func(c *rest.Config) (clientset.Interface, error) {
+	clientSet, err := clientset.NewForConfig(c)
+	return clientSet, err
+}
+
+var newWLSOperatorClientSet = func(c *rest.Config) (wlsoprclientset.Interface, error) {
+	clientSet, err := wlsoprclientset.NewForConfig(c)
+	return clientSet, err
+}
+
+var newDomainClientSet = func(c *rest.Config) (domclientset.Interface, error) {
+	clientSet, err := domclientset.NewForConfig(c)
+	return clientSet, err
+}
+
+var newHelidonClientSet = func(c *rest.Config) (helidionclientset.Interface, error) {
+	clientSet, err := helidionclientset.NewForConfig(c)
+	return clientSet, err
+}
+
+var newCOHOperatorClientSet = func(c *rest.Config) (cohoprclientset.Interface, error) {
+	clientSet, err := cohoprclientset.NewForConfig(c)
+	return clientSet, err
+}
+
+var newCOHClusterClientSet = func(c *rest.Config) (cohcluclientset.Interface, error) {
+	clientSet, err := cohcluclientset.NewForConfig(c)
+	return clientSet, err
+}
+
+var newIstioClientSet = func(c *rest.Config) (istioclientset.Interface, error) {
+	clientSet, err := istioclientset.NewForConfig(c)
+	return clientSet, err
+}
+
+var newIstioAuthClientSet = func(c *rest.Config) (istioauthclientset.Interface, error) {
+	clientSet, err := istioauthclientset.NewForConfig(c)
+	return clientSet, err
+}
+
+var newExtClientSet = func(c *rest.Config) (extclientset.Interface, error) {
+	clientSet, err := extclientset.NewForConfig(c)
+	return clientSet, err
+}
+
+var buildConfigFromFlags = clientcmd.BuildConfigFromFlags
+var osRemove = os.Remove
+var ioWriteFile = ioutil.WriteFile
+var createKubeconfig = createTempKubeconfigFile
+
 // BuildManagedClusterConnection builds a ManagedClusterConnection for the given KubeConfig contents.
 func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*util.ManagedClusterConnection, error) {
 	managedClusterConnection := &util.ManagedClusterConnection{}
 
 	// Create a temporary kubeconfig file on disk
-	tmpFile, err := ioutil.TempFile("/tmp", "kubeconfig")
+	tmpFileName, err := createKubeconfig()
 	if err != nil {
 		return nil, err
 	}
-	err = ioutil.WriteFile(tmpFile.Name(), kubeConfigContents, 0777)
-	defer os.Remove(tmpFile.Name())
+	err = ioWriteFile(tmpFileName, kubeConfigContents, 0777)
+	defer osRemove(tmpFileName)
 	if err != nil {
 		return nil, err
 	}
 
 	// Build client connections
 	managedClusterConnection.KubeConfig = string(kubeConfigContents)
-	cfg, err := clientcmd.BuildConfigFromFlags("", tmpFile.Name())
+	cfg, err := buildConfigFromFlags("", tmpFileName)
 	if err != nil {
 		return nil, err
 	}
-	clientSet, err := kubernetes.NewForConfig(cfg)
+	clientSet, err := newKubernetesClientSet(cfg)
 	if err != nil {
 		return nil, err
 	}
 	managedClusterConnection.KubeClient = clientSet
 
 	// Build client connections for verrazzanoOperatorClientSet
-	verrazzanoOperatorClientSet, err := clientset.NewForConfig(cfg)
+	verrazzanoOperatorClientSet, err := newVerrazzanoOperatorClientSet(cfg)
 	if err != nil {
 		return nil, err
 	}
 	managedClusterConnection.VerrazzanoOperatorClientSet = verrazzanoOperatorClientSet
 
 	// Build client connections for wlsOperatorClientSet
-	wlsoprClientset, err := wlsoprclientset.NewForConfig(cfg)
+	wlsoprClientset, err := newWLSOperatorClientSet(cfg)
 	if err != nil {
 		return nil, err
 	}
 	managedClusterConnection.WlsOprClientSet = wlsoprClientset
 
 	// Build client connections for domainClientSet
-	domainClientSet, err := domclientset.NewForConfig(cfg)
+	domainClientSet, err := newDomainClientSet(cfg)
 	if err != nil {
 		return nil, err
 	}
 	managedClusterConnection.DomainClientSet = domainClientSet
 
 	// Build client connections for helidonClientSet
-	helidonClientSet, err := helidionclientset.NewForConfig(cfg)
+	helidonClientSet, err := newHelidonClientSet(cfg)
 	if err != nil {
 		return nil, err
 	}
 	managedClusterConnection.HelidonClientSet = helidonClientSet
 
 	// Build client connections for cohOprClientSet
-	cohClientSet, err := cohoprclientset.NewForConfig(cfg)
+	cohClientSet, err := newCOHOperatorClientSet(cfg)
 	if err != nil {
 		return nil, err
 	}
 	managedClusterConnection.CohOprClientSet = cohClientSet
 
-	// Build client connections for domainClientSet
-	cohCluClientSet, err := cohcluclientset.NewForConfig(cfg)
+	// Build client connections for cohCluClientSet
+	cohCluClientSet, err := newCOHClusterClientSet(cfg)
 	if err != nil {
 		return nil, err
 	}
 	managedClusterConnection.CohClusterClientSet = cohCluClientSet
 
 	// Build client connections for istioClient
-	istioClientSet, err := istioclientset.NewForConfig(cfg)
+	istioClientSet, err := newIstioClientSet(cfg)
 	if err != nil {
 		return nil, err
 	}
 	managedClusterConnection.IstioClientSet = istioClientSet
 
 	// Build client connections for istioAuthClient
-	istioAuthClientSet, err := istioauthclientset.NewForConfig(cfg)
+	istioAuthClientSet, err := newIstioAuthClientSet(cfg)
 	if err != nil {
 		return nil, err
 	}
 	managedClusterConnection.IstioAuthClientSet = istioAuthClientSet
 
-	kubeClientExt, err := extclientset.NewForConfig(cfg)
+	kubeClientExt, err := newExtClientSet(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -224,4 +281,12 @@ func GetFilteredConnections(mbPair *types.ModelBindingPair, availableManagedClus
 		}
 	}
 	return filteredConnections, nil
+}
+
+func createTempKubeconfigFile() (string, error) {
+	tmpFile, err := ioutil.TempFile("/tmp", "kubeconfig")
+	if err != nil {
+		return "", err
+	}
+	return tmpFile.Name(), nil
 }

@@ -5157,7 +5157,7 @@ Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
 // Copyright 2018 The Linux Foundation
 
 -------- Dependency
-github.com/opencontainers/runc  [uses Creative Commons license for doc - see CC license at end of file]
+github.com/opencontainers/runc [uses Creative Commons license for doc - see CC license at end of file]
 -------- Copyrights
 Copyright (c) 2014 Simon Eskildsen
 // Copyright 2013 The Go Authors. All rights reserved.
@@ -9543,7 +9543,7 @@ github.com/armon/circbuf
 Copyright (c) 2013 Armon Dadgar
 
 -------- Dependency
-github.com/armon/go-metrics [uses Creative Commons license for doc - see CC license at end of file]
+github.com/armon/go-metrics  [uses Creative Commons license for doc - see CC license at end of file]
 -------- Copyrights
 Copyright (c) 2013 Armon Dadgar
 
@@ -11344,6 +11344,7 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+
 ======== Creative Commons License
 
 Attribution-ShareAlike 4.0 International
@@ -11772,6 +11773,5 @@ licenses.
 
 Creative Commons may be contacted at creativecommons.org.
 
-
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: c4c8b74bca679c1a8a676e2d429dfa74
+License file based on go.mod with md5 sum: a1bb1f7d736cc8e3841c40e26d5f0180
