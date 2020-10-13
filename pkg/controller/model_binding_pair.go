@@ -197,11 +197,11 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						addSecret(mc, domainCR.Spec.WebLogicCredentialsSecret.Name, namespace.Name)
 						mc.WlsDomainCRs = append(mc.WlsDomainCRs, domainCR)
 
-						// Create fluentd configmap
+						// Create Fluentd configmap
 						configMap := wlsdom.CreateFluentdConfigMap(namespace.Name, domLabels)
 						mc.ConfigMaps = append(mc.ConfigMaps, configMap)
 
-						// Add secret for binding to the namespace, it contains the credentials fluentd needs for ElasticSearch
+						// Add secret for binding to the namespace, it contains the credentials Fluentd needs for ElasticSearch
 						addSecret(mc, constants.VmiSecretName, namespace.Name)
 
 						virtualSerivceDestinationPort := int(getDomainDestinationPort(domainCR))
@@ -279,7 +279,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						if helidonapp.IsFluentdEnabled(&app) {
 							configMap := helidonapp.CreateFluentdConfigMap(&app, namespace.Name, helidonLabels)
 							mc.ConfigMaps = append(mc.ConfigMaps, configMap)
-							// Add secret for binding to the namespace, it contains the credentials fluentd needs for ElasticSearch
+							// Add secret for binding to the namespace, it contains the credentials Fluentd needs for ElasticSearch
 							addSecret(mc, constants.VmiSecretName, namespace.Name)
 						}
 
@@ -320,7 +320,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 					if genericcomp.IsFluentdEnabled(&generic) {
 						configMap := genericcomp.CreateFluentdConfigMap(generic.Name, namespace, genericLabels)
 						mc.ConfigMaps = append(mc.ConfigMaps, configMap)
-						// Add secret for binding to the namespace, it contains the credentials fluentd needs for ElasticSearch
+						// Add secret for binding to the namespace, it contains the credentials Fluentd needs for ElasticSearch
 						addSecret(mc, constants.VmiSecretName, namespace)
 					}
 

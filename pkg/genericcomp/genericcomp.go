@@ -46,12 +46,12 @@ func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, bindingName st
 		},
 	}
 
-	// Include fluentd needed resource if fluentd integration is enabled
+	// Include Fluentd needed resource if Fluentd integration is enabled
 	if IsFluentdEnabled(&generic) {
-		// Add fluentd container
+		// Add Fluentd container
 		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, createFluentdContainer(bindingName, generic.Name))
 
-		// Add fluentd volumes
+		// Add Fluentd volumes
 		volumes := createFluentdVolHostPaths()
 		for _, volume := range *volumes {
 			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)

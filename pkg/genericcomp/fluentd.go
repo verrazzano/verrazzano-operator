@@ -14,7 +14,7 @@ import (
 
 const fluentdConf = "fluentd.conf"
 
-// FluentdConfiguration fluentd rules for reading/parsing generic component log files
+// FluentdConfiguration Fluentd rules for reading/parsing generic component log files
 const FluentdConfiguration = `<label @FLUENT_LOG>
   <match fluent.*>
     @type stdout
@@ -166,7 +166,7 @@ func createFluentdVolHostPaths() *[]corev1.Volume {
 	}
 }
 
-// Create volume for fluentd config map
+// Create volume for Fluentd config map
 func createFluentdVolConfigMap(componentName string) corev1.Volume {
 	return corev1.Volume{
 		Name: "fluentd-config-volume",
