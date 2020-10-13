@@ -97,7 +97,7 @@ func TestNewDeployment(t *testing.T) {
 
 	generic.Replicas = util.NewVal(2)
 
-	deploy := NewDeployment(generic, "test-namespace", labels)
+	deploy := NewDeployment(generic, "test-binding", "test-namespace", labels)
 	assert.Equal("test-generic", deploy.Name, "deployment name not equal to expected value")
 	assert.Equal("test-namespace", deploy.Namespace, "deployment namespace not equal to expected value")
 	assert.Equal(labels, deploy.Labels, "deployment labels not equal to expected value")
@@ -109,7 +109,7 @@ func TestNewDeployment(t *testing.T) {
 	// Unset the replica value to make sure default value of 1 is used.
 	generic.Replicas = nil
 
-	deploy = NewDeployment(generic, "test-namespace", labels)
+	deploy = NewDeployment(generic, "test-binding", "test-namespace", labels)
 	assert.Equal("test-generic", deploy.Name, "deployment name not equal to expected value")
 	assert.Equal("test-namespace", deploy.Namespace, "deployment namespace not equal to expected value")
 	assert.Equal(labels, deploy.Labels, "deployment labels not equal to expected value")
@@ -166,13 +166,15 @@ func TestGetSecrets(t *testing.T) {
 		constants.VerrazzanoCluster: "cluster1",
 	}
 
-	deploy := NewDeployment(generic, "test-namespace", labels)
+	deploy := NewDeployment(generic, "test-binding", "test-namespace", labels)
 
 	secrets := GetSecrets(*deploy)
-	assert.Equal(3, len(secrets), "secrets list length not equal to expected value")
+	assert.Equal(5, len(secrets), "secrets list length not equal to expected value")
 	assert.Equal("test-secret1", secrets[0], "secret not equal to expected value")
 	assert.Equal("test-secret-ref1", secrets[1], "secret not equal to expected value")
-	assert.Equal("test-secret-ref2", secrets[2], "secret not equal to expected value")
+	assert.Equal(constants.VmiSecretName, secrets[2], "secret not equal to expected value")
+	assert.Equal(constants.VmiSecretName, secrets[3], "secret not equal to expected value")
+	assert.Equal("test-secret-ref2", secrets[4], "secret not equal to expected value")
 }
 
 // TestUpdateEnvVars tests env variables are added to a generic component deployment

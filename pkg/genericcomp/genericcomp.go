@@ -16,7 +16,7 @@ import (
 const GenericComponentSelectorLabel = "verrazzano.name"
 
 // NewDeployment constructs a deployment for a generic component.
-func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, binding *v1beta1v8o.VerrazzanoBinding, namespace string, labels map[string]string) *appsv1.Deployment {
+func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, bindingName string, namespace string, labels map[string]string) *appsv1.Deployment {
 	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      generic.Name,
@@ -49,7 +49,7 @@ func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, binding *v1bet
 	// Include fluentd needed resource if fluentd integration is enabled
 	if IsFluentdEnabled(&generic) {
 		// Add fluentd container
-		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, createFluentdContainer(binding, generic.Name))
+		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, createFluentdContainer(bindingName, generic.Name))
 
 		// Add fluentd volumes
 		volumes := createFluentdVolHostPaths()

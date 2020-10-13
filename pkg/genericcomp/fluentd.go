@@ -6,7 +6,6 @@ package genericcomp
 import (
 	"fmt"
 
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -31,19 +30,6 @@ func CreateFluentdConfigMap(componentName string, namespace string, labels map[s
   tag "#{ENV['APPLICATION_NAME']}"
   format none
 </source>
-<filter **>
-  @type parser
-  key_name log
-  <parse>
-    @type grok
-    <grok>
-      name any-message
-      pattern %{GREEDYDATA:message}
-    </grok>
-	time_key timestamp
-	keep_time_key true
-  </parse>
-</filter>
 <filter **>
   @type record_transformer
   <record>
@@ -78,7 +64,7 @@ func CreateFluentdConfigMap(componentName string, namespace string, labels map[s
 }
 
 // Create the Fluentd sidecar container
-func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, componentName string) corev1.Container {
+func createFluentdContainer(bindingName string, componentName string) corev1.Container {
 	container := corev1.Container{
 		Name:            "fluentd",
 		Args:            []string{"-c", "/etc/fluent.conf"},
@@ -99,7 +85,7 @@ func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, componentName
 			},
 			{
 				Name:  "ELASTICSEARCH_HOST",
-				Value: fmt.Sprintf("vmi-%s-es-ingest.%s.svc.cluster.local", binding.Name, constants.VerrazzanoNamespace),
+				Value: fmt.Sprintf("vmi-%s-es-ingest.%s.svc.cluster.local", bindingName, constants.VerrazzanoNamespace),
 			},
 			{
 				Name:  "ELASTICSEARCH_PORT",

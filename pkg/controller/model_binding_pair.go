@@ -299,7 +299,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 					genericLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
 
 					// Create the k8s deployment for this generic component
-					deploy := genericcomp.NewDeployment(generic, mbPair.Binding, namespace, genericLabels)
+					deploy := genericcomp.NewDeployment(generic, mbPair.Binding.Name, namespace, genericLabels)
 					mc.Deployments = append(mc.Deployments, deploy)
 
 					// Create k8s service for this generic component
