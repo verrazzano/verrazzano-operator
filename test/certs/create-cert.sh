@@ -9,7 +9,7 @@ VERRAZZANO_NS=verrazzano-system
 
 set -eu
 
-function create_admission_controller_cert()
+function create_verrazzano-operator_cert()
 {
   rm -rf $CERTS_OUT
   mkdir -p $CERTS_OUT
@@ -34,4 +34,4 @@ function create_admission_controller_cert()
   openssl x509 -req -in $CERTS_OUT/verrazzano.csr -CA $CERTS_OUT/ca.crt -CAkey $CERTS_OUT/ca.key -CAcreateserial -out $CERTS_OUT/verrazzano-crt.pem
 }
 
-create_admission_controller_cert
+create_verrazzano-operator_cert

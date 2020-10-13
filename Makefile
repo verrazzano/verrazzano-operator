@@ -36,11 +36,14 @@ WATCH_NAMESPACE:=
 EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-operator
+GITHUB_PATH = github.com/verrazzano
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
-WKO_PATH = github.com/verrazzano/verrazzano-wko-operator
-HELIDON_PATH = github.com/verrazzano/verrazzano-helidon-app-operator
-COH_PATH = github.com/verrazzano/verrazzano-coh-cluster-operator
-CRDGEN_PATH = github.com/verrazzano/verrazzano-crd-generator
+WKO_PATH = ${GIBHUB_PATH}/verrazzano-wko-operator
+HELIDON_PATH = ${GIBHUB_PATH}/verrazzano-helidon-app-operator
+COH_PATH = ${GIBHUB_PATH}/verrazzano-coh-cluster-operator
+CRDGEN_PATH = ${GIBHUB_PATH}/verrazzano-crd-generator
+VMI_PATH = ${GIBHUB_PATH}/verrazzano-monitoring-operator
+VMI_CRD_PATH = k8s/crds
 CRD_PATH = deploy/crds
 HELM_CHART_NAME:=verrazzano
 HELM_CHART_ARCHIVE_NAME = ${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz
@@ -116,6 +119,10 @@ go-mod:
 	mkdir -p vendor/${CRDGEN_PATH}/${CRD_PATH}
 	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-crd-generator`/${CRD_PATH}/*.yaml vendor/${CRDGEN_PATH}/${CRD_PATH}
 
+	# Obtain verrazzano-monitoring-instance version
+	mkdir -p vendor/${VMI_PATH}/${VMI_CRD_PATH}
+	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-monitoring-operator`/${VMI_CRD_PATH}/*.yaml vendor/${VMI_PATH}/${VMI_CRD_PATH}
+
 	# List copied CRD YAMLs
 	ls vendor/${CRDGEN_PATH}/${CRD_PATH}
 
@@ -156,25 +163,28 @@ coverage: unit-test
 # Tests-related tasks
 #
 CLUSTER_NAME = verrazzano-operator
-GITHUB_PATH = github.com/verrazzano
-CRDGEN_PATH = ${GITHUB_PATH}/verrazzano-crd-generator
-CRD_PATH = deploy/crds
-VMI_CRD_PATH = ${GITHUB_PATH}/verrazzano-monitoring-operator/k8s/crds
-CERTS = build/admission-controller-cert
+CERTS = build/verrazzano-operator-cert
 VERRAZZANO_NS = verrazzano-system
 DEPLOY = build/deploy
 
 .PHONY: integ-test
-integ-test: build create-cluster
+# mackin temp test against OKE
+integ-test:
+# integ-test: build create-cluster
+
 	echo 'Load docker image for the verrazzano-operator...'
-	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+	# mackin temp disable
+	# kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 	echo 'Create resources needed by the verrazzano-operator...'
-	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml
-	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomodels_crd.yaml
-	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanobindings_crd.yaml
-	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanobindings_crd.yaml
-	kubectl create -f vendor/${VMI_CRD_PATH}/verrazzano-monitoring-operator-crds.yaml
+# mackin temp disable
+#	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml
+#	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomodels_crd.yaml
+#	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanobindings_crd.yaml
+#	kubectl create -f vendor/${COH_PATH}/${CRD_PATH}/verrazzano.io_cohclusters_crd.yaml
+#	kubectl create -f vendor/${HELIDON_PATH}/${CRD_PATH}/verrazzano.io_helidonapps_crd.yaml
+#	kubectl create -f vendor/${WKO_PATH}/${CRD_PATH}/verrazzano.io_wlsoperators_crd.yaml
+#	kubectl create -f vendor/${VMI_PATH}/${VMI_CRD_PATH}/verrazzano-monitoring-operator-crds.yaml
 
 	echo 'Deploy verrazzano operator ...'
 	kubectl create namespace ${VERRAZZANO_NS}
@@ -186,7 +196,7 @@ integ-test: build create-cluster
 	kubectl apply -f ${DEPLOY}/deployment.yaml
 
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/... || IGNORE=FAILURE
+	# ginkgo -v --keepGoing -cover test/integ/... || IGNORE=FAILURE
 
 .PHONY: create-cluster
 create-cluster:

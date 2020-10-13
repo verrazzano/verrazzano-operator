@@ -1,0 +1,304 @@
+# Copyright (C) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: verrazzano-operator
+  namespace: verrazzano-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-operator
+rules:
+  - apiGroups:
+      - verrazzano.io
+    resources:
+      - '*'
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+  - apiGroups:
+      - verrazzano.io
+    resources:
+      - verrazzanomonitoringinstances
+      - wlsoperators
+      - helidonapps
+      - cohclusters
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/exec
+      - configmaps
+      - endpoints
+      - events
+      - namespaces
+      - persistentvolumeclaims
+      - secrets
+      - services
+    verbs:
+      - '*'
+  - apiGroups:
+      - ""
+    resources:
+      - daemonsets
+      - nodes
+      - serviceaccounts
+      - pods/log
+      - pods/portforward
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+      - patch
+      - deletecollection
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - daemonsets
+      - replicasets
+      - statefulsets
+    verbs:
+      - '*'
+  - apiGroups:
+      - apps
+    resources:
+      - deployments/finalizers
+    resourceNames:
+      - coherence-operator
+    verbs:
+      - update
+  - apiGroups:
+      - extensions
+    resources:
+      - podsecuritypolicies
+    resourceNames:
+      - system-node-exporter
+    verbs:
+      - use
+  - apiGroups:
+      - extensions
+    resources:
+      - daemonsets
+      - replicasets
+      - statefulsets
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+      - clusterrolebindings
+      - roles
+      - rolebindings
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
+  - apiGroups:
+      - networking.istio.io
+    resources:
+      - gateways
+      - virtualservices
+      - serviceentries
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - '*'
+  - apiGroups:
+      - coherence.oracle.com
+    resources:
+      - '*'
+    verbs:
+      - '*'
+  - apiGroups:
+      - weblogic.oracle
+    resources:
+      - domains
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
+      - patch
+      - deletecollection
+  - apiGroups:
+      - weblogic.oracle
+    resources:
+      - domains/status
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+      - patch
+      - deletecollection
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - servicemonitors
+    verbs:
+      - get
+      - create
+  - nonResourceURLs:
+      - /version/*
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verrazzano-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: verrazzano-operator
+subjects:
+  - kind: ServiceAccount
+    name: verrazzano-operator
+    namespace: verrazzano-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: verrazzano-operator
+  namespace: verrazzano-system
+  labels:
+    name: verrazzano-operator
+spec:
+  ports:
+    - name: webhook
+      port: 443
+      targetPort: 8080
+  selector:
+    name: verrazzano-operator
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verrazzano-operator
+  namespace: verrazzano-system
+  labels:
+    app: verrazzano-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verrazzano-operator
+  template:
+    metadata:
+      labels:
+        app: verrazzano-operator
+    spec:
+      containers:
+        - name: verrazzano-operator
+          imagePullPolicy: never
+          image: IMAGE_NAME:IMAGE_TAG
+          args:
+            - --v=4
+            - --verrazzanoUri=default.1.1.1.1.xip.io
+            - --enableMonitoringStorage=false
+            - --apiServerRealm=verrazzano-system
+          resources:
+            requests:
+              memory: 72Mi
+          env:
+            - name: COH_MICRO_IMAGE
+              value: not-used
+            - name: HELIDON_MICRO_IMAGE
+              value: not-used
+            - name: WLS_MICRO_IMAGE
+              value: not-used
+            - name: PROMETHEUS_PUSHER_IMAGE
+              value: not-used
+            - name: NODE_EXPORTER_IMAGE
+              value: not-used
+            - name: FILEBEAT_IMAGE
+              value: not-used
+            - name: JOURNALBEAT_IMAGE
+              value: not-used
+            - name: WEBLOGIC_OPERATOR_IMAGE
+              value: not-used
+            - name: FLUENTD_IMAGE
+              value: not-used
+            - name: COH_MICRO_REQUEST_MEMORY
+              value: 1Mi
+            - name: HELIDON_MICRO_REQUEST_MEMORY
+              value: 1Mi
+            - name: WLS_MICRO_REQUEST_MEMORY
+              value: 1Mi
+            - name: ES_MASTER_NODE_REQUEST_MEMORY
+              value: 1Mi
+            - name: ES_INGEST_NODE_REQUEST_MEMORY
+              value: 1Mi
+            - name: ES_DATA_NODE_REQUEST_MEMORY
+              value: 1Mi
+            - name: GRAFANA_REQUEST_MEMORY
+              value: 1Mi
+            - name: PROMETHEUS_REQUEST_MEMORY
+              value: 1Mi
+            - name: KIBANA_REQUEST_MEMORY
+              value: 1Mi
+            - name: ES_MASTER_NODE_REPLICAS
+              value: "2"
+      serviceAccount: verrazzano-operator
