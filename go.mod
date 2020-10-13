@@ -18,13 +18,14 @@ require (
 	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.3.0
 	istio.io/api v0.0.0-20200629210345-933b83065c19
 	istio.io/client-go v0.0.0-20200630182733-fd3f873f3f52
 	k8s.io/api v0.18.2
 	k8s.io/apiextensions-apiserver v0.18.2
-	k8s.io/apimachinery v0.18.2
+	k8s.io/apimachinery v0.18.8
 	k8s.io/client-go v12.0.0+incompatible
+	sigs.k8s.io/kind v0.9.0 // indirect
 	sigs.k8s.io/yaml v1.2.0
 )
 
