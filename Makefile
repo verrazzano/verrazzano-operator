@@ -166,6 +166,7 @@ CLUSTER_NAME = verrazzano-operator
 CERTS = build/verrazzano-operator-cert
 VERRAZZANO_NS = verrazzano-system
 DEPLOY = build/deploy
+K8RESOURCE = test/k8resource
 
 .PHONY: integ-test
 # mackin temp test against OKE
@@ -174,24 +175,37 @@ integ-test:
 
 	echo 'Load docker image for the verrazzano-operator...'
 	# mackin temp disable
-	# kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 	echo 'Create resources needed by the verrazzano-operator...'
 # mackin temp disable
-#	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml
-#	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomodels_crd.yaml
-#	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanobindings_crd.yaml
-#	kubectl create -f vendor/${COH_PATH}/${CRD_PATH}/verrazzano.io_cohclusters_crd.yaml
-#	kubectl create -f vendor/${HELIDON_PATH}/${CRD_PATH}/verrazzano.io_helidonapps_crd.yaml
-#	kubectl create -f vendor/${WKO_PATH}/${CRD_PATH}/verrazzano.io_wlsoperators_crd.yaml
-#	kubectl create -f vendor/${VMI_PATH}/${VMI_CRD_PATH}/verrazzano-monitoring-operator-crds.yaml
+	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml
+	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomodels_crd.yaml
+	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanobindings_crd.yaml
+	kubectl create -f vendor/${COH_PATH}/${CRD_PATH}/verrazzano.io_cohclusters_crd.yaml
+	kubectl create -f vendor/${HELIDON_PATH}/${CRD_PATH}/verrazzano.io_helidonapps_crd.yaml
+	kubectl create -f vendor/${WKO_PATH}/${CRD_PATH}/verrazzano.io_wlsoperators_crd.yaml
+	kubectl create -f vendor/${VMI_PATH}/${VMI_CRD_PATH}/verrazzano-monitoring-operator-crds.yaml
 
-	echo 'Deploy verrazzano operator ...'
+	echo 'Deploy local cluster and required secret ...'
+	kubectl create secret generic verrazzano-managed-cluster-local --from-file=kubeconfig=${KUBECONFIG}
+	kubectl label secret verrazzano-managed-cluster-local k8s-app=verrazzano.oracle.com verrazzano.cluster=local
+	kubectl apply -f ${K8RESOURCE}/local-vmc.yaml
+
+	echo 'Deploy verrazzano operator and required secret ...'
 	kubectl create namespace ${VERRAZZANO_NS}
 	./test/certs/create-cert.sh
 	kubectl create secret generic verrazzano -n ${VERRAZZANO_NS} \
+		--from-literal=password=admin --from-literal=username=admin
+
+	kubectl create secret generic default-secret  -n ${VERRAZZANO_NS} \
 			--from-file=cert.pem=${CERTS}/verrazzano-crt.pem \
 			--from-file=key.pem=${CERTS}/verrazzano-key.pem
+
+	kubectl create secret generic system-tls  -n ${VERRAZZANO_NS} \
+			--from-file=cert.pem=${CERTS}/verrazzano-crt.pem \
+			--from-file=key.pem=${CERTS}/verrazzano-key.pem
+
 	echo ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG}
 	./test/create-deployment.sh ghcr.io/verrazzano/verrazzano-operator v0.0.103-222cd4a-1
 #	./test/create-deployment.sh ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG}
