@@ -6,7 +6,12 @@ package testutil
 import (
 	"context"
 	"fmt"
+	cohv1beta1 "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/apis/verrazzano/v1beta1"
+	cohv1 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
+	v8 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
+	helidionv1beta1 "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano-wko-operator/pkg/apis/verrazzano/v1beta1"
 	"testing"
 
 	v1 "k8s.io/api/rbac/v1"
@@ -14,7 +19,7 @@ import (
 
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 
-	"github.com/stretchr/testify/assert"
+	asserts "github.com/stretchr/testify/assert"
 	istio "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -24,6 +29,8 @@ import (
 )
 
 func TestSimplePodLister(t *testing.T) {
+	assert := asserts.New(t)
+
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
@@ -35,25 +42,27 @@ func TestSimplePodLister(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get pods: %v", err))
 	}
-	assert.Equal(t, 4, len(pods))
+	assert.Equal(4, len(pods))
 
-	nsl := l.Pods("test")
+	namespaceLister := l.Pods("test")
 
-	pods, err = nsl.List(s)
+	pods, err = namespaceLister.List(s)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get pods: %v", err))
 	}
-	assert.Equal(t, 1, len(pods))
+	assert.Equal(1, len(pods))
 
-	pod, err := nsl.Get("test-pod")
+	pod, err := namespaceLister.Get("test-pod")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get pod: %v", err))
 	}
-	assert.Equal(t, "test-pod", pod.Name)
-	assert.Equal(t, "test", pod.Namespace)
+	assert.Equal("test-pod", pod.Name)
+	assert.Equal("test", pod.Namespace)
 }
 
 func TestSimpleConfigMapLister(t *testing.T) {
+	assert := asserts.New(t)
+
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
@@ -69,25 +78,27 @@ func TestSimpleConfigMapLister(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get pods: %v", err))
 	}
-	assert.Equal(t, 3, len(configMaps))
+	assert.Equal(3, len(configMaps))
 
-	nsl := l.ConfigMaps("test")
+	namespaceLister := l.ConfigMaps("test")
 
-	configMaps, err = nsl.List(s)
+	configMaps, err = namespaceLister.List(s)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get pods: %v", err))
 	}
-	assert.Equal(t, 3, len(configMaps))
+	assert.Equal(3, len(configMaps))
 
-	configMap, err := nsl.Get("cm1")
+	configMap, err := namespaceLister.Get("cm1")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get config map: %v", err))
 	}
-	assert.Equal(t, "cm1", configMap.Name)
-	assert.Equal(t, "test", configMap.Namespace)
+	assert.Equal("cm1", configMap.Name)
+	assert.Equal("test", configMap.Namespace)
 }
 
 func TestSimpleNamespaceLister(t *testing.T) {
+	assert := asserts.New(t)
+
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
@@ -99,16 +110,18 @@ func TestSimpleNamespaceLister(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get namespaces: %v", err))
 	}
-	assert.Equal(t, 6, len(namespaces))
+	assert.Equal(6, len(namespaces))
 
 	namespace, err := l.Get("test")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get namespace: %v", err))
 	}
-	assert.Equal(t, "test", namespace.Name)
+	assert.Equal("test", namespace.Name)
 }
 
 func TestSimpleGatewayLister(t *testing.T) {
+	assert := asserts.New(t)
+
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
@@ -132,25 +145,27 @@ func TestSimpleGatewayLister(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get gateways: %v", err))
 	}
-	assert.Equal(t, 1, len(gateways))
+	assert.Equal(1, len(gateways))
 
-	nsl := l.Gateways("test")
+	namespaceLister := l.Gateways("test")
 
-	gateways, err = nsl.List(s)
+	gateways, err = namespaceLister.List(s)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get gateways: %v", err))
 	}
-	assert.Equal(t, 1, len(gateways))
+	assert.Equal(1, len(gateways))
 
-	gateway, err := nsl.Get("test-gateway")
+	gateway, err := namespaceLister.Get("test-gateway")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get gateway: %v", err))
 	}
-	assert.Equal(t, "test-gateway", gateway.Name)
-	assert.Equal(t, "test", gateway.Namespace)
+	assert.Equal("test-gateway", gateway.Name)
+	assert.Equal("test", gateway.Namespace)
 }
 
 func TestSimpleVirtualServiceLister(t *testing.T) {
+	assert := asserts.New(t)
+
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
@@ -174,25 +189,27 @@ func TestSimpleVirtualServiceLister(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get services: %v", err))
 	}
-	assert.Equal(t, 1, len(services))
+	assert.Equal(1, len(services))
 
-	nsl := l.VirtualServices("test")
+	namespaceLister := l.VirtualServices("test")
 
-	services, err = nsl.List(s)
+	services, err = namespaceLister.List(s)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get services: %v", err))
 	}
-	assert.Equal(t, 1, len(services))
+	assert.Equal(1, len(services))
 
-	service, err := nsl.Get("test-service")
+	service, err := namespaceLister.Get("test-service")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get service: %v", err))
 	}
-	assert.Equal(t, "test-service", service.Name)
-	assert.Equal(t, "test", service.Namespace)
+	assert.Equal("test-service", service.Name)
+	assert.Equal("test", service.Namespace)
 }
 
 func TestSimpleServiceEntryLister(t *testing.T) {
+	assert := asserts.New(t)
+
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
@@ -216,27 +233,27 @@ func TestSimpleServiceEntryLister(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get entries: %v", err))
 	}
-	assert.Equal(t, 1, len(entries))
+	assert.Equal(1, len(entries))
 
-	nsl := l.ServiceEntries("test")
+	namespaceLister := l.ServiceEntries("test")
 
-	entries, err = nsl.List(s)
+	entries, err = namespaceLister.List(s)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get entries: %v", err))
 	}
-	assert.Equal(t, 1, len(entries))
+	assert.Equal(1, len(entries))
 
-	entry, err := nsl.Get("test-entry")
+	entry, err := namespaceLister.Get("test-entry")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get entry: %v", err))
 	}
-	assert.Equal(t, "test-entry", entry.Name)
-	assert.Equal(t, "test", entry.Namespace)
+	assert.Equal("test-entry", entry.Name)
+	assert.Equal("test", entry.Namespace)
 }
 
 // Test simpleSecretLister
 func TestSimpleSecretLister(t *testing.T) {
-	assert := assert.New(t)
+	assert := asserts.New(t)
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
@@ -304,7 +321,7 @@ func TestSimpleSecretLister(t *testing.T) {
 
 // Test simpleSecretNamespaceLister List and Get
 func TestSimpleSecretNamespaceLister(t *testing.T) {
-	assert := assert.New(t)
+	assert := asserts.New(t)
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
@@ -343,6 +360,8 @@ func TestSimpleSecretNamespaceLister(t *testing.T) {
 }
 
 func TestSimpleServiceLister(t *testing.T) {
+	assert := asserts.New(t)
+
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
@@ -378,22 +397,22 @@ func TestSimpleServiceLister(t *testing.T) {
 		t.Fatal(fmt.Sprintf("can't get services: %v", err))
 	}
 	// testdata includes the istio-ingressgateway service so expect 2 services
-	assert.Equal(t, 2, len(services))
+	assert.Equal(2, len(services))
 
-	nsl := l.Services("test")
+	namespaceLister := l.Services("test")
 
-	services, err = nsl.List(s)
+	services, err = namespaceLister.List(s)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get services: %v", err))
 	}
-	assert.Equal(t, 1, len(services))
+	assert.Equal(1, len(services))
 
-	service, err := nsl.Get("test-service")
+	service, err := namespaceLister.Get("test-service")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get service: %v", err))
 	}
-	assert.Equal(t, "test-service", service.Name)
-	assert.Equal(t, "test", service.Namespace)
+	assert.Equal("test-service", service.Name)
+	assert.Equal("test", service.Namespace)
 }
 
 // TestSimpleServiceAccountLister tests the functionality of simpleServiceAccountLister.
@@ -406,7 +425,7 @@ func TestSimpleServiceAccountLister(t *testing.T) {
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	assert := assert.New(t)
+	assert := asserts.New(t)
 
 	sa := corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -435,15 +454,15 @@ func TestSimpleServiceAccountLister(t *testing.T) {
 	}
 	assert.Equal(1, len(serviceAccounts))
 
-	nsl := l.ServiceAccounts("test")
+	namespaceLister := l.ServiceAccounts("test")
 
-	serviceAccounts, err = nsl.List(s)
+	serviceAccounts, err = namespaceLister.List(s)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get service accounts: %v", err))
 	}
 	assert.Equal(1, len(serviceAccounts))
 
-	serviceAccount, err := nsl.Get("test-serviceAccount")
+	serviceAccount, err := namespaceLister.Get("test-serviceAccount")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get service account: %v", err))
 	}
@@ -458,6 +477,8 @@ func TestSimpleServiceAccountLister(t *testing.T) {
 //   AND the lister should list exactly one specific cluster role given a label selector
 //   AND the lister should get a specific cluster role when requested by name
 func TestSimpleClusterRoleLister(t *testing.T) {
+	assert := asserts.New(t)
+
 	// create a map of empty test cluster connections that use fakes
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
@@ -497,12 +518,12 @@ func TestSimpleClusterRoleLister(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("got an error trying to list the cluster roles: %v", err))
 	}
-	assert.Len(t, clusterRoles, 2, "expected 2 cluster roles in the list")
+	assert.Len(clusterRoles, 2, "expected 2 cluster roles in the list")
 	expectedRoleSet := map[string]struct{}{"test": {}, "test2": {}}
 	for _, clusterRole := range clusterRoles {
 		delete(expectedRoleSet, clusterRole.Name)
 	}
-	assert.Len(t, expectedRoleSet, 0, "not all of the expected roles were returned: %v", expectedRoleSet)
+	assert.Len(expectedRoleSet, 0, "not all of the expected roles were returned: %v", expectedRoleSet)
 
 	// list cluster roles through the lister with a label selector
 	requirement, err := labels.NewRequirement("label1", selection.Equals, []string{"foo"})
@@ -514,21 +535,21 @@ func TestSimpleClusterRoleLister(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("got an error trying to list the cluster roles: %v", err))
 	}
-	assert.Len(t, clusterRoles, 1, "expected 1 cluster role in the list")
-	assert.Equal(t, "test", clusterRoles[0].Name, "expected the cluster to be named test")
+	assert.Len(clusterRoles, 1, "expected 1 cluster role in the list")
+	assert.Equal("test", clusterRoles[0].Name, "expected the cluster to be named test")
 
 	// get specific cluster roles through the lister
 	clusterRole, err := l.Get("test")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("got an error trying to get a cluster role: %v", err))
 	}
-	assert.Equal(t, "test", clusterRole.Name, "expected the cluster to be named test")
+	assert.Equal("test", clusterRole.Name, "expected the cluster to be named test")
 
 	clusterRole, err = l.Get("test2")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("got an error trying to get a cluster role: %v", err))
 	}
-	assert.Equal(t, "test2", clusterRole.Name, "expected the cluster to be named test")
+	assert.Equal("test2", clusterRole.Name, "expected the cluster to be named test")
 }
 
 // TestSimpleClusterRoleBindingLister tests the functionality of simpleClusterRoleBindingLister
@@ -538,6 +559,8 @@ func TestSimpleClusterRoleLister(t *testing.T) {
 //   AND the lister should list exactly one specific cluster role binding given a label selector
 //   AND the lister should get a specific cluster role binding when requested by name
 func TestSimpleClusterRoleBindingLister(t *testing.T) {
+	assert := asserts.New(t)
+
 	// create a map of empty test cluster connections that use fakes
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
@@ -577,12 +600,12 @@ func TestSimpleClusterRoleBindingLister(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("got an error trying to list the cluster role bindings: %v", err))
 	}
-	assert.Len(t, clusterRoleBindings, 2, "expected 2 cluster role bindings in the list")
+	assert.Len(clusterRoleBindings, 2, "expected 2 cluster role bindings in the list")
 	expectedBindingSet := map[string]struct{}{"test": {}, "test2": {}}
 	for _, clusterRoleBinding := range clusterRoleBindings {
 		delete(expectedBindingSet, clusterRoleBinding.Name)
 	}
-	assert.Len(t, expectedBindingSet, 0, "not all of the expected role bindings were returned: %v", expectedBindingSet)
+	assert.Len(expectedBindingSet, 0, "not all of the expected role bindings were returned: %v", expectedBindingSet)
 
 	// list cluster role bindings through the lister with a label selector
 	requirement, err := labels.NewRequirement("label1", selection.Equals, []string{"foo"})
@@ -594,21 +617,21 @@ func TestSimpleClusterRoleBindingLister(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("got an error trying to list the cluster role bindings: %v", err))
 	}
-	assert.Len(t, clusterRoleBindings, 1, "expected 1 cluster role binding in the list")
-	assert.Equal(t, "test", clusterRoleBindings[0].Name, "expected the cluster role binding to be named test")
+	assert.Len(clusterRoleBindings, 1, "expected 1 cluster role binding in the list")
+	assert.Equal("test", clusterRoleBindings[0].Name, "expected the cluster role binding to be named test")
 
 	// get specific cluster role bindings through the lister
 	clusterRoleBinding, err := l.Get("test")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("got an error trying to get a cluster role binding: %v", err))
 	}
-	assert.Equal(t, "test", clusterRoleBinding.Name, "expected the cluster role binding to be named test")
+	assert.Equal("test", clusterRoleBinding.Name, "expected the cluster role binding to be named test")
 
 	clusterRoleBinding, err = l.Get("test2")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("got an error trying to get a cluster role binding: %v", err))
 	}
-	assert.Equal(t, "test2", clusterRoleBinding.Name, "expected the cluster role binding to be named test")
+	assert.Equal("test2", clusterRoleBinding.Name, "expected the cluster role binding to be named test")
 }
 
 // TestSimpleDaemonSetLister tests the functionality of simpleDaemonSetLister
@@ -618,7 +641,7 @@ func TestSimpleClusterRoleBindingLister(t *testing.T) {
 //   AND the lister should list exactly one specific daemon set given a label selector
 //   AND the lister should get a specific daemon set when requested by name
 func TestSimpleDaemonSetLister(t *testing.T) {
-	assert := assert.New(t)
+	assert := asserts.New(t)
 
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
@@ -673,8 +696,8 @@ func TestSimpleDaemonSetLister(t *testing.T) {
 	assert.Equal("test", sets[0].Name, "unexpected daemon set name")
 
 	// get the list for the 'test' namespace
-	nsl := l.DaemonSets("test")
-	daemonSets, err := nsl.List(selector)
+	namespaceLister := l.DaemonSets("test")
+	daemonSets, err := namespaceLister.List(selector)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get daemon sets: %v", err))
 	}
@@ -682,7 +705,7 @@ func TestSimpleDaemonSetLister(t *testing.T) {
 	assert.Equal("test", sets[0].Name, "unexpected daemon set name")
 
 	// get a daemon set by name
-	pod, err := nsl.Get("test")
+	pod, err := namespaceLister.Get("test")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get daemon sets: %v", err))
 	}
@@ -697,7 +720,7 @@ func TestSimpleDaemonSetLister(t *testing.T) {
 //   AND the lister should list exactly one specific deployment given a label selector
 //   AND the lister should get a specific deployment when requested by name
 func TestSimpleDeploymentLister(t *testing.T) {
-	assert := assert.New(t)
+	assert := asserts.New(t)
 
 	clusterConnections := GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
@@ -752,8 +775,8 @@ func TestSimpleDeploymentLister(t *testing.T) {
 	assert.Equal("test", sets[0].Name, "unexpected deployment name")
 
 	// get the list for the 'test' namespace
-	nsl := l.Deployments("test")
-	deployments, err := nsl.List(selector)
+	namespaceLister := l.Deployments("test")
+	deployments, err := namespaceLister.List(selector)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get deployments: %v", err))
 	}
@@ -761,7 +784,7 @@ func TestSimpleDeploymentLister(t *testing.T) {
 	assert.Equal("test", sets[0].Name, "unexpected deployment name")
 
 	// get a deployment by name
-	pod, err := nsl.Get("test")
+	pod, err := namespaceLister.Get("test")
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get deployments: %v", err))
 	}
@@ -778,7 +801,7 @@ func TestSimpleDeploymentLister(t *testing.T) {
 //   AND I should be able to list secrets with a selector
 //   AND I should be able to delete a secret
 func TestFakeSecrets(t *testing.T) {
-	assert := assert.New(t)
+	assert := asserts.New(t)
 
 	secrets := &FakeSecrets{Secrets: map[string]*corev1.Secret{
 		"secret1": {
@@ -899,6 +922,418 @@ func createConfigMap(t *testing.T, name string, clusterConnection *util.ManagedC
 	if err != nil {
 		t.Fatalf("can't create config map: %v", err)
 	}
+}
+
+// TestSimpleWLSOperatorLister tests the functionality of simpleWlsOperatorLister
+// GIVEN a cluster which has no existing deployments
+//  WHEN I create two WlsOperator instances and a simpleWlsOperatorLister
+//  THEN the lister should list exactly two operators given an everything selector
+//   AND the lister should list exactly one specific operator given a label selector
+//   AND the lister should get a specific operator when requested by name
+func TestSimpleWLSOperatorLister(t *testing.T) {
+	assert := asserts.New(t)
+
+	clusterConnections := GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	op := &v1beta1.WlsOperator{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+			Labels: map[string]string{
+				"label1": "foo",
+			},
+		},
+	}
+	_, err := clusterConnection.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators("test").Create(context.TODO(), op, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create operator: %v", err))
+	}
+
+	op2 := &v1beta1.WlsOperator{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test2",
+			Namespace: "test2",
+		},
+	}
+	_, err = clusterConnection.WlsOprClientSet.VerrazzanoV1beta1().WlsOperators("test2").Create(context.TODO(), op2, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create operator: %v", err))
+	}
+
+	l := simpleWlsOperatorLister{
+		kubeClient:      clusterConnection.KubeClient,
+		wlsOprClientSet: clusterConnection.WlsOprClientSet,
+	}
+	selector := labels.Everything()
+	// get the deployment list for all namespaces
+	ops, err := l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get operators: %v", err))
+	}
+	assert.Len(ops, 2, "expected 2 operators")
+
+	// list deployments through the lister with a label selector
+	requirement, err := labels.NewRequirement("label1", selection.Equals, []string{"foo"})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to create a requirement: %v", err))
+	}
+	selector = labels.NewSelector().Add(*requirement)
+	ops, err = l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't list operators: %v", err))
+	}
+	assert.Len(ops, 1, "expected 1 operator")
+	assert.Equal("test", ops[0].Name, "unexpected deployment name")
+
+	// get the list for the 'test' namespace
+	namespaceLister := l.WlsOperators("test")
+	ops, err = namespaceLister.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get operators: %v", err))
+	}
+	assert.Len(ops, 1, "expected 1 operator")
+	assert.Equal("test", ops[0].Name, "unexpected operator name")
+
+	// get an operator by name
+	op, err = namespaceLister.Get("test")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get operator: %v", err))
+	}
+	assert.Equal("test", op.Name, "unexpected operator name")
+	assert.Equal("test", op.Namespace, "unexpected operator namespace")
+}
+
+// TestSimpleHelidonAppLister tests the functionality of simpleHelidonAppLister
+// GIVEN a cluster which has no existing deployments
+//  WHEN I create two HelidonApp instances and a simpleHelidonAppLister
+//  THEN the lister should list exactly two helidon apps given an everything selector
+//   AND the lister should list exactly one specific helidon app given a label selector
+//   AND the lister should get a specific helidon app when requested by name
+func TestSimpleHelidonAppLister(t *testing.T) {
+	assert := asserts.New(t)
+
+	clusterConnections := GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	app := &helidionv1beta1.HelidonApp{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+			Labels: map[string]string{
+				"label1": "foo",
+			},
+		},
+	}
+	_, err := clusterConnection.HelidonClientSet.VerrazzanoV1beta1().HelidonApps("test").Create(context.TODO(), app, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create operator: %v", err))
+	}
+
+	app2 := &helidionv1beta1.HelidonApp{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test2",
+			Namespace: "test2",
+		},
+	}
+	_, err = clusterConnection.HelidonClientSet.VerrazzanoV1beta1().HelidonApps("test2").Create(context.TODO(), app2, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create operator: %v", err))
+	}
+
+	l := simpleHelidonAppLister{
+		kubeClient:       clusterConnection.KubeClient,
+		helidonClientSet: clusterConnection.HelidonClientSet,
+	}
+	selector := labels.Everything()
+	// get the deployment list for all namespaces
+	apps, err := l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get helidon apps: %v", err))
+	}
+	assert.Len(apps, 2, "expected 2 helidon apps")
+
+	// list deployments through the lister with a label selector
+	requirement, err := labels.NewRequirement("label1", selection.Equals, []string{"foo"})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to create a requirement: %v", err))
+	}
+	selector = labels.NewSelector().Add(*requirement)
+	apps, err = l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't list helidon aps: %v", err))
+	}
+	assert.Len(apps, 1, "expected 1 helidon app")
+	assert.Equal("test", apps[0].Name, "unexpected deployment name")
+
+	// get the list for the 'test' namespace
+	namespaceLister := l.HelidonApps("test")
+	apps, err = namespaceLister.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get helidon apps: %v", err))
+	}
+	assert.Len(apps, 1, "expected 1 helidon app")
+	assert.Equal("test", apps[0].Name, "unexpected helidon app name")
+
+	// get an operator by name
+	app, err = namespaceLister.Get("test")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get helidon app: %v", err))
+	}
+	assert.Equal("test", app.Name, "unexpected helidon app name")
+	assert.Equal("test", app.Namespace, "unexpected helidon app namespace")
+
+	err = clusterConnection.HelidonClientSet.VerrazzanoV1beta1().HelidonApps("test").Delete(context.TODO(), "test", metav1.DeleteOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create operator: %v", err))
+	}
+	selector = labels.Everything()
+	// get the deployment list for all namespaces
+	apps, err = l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get helidon apps: %v", err))
+	}
+	assert.Len(apps, 1, "expected 1 helidon app")
+}
+
+// TestSimpleCohClusterLister tests the functionality of simpleCohClusterLister
+// GIVEN a cluster which has no existing deployments
+//  WHEN I create two CohCluster instances and a simpleCohClusterLister
+//  THEN the lister should list exactly two clusters given an everything selector
+//   AND the lister should list exactly one specific cluster given a label selector
+//   AND the lister should get a specific cluster when requested by name
+func TestSimpleCohClusterLister(t *testing.T) {
+	assert := asserts.New(t)
+
+	clusterConnections := GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	cluster := &cohv1beta1.CohCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+			Labels: map[string]string{
+				"label1": "foo",
+			},
+		},
+	}
+	_, err := clusterConnection.CohOprClientSet.VerrazzanoV1beta1().CohClusters("test").Create(context.TODO(), cluster, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create cluster: %v", err))
+	}
+
+	app2 := &cohv1beta1.CohCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test2",
+			Namespace: "test2",
+		},
+	}
+	_, err = clusterConnection.CohOprClientSet.VerrazzanoV1beta1().CohClusters("test2").Create(context.TODO(), app2, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create cluster: %v", err))
+	}
+
+	l := simpleCohClusterLister{
+		kubeClient:      clusterConnection.KubeClient,
+		cohOprClientSet: clusterConnection.CohOprClientSet,
+	}
+	selector := labels.Everything()
+	// get the deployment list for all namespaces
+	clusters, err := l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get clusters: %v", err))
+	}
+	assert.Len(clusters, 2, "expected 2 clusters")
+
+	// list deployments through the lister with a label selector
+	requirement, err := labels.NewRequirement("label1", selection.Equals, []string{"foo"})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to create a requirement: %v", err))
+	}
+	selector = labels.NewSelector().Add(*requirement)
+	clusters, err = l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't list clusters: %v", err))
+	}
+	assert.Len(clusters, 1, "expected 1 cluster")
+	assert.Equal("test", clusters[0].Name, "unexpected deployment name")
+
+	// get the list for the 'test' namespace
+	namespaceLister := l.CohClusters("test")
+	clusters, err = namespaceLister.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get clusters: %v", err))
+	}
+	assert.Len(clusters, 1, "expected 1 cluster")
+	assert.Equal("test", clusters[0].Name, "unexpected cluster name")
+
+	// get an operator by name
+	cluster, err = namespaceLister.Get("test")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get cluster: %v", err))
+	}
+	assert.Equal("test", cluster.Name, "unexpected cluster name")
+	assert.Equal("test", cluster.Namespace, "unexpected cluster namespace")
+}
+
+// TestSimpleCoherenceClusterLister tests the functionality of simpleCoherenceClusterLister
+// GIVEN a cluster which has no existing deployments
+//  WHEN I create two CohCluster instances and a simpleCohClusterLister
+//  THEN the lister should list exactly two clusters given an everything selector
+//   AND the lister should list exactly one specific cluster given a label selector
+//   AND the lister should get a specific cluster when requested by name
+func TestSimpleCoherenceClusterLister(t *testing.T) {
+	assert := asserts.New(t)
+
+	clusterConnections := GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	cluster := &cohv1.CoherenceCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+			Labels: map[string]string{
+				"label1": "foo",
+			},
+		},
+	}
+	_, err := clusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters("test").Create(context.TODO(), cluster, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create cluster: %v", err))
+	}
+
+	cluster2 := &cohv1.CoherenceCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test2",
+			Namespace: "test2",
+		},
+	}
+	_, err = clusterConnection.CohClusterClientSet.CoherenceV1().CoherenceClusters("test2").Create(context.TODO(), cluster2, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create cluster: %v", err))
+	}
+
+	l := simpleCoherenceClusterLister{
+		kubeClient:          clusterConnection.KubeClient,
+		cohClusterClientSet: clusterConnection.CohClusterClientSet,
+	}
+	selector := labels.Everything()
+	// get the deployment list for all namespaces
+	clusters, err := l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get clusters: %v", err))
+	}
+	assert.Len(clusters, 2, "expected 2 clusters")
+
+	// list deployments through the lister with a label selector
+	requirement, err := labels.NewRequirement("label1", selection.Equals, []string{"foo"})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to create a requirement: %v", err))
+	}
+	selector = labels.NewSelector().Add(*requirement)
+	clusters, err = l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't list clusters: %v", err))
+	}
+	assert.Len(clusters, 1, "expected 1 cluster")
+	assert.Equal("test", clusters[0].Name, "unexpected deployment name")
+
+	// get the list for the 'test' namespace
+	namespaceLister := l.CoherenceClusters("test")
+	clusters, err = namespaceLister.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get clusters: %v", err))
+	}
+	assert.Len(clusters, 1, "expected 1 cluster")
+	assert.Equal("test", clusters[0].Name, "unexpected cluster name")
+
+	// get an operator by name
+	cluster, err = namespaceLister.Get("test")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get cluster: %v", err))
+	}
+	assert.Equal("test", cluster.Name, "unexpected cluster name")
+	assert.Equal("test", cluster.Namespace, "unexpected cluster namespace")
+}
+
+// TestSimpleDomainLister tests the functionality of simpleDomainLister
+// GIVEN a cluster which has no existing deployments
+//  WHEN I create two Domain instances and a simpleDomainLister
+//  THEN the lister should list exactly two domains given an everything selector
+//   AND the lister should list exactly one specific domain given a label selector
+//   AND the lister should get a specific domain when requested by name
+func TestSimpleDomainLister(t *testing.T) {
+	assert := asserts.New(t)
+
+	clusterConnections := GetManagedClusterConnections()
+	clusterConnection := clusterConnections["cluster1"]
+
+	domain := &v8.Domain{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+			Labels: map[string]string{
+				"label1": "foo",
+			},
+		},
+	}
+	_, err := clusterConnection.DomainClientSet.WeblogicV8().Domains("test").Create(context.TODO(), domain, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create cluster: %v", err))
+	}
+
+	domain2 := &v8.Domain{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test2",
+			Namespace: "test2",
+		},
+	}
+	_, err = clusterConnection.DomainClientSet.WeblogicV8().Domains("test2").Create(context.TODO(), domain2, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't create cluster: %v", err))
+	}
+
+	l := simpleDomainLister{
+		kubeClient:      clusterConnection.KubeClient,
+		domainClientSet: clusterConnection.DomainClientSet,
+	}
+	selector := labels.Everything()
+	// get the deployment list for all namespaces
+	domains, err := l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get domains: %v", err))
+	}
+	assert.Len(domains, 2, "expected 2 domains")
+
+	// list deployments through the lister with a label selector
+	requirement, err := labels.NewRequirement("label1", selection.Equals, []string{"foo"})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("got an error trying to create a requirement: %v", err))
+	}
+	selector = labels.NewSelector().Add(*requirement)
+	domains, err = l.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't list domains: %v", err))
+	}
+	assert.Len(domains, 1, "expected 1 domain")
+	assert.Equal("test", domains[0].Name, "unexpected domain name")
+
+	// get the list for the 'test' namespace
+	namespaceLister := l.Domains("test")
+	domains, err = namespaceLister.List(selector)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get domains: %v", err))
+	}
+	assert.Len(domains, 1, "expected 1 domain")
+	assert.Equal("test", domains[0].Name, "unexpected domain name")
+
+	// get an operator by name
+	domain, err = namespaceLister.Get("test")
+	if err != nil {
+		t.Fatal(fmt.Sprintf("can't get cluster: %v", err))
+	}
+	assert.Equal("test", domain.Name, "unexpected domain name")
+	assert.Equal("test", domain.Namespace, "unexpected domain namespace")
 }
 
 //findByName returns the secret with the given name
