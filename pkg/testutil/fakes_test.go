@@ -910,4 +910,3 @@ func findByName(secrets []*corev1.Secret, name string) *corev1.Secret {
 	}
 	return nil
 }
-
