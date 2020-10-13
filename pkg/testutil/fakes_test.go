@@ -299,7 +299,7 @@ func TestSimpleSecretLister(t *testing.T) {
 	secrets, err = clusterConnection.SecretLister.List(labels.Everything())
 	assert.NoError(err, "Should not err for non-empty list.")
 	assert.Len(secrets, 3, "List should have three entries.")
-	assert.NotEqual(secrets[1], secrets[2], "Secrets should be different.")
+	assert.NotEqual(findByName(secrets, "test-secret-1"), findByName(secrets, "test-secret-2"), "Secrets should be different.")
 }
 
 // Test simpleSecretNamespaceLister List and Get
@@ -900,3 +900,14 @@ func createConfigMap(t *testing.T, name string, clusterConnection *util.ManagedC
 		t.Fatalf("can't create config map: %v", err)
 	}
 }
+
+//findByName returns the secret with the given name
+func findByName(secrets []*corev1.Secret, name string) *corev1.Secret {
+	for _, secret := range secrets {
+		if secret.Name == name {
+			return secret
+		}
+	}
+	return nil
+}
+
