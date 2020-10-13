@@ -4,7 +4,7 @@ package managed
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
+	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
@@ -34,7 +34,7 @@ func TestCreateSecrets(t *testing.T) {
 	}}
 
 	CreateSecrets(modelBindingPair, clusterConnections, clusterConnection.KubeClient, secrets)
-	assert := assert.New(t)
+	assert := asserts.New(t)
 	list, err := clusterConnection.KubeClient.CoreV1().Secrets("test").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("got an error listing secrets: %v", err)
@@ -90,7 +90,7 @@ func TestCreateSecrets(t *testing.T) {
 
 // assertSecretProperties will test whether the given list of secrets contains the expected secrets
 // based on the provided secret attributes/properties (e.g. name and namespace)
-func assertSecretProperties(expectedSecretValues []SecretProperties, list *corev1.SecretList, assert *assert.Assertions) {
+func assertSecretProperties(expectedSecretValues []SecretProperties, list *corev1.SecretList, assert *asserts.Assertions) {
 	for _, expectedSecretValue := range expectedSecretValues {
 		match := false
 		for _, secret := range list.Items {
