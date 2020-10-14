@@ -180,8 +180,9 @@ integ-test: build create-cluster
 	kubectl create -f vendor/${VMI_PATH}/${VMI_CRD_PATH}/verrazzano-monitoring-operator-crds.yaml
 
 	echo 'Deploy local cluster and required secret ...'
-	kubectl create secret generic verrazzano-managed-cluster-local --from-file=kubeconfig=${HOME}/.kube/config
-	kubectl label secret verrazzano-managed-cluster-local k8s-app=verrazzano.oracle.com verrazzano.cluster=local
+	# Create the local cluster secret with empty kubeconfig data.  This will force the verrazzano-operator
+	# to use the in-cluster kubeconfig.
+	kubectl apply -f ./test/k8resource/local-cluster-secret.yaml
 	kubectl apply -f ${K8RESOURCE}/local-vmc.yaml
 
 	echo 'Load docker image for the verrazzano-operator...'
