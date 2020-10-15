@@ -41,8 +41,8 @@ WKO_PATH = github.com/verrazzano/verrazzano-wko-operator
 HELIDON_PATH = github.com/verrazzano/verrazzano-helidon-app-operator
 COH_PATH = github.com/verrazzano/verrazzano-coh-cluster-operator
 CRDGEN_PATH = github.com/verrazzano/verrazzano-crd-generator
-VMI_PATH = github.com/verrazzano/verrazzano-monitoring-operator
-VMI_CRD_PATH = k8s/crds
+VMO_PATH = github.com/verrazzano/verrazzano-monitoring-operator
+VMO_CRD_PATH = k8s/crds
 CRD_PATH = deploy/crds
 HELM_CHART_NAME:=verrazzano
 HELM_CHART_ARCHIVE_NAME = ${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz
@@ -118,9 +118,9 @@ go-mod:
 	mkdir -p vendor/${CRDGEN_PATH}/${CRD_PATH}
 	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-crd-generator`/${CRD_PATH}/*.yaml vendor/${CRDGEN_PATH}/${CRD_PATH}
 
-	# Obtain verrazzano-monitoring-instance version
-	mkdir -p vendor/${VMI_PATH}/${VMI_CRD_PATH}
-	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-monitoring-operator`/${VMI_CRD_PATH}/*.yaml vendor/${VMI_PATH}/${VMI_CRD_PATH}
+	# Obtain verrazzano-monitoring-operator version
+	mkdir -p vendor/${VMO_PATH}/${VMO_CRD_PATH}
+	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-monitoring-operator`/${VMO_CRD_PATH}/*.yaml vendor/${VMO_PATH}/${VMO_CRD_PATH}
 
 	# List copied CRD YAMLs
 	ls vendor/${CRDGEN_PATH}/${CRD_PATH}
@@ -159,7 +159,7 @@ coverage: unit-test
 	./build/scripts/coverage.sh html
 
 #
-# Tests-related tasks
+# Test-related tasks
 #
 CLUSTER_NAME = verrazzano-operator
 CERTS = build/verrazzano-operator-cert
@@ -177,23 +177,24 @@ integ-test: create-cluster
 	kubectl create -f vendor/${COH_PATH}/${CRD_PATH}/verrazzano.io_cohclusters_crd.yaml
 	kubectl create -f vendor/${HELIDON_PATH}/${CRD_PATH}/verrazzano.io_helidonapps_crd.yaml
 	kubectl create -f vendor/${WKO_PATH}/${CRD_PATH}/verrazzano.io_wlsoperators_crd.yaml
-	kubectl create -f vendor/${VMI_PATH}/${VMI_CRD_PATH}/verrazzano-monitoring-operator-crds.yaml
+	kubectl create -f vendor/${VMO_PATH}/${VMO_CRD_PATH}/verrazzano-monitoring-operator-crds.yaml
 
 	echo 'Deploy local cluster and required secret ...'
 	# Create the local cluster secret with empty kubeconfig data.  This will force the verrazzano-operator
 	# to use the in-cluster kubeconfig to access the managed cluster.
-	kubectl apply -f ./test/k8resource/local-cluster-secret.yaml
+	kubectl create secret generic verrazzano-managed-cluster-local --from-literal=kubeconfig=""
+	kubectl label secret verrazzano-managed-cluster-local k8s-app=verrazzano.oracle.com verrazzano.cluster=local
 	kubectl apply -f ${K8RESOURCE}/local-vmc.yaml
 
 	echo 'Load docker image for the verrazzano-operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
-	echo 'Load docker image for the linux slim used for fake micro operators ...'
+	echo 'Load docker image needed to install istio CRDs ...'
 	docker pull container-registry.oracle.com/olcne/istio_kubectl:1.4.6
 	docker image tag container-registry.oracle.com/olcne/istio_kubectl:1.4.6 container-registry.oracle.com/olcne/kubectl:1.4.6
 	kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/olcne/kubectl:1.4.6
 
-	echo 'Load docker image needed to install istio CRDs ...'
+	echo 'Load docker image for the linux slim used for fake micro operators ...'
 	docker pull container-registry.oracle.com/os/oraclelinux:7-slim
 	kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/os/oraclelinux:7-slim
 

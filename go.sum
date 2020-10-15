@@ -500,6 +500,8 @@ github.com/json-iterator/go v1.1.9/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/u
 github.com/jsonnet-bundler/jsonnet-bundler v0.3.1/go.mod h1:/by7P/OoohkI3q4CgSFqcoFsVY+IaNbzOVDknEsKDeU=
 github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1:6v2b51hI/fHJwM22ozAgKL4VKDeJcHhJFhtBdhmNjmU=
 github.com/jstemmer/go-junit-report v0.9.1/go.mod h1:Brl9GWCQeLvo8nXZwPNNblvFj/XSXhF0NWZEnDohbsk=
+github.com/jteeuwen/go-bindata v3.0.7+incompatible h1:91Uy4d9SYVr1kyTJ15wJsog+esAZZl7JmEfTkwmhJts=
+github.com/jteeuwen/go-bindata v3.0.7+incompatible/go.mod h1:JVvhzYOiGBnFSYRyV00iY8q7/0PThjIYav1p9h5dmKs=
 github.com/jtolds/gls v4.20.0+incompatible/go.mod h1:QJZ7F/aHp+rZTRtaJ1ow/lLfFfVYBRgL+9YlvaHOwJU=
 github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
 github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=
@@ -803,6 +805,7 @@ github.com/verrazzano/verrazzano-monitoring-operator v0.0.24 h1:np1OG3+h7qUkvYu3
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.24/go.mod h1:rzkO22zlewUe9o2haP+YFGVMclwCD9gzHSHeEI5ZMxQ=
 github.com/verrazzano/verrazzano-wko-operator v0.0.12 h1:GpDB2ieOdzdIGfyFnpB7JL5tteJ5RTIsRH9bom/Aclg=
 github.com/verrazzano/verrazzano-wko-operator v0.0.12/go.mod h1:21Tk36WlM0a1SF4jDbvY00KbpnvDvX5saFj6ZnofVSY=
+github.com/verrazzano/verrazzano-wko-operator v0.0.13 h1:NZ/UqLwKdFylMxvkkA7Yvala/rBdPZdoXIl9FdOGNys=
 github.com/verrazzano/verrazzano-wko-operator v0.0.13/go.mod h1:21Tk36WlM0a1SF4jDbvY00KbpnvDvX5saFj6ZnofVSY=
 github.com/xanzy/go-gitlab v0.15.0/go.mod h1:8zdQa/ri1dfn8eS3Ir1SyfvOKlw7WBJ8DVThkpGiXrs=
 github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c/go.mod h1:lB8K/P019DLNhemzwFU4jHLhdvlE6uDZjXFejJXr49I=

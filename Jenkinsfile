@@ -227,7 +227,6 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano-operator
                     make integ-test
-                    cp coverage.html ${WORKSPACE}
                     build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
             }
