@@ -78,6 +78,12 @@ rules:
     verbs:
       - '*'
   - apiGroups:
+      - policy
+    resources:
+      - podsecuritypolicies
+    verbs:
+      - '*'
+  - apiGroups:
       - apps
     resources:
       - deployments/finalizers
@@ -88,6 +94,7 @@ rules:
   - apiGroups:
       - extensions
     resources:
+      - "*"
       - podsecuritypolicies
     resourceNames:
       - system-node-exporter
@@ -96,6 +103,7 @@ rules:
   - apiGroups:
       - extensions
     resources:
+      - "*"
       - daemonsets
       - replicasets
       - statefulsets
@@ -132,12 +140,25 @@ rules:
       - update
       - create
       - delete
+      - patch
+  - apiGroups:
+      - security.istio.io
+    resources:
+      - authorizationpolicies
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
   - apiGroups:
       - networking.istio.io
     resources:
       - gateways
       - virtualservices
       - serviceentries
+      - destinationrules
     verbs:
       - get
       - list
@@ -264,41 +285,41 @@ spec:
               memory: 72Mi
           env:
             - name: COH_MICRO_IMAGE
-              value: not-used
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: HELIDON_MICRO_IMAGE
-              value: not-used
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: WLS_MICRO_IMAGE
-              value: not-used
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: PROMETHEUS_PUSHER_IMAGE
-              value: not-used
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: NODE_EXPORTER_IMAGE
-              value: not-used
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: FILEBEAT_IMAGE
-              value: not-used
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: JOURNALBEAT_IMAGE
-              value: not-used
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: WEBLOGIC_OPERATOR_IMAGE
-              value: not-used
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: FLUENTD_IMAGE
-              value: not-used
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: COH_MICRO_REQUEST_MEMORY
-              value: 1Mi
+              value: 100Mi
             - name: HELIDON_MICRO_REQUEST_MEMORY
-              value: 1Mi
+              value: 100Mi
             - name: WLS_MICRO_REQUEST_MEMORY
-              value: 1Mi
+              value: 100Mi
             - name: ES_MASTER_NODE_REQUEST_MEMORY
-              value: 1Mi
+              value: 100Mi
             - name: ES_INGEST_NODE_REQUEST_MEMORY
-              value: 1Mi
+              value: 100Mi
             - name: ES_DATA_NODE_REQUEST_MEMORY
-              value: 1Mi
+              value: 100Mi
             - name: GRAFANA_REQUEST_MEMORY
-              value: 1Mi
+              value: 100Mi
             - name: PROMETHEUS_REQUEST_MEMORY
-              value: 1Mi
+              value: 100Mi
             - name: KIBANA_REQUEST_MEMORY
-              value: 1Mi
+              value: 100Mi
             - name: ES_MASTER_NODE_REPLICAS
               value: "2"
       serviceAccount: verrazzano-operator
