@@ -148,7 +148,7 @@ push: build
 	fi
 
 #
-# Tests-related tasks
+# Test-related tasks
 #
 .PHONY: unit-test
 unit-test: go-install
@@ -181,29 +181,28 @@ integ-test: build create-cluster
 
 	echo 'Deploy local cluster and required secret ...'
 	# Create the local cluster secret with empty kubeconfig data.  This will force the verrazzano-operator
-	# to use the in-cluster kubeconfig.
+	# to use the in-cluster kubeconfig to access the managed cluster.
 	kubectl apply -f ./test/k8resource/local-cluster-secret.yaml
 	kubectl apply -f ${K8RESOURCE}/local-vmc.yaml
 
 	echo 'Load docker image for the verrazzano-operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
-	echo 'Load docker image needed to install istio CRDs ...'
-	docker pull container-registry.oracle.com/os/oraclelinux:7-slim
-	kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/os/oraclelinux:7-slim
-
-	echo 'Load docker image for the linux slim ...'
+	echo 'Load docker image for the linux slim used for fake micro operators ...'
 	docker pull container-registry.oracle.com/olcne/istio_kubectl:1.4.6
 	docker image tag container-registry.oracle.com/olcne/istio_kubectl:1.4.6 container-registry.oracle.com/olcne/kubectl:1.4.6
 	kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/olcne/kubectl:1.4.6
 
+	echo 'Load docker image needed to install istio CRDs ...'
+	docker pull container-registry.oracle.com/os/oraclelinux:7-slim
+	kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/os/oraclelinux:7-slim
+
 	echo 'Install the istio CRDs ...'
-    # todo see if we need to build the istio CRDs
 	kubectl create ns istio-system
 	kubectl apply -f ./test/k8resource/istio-crds.yaml
 	kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s
 
-	echo 'Deploy verrazzano operator and required secret ...'
+	echo 'Create verrazzano operator required secrets ...'
 	kubectl create namespace ${VERRAZZANO_NS}
 	./test/certs/create-cert.sh
 	kubectl create secret generic verrazzano -n ${VERRAZZANO_NS} \
@@ -217,8 +216,8 @@ integ-test: build create-cluster
 			--from-file=cert.pem=${CERTS}/verrazzano-crt.pem \
 			--from-file=key.pem=${CERTS}/verrazzano-key.pem
 
+	echo 'Deploy verrazzano operator  ...'
 	./test/create-deployment.sh ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG}
-
 	kubectl apply -f ${DEPLOY}/deployment.yaml
 
 	echo 'Run tests...'
