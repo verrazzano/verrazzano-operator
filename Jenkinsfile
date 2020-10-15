@@ -163,26 +163,6 @@ pipeline {
             }
         }
 
-        stage('Scan Image') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    equals expected: false, actual: skipBuild
-                }
-            }
-            steps {
-                script {
-                    HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${HEAD_COMMIT}"
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
-                }
-            }
-        }
-
         stage('Unit Tests') {
             when {
                 allOf {
@@ -217,6 +197,26 @@ pipeline {
                       packageCoverageTargets: '80, 0, 0',
                     )
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('Scan Image') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
+            steps {
+                script {
+                    HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${HEAD_COMMIT}"
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
                 }
             }
         }
