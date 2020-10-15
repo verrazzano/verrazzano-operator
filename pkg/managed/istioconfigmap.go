@@ -6,6 +6,7 @@ package managed
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/Jeffail/gabs/v2"
@@ -36,7 +37,7 @@ type ScrapeConfigInfo struct {
 // UpdateIstioPrometheusConfigMaps updates the istio prometheus scrape configs to include all the node exporter
 // endpoints in monitoring namespace.
 func UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-
+	log.Printf("CDD IN UpdateIstioPrometheusConfigMaps mbPair = %+v ", mbPair)
 	if mbPair.Binding.Name == constants.VmiSystemBindingName {
 		UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair, availableManagedClusterConnections)
 	} else {
@@ -49,7 +50,7 @@ func UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretListe
 // exporter endpoints in monitoring namespace.
 func UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Add/Update node export scrape target in Istio Prometheus configmaps for all clusters.")
-
+	log.Println("CDD BEGIN  UpdateIstioPrometheusConfigMapsForNodeExporter")
 	// Construct prometheus.yml configMaps for each managed cluster
 	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
 	if err != nil {
@@ -105,7 +106,7 @@ func UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair *types.ModelBindingPa
 //
 func UpdateIstioPrometheusConfigMapsForBinding(mbPair *types.ModelBindingPair, secretLister corev1listers.SecretLister, clusterConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Create/Update Istio Prometheus configmap [binding]%s [model]%s", mbPair.Binding.Name, mbPair.Model.Name)
-
+	log.Println("CDD BEGIN  UpdateIstioPrometheusConfigMapsForBinding")
 	// Parse out the managed clusters that this binding applies to
 	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, clusterConnections)
 	if err != nil {
