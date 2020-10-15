@@ -10,6 +10,13 @@ spec:
   ingressBindings:
     - dnsName: '*'
       name: test-ingress
+  databaseBindings:
+    - credentials: testMysqlSecret
+      name: mysql
+      url: jdbc:mysql://mysql.default.svc.cluster.local:3306/socks
+    - credentials: testOracleSecret
+      name: oracle
+      url: jdbc:oracle:thin:@cluster2:1521:socks2
   modelName: testModel
   placement:
     - name: local

@@ -23,6 +23,13 @@ Namespaces:
   - test3
   - istio-system
   - verrazzano-system
+Secrets:
+  test:
+    - testSecret1
+    - testSecret2
+  test2:
+    - test2Secret1
+    - test2Secret2
 RemoteRests:
   test:
     - LocalNamespace: test
@@ -70,6 +77,16 @@ WlsOperator:
     namespace: test
     serviceAccount: test
   status: {}
+WlsDomainCRs:
+  - metadata:
+      creationTimestamp: null
+      name: test-weblogic
+      namespace: test
+    spec:
+      configuration:
+        Model:
+          runtimeEncryptionSecret: test-wls-secret
+    status: {}
 GenericComponents:
   - name: test-generic
     deployment:
