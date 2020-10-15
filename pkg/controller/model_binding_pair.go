@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/verrazzano/verrazzano-operator/pkg/fluentd"
+
 	"github.com/golang/glog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v8weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
@@ -277,7 +279,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 
 						// Include Fluentd if Fluentd integration is enabled
 						if helidonapp.IsFluentdEnabled(&app) {
-							configMap := helidonapp.CreateFluentdConfigMap(&app, namespace.Name, helidonLabels)
+							configMap := fluentd.CreateFluentdConfigMap(fluentd.HelidonFluentdConfiguration, app.Name, namespace.Name, helidonLabels)
 							mc.ConfigMaps = append(mc.ConfigMaps, configMap)
 							// Add secret for binding to the namespace, it contains the credentials Fluentd needs for ElasticSearch
 							addSecret(mc, constants.VmiSecretName, namespace.Name)
@@ -318,7 +320,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 
 					// Include Fluentd, if Fluentd integration is enabled for this generic component
 					if genericcomp.IsFluentdEnabled(&generic) {
-						configMap := genericcomp.CreateFluentdConfigMap(generic.Name, namespace, genericLabels)
+						configMap := fluentd.CreateFluentdConfigMap(fluentd.GenericComponentFluentdConfiguration, generic.Name, namespace, genericLabels)
 						mc.ConfigMaps = append(mc.ConfigMaps, configMap)
 						// Add secret for binding to the namespace, it contains the credentials Fluentd needs for ElasticSearch
 						addSecret(mc, constants.VmiSecretName, namespace)

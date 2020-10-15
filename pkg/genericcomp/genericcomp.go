@@ -5,6 +5,7 @@ package genericcomp
 
 import (
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/fluentd"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -49,14 +50,14 @@ func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, bindingName st
 	// Include Fluentd needed resource if Fluentd integration is enabled
 	if IsFluentdEnabled(&generic) {
 		// Add Fluentd container
-		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, createFluentdContainer(bindingName, generic.Name))
+		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, fluentd.CreateFluentdContainer(bindingName, generic.Name))
 
 		// Add Fluentd volumes
-		volumes := createFluentdVolHostPaths()
+		volumes := fluentd.CreateFluentdHostPathVolumes()
 		for _, volume := range *volumes {
 			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
 		}
-		deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, createFluentdVolConfigMap(generic.Name))
+		deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, fluentd.CreateFluentdConfigMapVolume(generic.Name))
 	}
 
 	return &deploy
