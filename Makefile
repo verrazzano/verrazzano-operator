@@ -225,19 +225,12 @@ integ-test: build create-cluster
 
 .PHONY: create-cluster
 create-cluster:
-ifdef JENKINS_URL
-	./build/scripts/cleanup.sh ${CLUSTER_NAME}
-endif
 	echo 'Create cluster...'
 	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster \
 		--name ${CLUSTER_NAME} \
 		--wait 5m \
 		--config=test/kind-config.yaml
 	kubectl config set-context kind-${CLUSTER_NAME}
-ifdef JENKINS_URL
-	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.IPAddress' | sed 's/"//g'`:6443|g" ${HOME}/.kube/config
-	cat ${HOME}/.kube/config | grep server
-endif
 
 .PHONY: delete-cluster
 delete-cluster:
