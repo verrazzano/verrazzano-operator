@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def HEAD_COMMIT
-def skipBuild = false 
+def skipBuild = false
 
 pipeline {
     options {
@@ -62,7 +62,7 @@ pipeline {
                 sh "rm -rf $GOPATH/pkg/mod/github.com/verrazzano/verrazzano-coh-cluster-operator"
                 script {
                     checkout scm
-                    result = sh (script: "git log -1 | grep '.*\\[automatic helm release\\].*'", returnStatus: true) 
+                    result = sh (script: "git log -1 | grep '.*\\[automatic helm release\\].*'", returnStatus: true)
                     if (result == 0) {
                         echo ("'automatic helm release' spotted in git commit. No further stages will be executed.")
                         skipBuild = true
@@ -163,6 +163,26 @@ pipeline {
             }
         }
 
+        stage('Scan Image') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
+            steps {
+                script {
+                    HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${HEAD_COMMIT}"
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
+                }
+            }
+        }
+
         stage('Unit Tests') {
             when {
                 allOf {
@@ -177,7 +197,7 @@ pipeline {
                     make -B coverage
                     cp coverage.html ${WORKSPACE}
                     cp coverage.xml ${WORKSPACE}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE} 
+                    build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
             }
             post {
@@ -201,22 +221,20 @@ pipeline {
             }
         }
 
-        stage('Scan Image') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    equals expected: false, actual: skipBuild
-                }
-            }
+        stage('Integration Tests') {
+            when { not { buildingTag() } }
             steps {
-                script {
-                    HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${HEAD_COMMIT}"
-                }
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano-operator
+                    make integ-test
+                    cp coverage.html ${WORKSPACE}
+                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                """
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
         }
