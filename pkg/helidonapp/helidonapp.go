@@ -137,7 +137,7 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 
 		// Add fluentd volumes
 		volumes := fluentd.CreateFluentdHostPathVolumes()
-		for _, volume := range *volumes {
+		for _, volume := range volumes {
 			helidonApp.Spec.Volumes = append(helidonApp.Spec.Volumes, volume)
 		}
 		helidonApp.Spec.Volumes = append(helidonApp.Spec.Volumes, fluentd.CreateFluentdConfigMapVolume(app.Name))

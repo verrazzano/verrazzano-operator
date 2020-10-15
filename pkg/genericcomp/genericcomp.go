@@ -54,7 +54,7 @@ func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, bindingName st
 
 		// Add Fluentd volumes
 		volumes := fluentd.CreateFluentdHostPathVolumes()
-		for _, volume := range *volumes {
+		for _, volume := range volumes {
 			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
 		}
 		deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, fluentd.CreateFluentdConfigMapVolume(generic.Name))

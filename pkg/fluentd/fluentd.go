@@ -117,7 +117,7 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
 func CreateFluentdConfigMap(fluentdConfig string, componentName string, namespace string, labels map[string]string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      GetFluentdConfigMapName(componentName),
+			Name:      getFluentdConfigMapName(componentName),
 			Namespace: namespace,
 			Labels:    labels,
 		},
@@ -211,8 +211,8 @@ func CreateFluentdContainer(bindingName string, componentName string) corev1.Con
 }
 
 // CreateFluentdHostPathVolumes creates hostPath volumes to access container logs.
-func CreateFluentdHostPathVolumes() *[]corev1.Volume {
-	return &[]corev1.Volume{
+func CreateFluentdHostPathVolumes() []corev1.Volume {
+	return []corev1.Volume{
 		{
 			Name: "varlog",
 			VolumeSource: corev1.VolumeSource{
@@ -239,7 +239,7 @@ func CreateFluentdConfigMapVolume(componentName string) corev1.Volume {
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: GetFluentdConfigMapName(componentName),
+					Name: getFluentdConfigMapName(componentName),
 				},
 				DefaultMode: func(mode int32) *int32 {
 					return &mode
@@ -249,7 +249,7 @@ func CreateFluentdConfigMapVolume(componentName string) corev1.Volume {
 	}
 }
 
-// GetFluentdConfigMapName returns the Fluentd config map name.
-func GetFluentdConfigMapName(componentName string) string {
+// getFluentdConfigMapName returns the name of a components Fluentd config map
+func getFluentdConfigMapName(componentName string) string {
 	return fmt.Sprintf("%s-fluentd", componentName)
 }
