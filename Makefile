@@ -205,17 +205,8 @@ integ-test: create-cluster
 
 	echo 'Create verrazzano operator required secrets ...'
 	kubectl create namespace ${VERRAZZANO_NS}
-	./test/certs/create-cert.sh
 	kubectl create secret generic verrazzano -n ${VERRAZZANO_NS} \
 		--from-literal=password=admin --from-literal=username=admin
-
-	kubectl create secret generic default-secret  -n ${VERRAZZANO_NS} \
-			--from-file=cert.pem=${CERTS}/verrazzano-crt.pem \
-			--from-file=key.pem=${CERTS}/verrazzano-key.pem
-
-	kubectl create secret generic system-tls  -n ${VERRAZZANO_NS} \
-			--from-file=cert.pem=${CERTS}/verrazzano-crt.pem \
-			--from-file=key.pem=${CERTS}/verrazzano-key.pem
 
 	echo 'Deploy verrazzano operator  ...'
 	./test/create-deployment.sh ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG}
