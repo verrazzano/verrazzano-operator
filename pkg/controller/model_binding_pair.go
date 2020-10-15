@@ -8,8 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/fluentd"
-
 	"github.com/golang/glog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v8weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
@@ -17,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/cohcluster"
 	"github.com/verrazzano/verrazzano-operator/pkg/cohoperator"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano-operator/pkg/fluentd"
 	"github.com/verrazzano/verrazzano-operator/pkg/genericcomp"
 	"github.com/verrazzano/verrazzano-operator/pkg/helidonapp"
 	"github.com/verrazzano/verrazzano-operator/pkg/managed"
