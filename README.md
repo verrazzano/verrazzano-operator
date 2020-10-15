@@ -64,6 +64,8 @@ The steps to include changes made to dependencies are:
     ```
     go get github.com/verrazzano/verrazzano-monitoring-operator@9756ffdc2472
     ```
+* Ensure all `go.mod` lines referencing `github.com/verrazzano` packages use [canonical pseudo versions](https://golang.org/ref/mod#glos-pseudo-version) beginning with `v0.0.0`.
+  If required manually change the version to `v0.0.0` and retain the timestamp and commit hash.
 * Run the make target: 
     ```
     make go-install

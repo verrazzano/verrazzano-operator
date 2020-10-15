@@ -8,11 +8,11 @@ require (
 	github.com/kylelemons/godebug v1.1.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
-	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.10
-	github.com/verrazzano/verrazzano-crd-generator v0.3.34
-	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.9
-	github.com/verrazzano/verrazzano-monitoring-operator v0.0.26-0.20201008210424-c475e6d327a2
-	github.com/verrazzano/verrazzano-wko-operator v0.0.13
+	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.0-20200921120302-d4040fa2f3c4
+	github.com/verrazzano/verrazzano-crd-generator v0.0.0-20201006151822-9842cefdda24
+	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.0-20200921121606-448c29f0ce58
+	github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20200925113618-cc189235ad3d
+	github.com/verrazzano/verrazzano-wko-operator v0.0.0-20201005195304-9238fa0e1f4a
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
