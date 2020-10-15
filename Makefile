@@ -168,7 +168,7 @@ DEPLOY = build/deploy
 K8RESOURCE = test/k8resource
 
 .PHONY: integ-test
-integ-test: build create-cluster
+integ-test: create-cluster
 
 	echo 'Create CRDs needed by the verrazzano-operator...'
 	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml
@@ -225,12 +225,23 @@ integ-test: build create-cluster
 
 .PHONY: create-cluster
 create-cluster:
+ifdef JENKINS_URL
+	./build/scripts/cleanup.sh ${CLUSTER_NAME}
+endif
 	echo 'Create cluster...'
 	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster \
 		--name ${CLUSTER_NAME} \
 		--wait 5m \
 		--config=test/kind-config.yaml
 	kubectl config set-context kind-${CLUSTER_NAME}
+ifdef JENKINS_URL
+	# disabled this - not needed since we are not running from inside docker any more
+	# cat ${HOME}/.kube/config | grep server
+	# this ugly looking line of code will get the ip address of the container running the kube apiserver
+	# and update the kubeconfig file to point to that address, instead of localhost
+	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.IPAddress' | sed 's/"//g'`:6443|g" ${HOME}/.kube/config
+	cat ${HOME}/.kube/config | grep server
+endif
 
 .PHONY: delete-cluster
 delete-cluster:
