@@ -109,11 +109,11 @@ const (
 	// Generic Component binding related
 	//
 
-	// Name name for Generic Component
+	// GenericName for Generic Component
 	GenericName = "generic"
-	// GenericKeepSourceLabels keep source labels for Helidon
+	// GenericKeepSourceLabels keep source labels for Generic Components
 	GenericKeepSourceLabels = "__meta_kubernetes_pod_annotation_prometheus_io_scrape,__meta_kubernetes_pod_label_app"
-	// GenericKeepSourceLabelsRegex keep source labels regex for Helidon
+	// GenericKeepSourceLabelsRegex keep source labels regex for Generic Components
 	GenericKeepSourceLabelsRegex = "true;##COMPONENT_BINDING_NAME##"
 )
 

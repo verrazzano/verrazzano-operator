@@ -6,7 +6,6 @@ package managed
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/Jeffail/gabs/v2"
@@ -37,7 +36,7 @@ type ScrapeConfigInfo struct {
 // UpdateIstioPrometheusConfigMaps updates the istio prometheus scrape configs to include all the node exporter
 // endpoints in monitoring namespace.
 func UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	log.Printf("CDD IN UpdateIstioPrometheusConfigMaps mbPair = %+v ", mbPair)
+
 	if mbPair.Binding.Name == constants.VmiSystemBindingName {
 		UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair, availableManagedClusterConnections)
 	} else {
@@ -50,7 +49,7 @@ func UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretListe
 // exporter endpoints in monitoring namespace.
 func UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Add/Update node export scrape target in Istio Prometheus configmaps for all clusters.")
-	log.Println("CDD BEGIN  UpdateIstioPrometheusConfigMapsForNodeExporter")
+
 	// Construct prometheus.yml configMaps for each managed cluster
 	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
 	if err != nil {
@@ -106,26 +105,24 @@ func UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair *types.ModelBindingPa
 //
 func UpdateIstioPrometheusConfigMapsForBinding(mbPair *types.ModelBindingPair, secretLister corev1listers.SecretLister, clusterConnections map[string]*util.ManagedClusterConnection) error {
 	glog.V(6).Infof("Create/Update Istio Prometheus configmap [binding]%s [model]%s", mbPair.Binding.Name, mbPair.Model.Name)
-	log.Println("CDD BEGIN  UpdateIstioPrometheusConfigMapsForBinding")
+
 	// Parse out the managed clusters that this binding applies to
 	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, clusterConnections)
-	log.Println("CDD Get Filtered Connections")
 	if err != nil {
 		return err
 	}
 
 	// Construct prometheus.yml configMaps for each managed cluster
-	log.Println("CDD Construct prometheus.yml configMaps for each managed cluster")
 	for clusterName := range mbPair.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
-		log.Println("CDD Get Config Map Lister")
+
 		istioPrometheusCM, err := managedClusterConnection.ConfigMapLister.ConfigMaps(IstioNamespace).Get(IstioPrometheusCMName)
 		if err != nil {
 			return err
 		}
-		log.Println("CDD Scrape ConfigInfo List")
+
 		// Retrieve all component bindings info from a specific managed cluster
 		scrapeConfigInfoList, err := getComponentScrapeConfigInfoList(mbPair, secretLister, clusterName)
 		if err != nil {
@@ -133,12 +130,10 @@ func UpdateIstioPrometheusConfigMapsForBinding(mbPair *types.ModelBindingPair, s
 		}
 
 		// Create/Update istio prometheus config map
-		log.Printf("CDD Update Istio Prometheus Config Map with ScrapeConfig Info: %+v", scrapeConfigInfoList)
 		if err := updateIstioPrometheusConfigMap(clusterName, managedClusterConnection, scrapeConfigInfoList, istioPrometheusCM.Data); err != nil {
 			return err
 		}
 	}
-	log.Println("CDD Update Istio Prometheus Config Map SUCCESSFUL Return")
 	return nil
 }
 
@@ -377,16 +372,13 @@ func getComponentScrapeConfigInfoList(mbPair *types.ModelBindingPair, secretList
 	}
 
 	// Get all generic bindings info
-	log.Println("CDD Get Generic Scrape Info")
 	for _, component := range mbPair.Model.Spec.GenericComponents {
 		// Get the common binding info
-		log.Println("CDD Get Generic Common Binding Info")
 		componnentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, component.Name, clusterName, GenericName, GenericKeepSourceLabels,
 			strings.Replace(GenericKeepSourceLabelsRegex, ComponentBindingNameHolder, component.Name, -1))
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("CDD Generic ComponentBinding Info = %+v", componnentBindingInfo)
 		if componnentBindingInfo.BindingName != "" {
 			scrapeConfigInfoList = append(scrapeConfigInfoList, componnentBindingInfo)
 		}

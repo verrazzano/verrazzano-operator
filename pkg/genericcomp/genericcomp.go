@@ -15,7 +15,6 @@ import (
 )
 
 // GenericComponentSelectorLabel defines the selector label for generic component resources.
-//const GenericComponentSelectorLabel = "verrazzano.name"
 const GenericComponentSelectorLabel = "app"
 
 // NewDeployment constructs a deployment for a generic component.

@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
@@ -438,7 +437,6 @@ func (c *Controller) updateIstioPolicies(mbPair *types.ModelBindingPair, pod *co
 
 // Create managed resources on clusters depending upon the binding
 func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.ModelBindingPair) {
-	log.Println("CDD In createManagedClusterResourcesForBinding")
 	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
@@ -491,7 +489,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	if err != nil {
 		glog.Errorf("Failed to create service entries for binding %s: %v", mbPair.Binding.Name, err)
 	}
-	log.Println("CDD Calling CreateDeployments")
+
 	// Create Deployments
 	err = managed.CreateDeployments(mbPair, filteredConnections, c.Manifest, c.verrazzanoURI, c.secrets)
 	if err != nil {
@@ -511,7 +509,6 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Update Istio Prometheus ConfigMaps for a given ModelBindingPair on all managed clusters
-	log.Println("CDD Calling UpdateIstioPrometheusConfigMaps")
 	err = managed.UpdateIstioPrometheusConfigMaps(mbPair, c.secretLister, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to update Istio Config Map for binding %s: %v", mbPair.Binding.Name, err)
