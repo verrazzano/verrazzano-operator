@@ -29,6 +29,7 @@ const (
 	testComponentBindingName      = "my-app1"
 	testKeepSourceLabels          = "__meta_kubernetes_pod_label_app"
 	testKeepSourceLabelsRegex     = "my-component-label"
+	testGenericComponentName      = "my-generic-component"
 	testHelidonBindingName        = "my-helidon-binding"
 	testCoherenceBindingName      = "my-coherence-binding"
 	testWebLogicBindingName       = "my-weblogic-binding"
@@ -102,6 +103,18 @@ func TestGetPrometheusScrapeConfig(t *testing.T) {
 	assert.Equal(t, testNamespace, namespace, "Wrong namespace.")
 	role := scrapeConfig.S("kubernetes_sd_configs").Data().([]interface{})[0].(map[string]interface{})["role"].(string)
 	assert.Equal(t, "pod", role, "Wrong role.")
+}
+
+func TestGetGenericComponentScrapeConfigInfoList(t *testing.T) {
+	pair := getTestModelBindingPair()
+	addTestGenericComponentToModel(pair)
+	addTestGenericComponentPlacement(pair)
+	scrapeConfigInfoList, err := getComponentScrapeConfigInfoList(pair, createFakeSecretLister(), testClusterName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, 1, len(scrapeConfigInfoList), "Wrong list count for ScrapeConfigInfoList.")
+	assert.Equal(t, testBindingname+"_"+testClusterName+"_"+testNamespace+"_"+GenericName+"_"+testGenericComponentName, scrapeConfigInfoList[0].PrometheusScrapeTargetJobName, "Wrong helidon jobname.")
 }
 
 func TestGetHelidonScrapeConfigInfoList(t *testing.T) {
@@ -288,6 +301,23 @@ func addTestHelidonPlacement(mbPair *types.ModelBindingPair) {
 	mbPair.Binding.Spec.Placement = append(mbPair.Binding.Spec.Placement, helidonPlacement)
 }
 
+func addTestGenericComponentPlacement(mbPair *types.ModelBindingPair) {
+	genericComponentPlacement := v1beta1v8o.VerrazzanoPlacement{
+		Name: testClusterName,
+		Namespaces: []v1beta1v8o.KubernetesNamespace{
+			{
+				Name: testNamespace,
+				Components: []v1beta1v8o.BindingComponent{
+					{
+						Name: testGenericComponentName,
+					},
+				},
+			},
+		},
+	}
+	mbPair.Binding.Spec.Placement = append(mbPair.Binding.Spec.Placement, genericComponentPlacement)
+}
+
 func addTestCoherencePlacement(mbPair *types.ModelBindingPair) {
 	coherencePlacement := v1beta1v8o.VerrazzanoPlacement{
 		Name: testClusterName,
@@ -334,6 +364,13 @@ func addTestHelidonAppToModel(mbPair *types.ModelBindingPair) {
 		Name: testHelidonBindingName,
 	}
 	mbPair.Model.Spec.HelidonApplications = append(mbPair.Model.Spec.HelidonApplications, *helidonApp)
+}
+
+func addTestGenericComponentToModel(mbPair *types.ModelBindingPair) {
+	genericApp := &v1beta1v8o.VerrazzanoGenericComponent{
+		Name: testGenericComponentName,
+	}
+	mbPair.Model.Spec.GenericComponents = append(mbPair.Model.Spec.GenericComponents, *genericApp)
 }
 
 func addTestCoherenceClusterToModel(mbPair *types.ModelBindingPair) {
