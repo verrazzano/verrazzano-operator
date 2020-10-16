@@ -133,7 +133,7 @@ func UpdateIstioPrometheusConfigMapsForBinding(mbPair *types.ModelBindingPair, s
 		}
 
 		// Create/Update istio prometheus config map
-		log.Println("CDD Update Istio Prometheus Config Map")
+		log.Printf("CDD Update Istio Prometheus Config Map with ScrapeConfig Info: %+v", scrapeConfigInfoList)
 		if err := updateIstioPrometheusConfigMap(clusterName, managedClusterConnection, scrapeConfigInfoList, istioPrometheusCM.Data); err != nil {
 			return err
 		}
@@ -371,6 +371,22 @@ func getComponentScrapeConfigInfoList(mbPair *types.ModelBindingPair, secretList
 			return nil, err
 		}
 
+		if componnentBindingInfo.BindingName != "" {
+			scrapeConfigInfoList = append(scrapeConfigInfoList, componnentBindingInfo)
+		}
+	}
+
+	// Get all generic bindings info
+	log.Println("CDD Get Generic Scrape Info")
+	for _, component := range mbPair.Model.Spec.GenericComponents {
+		// Get the common binding info
+		log.Println("CDD Get Generic Common Binding Info")
+		componnentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, component.Name, clusterName, GenericName, GenericKeepSourceLabels,
+			strings.Replace(GenericKeepSourceLabelsRegex, ComponentBindingNameHolder, component.Name, -1))
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("CDD Generic ComponentBinding Info = %+v", componnentBindingInfo)
 		if componnentBindingInfo.BindingName != "" {
 			scrapeConfigInfoList = append(scrapeConfigInfoList, componnentBindingInfo)
 		}

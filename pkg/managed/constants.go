@@ -104,6 +104,17 @@ const (
 	HelidonKeepSourceLabels = "__meta_kubernetes_pod_annotation_prometheus_io_scrape,__meta_kubernetes_pod_label_app"
 	// HelidonKeepSourceLabelsRegex keep source labels regex for Helidon
 	HelidonKeepSourceLabelsRegex = "true;##COMPONENT_BINDING_NAME##"
+
+	//
+	// Generic Component binding related
+	//
+
+	// Name name for Generic Component
+	GenericName = "generic"
+	// HelidonKeepSourceLabels keep source labels for Helidon
+	GenericKeepSourceLabels = "__meta_kubernetes_pod_annotation_prometheus_io_scrape,__meta_kubernetes_pod_label_app"
+	// HelidonKeepSourceLabelsRegex keep source labels regex for Helidon
+	GenericKeepSourceLabelsRegex = "true;##COMPONENT_BINDING_NAME##"
 )
 
 // PrometheusScrapeConfigTemplate configuration for general prometheus scrape target template.
