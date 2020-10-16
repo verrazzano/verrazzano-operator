@@ -97,6 +97,7 @@ go-mod:
 	mv assets.go pkg/assets/
 
 	$(GO) mod vendor
+	$(GO) mod tidy
 
 	# go mod vendor only copies the .go files.  Also need
 	# to populate the vendor folder with the .yaml files
