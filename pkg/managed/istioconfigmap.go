@@ -109,21 +109,23 @@ func UpdateIstioPrometheusConfigMapsForBinding(mbPair *types.ModelBindingPair, s
 	log.Println("CDD BEGIN  UpdateIstioPrometheusConfigMapsForBinding")
 	// Parse out the managed clusters that this binding applies to
 	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, clusterConnections)
+	log.Println("CDD Get Filtered Connections")
 	if err != nil {
 		return err
 	}
 
 	// Construct prometheus.yml configMaps for each managed cluster
+	log.Println("CDD Construct prometheus.yml configMaps for each managed cluster")
 	for clusterName := range mbPair.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
-
+		log.Println("CDD Get Config Map Lister")
 		istioPrometheusCM, err := managedClusterConnection.ConfigMapLister.ConfigMaps(IstioNamespace).Get(IstioPrometheusCMName)
 		if err != nil {
 			return err
 		}
-
+		log.Println("CDD Scrape ConfigInfo List")
 		// Retrieve all component bindings info from a specific managed cluster
 		scrapeConfigInfoList, err := getComponentScrapeConfigInfoList(mbPair, secretLister, clusterName)
 		if err != nil {
@@ -131,10 +133,12 @@ func UpdateIstioPrometheusConfigMapsForBinding(mbPair *types.ModelBindingPair, s
 		}
 
 		// Create/Update istio prometheus config map
+		log.Println("CDD Update Istio Prometheus Config Map")
 		if err := updateIstioPrometheusConfigMap(clusterName, managedClusterConnection, scrapeConfigInfoList, istioPrometheusCM.Data); err != nil {
 			return err
 		}
 	}
+	log.Println("CDD Update Istio Prometheus Config Map SUCCESSFUL Return")
 	return nil
 }
 
