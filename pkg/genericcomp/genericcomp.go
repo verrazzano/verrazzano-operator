@@ -15,7 +15,7 @@ import (
 )
 
 // GenericComponentSelectorLabel defines the selector label for generic component resources.
-const GenericComponentSelectorLabel = "app"
+const GenericComponentSelectorLabel = "verrazzano.name"
 
 // NewDeployment constructs a deployment for a generic component.
 func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, bindingName string, namespace string, labels map[string]string) *appsv1.Deployment {
