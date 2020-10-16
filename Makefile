@@ -5,8 +5,7 @@ NAME:=verrazzano-operator
 
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
 TAG=$(shell git rev-parse HEAD)
-SHORT_COMMIT_HASH=$(shell git rev-parse --short HEAD)
-DOCKER_IMAGE_TAG = ${TAG}
+DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
 
 CREATE_LATEST_TAG=0
 
@@ -20,8 +19,8 @@ ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),push push-tag))
 	DOCKER_IMAGE_FULLNAME = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}
 endif
 
-HELM_CHART_VERSION = v0.0.0-${TAG}
-OPERATOR_VERSION = ${TAG}
+HELM_CHART_VERSION = v0.0.0-${DOCKER_IMAGE_TAG}
+OPERATOR_VERSION = ${DOCKER_IMAGE_TAG}
 ifdef RELEASE_VERSION
 	HELM_CHART_VERSION = ${RELEASE_VERSION}
 	OPERATOR_VERSION = ${RELEASE_VERSION}
@@ -169,7 +168,7 @@ DEPLOY = build/deploy
 K8RESOURCE = test/k8resource
 
 .PHONY: integ-test
-integ-test: create-cluster
+integ-test: build create-cluster
 
 	echo 'Create CRDs needed by the verrazzano-operator...'
 	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml
@@ -256,7 +255,7 @@ k8s-deploy:
 
 .PHONY: push-tag
 push-tag:
-	PUBLISH_TAG="${TAG_NAME}-${SHORT_COMMIT_HASH}-${BUILD_NUMBER}"; \
+	PUBLISH_TAG="${DOCKER_IMAGE_TAG}"; \
 	echo "Tagging and pushing image ${DOCKER_IMAGE_FULLNAME}:$$PUBLISH_TAG"; \
 	docker pull "${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}"; \
 	docker tag "${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}" "${DOCKER_IMAGE_FULLNAME}:$$PUBLISH_TAG"; \
