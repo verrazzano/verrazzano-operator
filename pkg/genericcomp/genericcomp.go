@@ -12,7 +12,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"log"
 )
 
 // GenericComponentSelectorLabel defines the selector label for generic component resources.
@@ -20,6 +19,8 @@ const GenericComponentSelectorLabel = "verrazzano.name"
 
 // NewDeployment constructs a deployment for a generic component.
 func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, bindingName string, namespace string, labels map[string]string) *appsv1.Deployment {
+	labels["app"] = generic.Name
+
 	_, targetPort := getPorts(&generic)
 
 	annotations := make(map[string]string)
@@ -185,18 +186,17 @@ func IsFluentdEnabled(generic *v1beta1v8o.VerrazzanoGenericComponent) bool {
 // Get the port and targetPort values
 func getPorts(generic *v1beta1v8o.VerrazzanoGenericComponent) (int32, int32) {
 	// Default port value is 8080
-	//	var port int32 = 8080
-	log.Printf("CDD Generic Component = %+v ", generic)
-	//	if generic.Deployment.Containers[0].Ports[0].ContainerPort != 0 {
-	//		port = generic.Deployment.Containers[0].Ports[0].ContainerPort
-	//	}
+	var port int32 = 8080
+
+	if generic.Deployment.Containers[0].Ports[0].HostPort != 0 {
+		port = generic.Deployment.Containers[0].Ports[0].HostPort
+	}
 
 	// Default target port value is value of port
-	//	var targetPort = port
-	//	if generic.Deployment.Containers[0].Ports[0].HostPort != 0 {
-	//		targetPort = generic.Deployment.Containers[0].Ports[0].HostPort
-	//	}
+	var targetPort = port
+	if generic.Deployment.Containers[0].Ports[0].ContainerPort != 0 {
+		targetPort = generic.Deployment.Containers[0].Ports[0].ContainerPort
+	}
 
-	//	return port, targetPort
-	return 8080, 8080
+	return port, targetPort
 }
