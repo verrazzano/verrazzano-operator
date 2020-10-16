@@ -167,7 +167,7 @@ DEPLOY = build/deploy
 K8RESOURCE = test/k8resource
 
 .PHONY: integ-test
-integ-test: create-cluster
+integ-test: build create-cluster
 
 	echo 'Create CRDs needed by the verrazzano-operator...'
 	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml

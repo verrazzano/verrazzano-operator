@@ -244,16 +244,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Publish Image') {
-            when { buildingTag() }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano-operator
-                    make push-tag DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PUBLISH_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                """
-            }
-        }
     }
 
     post {
