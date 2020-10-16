@@ -1,0 +1,118 @@
+# Copyright (C) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: verrazzano-operator
+  namespace: verrazzano-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-operator
+rules:
+  - apiGroups:
+      - '*'
+    resources:
+      - '*'
+    verbs:
+      - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verrazzano-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: verrazzano-operator
+subjects:
+  - kind: ServiceAccount
+    name: verrazzano-operator
+    namespace: verrazzano-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: verrazzano-operator
+  namespace: verrazzano-system
+  labels:
+    name: verrazzano-operator
+spec:
+  ports:
+    - name: webhook
+      port: 443
+      targetPort: 8080
+  selector:
+    name: verrazzano-operator
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verrazzano-operator
+  namespace: verrazzano-system
+  labels:
+    app: verrazzano-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verrazzano-operator
+  template:
+    metadata:
+      labels:
+        app: verrazzano-operator
+    spec:
+      containers:
+        - name: verrazzano-operator
+          imagePullPolicy: Never
+          image: IMAGE_NAME:IMAGE_TAG
+          args:
+            - --v=4
+            - --verrazzanoUri=default.1.1.1.1.xip.io
+            - --enableMonitoringStorage=false
+            - --apiServerRealm=verrazzano-system
+          resources:
+            requests:
+              memory: 72Mi
+          env:
+            - name: COH_MICRO_IMAGE
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
+            - name: HELIDON_MICRO_IMAGE
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
+            - name: WLS_MICRO_IMAGE
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
+            - name: PROMETHEUS_PUSHER_IMAGE
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
+            - name: NODE_EXPORTER_IMAGE
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
+            - name: FILEBEAT_IMAGE
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
+            - name: JOURNALBEAT_IMAGE
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
+            - name: WEBLOGIC_OPERATOR_IMAGE
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
+            - name: FLUENTD_IMAGE
+              value: container-registry.oracle.com/os/oraclelinux:7-slim
+            - name: COH_MICRO_REQUEST_MEMORY
+              value: 100Mi
+            - name: HELIDON_MICRO_REQUEST_MEMORY
+              value: 100Mi
+            - name: WLS_MICRO_REQUEST_MEMORY
+              value: 100Mi
+            - name: ES_MASTER_NODE_REQUEST_MEMORY
+              value: 100Mi
+            - name: ES_INGEST_NODE_REQUEST_MEMORY
+              value: 100Mi
+            - name: ES_DATA_NODE_REQUEST_MEMORY
+              value: 100Mi
+            - name: GRAFANA_REQUEST_MEMORY
+              value: 100Mi
+            - name: PROMETHEUS_REQUEST_MEMORY
+              value: 100Mi
+            - name: KIBANA_REQUEST_MEMORY
+              value: 100Mi
+            - name: ES_MASTER_NODE_REPLICAS
+              value: "2"
+      serviceAccount: verrazzano-operator

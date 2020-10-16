@@ -1,0 +1,16 @@
+# Copyright (C) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: verrazzano.io/v1beta1
+kind: VerrazzanoManagedCluster
+metadata:
+  labels:
+    k8s-app: verrazzano.oracle.com
+    verrazzano.cluster: local
+  name: local
+  namespace: default
+spec:
+  description: "local cluster"
+  kubeconfigSecret: verrazzano-managed-cluster-local
+  serverAddress: ':'
+  type: ""
