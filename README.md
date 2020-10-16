@@ -24,7 +24,7 @@ Current functionality:
 
 ## Artifacts
 
-Upon a successful release (which occurs on a Git tag), this repo publishes a Docker image: `container-registry.oracle.com/verrazzano/verrazzano-operator:tag`
+Upon a successful release (which occurs on a Git tag), this repo publishes a Docker image: `ghcr.io/verrazzano/verrazzano-operator:tag`
 
 ## Building
 
