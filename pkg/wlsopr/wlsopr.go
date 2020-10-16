@@ -15,7 +15,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// MicroOperatorName is name of the Weblogic micro operator deployment
 const MicroOperatorName = "verrazzano-wko-operator"
+
 const operatorName = "wls-operator"
 
 // WlsOperatorCRConfig provides the parameters to construct the new WlsOperatorCR
