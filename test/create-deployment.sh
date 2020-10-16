@@ -12,8 +12,3 @@ DEPLOY=${BASE_DIR}/build/deploy
 mkdir -p "${DEPLOY}"
 
 cat "${BASE_DIR}"/test/k8resource/deployment.yaml | sed -e "s|IMAGE_NAME:IMAGE_TAG|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > "${DEPLOY}"/deployment.yaml
-
-export CA_BUNDLE="`base64 -i "${CERTS}"/verrazzano-crt.pem | tr -d '\n'`"
-
-sed -i -e "s|CA_BUNDLE|${CA_BUNDLE}|g" "${DEPLOY}"/deployment.yaml
-
