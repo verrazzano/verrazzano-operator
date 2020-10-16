@@ -6,6 +6,8 @@ package helidonapp
 import (
 	"fmt"
 
+	"github.com/verrazzano/verrazzano-operator/pkg/fluentd"
+
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
@@ -131,14 +133,14 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 	// Include fluentd needed resource if fluentd integration is enabled
 	if IsFluentdEnabled(app) {
 		// Add fluentd container
-		helidonApp.Spec.Containers = append(helidonApp.Spec.Containers, createFluentdContainer(mbPair.Binding, app))
+		helidonApp.Spec.Containers = append(helidonApp.Spec.Containers, fluentd.CreateFluentdContainer(mbPair.Binding.Name, app.Name))
 
 		// Add fluentd volumes
-		volumes := createFluentdVolHostPaths()
-		for _, volume := range *volumes {
+		volumes := fluentd.CreateFluentdHostPathVolumes()
+		for _, volume := range volumes {
 			helidonApp.Spec.Volumes = append(helidonApp.Spec.Volumes, volume)
 		}
-		helidonApp.Spec.Volumes = append(helidonApp.Spec.Volumes, createFluentdVolConfigMap(app))
+		helidonApp.Spec.Volumes = append(helidonApp.Spec.Volumes, fluentd.CreateFluentdConfigMapVolume(app.Name))
 	}
 
 	return &helidonApp

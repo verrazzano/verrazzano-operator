@@ -6,15 +6,15 @@ package genericcomp
 import (
 	"testing"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
-
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 )
+
+var origGetEnvFunc = util.GetEnvFunc
 
 var generic = v1beta1.VerrazzanoGenericComponent{
 	Name: "test-generic",
@@ -95,28 +95,88 @@ func TestNewDeployment(t *testing.T) {
 		GenericComponentSelectorLabel: generic.Name,
 	}
 
+	// Temporarily set util.GetEnvFunc to mock response
+	util.GetEnvFunc = getenv
+	defer func() { util.GetEnvFunc = origGetEnvFunc }()
+
 	generic.Replicas = util.NewVal(2)
 
-	deploy := NewDeployment(generic, "test-namespace", labels)
+	deploy := NewDeployment(generic, "test-binding", "test-namespace", labels)
 	assert.Equal("test-generic", deploy.Name, "deployment name not equal to expected value")
 	assert.Equal("test-namespace", deploy.Namespace, "deployment namespace not equal to expected value")
 	assert.Equal(labels, deploy.Labels, "deployment labels not equal to expected value")
 	assert.Equal(int32(2), *deploy.Spec.Replicas, "deployment replicas not equal to expected value")
 	assert.Equal(matchLabels, deploy.Spec.Selector.MatchLabels, "deployment selector match labels not equal to expected value")
 	assert.Equal(matchLabels, deploy.Spec.Template.Labels, "deployment template labels not equal to expected value")
-	assert.Equal(deploy.Spec.Template.Spec, generic.Deployment, "deployment temp spec not equal to expected value")
+	assert.Equal(2, len(deploy.Spec.Template.Spec.Containers), "deployment container count not equal to expected value")
+	assert.Equal(generic.Deployment.Containers[0], deploy.Spec.Template.Spec.Containers[0], "deployment container not equal to expected value")
+	assert.Equal(generic.Deployment.InitContainers[0], deploy.Spec.Template.Spec.InitContainers[0], "deployment init container not equal to expected value")
+
+	// Check the Fluentd container that is created
+	fluentd := deploy.Spec.Template.Spec.Containers[1]
+	assert.Equal("fluentd", fluentd.Name, "Fluentd container name not equal to expected value")
+	assert.Equal(getenv("FLUENTD_IMAGE"), fluentd.Image, "Fluentd container name not equal to expected value")
+	assert.Equal(2, len(fluentd.Args), "Fluentd container args count not equal to expected value")
+	assert.Equal("-c", fluentd.Args[0], "Fluentd container arg not equal to expected value")
+	assert.Equal("/etc/fluent.conf", fluentd.Args[1], "Fluentd container arg not equal to expected value")
+	assert.Equal(7, len(fluentd.Env), "Fluentd container envs count not equal to expected value")
+	assert.Equal("APPLICATION_NAME", fluentd.Env[0].Name, "Fluentd container envs name not equal to expected value")
+	assert.Equal("test-generic", fluentd.Env[0].Value, "Fluentd container envs value not equal to expected value")
+	assert.Equal("FLUENTD_CONF", fluentd.Env[1].Name, "Fluentd container envs name not equal to expected value")
+	assert.Equal("fluentd.conf", fluentd.Env[1].Value, "Fluentd container envs value not equal to expected value")
+	assert.Equal("FLUENT_ELASTICSEARCH_SED_DISABLE", fluentd.Env[2].Name, "Fluentd container envs name not equal to expected value")
+	assert.Equal("true", fluentd.Env[2].Value, "Fluentd container envs value not equal to expected value")
+	assert.Equal("ELASTICSEARCH_HOST", fluentd.Env[3].Name, "Fluentd container envs name not equal to expected value")
+	assert.Equal("vmi-test-binding-es-ingest.verrazzano-system.svc.cluster.local", fluentd.Env[3].Value, "Fluentd container envs value not equal to expected value")
+	assert.Equal("ELASTICSEARCH_PORT", fluentd.Env[4].Name, "Fluentd container envs name not equal to expected value")
+	assert.Equal("9200", fluentd.Env[4].Value, "Fluentd container envs value not equal to expected value")
+	assert.Equal("ELASTICSEARCH_USER", fluentd.Env[5].Name, "Fluentd container envs name not equal to expected value")
+	assert.Equal(constants.VmiSecretName, fluentd.Env[5].ValueFrom.SecretKeyRef.Name, "Fluentd container envs value from secret name not equal to expected value")
+	assert.Equal("username", fluentd.Env[5].ValueFrom.SecretKeyRef.Key, "Fluentd container envs value from secret key not equal to expected value")
+	assert.Equal(true, *fluentd.Env[5].ValueFrom.SecretKeyRef.Optional, "Fluentd container envs value from secret optional not equal to expected value")
+	assert.Equal(constants.VmiSecretName, fluentd.Env[5].ValueFrom.SecretKeyRef.Name, "Fluentd container envs value from secret name not equal to expected value")
+	assert.Equal("password", fluentd.Env[6].ValueFrom.SecretKeyRef.Key, "Fluentd container envs value from secret key not equal to expected value")
+	assert.Equal(true, *fluentd.Env[6].ValueFrom.SecretKeyRef.Optional, "Fluentd container envs value from secret optional not equal to expected value")
+	assert.Equal(3, len(fluentd.VolumeMounts), "Fluentd container volume mounts count not equal to expected value")
+	assert.Equal("/fluentd/etc/fluentd.conf", fluentd.VolumeMounts[0].MountPath, "Fluentd container volume mounts mount path not equal to expected value")
+	assert.Equal("fluentd-config-volume", fluentd.VolumeMounts[0].Name, "Fluentd container volume mounts name not equal to expected value")
+	assert.Equal("fluentd.conf", fluentd.VolumeMounts[0].SubPath, "Fluentd container volume mounts sub path not equal to expected value")
+	assert.Equal(true, fluentd.VolumeMounts[0].ReadOnly, "Fluentd container volume mounts read only flag not equal to expected value")
+	assert.Equal("/var/log", fluentd.VolumeMounts[1].MountPath, "Fluentd container volume mounts mount path not equal to expected value")
+	assert.Equal("varlog", fluentd.VolumeMounts[1].Name, "Fluentd container volume mounts name not equal to expected value")
+	assert.Equal(true, fluentd.VolumeMounts[1].ReadOnly, "Fluentd container volume mounts read only flag not equal to expected value")
+	assert.Equal("/u01/data/docker/containers", fluentd.VolumeMounts[2].MountPath, "Fluentd container volume mounts mount path not equal to expected value")
+	assert.Equal("datadockercontainers", fluentd.VolumeMounts[2].Name, "Fluentd container volume mounts name not equal to expected value")
+	assert.Equal(true, fluentd.VolumeMounts[2].ReadOnly, "Fluentd container volume mounts read only flag not equal to expected value")
+
+	// Check for volumes created for Fluentd
+	volumes := deploy.Spec.Template.Spec.Volumes
+	assert.Equal(3, len(volumes), "Fluentd container volumes count not equal to expected value")
+	assert.Equal("varlog", volumes[0].Name, "Fluentd volume name not equal to expected value")
+	assert.Equal("/var/log", volumes[0].VolumeSource.HostPath.Path, "Fluentd volume host path not equal to expected value")
+	assert.Equal("datadockercontainers", volumes[1].Name, "Fluentd volume name not equal to expected value")
+	assert.Equal("/u01/data/docker/containers", volumes[1].VolumeSource.HostPath.Path, "Fluentd volume host path not equal to expected value")
+	assert.Equal("fluentd-config-volume", volumes[2].Name, "Fluentd volume name not equal to expected value")
+	assert.Equal("test-generic-fluentd", volumes[2].VolumeSource.ConfigMap.Name, "Fluentd volume config map name not equal to expected value")
+	assert.Equal(int32(420), *volumes[2].VolumeSource.ConfigMap.DefaultMode, "Fluentd volume config map default mode not equal to expected value")
 
 	// Unset the replica value to make sure default value of 1 is used.
 	generic.Replicas = nil
 
-	deploy = NewDeployment(generic, "test-namespace", labels)
+	// Disable Fluentd and make sure Fluentd container is not included in deployment.
+	fluentdEnabled := false
+	generic.FluentdEnabled = &fluentdEnabled
+
+	deploy = NewDeployment(generic, "test-binding", "test-namespace", labels)
 	assert.Equal("test-generic", deploy.Name, "deployment name not equal to expected value")
 	assert.Equal("test-namespace", deploy.Namespace, "deployment namespace not equal to expected value")
 	assert.Equal(labels, deploy.Labels, "deployment labels not equal to expected value")
 	assert.Equal(int32(1), *deploy.Spec.Replicas, "deployment replicas not equal to expected value")
 	assert.Equal(matchLabels, deploy.Spec.Selector.MatchLabels, "deployment selector match labels not equal to expected value")
 	assert.Equal(matchLabels, deploy.Spec.Template.Labels, "deployment template labels not equal to expected value")
-	assert.Equal(deploy.Spec.Template.Spec, generic.Deployment, "deployment temp spec not equal to expected value")
+	assert.Equal(1, len(deploy.Spec.Template.Spec.Containers), "deployment container count not equal to expected value")
+	assert.Equal(generic.Deployment.Containers[0], deploy.Spec.Template.Spec.Containers[0], "deployment container not equal to expected value")
+	assert.Equal(generic.Deployment.InitContainers[0], deploy.Spec.Template.Spec.InitContainers[0], "deployment init container not equal to expected value")
 }
 
 // TestNewService tests that a service is created
@@ -166,13 +226,19 @@ func TestGetSecrets(t *testing.T) {
 		constants.VerrazzanoCluster: "cluster1",
 	}
 
-	deploy := NewDeployment(generic, "test-namespace", labels)
+	// Make sure fluentd is enabled so additional secrets are created.
+	fluentdEnabled := true
+	generic.FluentdEnabled = &fluentdEnabled
+
+	deploy := NewDeployment(generic, "test-binding", "test-namespace", labels)
 
 	secrets := GetSecrets(*deploy)
-	assert.Equal(3, len(secrets), "secrets list length not equal to expected value")
+	assert.Equal(5, len(secrets), "secrets list length not equal to expected value")
 	assert.Equal("test-secret1", secrets[0], "secret not equal to expected value")
 	assert.Equal("test-secret-ref1", secrets[1], "secret not equal to expected value")
-	assert.Equal("test-secret-ref2", secrets[2], "secret not equal to expected value")
+	assert.Equal(constants.VmiSecretName, secrets[2], "secret not equal to expected value")
+	assert.Equal(constants.VmiSecretName, secrets[3], "secret not equal to expected value")
+	assert.Equal("test-secret-ref2", secrets[4], "secret not equal to expected value")
 }
 
 // TestUpdateEnvVars tests env variables are added to a generic component deployment
@@ -246,5 +312,12 @@ func TestUpdateEnvVars(t *testing.T) {
 	assert.Equal("test_value1", mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env[0].Value, "environment variable value not equal to expected value")
 	assert.Equal("test_env2", mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env[1].Name, "environment variable name not equal to expected value")
 	assert.Equal("test_value2", mc.Deployments[0].Spec.Template.Spec.InitContainers[0].Env[1].Value, "environment variable value not equal to expected value")
+}
 
+// getenv returns a mocked response for keys used by these tests
+func getenv(key string) string {
+	if key == "FLUENTD_IMAGE" {
+		return "fluentd-kubernetes-daemonset:v1.10.4-7f37ac6-20"
+	}
+	return origGetEnvFunc(key)
 }

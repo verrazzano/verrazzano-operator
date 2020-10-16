@@ -1,12 +1,11 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package helidonapp
+package fluentd
 
 import (
 	"fmt"
 
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -15,10 +14,41 @@ import (
 
 const fluentdConf = "fluentd.conf"
 
-// CreateFluentdConfigMap creates the Fluentd configmap for a given Helidon application
-func CreateFluentdConfigMap(app *v1beta1v8o.VerrazzanoHelidon, namespace string, labels map[string]string) *corev1.ConfigMap {
-	// fluentd parsing rules
-	parsingRules := `<label @FLUENT_LOG>
+// GenericComponentFluentdConfiguration Fluentd rules for reading/parsing generic component log files
+const GenericComponentFluentdConfiguration = `<label @FLUENT_LOG>
+  <match fluent.*>
+    @type stdout
+  </match>
+</label>
+<source>
+  @type tail
+  path "/var/log/containers/#{ENV['APPLICATION_NAME']}*#{ENV['APPLICATION_NAME']}*.log"
+  pos_file "/tmp/#{ENV['APPLICATION_NAME']}.log.pos"
+  read_from_head true
+  tag "#{ENV['APPLICATION_NAME']}"
+  format none
+</source>
+<filter **>
+  @type record_transformer
+  <record>
+    applicationName "#{ENV['APPLICATION_NAME']}"
+  </record>
+</filter>
+<match **>
+  @type elasticsearch
+  host "#{ENV['ELASTICSEARCH_HOST']}"
+  port "#{ENV['ELASTICSEARCH_PORT']}"
+  user "#{ENV['ELASTICSEARCH_USER']}"
+  password "#{ENV['ELASTICSEARCH_PASSWORD']}"
+  index_name "#{ENV['APPLICATION_NAME']}"
+  scheme http
+  include_timestamp true
+  flush_interval 10s
+</match>
+`
+
+// HelidonFluentdConfiguration Fluentd rules for reading/parsing generic component log files
+const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
   <match fluent.*>
     @type stdout
   </match>
@@ -85,23 +115,26 @@ func CreateFluentdConfigMap(app *v1beta1v8o.VerrazzanoHelidon, namespace string,
   flush_interval 10s
 </match>
 `
+
+// CreateFluentdConfigMap creates the Fluentd configmap for a given generic application
+func CreateFluentdConfigMap(fluentdConfig string, componentName string, namespace string, labels map[string]string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getFluentdConfigMapName(app),
+			Name:      getFluentdConfigMapName(componentName),
 			Namespace: namespace,
 			Labels:    labels,
 		},
 		Data: func() map[string]string {
 			var data map[string]string
 			data = make(map[string]string)
-			data[fluentdConf] = parsingRules
+			data[fluentdConf] = fluentdConfig
 			return data
 		}(),
 	}
 }
 
-// Create the Fluentd sidecar container
-func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v8o.VerrazzanoHelidon) corev1.Container {
+// CreateFluentdContainer creates a Fluentd sidecar container.
+func CreateFluentdContainer(bindingName string, componentName string) corev1.Container {
 	container := corev1.Container{
 		Name:            "fluentd",
 		Args:            []string{"-c", "/etc/fluent.conf"},
@@ -110,11 +143,11 @@ func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v
 		Env: []corev1.EnvVar{
 			{
 				Name:  "APPLICATION_NAME",
-				Value: app.Name,
+				Value: componentName,
 			},
 			{
 				Name:  "FLUENTD_CONF",
-				Value: "fluentd.conf",
+				Value: fluentdConf,
 			},
 			{
 				Name:  "FLUENT_ELASTICSEARCH_SED_DISABLE",
@@ -122,7 +155,7 @@ func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v
 			},
 			{
 				Name:  "ELASTICSEARCH_HOST",
-				Value: fmt.Sprintf("vmi-%s-es-ingest.%s.svc.cluster.local", binding.Name, constants.VerrazzanoNamespace),
+				Value: fmt.Sprintf("vmi-%s-es-ingest.%s.svc.cluster.local", bindingName, constants.VerrazzanoNamespace),
 			},
 			{
 				Name:  "ELASTICSEARCH_PORT",
@@ -161,7 +194,7 @@ func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v
 			{
 				MountPath: "/fluentd/etc/fluentd.conf",
 				Name:      "fluentd-config-volume",
-				SubPath:   "fluentd.conf",
+				SubPath:   fluentdConf,
 				ReadOnly:  true,
 			},
 			{
@@ -180,9 +213,9 @@ func createFluentdContainer(binding *v1beta1v8o.VerrazzanoBinding, app *v1beta1v
 	return container
 }
 
-// Create hostPath volumes for logs
-func createFluentdVolHostPaths() *[]corev1.Volume {
-	return &[]corev1.Volume{
+// CreateFluentdHostPathVolumes creates hostPath volumes to access container logs.
+func CreateFluentdHostPathVolumes() []corev1.Volume {
+	return []corev1.Volume{
 		{
 			Name: "varlog",
 			VolumeSource: corev1.VolumeSource{
@@ -202,14 +235,14 @@ func createFluentdVolHostPaths() *[]corev1.Volume {
 	}
 }
 
-// Create volume for fluentd config map
-func createFluentdVolConfigMap(app *v1beta1v8o.VerrazzanoHelidon) corev1.Volume {
+// CreateFluentdConfigMapVolume create a config map volume for Fluentd.
+func CreateFluentdConfigMapVolume(componentName string) corev1.Volume {
 	return corev1.Volume{
 		Name: "fluentd-config-volume",
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: getFluentdConfigMapName(app),
+					Name: getFluentdConfigMapName(componentName),
 				},
 				DefaultMode: func(mode int32) *int32 {
 					return &mode
@@ -219,7 +252,7 @@ func createFluentdVolConfigMap(app *v1beta1v8o.VerrazzanoHelidon) corev1.Volume 
 	}
 }
 
-// Get Fluentd configmap name
-func getFluentdConfigMapName(app *v1beta1v8o.VerrazzanoHelidon) string {
-	return fmt.Sprintf("%s-fluentd", app.Name)
+// getFluentdConfigMapName returns the name of a components Fluentd config map
+func getFluentdConfigMapName(componentName string) string {
+	return fmt.Sprintf("%s-fluentd", componentName)
 }
