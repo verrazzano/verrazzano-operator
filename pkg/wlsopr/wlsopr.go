@@ -7,16 +7,15 @@ import (
 	"errors"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/api/resource"
-
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-wko-operator/pkg/apis/verrazzano/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const microOperatorName = "verrazzano-wko-operator"
+const MicroOperatorName = "verrazzano-wko-operator"
 const operatorName = "wls-operator"
 
 // WlsOperatorCRConfig provides the parameters to construct the new WlsOperatorCR
@@ -70,7 +69,7 @@ func NewWlsOperatorCR(cr WlsOperatorCRConfig) (*v1beta1.WlsOperator, error) {
 func CreateDeployment(namespace string, bindingName string, labels map[string]string, image string) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      microOperatorName,
+			Name:      MicroOperatorName,
 			Namespace: namespace,
 			Labels:    labels,
 		},
@@ -89,7 +88,7 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:            microOperatorName,
+							Name:            MicroOperatorName,
 							Image:           image,
 							ImagePullPolicy: corev1.PullPolicy(corev1.PullIfNotPresent),
 							Command:         []string{"verrazzano-wko-operator"},
@@ -113,7 +112,7 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 								},
 								{
 									Name:  "OPERATOR_NAME",
-									Value: microOperatorName,
+									Value: MicroOperatorName,
 								},
 							},
 						},
