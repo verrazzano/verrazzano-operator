@@ -15,11 +15,10 @@ import (
 )
 
 // GenericComponentSelectorLabel defines the selector label for generic component resources.
-const GenericComponentSelectorLabel = "verrazzano.name"
+const GenericComponentSelectorLabel = "app"
 
 // NewDeployment constructs a deployment for a generic component.
 func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, bindingName string, namespace string, labels map[string]string) *appsv1.Deployment {
-	labels["app"] = generic.Name
 
 	_, targetPort := getPorts(&generic)
 
@@ -45,14 +44,12 @@ func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, bindingName st
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					GenericComponentSelectorLabel: generic.Name,
-					"app":                         generic.Name,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						GenericComponentSelectorLabel: generic.Name,
-						"app":                         generic.Name,
 					},
 					Annotations: annotations,
 				},
