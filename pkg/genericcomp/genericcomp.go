@@ -45,12 +45,14 @@ func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, bindingName st
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					GenericComponentSelectorLabel: generic.Name,
+					"app":                         generic.Name,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						GenericComponentSelectorLabel: generic.Name,
+						"app":                         generic.Name,
 					},
 					Annotations: annotations,
 				},
