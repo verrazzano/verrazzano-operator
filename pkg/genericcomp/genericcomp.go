@@ -20,7 +20,7 @@ const GenericComponentSelectorLabel = "app"
 // NewDeployment constructs a deployment for a generic component.
 func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, bindingName string, namespace string, labels map[string]string) *appsv1.Deployment {
 
-	_, targetPort := getPorts(&generic)
+	targetPort := getTargetPort(&generic)
 
 	annotations := make(map[string]string)
 	annotations["prometheus.io/scrape"] = "true"
@@ -183,19 +183,13 @@ func IsFluentdEnabled(generic *v1beta1v8o.VerrazzanoGenericComponent) bool {
 }
 
 // Get the port and targetPort values
-func getPorts(generic *v1beta1v8o.VerrazzanoGenericComponent) (int32, int32) {
-	// Default port value is 8080
-	var port int32 = 8080
+func getTargetPort(generic *v1beta1v8o.VerrazzanoGenericComponent) int32 {
 
-	if generic.Deployment.Containers[0].Ports[0].HostPort != 0 {
-		port = generic.Deployment.Containers[0].Ports[0].HostPort
-	}
-
-	// Default target port value is value of port
-	var targetPort = port
+	// Default target port value is 8080
+	var targetPort int32 = 8080
 	if generic.Deployment.Containers[0].Ports[0].ContainerPort != 0 {
 		targetPort = generic.Deployment.Containers[0].Ports[0].ContainerPort
 	}
 
-	return port, targetPort
+	return targetPort
 }
