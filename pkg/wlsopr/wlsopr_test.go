@@ -140,7 +140,7 @@ func TestCreateDeployment(t *testing.T) {
 	defer func() { util.GetEnvFunc = origGetEnvFunc }()
 
 	deployment := CreateDeployment("test-namespace", "test-binding", labels, "wko-image")
-	assert.Equal(MicroOperatorName, deployment.Name, "deployment name not equal to expected value")
+	assert.Equal(microOperatorName, deployment.Name, "deployment name not equal to expected value")
 	assert.Equal("test-namespace", deployment.Namespace, "deployment namespace not equal to expected value")
 	assert.Equal(labels, deployment.Labels, "deployment labels not equal to expected value")
 	assert.Equal(int32(1), *deployment.Spec.Replicas, "deployment namespace not equal to expected value")
@@ -150,7 +150,7 @@ func TestCreateDeployment(t *testing.T) {
 	assert.Equal(0, len(deployment.Spec.Template.Spec.InitContainers), "deployment init container count not equal to expected value")
 	assert.Equal(1, len(deployment.Spec.Template.Spec.Containers), "deployment container count not equal to expected value")
 	container := deployment.Spec.Template.Spec.Containers[0]
-	assert.Equal(MicroOperatorName, container.Name, "deployment container name not equal to expected value")
+	assert.Equal(microOperatorName, container.Name, "deployment container name not equal to expected value")
 	assert.Equal("wko-image", container.Image, "deployment container image not equal to expected value")
 	assert.Equal(corev1.PullIfNotPresent, container.ImagePullPolicy, "deployment container image pull policy not equal to expected value")
 	assert.Equal("verrazzano-wko-operator", container.Command[0], "deployment container command not equal to expected value")
@@ -161,7 +161,7 @@ func TestCreateDeployment(t *testing.T) {
 	assert.Equal("POD_NAME", container.Env[1].Name, "deployment container env name not equal to expected value")
 	assert.Equal("metadata.name", container.Env[1].ValueFrom.FieldRef.FieldPath, "deployment container env value not equal to expected value")
 	assert.Equal("OPERATOR_NAME", container.Env[2].Name, "deployment container env name not equal to expected value")
-	assert.Equal(MicroOperatorName, container.Env[2].Value, "deployment container env value not equal to expected value")
+	assert.Equal(microOperatorName, container.Env[2].Value, "deployment container env value not equal to expected value")
 	assert.Equal(util.New64Val(1), deployment.Spec.Template.Spec.TerminationGracePeriodSeconds, "deployment termination grace period not equal to expected value")
 	assert.Equal(util.GetServiceAccountNameForSystem(), deployment.Spec.Template.Spec.ServiceAccountName, "deployment service account name not equal to expected value")
 }

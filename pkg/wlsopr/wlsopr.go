@@ -15,9 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// MicroOperatorName is name of the Weblogic micro operator deployment
-const MicroOperatorName = "verrazzano-wko-operator"
-
+const microOperatorName = "verrazzano-wko-operator"
 const operatorName = "wls-operator"
 
 // WlsOperatorCRConfig provides the parameters to construct the new WlsOperatorCR
@@ -71,7 +69,7 @@ func NewWlsOperatorCR(cr WlsOperatorCRConfig) (*v1beta1.WlsOperator, error) {
 func CreateDeployment(namespace string, bindingName string, labels map[string]string, image string) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      MicroOperatorName,
+			Name:      microOperatorName,
 			Namespace: namespace,
 			Labels:    labels,
 		},
@@ -90,7 +88,7 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:            MicroOperatorName,
+							Name:            microOperatorName,
 							Image:           image,
 							ImagePullPolicy: corev1.PullPolicy(corev1.PullIfNotPresent),
 							Command:         []string{"verrazzano-wko-operator"},
@@ -114,7 +112,7 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 								},
 								{
 									Name:  "OPERATOR_NAME",
-									Value: MicroOperatorName,
+									Value: microOperatorName,
 								},
 							},
 						},
