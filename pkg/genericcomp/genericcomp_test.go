@@ -230,8 +230,6 @@ func TestGetSecrets(t *testing.T) {
 	// Make sure fluentd is enabled so additional secrets are created.
 	fluentdEnabled := true
 	generic.FluentdEnabled = &fluentdEnabled
-
-	deploy := NewDeployment(generic, "test-binding", "test-namespace", labels)
 	generic.Deployment.Containers[0].Ports = []corev1.ContainerPort{
 		{
 			Name:          "test-port",
@@ -239,6 +237,8 @@ func TestGetSecrets(t *testing.T) {
 			ContainerPort: 8095,
 		},
 	}
+
+	deploy := NewDeployment(generic, "test-binding", "test-namespace", labels)
 
 	secrets := GetSecrets(*deploy)
 	assert.Equal(5, len(secrets), "secrets list length not equal to expected value")
