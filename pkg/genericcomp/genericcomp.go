@@ -182,7 +182,7 @@ func IsFluentdEnabled(generic *v1beta1v8o.VerrazzanoGenericComponent) bool {
 	return *generic.FluentdEnabled
 }
 
-// Get the port and targetPort values
+// Get the targetPort value
 func getTargetPort(generic *v1beta1v8o.VerrazzanoGenericComponent) int32 {
 
 	// Default target port value is 8080
