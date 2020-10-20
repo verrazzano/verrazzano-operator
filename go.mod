@@ -8,7 +8,7 @@ require (
 	github.com/kylelemons/godebug v1.1.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
-	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.0-20200921120302-d4040fa2f3c4
+    github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.0-20200921120302-d4040fa2f3c4
     github.com/verrazzano/verrazzano-crd-generator v0.0.0-20201020171228-2d8b50f34276
 	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.0-20200921121606-448c29f0ce58
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20200925113618-cc189235ad3d
