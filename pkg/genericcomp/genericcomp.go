@@ -4,6 +4,7 @@
 package genericcomp
 
 import (
+	"fmt"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/fluentd"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
@@ -14,15 +15,24 @@ import (
 )
 
 // GenericComponentSelectorLabel defines the selector label for generic component resources.
-const GenericComponentSelectorLabel = "verrazzano.name"
+const GenericComponentSelectorLabel = "app"
 
 // NewDeployment constructs a deployment for a generic component.
 func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, bindingName string, namespace string, labels map[string]string) *appsv1.Deployment {
+
+	targetPort := getTargetPort(&generic)
+
+	annotations := make(map[string]string)
+	annotations["prometheus.io/scrape"] = "true"
+	annotations["prometheus.io/port"] = fmt.Sprint(targetPort)
+	annotations["prometheus.io/path"] = "/actuator/prometheus"
+
 	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      generic.Name,
-			Namespace: namespace,
-			Labels:    labels,
+			Name:        generic.Name,
+			Namespace:   namespace,
+			Labels:      labels,
+			Annotations: annotations,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: func() *int32 {
@@ -41,6 +51,7 @@ func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, bindingName st
 					Labels: map[string]string{
 						GenericComponentSelectorLabel: generic.Name,
 					},
+					Annotations: annotations,
 				},
 				Spec: generic.Deployment,
 			},
@@ -169,4 +180,16 @@ func IsFluentdEnabled(generic *v1beta1v8o.VerrazzanoGenericComponent) bool {
 	}
 
 	return *generic.FluentdEnabled
+}
+
+// Get the targetPort value
+func getTargetPort(generic *v1beta1v8o.VerrazzanoGenericComponent) int32 {
+
+	// Default target port value is 8080
+	var targetPort int32 = 8080
+	if generic.Deployment.Containers[0].Ports[0].ContainerPort != 0 {
+		targetPort = generic.Deployment.Containers[0].Ports[0].ContainerPort
+	}
+
+	return targetPort
 }

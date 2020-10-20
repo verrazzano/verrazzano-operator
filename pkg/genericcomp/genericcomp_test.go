@@ -90,6 +90,7 @@ func TestNewDeployment(t *testing.T) {
 		constants.K8SAppLabel:       constants.VerrazzanoGroup,
 		constants.VerrazzanoBinding: "test-binding",
 		constants.VerrazzanoCluster: "cluster1",
+		constants.ServiceAppLabel:   "test-generic",
 	}
 	matchLabels := map[string]string{
 		GenericComponentSelectorLabel: generic.Name,
@@ -229,6 +230,13 @@ func TestGetSecrets(t *testing.T) {
 	// Make sure fluentd is enabled so additional secrets are created.
 	fluentdEnabled := true
 	generic.FluentdEnabled = &fluentdEnabled
+	generic.Deployment.Containers[0].Ports = []corev1.ContainerPort{
+		{
+			Name:          "test-port",
+			Protocol:      corev1.ProtocolTCP,
+			ContainerPort: 8095,
+		},
+	}
 
 	deploy := NewDeployment(generic, "test-binding", "test-namespace", labels)
 
