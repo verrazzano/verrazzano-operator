@@ -171,15 +171,17 @@ func (s simpleConfigMapNamespaceLister) Get(name string) (*v1.ConfigMap, error) 
 	return s.kubeClient.CoreV1().ConfigMaps(s.namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
-// ----- simpleSecretLister
-// Simple secret sister implementation.
-type simpleSecretLister struct {
-	kubeClient kubernetes.Interface
+// ----- SimpleSecretLister
+
+// SimpleSecretLister is a simple secret Lister implementation useful for tests.
+type SimpleSecretLister struct {
+	KubeClient kubernetes.Interface
 }
 
 // List all secrets
-func (s *simpleSecretLister) List(selector labels.Selector) ([]*v1.Secret, error) {
-	namespaces, err := s.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+func (s *SimpleSecretLister) List(selector labels.Selector) ([]*v1.Secret, error) {
+	namespaces, err := s.KubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+
 	if err != nil {
 		return nil, err
 	}
@@ -194,11 +196,11 @@ func (s *simpleSecretLister) List(selector labels.Selector) ([]*v1.Secret, error
 	return secrets, nil
 }
 
-// Returns an object that can list and get secrets for the given namespace
-func (s *simpleSecretLister) Secrets(namespace string) corelistersv1.SecretNamespaceLister {
+// Secrets returns an object that can list and get secrets for the given namespace
+func (s *SimpleSecretLister) Secrets(namespace string) corelistersv1.SecretNamespaceLister {
 	return simpleSecretNamespaceLister{
 		namespace:  namespace,
-		kubeClient: s.kubeClient,
+		kubeClient: s.KubeClient,
 	}
 }
 
@@ -615,7 +617,7 @@ func NewConfigMapLister(kubeClient kubernetes.Interface) corelistersv1.ConfigMap
 
 //NewSecretLister creates a SecretLister
 func NewSecretLister(kubeClient kubernetes.Interface) corelistersv1.SecretLister {
-	return &simpleSecretLister{kubeClient: kubeClient}
+	return &SimpleSecretLister{KubeClient: kubeClient}
 }
 
 // simpleDaemonSetLister implements the DaemonSetLister interface.

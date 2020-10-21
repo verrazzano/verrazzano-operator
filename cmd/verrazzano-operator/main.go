@@ -6,6 +6,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"k8s.io/client-go/tools/clientcmd"
 	"net/http"
 	"strings"
 
@@ -133,7 +134,12 @@ func main() {
 		glog.V(6).Info("helidonAppOperatorDeployment Disabled")
 		manifest.HelidonAppOperatorImage = ""
 	}
-	controller, err := pkgverrazzanooperator.NewController(kubeconfig, manifest, masterURL, watchNamespace, verrazzanoURI, enableMonitoringStorage)
+
+	config, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
+	if err != nil {
+		glog.Fatalf("Error creating the controller configuration: %s", err.Error())
+	}
+	controller, err := pkgverrazzanooperator.NewController(config, manifest, watchNamespace, verrazzanoURI, enableMonitoringStorage)
 	if err != nil {
 		glog.Fatalf("Error creating the controller: %s", err.Error())
 	}

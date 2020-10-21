@@ -251,7 +251,7 @@ func TestSimpleServiceEntryLister(t *testing.T) {
 	assert.Equal("test", entry.Namespace)
 }
 
-// Test simpleSecretLister
+// Test SimpleSecretLister
 func TestSimpleSecretLister(t *testing.T) {
 	assert := asserts.New(t)
 	clusterConnections := GetManagedClusterConnections()
