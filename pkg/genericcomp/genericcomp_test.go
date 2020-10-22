@@ -101,10 +101,16 @@ func TestNewDeployment(t *testing.T) {
 		GenericComponentSelectorLabel: generic.Name,
 	}
 
-	annotations := map[string]string{
+	configuredAnnotations := map[string]string{
 		"prometheus.io/scrape": "true",
 		"prometheus.io/port":   "8095",
 		"prometheus.io/path":   "/actuator/prometheus",
+	}
+
+	defaultAnnotations := map[string]string{
+		"prometheus.io/scrape": "true",
+		"prometheus.io/port":   "8095",
+		"prometheus.io/path":   "/metrics",
 	}
 
 	// Temporarily set util.GetEnvFunc to mock response
@@ -117,7 +123,7 @@ func TestNewDeployment(t *testing.T) {
 	assert.Equal("test-generic", deploy.Name, "deployment name not equal to expected value")
 	assert.Equal("test-namespace", deploy.Namespace, "deployment namespace not equal to expected value")
 	assert.Equal(labels, deploy.Labels, "deployment labels not equal to expected value")
-	assert.Equal(annotations, deploy.Annotations, "deployment annotations not equal to expected value")
+	assert.Equal(configuredAnnotations, deploy.Annotations, "configured deployment annotations not equal to expected value")
 	assert.Equal(int32(2), *deploy.Spec.Replicas, "deployment replicas not equal to expected value")
 	assert.Equal(matchLabels, deploy.Spec.Selector.MatchLabels, "deployment selector match labels not equal to expected value")
 	assert.Equal(matchLabels, deploy.Spec.Template.Labels, "deployment template labels not equal to expected value")
@@ -179,12 +185,14 @@ func TestNewDeployment(t *testing.T) {
 	// Disable Fluentd and make sure Fluentd container is not included in deployment.
 	fluentdEnabled := false
 	generic.FluentdEnabled = &fluentdEnabled
+	//  Unset Metrics and verify default endpoint of /metrics is set
+	generic.Metrics = v1beta1.VerrazzanoMetrics{}
 
 	deploy = NewDeployment(generic, "test-binding", "test-namespace", labels)
 	assert.Equal("test-generic", deploy.Name, "deployment name not equal to expected value")
 	assert.Equal("test-namespace", deploy.Namespace, "deployment namespace not equal to expected value")
 	assert.Equal(labels, deploy.Labels, "deployment labels not equal to expected value")
-	assert.Equal(annotations, deploy.Annotations, "deployment annotations not equal to expected value")
+	assert.Equal(defaultAnnotations, deploy.Annotations, "default deployment annotations not equal to expected value")
 	assert.Equal(int32(1), *deploy.Spec.Replicas, "deployment replicas not equal to expected value")
 	assert.Equal(matchLabels, deploy.Spec.Selector.MatchLabels, "deployment selector match labels not equal to expected value")
 	assert.Equal(matchLabels, deploy.Spec.Template.Labels, "deployment template labels not equal to expected value")
