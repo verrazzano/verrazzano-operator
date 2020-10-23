@@ -7,7 +7,6 @@ def skipBuild = false
 pipeline {
     options {
         skipDefaultCheckout true
-        disableConcurrentBuilds()
     }
 
     agent {
