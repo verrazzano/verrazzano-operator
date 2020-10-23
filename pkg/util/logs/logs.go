@@ -6,13 +6,14 @@ package logs
 import (
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/rs/zerolog"
 )
 
 // InitLogs initializes logs with Time and Global Level of Logs set at Info
 func InitLogs() {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.TimeFieldFormat = time.RFC3339
 
 	// Log levels can be found at https://github.com/rs/zerolog#leveled-logging
 	envLog := os.Getenv("LOG_LEVEL")
