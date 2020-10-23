@@ -4,6 +4,7 @@
 package util
 
 import (
+	"github.com/rs/zerolog"
 	"os"
 	"strconv"
 )
@@ -130,6 +131,8 @@ func GetKibanaRequestMemory() string {
 
 // GetElasticsearchMasterNodeReplicas returns the Elasticsearch master replicas.
 func GetElasticsearchMasterNodeReplicas() int32 {
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Env").Str("name", esMasterNodeReplicas).Logger()
+
 	value := GetEnvFunc(esMasterNodeReplicas)
 	if len(value) != 0 {
 		count, err := strconv.ParseInt(value, 10, 32)

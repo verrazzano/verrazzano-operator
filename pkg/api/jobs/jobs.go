@@ -11,8 +11,8 @@ import (
 
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 
-    "github.com/rs/zerolog"
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
 )
 
 // This file is very similar to applications.go - please see comments there

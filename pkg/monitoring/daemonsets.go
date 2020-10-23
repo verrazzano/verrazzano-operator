@@ -6,7 +6,7 @@ package monitoring
 import (
 	"fmt"
 
-    "github.com/rs/zerolog"
+	"github.com/rs/zerolog"
 	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/resources"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"

@@ -134,7 +134,6 @@ func main() {
 
 	flag.Parse()
 
-
 	logger.Debug().Msgf("Creating new controller watching namespace %s.", watchNamespace)
 	if strings.EqualFold(helidonAppOperatorDeployment, "false") {
 		logger.Debug().Msgf("helidonAppOperatorDeployment Disabled")
@@ -153,7 +152,7 @@ func main() {
 	if startController {
 		// start the controller
 		if err = controller.Run(2); err != nil {
-			logger.Fatal().Err("Error running controller: %s", err.Error())
+			logger.Fatal().Msgf("Error running controller: %s", err.Error())
 		}
 	}
 	logger.Info().Msg("Waiting for api server to exit")

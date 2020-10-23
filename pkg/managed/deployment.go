@@ -8,6 +8,7 @@ package managed
 import (
 	"context"
 	"errors"
+	"os"
 
 	"github.com/rs/zerolog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
@@ -81,6 +82,9 @@ func CreateDeployments(mbPair *types.ModelBindingPair, filteredConnections map[s
 
 // DeleteDeployments deletes deployments for a given binding.
 func DeleteDeployments(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	// Create log instance for deleting deployments
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Deployments").Str("name", "ClusterConnection").Logger()
+
 	logger.Info().Msgf("Deleting Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Delete Deployments associated with the given VerrazzanoBinding (based on labels selectors)
@@ -108,6 +112,9 @@ func DeleteDeployments(mbPair *types.ModelBindingPair, filteredConnections map[s
 // CleanupOrphanedDeployments deletes deployments that have been orphaned.   Deployments can be orphaned when a binding
 // has been changed to not require a deployment or the deployment was moved to a different cluster.
 func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	// Create log instance
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Deployments").Str("name", "ClusterConnection").Logger()
+
 	logger.Info().Msgf("Cleaning up orphaned Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Get the managed clusters that this binding applies to
@@ -178,9 +185,6 @@ func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManaged
 
 // Constructs the necessary Verrazzano system deployments for the specified ManagedCluster in the given VerrazzanoBinding
 func newSystemDeployments(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.ManagedCluster, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
-	// Create log instance for adding new deployments
-	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "ManagedCluster").Str("name", managedCluster.Name).Logger()
-
 	managedNamespace := util.GetManagedClusterNamespaceForSystem()
 	deployPromPusher := true //temporary variable to create pusher deployment
 	depLabels := util.GetManagedLabelsNoBinding(managedCluster.Name)

@@ -6,9 +6,6 @@ package monitoring
 import (
 	"errors"
 	"fmt"
-	"os"
-
-	"github.com/rs/zerolog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -46,9 +43,6 @@ func pomPusherName(bindingName string) string {
 
 // CreateDeployment creates prometheus pusher deployment on all clusters, based on a VerrazzanoApplicationBinding.
 func CreateDeployment(namespace string, bindingName string, labels map[string]string, sec Secrets) (*appsv1.Deployment, error) {
-	// Create log instance for creating system deployments
-	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Binding").Str("name", bindingName).Logger()
-
 	payload := "match%5B%5D=%7Bjob%3D~%22" + bindingName + "%2E%2A%22%7D" // URL encoded : match[]={job=~"binding-name.*"}
 	password, err := sec.GetVmiPassword()
 	if err != nil {

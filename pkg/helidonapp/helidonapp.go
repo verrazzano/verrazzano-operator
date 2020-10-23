@@ -13,7 +13,7 @@ import (
 
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 
-    "github.com/rs/zerolog"
+	"github.com/rs/zerolog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"

@@ -50,8 +50,8 @@ func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 			if existingService != nil {
 				specDiffs := diff.CompareIgnoreTargetEmpties(existingService, service)
 				if specDiffs != "" {
-     				logger.Debug().Msgf("Service %s : Spec differences %s", service.Name, specDiffs)
-	    			logger.Info().Msgf("Updating Service %s in cluster %s", service.Name, clusterName)
+					logger.Debug().Msgf("Service %s : Spec differences %s", service.Name, specDiffs)
+					logger.Info().Msgf("Updating Service %s in cluster %s", service.Name, clusterName)
 					_, err = managedClusterConnection.KubeClient.CoreV1().Services(service.Namespace).Update(context.TODO(), service, metav1.UpdateOptions{})
 				}
 			} else {
@@ -68,6 +68,9 @@ func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 
 // DeleteServices deletes services for a given binding.
 func DeleteServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	// Create log instance for deleting services
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Services").Str("name", "Deletion").Logger()
+
 	logger.Info().Msgf("Deleting Services for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Delete Services associated with the given VerrazzanoBinding (based on labels selectors)
@@ -95,6 +98,9 @@ func DeleteServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 // CleanupOrphanedServices deletes services that have been orphaned.  Services can be orphaned when a binding
 // has been changed to not require a service or the service was moved to a different cluster.
 func CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	// Create log instance
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Services").Str("name", "Cleanup").Logger()
+
 	logger.Info().Msgf("Cleaning up orphaned Services for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Get the managed clusters that this binding applies to

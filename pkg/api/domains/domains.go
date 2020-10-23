@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rs/zerolog"
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 	"github.com/verrazzano/verrazzano-operator/pkg/managed"
 )

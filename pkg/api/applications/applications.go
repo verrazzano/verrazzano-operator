@@ -11,8 +11,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/rs/zerolog"
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
 	v1beta1 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 	"gopkg.in/yaml.v2"
