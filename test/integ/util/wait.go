@@ -75,3 +75,19 @@ func WaitForServiceAccountAvailable(namespace string, serviceAccount string, kub
 	})
 	return err
 }
+
+// WaitForServiceAccountAvailable waits for the given ServiceAccount to become available.
+func WaitForModelAvailable(namespace string, model string, kubeClient kubernetes.Interface) error {
+	var err error
+	fmt.Printf("Waiting for ServiceAccount '%s' to become available...\n", model)
+	err = Retry(DefaultRetry, func() (bool, error) {
+		_, err := kubeClient.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), model, metav1.GetOptions{})
+		if err != nil {
+			fmt.Printf("Error getting ServiceAccount '%s'\n", err)
+			return false, nil
+		}
+		return true, nil
+	})
+	return err
+}
+

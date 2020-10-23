@@ -11,4 +11,4 @@ DEPLOY=${BASE_DIR}/build/deploy
 
 mkdir -p "${DEPLOY}"
 
-cat "${BASE_DIR}"/test/k8resource/deployment.yaml | sed -e "s|IMAGE_NAME:IMAGE_TAG|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > "${DEPLOY}"/deployment.yaml
+cat "${BASE_DIR}"/test/operatorsetup/deployment.yaml | sed -e "s|IMAGE_NAME:IMAGE_TAG|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > "${DEPLOY}"/deployment.yaml

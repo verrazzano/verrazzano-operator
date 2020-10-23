@@ -165,7 +165,7 @@ CLUSTER_NAME = verrazzano-operator
 CERTS = build/verrazzano-operator-cert
 VERRAZZANO_NS = verrazzano-system
 DEPLOY = build/deploy
-K8RESOURCE = test/k8resource
+OPERATOR_SETUP = test/operatorsetup
 
 .PHONY: integ-test
 integ-test: build create-cluster
@@ -184,7 +184,7 @@ integ-test: build create-cluster
 	# to use the in-cluster kubeconfig to access the managed cluster.
 	kubectl create secret generic verrazzano-managed-cluster-local --from-literal=kubeconfig=""
 	kubectl label secret verrazzano-managed-cluster-local k8s-app=verrazzano.oracle.com verrazzano.cluster=local
-	kubectl apply -f ${K8RESOURCE}/local-vmc.yaml
+	kubectl apply -f ${OPERATOR_SETUP}/local-vmc.yaml
 
 	echo 'Load docker image for the verrazzano-operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
@@ -200,7 +200,7 @@ integ-test: build create-cluster
 
 	echo 'Install the istio CRDs ...'
 	kubectl create ns istio-system
-	kubectl apply -f ./test/k8resource/istio-crds.yaml
+	kubectl apply -f ./test/operatorsetup/istio-crds.yaml
 	kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s
 
 	echo 'Create verrazzano operator required secrets ...'
@@ -213,7 +213,7 @@ integ-test: build create-cluster
 	kubectl apply -f ${DEPLOY}/deployment.yaml
 
 	echo 'Run tests...'
-	# ginkgo -v --keepGoing -cover test/integ/... || IGNORE=FAILURE
+	ginkgo -v --keepGoing -cover test/integ/... || IGNORE=FAILURE
 
 .PHONY: create-cluster
 create-cluster:
