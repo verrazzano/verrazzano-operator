@@ -166,7 +166,7 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 		// Find the namespace for this domain in the binding placements
 		namespace, err := util.GetComponentNamespace(domain.Name, binding)
 		if err != nil {
-			glog.Errorf("Getting namespace for domain %s is giving error %s", domain.Name, err)
+			logger.Error().Msgf("Getting namespace for domain %s is giving error %s", domain.Name, err)
 			continue
 		}
 

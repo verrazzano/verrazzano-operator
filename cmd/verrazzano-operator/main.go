@@ -153,11 +153,10 @@ func main() {
 	if startController {
 		// start the controller
 		if err = controller.Run(2); err != nil {
-			glog.Fatalf("Error running controller: %s", err.Error())
+			logger.Fatal().Err("Error running controller: %s", err.Error())
 		}
 	}
-
-	glog.Info("Waiting for api server to exit")
+	logger.Info().Msg("Waiting for api server to exit")
 	<-apiServerExited
 
 }

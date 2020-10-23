@@ -26,7 +26,7 @@ func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 	// Create log instance for creating config maps
 	logger := zerolog.New(os.Stderr).With().Timestamp().Str("kind", "Binding").Str("name", binding.Name).Logger()
 
-	glog.V(6).Infof("Updating Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
+	logger.Info().Msgf("Updating Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the set of expected configMap - this currently consists of the ConfigMap that contains the default Grafana dashboard definitions
 	newConfigMap, err := newConfigMap(binding)

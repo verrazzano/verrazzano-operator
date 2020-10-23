@@ -577,7 +577,7 @@ func (c *Controller) processApplicationModelAdded(cluster interface{}) {
 	for _, binding := range c.applicationBindings {
 		if _, ok := c.modelBindingPairs[binding.Name]; !ok {
 			if model.Name == binding.Spec.ModelName {
-				glog.Infof("Adding model/binding pair during add model for model %s and binding %s", binding.Spec.ModelName, binding.Name)
+				logger.Info().Msgf("Adding model/binding pair during add model for model %s and binding %s", binding.Spec.ModelName, binding.Name)
 				mbPair := CreateModelBindingPair(model, binding, c.verrazzanoURI, c.imagePullSecrets)
 				c.modelBindingPairs[binding.Name] = mbPair
 				break
@@ -794,13 +794,13 @@ func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 	// Cleanup Services for generic components
 	err = managed.CleanupOrphanedServices(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to cleanup services for binding %s: %v", mbPair.Binding.Name, err)
+		logger.Error().Msgf("Failed to cleanup services for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup Deployments for generic components
 	err = managed.CleanupOrphanedDeployments(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to cleanup deployments for binding %s: %v", mbPair.Binding.Name, err)
+		logger.Error().Msgf("Failed to cleanup deployments for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup ServiceEntries
@@ -900,7 +900,7 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 
 	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
+		logger.Error().Msgf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Delete Custom Resources
@@ -913,14 +913,14 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	// Delete Services for generic components
 	err = managed.DeleteServices(mbPair, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to delete services for binding %s: %v", mbPair.Binding.Name, err)
+		logger.Error().Msgf("Failed to delete services for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
 	// Delete Deployments for generic components
 	err = managed.DeleteDeployments(mbPair, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to delete deployments for binding %s: %v", mbPair.Binding.Name, err)
+		logger.Error().Msgf("Failed to delete deployments for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
@@ -940,7 +940,7 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 
 	err = monitoring.DeletePomPusher(binding.Name, &kubeDeployment{kubeClientSet: c.kubeClientSet})
 	if err != nil {
-		glog.Errorf("Failed to delete prometheus-pusher for binding %s: %v", mbPair.Binding.Name, err)
+		logger.Error().Msgf("Failed to delete prometheus-pusher for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Delete Namespaces - this will also cleanup any Ingresses,

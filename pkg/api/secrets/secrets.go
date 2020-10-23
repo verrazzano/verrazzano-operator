@@ -214,7 +214,7 @@ func ReturnSingleSecret(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(cachedSecrets)
 	} else {
 		msg := fmt.Sprintf("Error: secret with UID %s not found: ", key)
-		glog.Error(msg)
+		logger.Error().Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
 	}
 }
