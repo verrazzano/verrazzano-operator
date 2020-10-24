@@ -14,12 +14,17 @@ import (
 
 const verrazzano = "verrazzano"
 const verrazzanoOperator = "verrazzano-operator"
+const verrazzanoSystem = "verrazzano-system"
 
-var vzK8sClient k8s.VerrazzanoK8sClient
+
+var fewSeconds = 2 * time.Second
+var nsWait = 20 * time.Second
+var vmiWait = 60 * time.Second
+var K8sClient k8s.K8sClient
 
 var _ = BeforeSuite(func() {
 	var err error
-	vzK8sClient, err = k8s.NewVzK8sClient()
+	K8sClient, err = k8s.NewK8sClient()
 	if err != nil {
 		Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
 	}
@@ -73,55 +78,81 @@ var _ = AfterSuite(func() {
 //		Expect(err).To(BeNil(), fmt.Sprintf("Should not have received an error when trying to get the %s cluster roles", verrazzanoOperator))
 //	})
 //})
-//
+
 //var _ = Describe("Verrazzano cluster roles binding for verrazzano operator", func() {
 //	It("is deployed", func() {
-//		_, err := k8s.GetClientSet().RbacV1().ClusterRoleBindings().Get(context.Background(), verrazzanoOperator, metav1.GetOptions{})
+//		_, err := K8sClient.GetClientSet().RbacV1().ClusterRoleBindings().Get(context.Background(), verrazzanoOperator, metav1.GetOptions{})
 //		Expect(err).To(BeNil(), fmt.Sprintf("Should not have received an error when trying to get the %s cluster roles binding", verrazzanoOperator))
 //	})
 //})
-//var _ = Describe("Custom Resource Definition for clusters", func() {
-//	It("verrazzanomanagedclusters.verrazzano.io exists", func() {
-//		Expect(k8s.DoesCRDExist("verrazzanomanagedclusters.verrazzano.io")).To(BeTrue(),
-//			"The verrazzanomanagedclusters.verrazzano.io CRD should exist")
-//	})
-//})
-//
-//var _ = Describe("Custom Resource Definition for models", func() {
-//	It("verrazzanomodels.verrazzano.io exists", func() {
-//		Expect(k8s.DoesCRDExist("verrazzanomodels.verrazzano.io")).To(BeTrue(),
-//			"The verrazzanomodels.verrazzano.io CRD should exist")
-//	})
-//})
-//
-//var _ = Describe("Custom Resource Definition for bindings", func() {
-//	It("verrazzanobindings.verrazzano.io exists", func() {
-//		Expect(k8s.DoesCRDExist("verrazzanobindings.verrazzano.io")).To(BeTrue(),
-//			"The verrazzanobindings.verrazzano.io CRD should exist")
-//	})
-//})
 
-var fewSeconds = 2 * time.Second
+var _ = Describe("Custom Resource Definition for clusters", func() {
+	It("verrazzanomanagedclusters.verrazzano.io exists", func() {
+		Expect(K8sClient.DoesCRDExist("verrazzanomanagedclusters.verrazzano.io")).To(BeTrue(),
+			"The verrazzanomanagedclusters.verrazzano.io CRD should exist")
+	})
+})
+
+var _ = Describe("Custom Resource Definition for models", func() {
+	It("verrazzanomodels.verrazzano.io exists", func() {
+		Expect(K8sClient.DoesCRDExist("verrazzanomodels.verrazzano.io")).To(BeTrue(),
+			"The verrazzanomodels.verrazzano.io CRD should exist")
+	})
+})
+
+var _ = Describe("Custom Resource Definition for bindings", func() {
+	It("verrazzanobindings.verrazzano.io exists", func() {
+		Expect(K8sClient.DoesCRDExist("verrazzanobindings.verrazzano.io")).To(BeTrue(),
+			"The verrazzanobindings.verrazzano.io CRD should exist")
+	})
+})
+
+var _ = Describe("Resources in verrazzano-system", func() {
+	It("verrazzano-operator pod should exist", func() {
+		Expect(K8sClient.DoesPodExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
+			"The verrazzano operator doesn't exist")
+	})
+})
 
 var _ = Describe("Testing generic app model/binding lifecycle", func() {
-	It("applying generic application model", func() {
+	It("apply model should result in a vm in default namespace", func() {
 		_, stderr := util.RunCommand("kubectl apply -f testdata/gen-model.yaml")
 		Expect(stderr).To(Equal(""))
-		Eventually(vzK8sClient.DoesModelExist("genapp"),fewSeconds).Should(BeTrue())
+		Eventually(genAppModelExists,fewSeconds).Should(BeTrue())
 	})
-	It("applying generic application binding", func() {
+	It("apply binding should result in a vb in default namespace", func() {
 		_, stderr := util.RunCommand("kubectl apply -f testdata/gen-binding.yaml")
 		Expect(stderr).To(Equal(""))
-		Eventually(vzK8sClient.DoesBindingExist("genapp"),fewSeconds).Should(BeTrue())
+		Eventually(genAppBindingExists,fewSeconds).Should(BeTrue())
+	})
+	It("genapp namespace should exist", func() {
+		Eventually(genAppNsExists,nsWait).Should(BeTrue())
+	})
+	It("genapp VMI should exist ", func() {
+		Eventually(genAppVmiExists,vmiWait).Should(BeTrue())
 	})
 	It("deleting generic application binding", func() {
 		_, stderr := util.RunCommand("kubectl delete -f testdata/gen-binding.yaml")
 		Expect(stderr).To(Equal(""))
-		Eventually(vzK8sClient.DoesBindingExist("genapp"),fewSeconds).Should(BeFalse())
+		Eventually(genAppBindingExists,fewSeconds).Should(BeFalse())
 	})
 	It("deleting generic application model", func() {
 		_, stderr := util.RunCommand("kubectl delete -f testdata/gen-model.yaml")
 		Expect(stderr).To(Equal(""))
-		Eventually(vzK8sClient.DoesModelExist("genapp"),fewSeconds).Should(BeFalse())
+		Eventually(genAppModelExists,fewSeconds).Should(BeFalse())
 	})
 })
+
+// Helper functions
+func genAppModelExists() bool {
+	return K8sClient.DoesModelExist("genapp")
+}
+func genAppBindingExists() bool {
+	return K8sClient.DoesBindingExist("genapp")
+}
+func genAppNsExists() bool {
+	return K8sClient.DoesNamespaceExist("genapp")
+}
+func genAppVmiExists() bool {
+	return K8sClient.DoesVmiExist("genapp")
+}

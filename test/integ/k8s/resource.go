@@ -5,55 +5,18 @@ package k8s
 
 import (
 	"context"
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
-	"github.com/verrazzano/verrazzano-operator/test/integ/util"
 	"io/ioutil"
-	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
+
 	"path/filepath"
 	"sigs.k8s.io/yaml"
 	"strings"
 )
 
-func IsPodRunning(name string, namespace string) bool {
-	GinkgoWriter.Write([]byte("[DEBUG] checking if there is a running pod named " + name + "* in namespace " + namespace + "\n"))
-	clientset := GetClientSet()
-	pods, err := clientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		Fail("Could not get list of pods")
-	}
-	for i := range pods.Items {
-		if strings.HasPrefix(pods.Items[i].Name, name) {
-			conditions := pods.Items[i].Status.Conditions
-			for j := range conditions {
-				if conditions[j].Type == "Ready" {
-					if conditions[j].Status == "True" {
-						return true
-					}
-				}
-			}
-		}
-	}
-	return false
-}
-
-func DoesCRDExist(crdName string) bool {
-	kubeconfig := util.GetKubeconfig()
-
-	// use the current context in the kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		Fail("Could not get current context from kubeconfig " + kubeconfig)
-	}
-
-	apixClient, err := apixv1beta1client.NewForConfig(config)
-	if err != nil {
-		Fail("Could not get apix client")
-	}
-
-	crds, err := apixClient.CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
+func (c K8sClient) DoesCRDExist(crdName string) bool {
+	crds, err := c.apixClient.CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		Fail("Failed to get list of CustomResourceDefinitions")
 	}
@@ -67,23 +30,24 @@ func DoesCRDExist(crdName string) bool {
 	return false
 }
 
-func GetClientSet() *kubernetes.Clientset {
-	kubeconfig := util.GetKubeconfig()
-
-	// use the current context in the kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		Fail("Could not get current context from kubeconfig " + kubeconfig)
-	}
-
-	// create the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		Fail("Could not get clientset from config")
-	}
-
-	return clientset
+func (c K8sClient) DoesNamespaceExist(name string) bool {
+	_, err := c.clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
+	return err == nil
 }
+
+func (c K8sClient) DoesPodExist(name string, namespace string) bool {
+	pods, err := c.clientset.CoreV1().Pods(namespace).List(context.TODO(),metav1.ListOptions{})
+	if err != nil {
+		ginkgo.Fail("Could not get list of pods" + err.Error())
+	}
+	for i := range pods.Items {
+		if strings.HasPrefix(pods.Items[i].Name, name) {
+			return true
+		}
+	}
+	return false
+}
+
 
 // WriteYmal writes/marshalls the obj to a yaml file.
 func WriteYmal(path string, obj interface{}) (string, error) {
