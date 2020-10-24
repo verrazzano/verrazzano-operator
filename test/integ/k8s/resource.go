@@ -72,13 +72,37 @@ func (c K8sClient) DoesSecretExist(name string, namespace string) bool {
 	return false
 }
 
-func (c K8sClient) DoesDeployementExist(name string, namespace string) bool {
+func (c K8sClient) DoesDaemonsetExist(name string, namespace string) bool {
+	_, err := c.clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err == nil {
+		return true
+	}
+	if !errors.IsNotFound(err) {
+		Fail("Failed calling API to get DaemonSets")
+	}
+	return false
+}
+
+func (c K8sClient) DoesDeploymentExist(name string, namespace string) bool {
 	_, err := c.clientset.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err == nil {
 		return true
 	}
 	if !errors.IsNotFound(err) {
 		Fail("Failed calling API to get Deployments")
+	}
+	return false
+}
+
+func (c K8sClient) DoesPodExist(name string, namespace string) bool {
+	pods, err := c.clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Fail("Could not get list of pods" + err.Error())
+	}
+	for i := range pods.Items {
+		if strings.HasPrefix(pods.Items[i].Name, name) {
+			return true
+		}
 	}
 	return false
 }
@@ -101,19 +125,6 @@ func (c K8sClient) DoesServiceAccountExist(name string, namespace string) bool {
 	}
 	if !errors.IsNotFound(err) {
 		Fail("Failed calling API to get ServiceAccounts")
-	}
-	return false
-}
-
-func (c K8sClient) DoesPodExist(name string, namespace string) bool {
-	pods, err := c.clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		Fail("Could not get list of pods" + err.Error())
-	}
-	for i := range pods.Items {
-		if strings.HasPrefix(pods.Items[i].Name, name) {
-			return true
-		}
 	}
 	return false
 }

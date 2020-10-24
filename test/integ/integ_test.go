@@ -12,13 +12,20 @@ import (
 	"time"
 )
 
+const filebeat = "filebeat"
+const journalbeat = "journalbeat"
 const genapp = "genapp"
+const logging = "logging"
+const monitoring = "monitoring"
+const nodeExporter = "node-exporter"
+const promPusherSystem = "prom-pusher-system"
 const verrazzano = "verrazzano"
 const verrazzanoOperator = "verrazzano-operator"
 const verrazzanoSystem = "verrazzano-system"
 
 var fewSeconds = 2 * time.Second
 var tenSeconds = 10 * time.Second
+var thirtySeconds = 30 * time.Second
 var oneMinute = 60 * time.Second
 var K8sClient k8s.K8sClient
 
@@ -31,20 +38,6 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-})
-
-var _ = Describe("Verrazzano cluster roles for verrazzano operator", func() {
-	It("is deployed", func() {
-		Expect(K8sClient.DoesClusterRoleExist(verrazzanoOperator)).To(BeTrue(),
-			"The verrazzano-operator cluster rol should exist")
-	})
-})
-
-var _ = Describe("Verrazzano cluster roles binding for verrazzano operator", func() {
-	It("is deployed", func() {
-		Expect(K8sClient.DoesClusterRoleBindingExist(verrazzanoOperator)).To(BeTrue(),
-			"The verrazzano-operator cluster role binding should exist")
-	})
 })
 
 var _ = Describe("Custom Resource Definition for clusters", func() {
@@ -68,38 +61,78 @@ var _ = Describe("Custom Resource Definition for bindings", func() {
 	})
 })
 
-var _ = Describe("Secret for verrazzano operator", func() {
-	It("exists", func() {
+var _ = Describe("Verrazzano cluster roles for verrazzano operator", func() {
+	It("is deployed", func() {
+		Expect(K8sClient.DoesClusterRoleExist(verrazzanoOperator)).To(BeTrue(),
+			"The verrazzano-operator cluster rol should exist")
+	})
+})
+
+var _ = Describe("Verrazzano cluster roles binding for verrazzano operator", func() {
+	It("is deployed", func() {
+		Expect(K8sClient.DoesClusterRoleBindingExist(verrazzanoOperator)).To(BeTrue(),
+			"The verrazzano-operator cluster role binding should exist")
+	})
+})
+
+var _ = Describe("Verrazzano namespace resources ", func() {
+	It(fmt.Sprintf("Namespace %s exists", verrazzanoSystem), func() {
+		Expect(K8sClient.DoesNamespaceExist(verrazzanoSystem)).To(BeTrue(),
+			"The namespace should exist")
+	})
+	It(fmt.Sprintf("Secret %s exists", verrazzano), func() {
 		Expect(K8sClient.DoesSecretExist(verrazzano, verrazzanoSystem)).To(BeTrue(),
 			"The verrazzano operator secret should exist")
 	})
-})
-
-var _ = Describe("Service account for verrazzano operator", func() {
-	It("exists", func() {
+	It(fmt.Sprintf("ServiceAccount %s exists", verrazzanoOperator), func() {
 		Expect(K8sClient.DoesServiceAccountExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
 			"The verrazzano operator service account should exist")
 	})
-})
-
-var _ = Describe("Service for verrazzano operator", func() {
-	It("exists", func() {
+	It(fmt.Sprintf("Service %s exists", verrazzanoOperator), func() {
 		Expect(K8sClient.DoesServiceExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
 			"The verrazzano operator service should exist")
 	})
-})
-
-var _ = Describe("Deployment in verrazzano-system", func() {
-	It("verrazzano-operator deployment should exist", func() {
-		Expect(K8sClient.DoesDeployementExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
+	It(fmt.Sprintf("Deployment %s exists", verrazzanoOperator), func() {
+		Expect(K8sClient.DoesDeploymentExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
 			"The verrazzano operator doesn't doesn't exist")
+	})
+	It(fmt.Sprintf("Pod prefixed by %s exists", verrazzanoOperator), func() {
+		Expect(K8sClient.DoesPodExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
+			"The verrazzano operator pod doesn't exist")
+	})
+	It("Logging namespace should exist ", func() {
+		Eventually(loggingNamespaceExists, tenSeconds).Should(BeTrue())
+	})
+	It("Filebeat pod should exist ", func() {
+		Eventually(filebeatPodExists, oneMinute).Should(BeTrue())
+	})
+	It("Jounalbeat pod should exist ", func() {
+		Eventually(journalbeatPodExists, oneMinute).Should(BeTrue())
+	})
+	It("Monitoring namespace should exist ", func() {
+		Eventually(monitoringNamespaceExists, tenSeconds).Should(BeTrue())
+	})
+	It("Node exporter service should exist ", func() {
+		Eventually(nodeExporterServiceExists, tenSeconds).Should(BeTrue())
+	})
+	It("Node exporter pod should exist ", func() {
+		Eventually(nodeExporterPodExists, oneMinute).Should(BeTrue())
+	})
+	It("Node exporter daemonset should exist ", func() {
+		Eventually(nodeExporterDaemonExists, tenSeconds).Should(BeTrue())
+	})
+	It("Prom pusher deployment should exist ", func() {
+		Eventually(promPusherDeploymentExists, tenSeconds).Should(BeTrue())
+	})
+	It("Prom pusher pod should exist ", func() {
+		Eventually(promPusherPodExists, oneMinute).Should(BeTrue())
 	})
 })
 
-var _ = Describe("Pod in verrazzano-system", func() {
-	It("verrazzano-operator pod should exist", func() {
-		Expect(K8sClient.DoesPodExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
-			"The verrazzano operator pod doesn't exist")
+var _ = Describe("Logging namespace resources ", func() {
+	It(logging + " exists", func() {
+		Expect(K8sClient.DoesNamespaceExist(logging)).To(BeTrue(),
+			"The namespace should exist")
 	})
 })
 
@@ -121,10 +154,10 @@ var _ = Describe("Testing generic app model/binding lifecycle", func() {
 		Eventually(genAppVmiExists, tenSeconds).Should(BeTrue())
 	})
 	It("genapp deployment should exist ", func() {
-		Eventually(genAppDeploymentExists(), tenSeconds).Should(BeTrue())
+		Eventually(genAppDeploymentExists, tenSeconds).Should(BeTrue())
 	})
 	It("genapp pod should exist ", func() {
-		Eventually(genAppPodExists(), oneMinute).Should(BeTrue())
+		Eventually(genAppPodExists, oneMinute).Should(BeTrue())
 	})
 	It("deleting generic application binding", func() {
 		_, stderr := util.RunCommand("kubectl delete -f testdata/gen-binding.yaml")
@@ -152,8 +185,38 @@ func genAppVmiExists() bool {
 	return K8sClient.DoesVmiExist(genapp)
 }
 func genAppDeploymentExists() bool {
-	return K8sClient.DoesDeployementExist(genapp,genapp)
+	return K8sClient.DoesDeploymentExist(genapp,genapp)
 }
 func genAppPodExists() bool {
 	return K8sClient.DoesPodExist(genapp,genapp)
 }
+
+func loggingNamespaceExists() bool {
+	return K8sClient.DoesNamespaceExist(logging)
+}
+func filebeatPodExists() bool {
+	return K8sClient.DoesPodExist(filebeat,logging)
+}
+func journalbeatPodExists() bool {
+	return K8sClient.DoesPodExist(journalbeat,logging)
+}
+
+func monitoringNamespaceExists() bool {
+	return K8sClient.DoesNamespaceExist(monitoring)
+}
+func nodeExporterServiceExists() bool {
+	return K8sClient.DoesServiceExist(nodeExporter,monitoring)
+}
+func nodeExporterPodExists() bool {
+	return K8sClient.DoesPodExist(nodeExporter,monitoring)
+}
+func nodeExporterDaemonExists() bool {
+	return K8sClient.DoesDaemonsetExist(nodeExporter,monitoring)
+}
+func promPusherDeploymentExists() bool {
+	return K8sClient.DoesDeploymentExist(promPusherSystem,monitoring)
+}
+func promPusherPodExists() bool {
+	return K8sClient.DoesPodExist(promPusherSystem,monitoring)
+}
+
