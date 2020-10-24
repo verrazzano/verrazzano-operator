@@ -19,6 +19,8 @@ const logging = "logging"
 const monitoring = "monitoring"
 const nodeExporter = "node-exporter"
 const promPusherSystem = "prom-pusher-system"
+const promPusherGenapp = "prom-pusher-genapp"
+const system = "system"
 const verrazzano = "verrazzano"
 const verrazzanoOperator = "verrazzano-operator"
 const verrazzanoSystem = "verrazzano-system"
@@ -100,11 +102,20 @@ var _ = Describe("Verrazzano namespace resources ", func() {
 		Expect(K8sClient.DoesPodExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
 			"The verrazzano operator pod doesn't exist")
 	})
+	It("VMI should exist ", func() {
+		Eventually(vmiExists, tenSeconds).Should(BeTrue())
+	})
 	It("Logging namespace should exist ", func() {
 		Eventually(loggingNamespaceExists, tenSeconds).Should(BeTrue())
 	})
+	It("Filebeat daemonset should exist ", func() {
+		Eventually(filebeatDaemonsetExists, tenSeconds).Should(BeTrue())
+	})
 	It("Filebeat pod should exist ", func() {
 		Eventually(filebeatPodExists, oneMinute).Should(BeTrue())
+	})
+	It("Jounalbeat daemonset should exist ", func() {
+		Eventually(journalbeatDaemonsetExists, tenSeconds).Should(BeTrue())
 	})
 	It("Jounalbeat pod should exist ", func() {
 		Eventually(journalbeatPodExists, oneMinute).Should(BeTrue())
@@ -130,7 +141,7 @@ var _ = Describe("Verrazzano namespace resources ", func() {
 })
 
 var _ = Describe("Logging namespace resources ", func() {
-	It(logging + " exists", func() {
+	It(logging+" exists", func() {
 		Expect(K8sClient.DoesNamespaceExist(logging)).To(BeTrue(),
 			"The namespace should exist")
 	})
@@ -159,6 +170,12 @@ var _ = Describe("Testing generic app model/binding lifecycle", func() {
 	It("genapp pod should exist ", func() {
 		Eventually(genAppPodExists, oneMinute).Should(BeTrue())
 	})
+	It("genapp prom pusher deployment should exist ", func() {
+		Eventually(genappPromPusherDeploymentExists, tenSeconds).Should(BeTrue())
+	})
+	It("genapp prom pusher pod should exist ", func() {
+		Eventually(genappPromPusherPodExists, oneMinute).Should(BeTrue())
+	})
 	It("deleting generic application binding", func() {
 		_, stderr := util.RunCommand("kubectl delete -f testdata/gen-binding.yaml")
 		Expect(stderr).To(Equal(""))
@@ -172,6 +189,43 @@ var _ = Describe("Testing generic app model/binding lifecycle", func() {
 })
 
 // Helper functions
+func loggingNamespaceExists() bool {
+	return K8sClient.DoesNamespaceExist(logging)
+}
+func filebeatPodExists() bool {
+	return K8sClient.DoesPodExist(filebeat, logging)
+}
+func filebeatDaemonsetExists() bool {
+	return K8sClient.DoesDaemonsetExist(filebeat, logging)
+}
+func journalbeatPodExists() bool {
+	return K8sClient.DoesPodExist(journalbeat, logging)
+}
+func journalbeatDaemonsetExists() bool {
+	return K8sClient.DoesDaemonsetExist(journalbeat, logging)
+}
+func monitoringNamespaceExists() bool {
+	return K8sClient.DoesNamespaceExist(monitoring)
+}
+func nodeExporterServiceExists() bool {
+	return K8sClient.DoesServiceExist(nodeExporter, monitoring)
+}
+func nodeExporterPodExists() bool {
+	return K8sClient.DoesPodExist(nodeExporter, monitoring)
+}
+func nodeExporterDaemonExists() bool {
+	return K8sClient.DoesDaemonsetExist(nodeExporter, monitoring)
+}
+func promPusherDeploymentExists() bool {
+	return K8sClient.DoesDeploymentExist(promPusherSystem, monitoring)
+}
+func promPusherPodExists() bool {
+	return K8sClient.DoesPodExist(promPusherSystem, monitoring)
+}
+func vmiExists() bool {
+	return K8sClient.DoesVmiExist(system)
+}
+
 func genAppModelExists() bool {
 	return K8sClient.DoesModelExist(genapp)
 }
@@ -185,38 +239,14 @@ func genAppVmiExists() bool {
 	return K8sClient.DoesVmiExist(genapp)
 }
 func genAppDeploymentExists() bool {
-	return K8sClient.DoesDeploymentExist(genapp,genapp)
+	return K8sClient.DoesDeploymentExist(genapp, genapp)
 }
 func genAppPodExists() bool {
-	return K8sClient.DoesPodExist(genapp,genapp)
+	return K8sClient.DoesPodExist(genapp, genapp)
 }
-
-func loggingNamespaceExists() bool {
-	return K8sClient.DoesNamespaceExist(logging)
+func genappPromPusherDeploymentExists() bool {
+	return K8sClient.DoesDeploymentExist(promPusherGenapp, monitoring)
 }
-func filebeatPodExists() bool {
-	return K8sClient.DoesPodExist(filebeat,logging)
+func genappPromPusherPodExists() bool {
+	return K8sClient.DoesPodExist(promPusherGenapp, monitoring)
 }
-func journalbeatPodExists() bool {
-	return K8sClient.DoesPodExist(journalbeat,logging)
-}
-
-func monitoringNamespaceExists() bool {
-	return K8sClient.DoesNamespaceExist(monitoring)
-}
-func nodeExporterServiceExists() bool {
-	return K8sClient.DoesServiceExist(nodeExporter,monitoring)
-}
-func nodeExporterPodExists() bool {
-	return K8sClient.DoesPodExist(nodeExporter,monitoring)
-}
-func nodeExporterDaemonExists() bool {
-	return K8sClient.DoesDaemonsetExist(nodeExporter,monitoring)
-}
-func promPusherDeploymentExists() bool {
-	return K8sClient.DoesDeploymentExist(promPusherSystem,monitoring)
-}
-func promPusherPodExists() bool {
-	return K8sClient.DoesPodExist(promPusherSystem,monitoring)
-}
-

@@ -6,12 +6,8 @@ package k8s
 import (
 	"context"
 	. "github.com/onsi/ginkgo"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"path/filepath"
-	"sigs.k8s.io/yaml"
 	"strings"
 )
 
@@ -30,68 +26,32 @@ func (c K8sClient) DoesCRDExist(crdName string) bool {
 
 func (c K8sClient) DoesClusterRoleExist(name string) bool {
 	_, err := c.clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
-	if err == nil {
-		return true
-	}
-	if !errors.IsNotFound(err) {
-		Fail("Failed calling API to get ClusterRole")
-	}
-	return false
+	return procExistsStatus(err, "ClusterRole")
 }
 
 func (c K8sClient) DoesClusterRoleBindingExist(name string) bool {
 	_, err := c.clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
-	if err == nil {
-		return true
-	}
-	if !errors.IsNotFound(err) {
-		Fail("Failed calling API to get ClusterRoleBinding")
-	}
-	return false
+	return procExistsStatus(err, "ClusterRoleBinding")
 }
 
 func (c K8sClient) DoesNamespaceExist(name string) bool {
 	_, err := c.clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
-	if err == nil {
-		return true
-	}
-	if !errors.IsNotFound(err) {
-		Fail("Failed calling API to get Namespaces")
-	}
-	return false
+	return procExistsStatus(err, "Namespaces")
 }
 
 func (c K8sClient) DoesSecretExist(name string, namespace string) bool {
 	_, err := c.clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err == nil {
-		return true
-	}
-	if !errors.IsNotFound(err) {
-		Fail("Failed calling API to get Secrets")
-	}
-	return false
+	return procExistsStatus(err, "Secrets")
 }
 
 func (c K8sClient) DoesDaemonsetExist(name string, namespace string) bool {
 	_, err := c.clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err == nil {
-		return true
-	}
-	if !errors.IsNotFound(err) {
-		Fail("Failed calling API to get DaemonSets")
-	}
-	return false
+	return procExistsStatus(err, "DaemonSets")
 }
 
 func (c K8sClient) DoesDeploymentExist(name string, namespace string) bool {
 	_, err := c.clientset.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err == nil {
-		return true
-	}
-	if !errors.IsNotFound(err) {
-		Fail("Failed calling API to get Deployments")
-	}
-	return false
+	return procExistsStatus(err, "Deployments")
 }
 
 func (c K8sClient) DoesPodExist(name string, namespace string) bool {
@@ -109,38 +69,20 @@ func (c K8sClient) DoesPodExist(name string, namespace string) bool {
 
 func (c K8sClient) DoesServiceExist(name string, namespace string) bool {
 	_, err := c.clientset.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err == nil {
-		return true
-	}
-	if !errors.IsNotFound(err) {
-		Fail("Failed calling API to get Services")
-	}
-	return false
+	return procExistsStatus(err, "Services")
 }
 
 func (c K8sClient) DoesServiceAccountExist(name string, namespace string) bool {
 	_, err := c.clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	return procExistsStatus(err, "ServiceAccounts")
+}
+
+func procExistsStatus(err error, msg string) bool {
 	if err == nil {
 		return true
 	}
 	if !errors.IsNotFound(err) {
-		Fail("Failed calling API to get ServiceAccounts")
+		Fail("Failed calling API to get " + msg)
 	}
 	return false
-}
-
-// WriteYmal writes/marshalls the obj to a yaml file.
-func WriteYmal(path string, obj interface{}) (string, error) {
-	fileout, _ := filepath.Abs(path)
-	bytes, err := ToYmal(obj)
-	if err != nil {
-		return "", err
-	}
-	err = ioutil.WriteFile(fileout, bytes, 0644)
-	return fileout, err
-}
-
-// ToYmal marshalls the obj to a yaml
-func ToYmal(obj interface{}) ([]byte, error) {
-	return yaml.Marshal(obj)
 }
