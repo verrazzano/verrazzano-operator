@@ -6,9 +6,9 @@ package k8s
 import (
 	vzclient "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
 	vmiclient "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
+	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 
 	"github.com/verrazzano/verrazzano-operator/test/integ/util"
-	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
