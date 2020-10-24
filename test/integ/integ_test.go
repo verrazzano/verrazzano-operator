@@ -77,7 +77,7 @@ var _ = Describe("Verrazzano cluster roles binding for verrazzano operator", fun
 	})
 })
 
-var _ = Describe("Verrazzano namespace resources ", func() {
+var _ = Describe("verrazzano-system namespace resources ", func() {
 	It(fmt.Sprintf("Namespace %s exists", verrazzanoSystem), func() {
 		Expect(K8sClient.DoesNamespaceExist(verrazzanoSystem)).To(BeTrue(),
 			"The namespace should exist")
@@ -105,8 +105,11 @@ var _ = Describe("Verrazzano namespace resources ", func() {
 	It("VMI should exist ", func() {
 		Eventually(vmiExists, tenSeconds).Should(BeTrue())
 	})
-	It("Logging namespace should exist ", func() {
-		Eventually(loggingNamespaceExists, tenSeconds).Should(BeTrue())
+})
+
+var _ = Describe("logging namespace resources ", func() {
+	It("logging namespace should exist ", func() {
+		Eventually(loggingNamespaceExists, oneMinute).Should(BeTrue())
 	})
 	It("Filebeat daemonset should exist ", func() {
 		Eventually(filebeatDaemonsetExists, tenSeconds).Should(BeTrue())
@@ -120,8 +123,11 @@ var _ = Describe("Verrazzano namespace resources ", func() {
 	It("Jounalbeat pod should exist ", func() {
 		Eventually(journalbeatPodExists, oneMinute).Should(BeTrue())
 	})
-	It("Monitoring namespace should exist ", func() {
-		Eventually(monitoringNamespaceExists, tenSeconds).Should(BeTrue())
+})
+
+var _ = Describe("lonitoring namespace resources ", func() {
+	It("monitoring namespace should exist ", func() {
+		Eventually(monitoringNamespaceExists, oneMinute).Should(BeTrue())
 	})
 	It("Node exporter service should exist ", func() {
 		Eventually(nodeExporterServiceExists, tenSeconds).Should(BeTrue())
@@ -137,13 +143,6 @@ var _ = Describe("Verrazzano namespace resources ", func() {
 	})
 	It("Prom pusher pod should exist ", func() {
 		Eventually(promPusherPodExists, oneMinute).Should(BeTrue())
-	})
-})
-
-var _ = Describe("Logging namespace resources ", func() {
-	It(logging+" exists", func() {
-		Expect(K8sClient.DoesNamespaceExist(logging)).To(BeTrue(),
-			"The namespace should exist")
 	})
 })
 
