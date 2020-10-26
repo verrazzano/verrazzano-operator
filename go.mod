@@ -16,8 +16,8 @@ require (
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20200925113618-cc189235ad3d
 	github.com/verrazzano/verrazzano-wko-operator v0.0.0-20201005195304-9238fa0e1f4a
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
+	golang.org/x/tools v0.0.0-20201023174141-c8cfbd0f21e6 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.2.8
 	istio.io/api v0.0.0-20200629210345-933b83065c19

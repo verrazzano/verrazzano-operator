@@ -11,18 +11,18 @@ import (
 	"strings"
 	"sync"
 
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo"
 )
 
 // RunCommand runs an external process, captures the stdout
 // and stderr, as well as streaming them to the real output
 // streams in real time
 func RunCommand(commandLine string) (string, string) {
-	GinkgoWriter.Write([]byte("[DEBUG] RunCommand: " + commandLine + "\n"))
+	ginkgo.GinkgoWriter.Write([]byte("[DEBUG] RunCommand: " + commandLine + "\n"))
 	parts := strings.Split(commandLine, " ")
 	var cmd *exec.Cmd
 	if len(parts) < 1 {
-		Fail("No command provided")
+		ginkgo.Fail("No command provided")
 	} else if len(parts) == 1 {
 		cmd = exec.Command(parts[0], "")
 	} else {
@@ -37,7 +37,7 @@ func RunCommand(commandLine string) (string, string) {
 	stderr := io.MultiWriter(os.Stderr, &stderrBuf)
 	err := cmd.Start()
 	if err != nil {
-		Fail("cmd.Start() failed with " + err.Error())
+		ginkgo.Fail("cmd.Start() failed with " + err.Error())
 	}
 
 	var wg sync.WaitGroup
@@ -53,7 +53,7 @@ func RunCommand(commandLine string) (string, string) {
 
 	cmd.Wait()
 	if errStdout != nil || errStderr != nil {
-		Fail("failed to capture stdout or stderr")
+		ginkgo.Fail("failed to capture stdout or stderr")
 	}
 	outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
 	return outStr, errStr

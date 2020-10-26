@@ -4,17 +4,18 @@
 package util
 
 import (
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo"
 	"os"
 	"path/filepath"
 )
 
+// GetKubeconfig returns the KubeConfig in string format
 func GetKubeconfig() string {
 	var kubeconfig string
 	if home := homeDir(); home != "" {
 		kubeconfig = filepath.Join(home, ".kube", "config")
 	} else {
-		Fail("Could not get kubeconfig")
+		ginkgo.Fail("Could not get kubeconfig")
 	}
 	return kubeconfig
 }

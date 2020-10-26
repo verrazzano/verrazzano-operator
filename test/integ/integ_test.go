@@ -29,11 +29,11 @@ var fewSeconds = 2 * time.Second
 var tenSeconds = 10 * time.Second
 var thirtySeconds = 30 * time.Second
 var oneMinute = 60 * time.Second
-var K8sClient k8s.K8sClient
+var K8sClient k8s.Client
 
 var _ = BeforeSuite(func() {
 	var err error
-	K8sClient, err = k8s.NewK8sClient()
+	K8sClient, err = k8s.NewClient()
 	if err != nil {
 		Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
 	}

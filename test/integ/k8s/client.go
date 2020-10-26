@@ -13,7 +13,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-type K8sClient struct {
+// Client to access the Kubernetes API objects needed for the integration test
+type Client struct {
 	// Client to access the Kubernetes API
 	clientset *kubernetes.Clientset
 
@@ -27,45 +28,44 @@ type K8sClient struct {
 	vmiClient *vmiclient.Clientset
 }
 
-// Get a new client that calls the Kubernetes API server to access the Verrazzano API Objects
-func NewK8sClient() (K8sClient, error) {
+// NewClient gets a new client that calls the Kubernetes API server to access the Verrazzano API Objects
+func NewClient() (Client, error) {
 	kubeconfig := util.GetKubeconfig()
 
 	// use the current context in the kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		return K8sClient{}, err
+		return Client{}, err
 	}
 
 	// Client to access the Kubernetes API
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return K8sClient{}, err
+		return Client{}, err
 	}
 
 	// Client to access the Kubernetes API for extensions
 	apixcli, err := apixv1beta1client.NewForConfig(config)
 	if err != nil {
-		return K8sClient{}, err
+		return Client{}, err
 	}
 
 	// Client to access Kubernetes API for Verrazzano objects
 	vzcli, err := vzclient.NewForConfig(config)
 	if err != nil {
-		return K8sClient{}, err
+		return Client{}, err
 	}
 
 	// Client to access Kubernetes API for Verrazzano VMI objects
 	vmicli, err := vmiclient.NewForConfig(config)
 	if err != nil {
-		return K8sClient{}, err
+		return Client{}, err
 	}
 
-	return K8sClient{
-		clientset: clientset,
+	return Client{
+		clientset:  clientset,
 		apixClient: apixcli,
-		vmiClient: vmicli,
-		vzClient: vzcli,
+		vmiClient:  vmicli,
+		vzClient:   vzcli,
 	}, err
 }
-

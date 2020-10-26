@@ -5,25 +5,23 @@ package k8s
 
 import (
 	"context"
-	vzclient "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type VerrazzanoK8sClient struct {
-	client *vzclient.Clientset
-}
-
-func (c K8sClient) DoesModelExist(name string) bool {
+// DoesModelExist returns true if the given VerrazzanoModel exists
+func (c Client) DoesModelExist(name string) bool {
 	_, err := c.vzClient.VerrazzanoV1beta1().VerrazzanoModels("default").Get(context.TODO(), name, metav1.GetOptions{})
 	return procExistsStatus(err, "VerrazzanoModels")
 }
 
-func (c K8sClient) DoesBindingExist(name string) bool {
+// DoesBindingExist returns true if the given VerrazzanoBinding exists
+func (c Client) DoesBindingExist(name string) bool {
 	_, err := c.vzClient.VerrazzanoV1beta1().VerrazzanoBindings("default").Get(context.TODO(), name, metav1.GetOptions{})
 	return procExistsStatus(err, "VerrazzanoBindings")
 }
 
-func (c K8sClient) DoesVmiExist(name string) bool {
+// DoesVmiExist returns true if the given VerrazzanoMonitoringInstance exists
+func (c Client) DoesVmiExist(name string) bool {
 	_, err := c.vmiClient.VerrazzanoV1().VerrazzanoMonitoringInstances("verrazzano-system").Get(context.TODO(), name, metav1.GetOptions{})
 	return procExistsStatus(err, "VerrazzanoMonitoringInstances")
 }
