@@ -25,7 +25,12 @@ func NewDeployment(generic v1beta1v8o.VerrazzanoGenericComponent, bindingName st
 	annotations := make(map[string]string)
 	annotations["prometheus.io/scrape"] = "true"
 	annotations["prometheus.io/port"] = fmt.Sprint(targetPort)
-	annotations["prometheus.io/path"] = "/actuator/prometheus"
+	// if metrics endpoint is valued, use it otherwise default to /metrics
+	if generic.Metrics.Endpoint != "" {
+		annotations["prometheus.io/path"] = generic.Metrics.Endpoint
+	} else {
+		annotations["prometheus.io/path"] = "/metrics"
+	}
 
 	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
