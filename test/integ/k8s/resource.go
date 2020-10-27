@@ -40,25 +40,25 @@ func (c Client) DoesClusterRoleBindingExist(name string) bool {
 // DoesNamespaceExist returns true if the given Namespace exists
 func (c Client) DoesNamespaceExist(name string) bool {
 	_, err := c.clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
-	return procExistsStatus(err, "Namespaces")
+	return procExistsStatus(err, "Namespace")
 }
 
 // DoesSecretExist returns true if the given Secret exists
 func (c Client) DoesSecretExist(name string, namespace string) bool {
 	_, err := c.clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	return procExistsStatus(err, "Secrets")
+	return procExistsStatus(err, "Secret")
 }
 
 // DoesDaemonsetExist returns true if the given DaemonSet exists
 func (c Client) DoesDaemonsetExist(name string, namespace string) bool {
 	_, err := c.clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	return procExistsStatus(err, "DaemonSets")
+	return procExistsStatus(err, "DaemonSet")
 }
 
 // DoesDeploymentExist returns true if the given Deployment exists
 func (c Client) DoesDeploymentExist(name string, namespace string) bool {
 	_, err := c.clientset.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	return procExistsStatus(err, "Deployments")
+	return procExistsStatus(err, "Deployment")
 }
 
 // DoesPodExist returns true if a Pod with the given prefix exists
@@ -78,13 +78,13 @@ func (c Client) DoesPodExist(name string, namespace string) bool {
 // DoesServiceExist returns true if the given Service exists
 func (c Client) DoesServiceExist(name string, namespace string) bool {
 	_, err := c.clientset.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	return procExistsStatus(err, "Services")
+	return procExistsStatus(err, "Service")
 }
 
 // DoesServiceAccountExist returns true if the given ServiceAccount exists
 func (c Client) DoesServiceAccountExist(name string, namespace string) bool {
 	_, err := c.clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	return procExistsStatus(err, "ServiceAccounts")
+	return procExistsStatus(err, "ServiceAccount")
 }
 
 func procExistsStatus(err error, msg string) bool {

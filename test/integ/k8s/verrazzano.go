@@ -11,17 +11,17 @@ import (
 // DoesModelExist returns true if the given VerrazzanoModel exists
 func (c Client) DoesModelExist(name string) bool {
 	_, err := c.vzClient.VerrazzanoV1beta1().VerrazzanoModels("default").Get(context.TODO(), name, metav1.GetOptions{})
-	return procExistsStatus(err, "VerrazzanoModels")
+	return procExistsStatus(err, "VerrazzanoModel")
 }
 
 // DoesBindingExist returns true if the given VerrazzanoBinding exists
 func (c Client) DoesBindingExist(name string) bool {
 	_, err := c.vzClient.VerrazzanoV1beta1().VerrazzanoBindings("default").Get(context.TODO(), name, metav1.GetOptions{})
-	return procExistsStatus(err, "VerrazzanoBindings")
+	return procExistsStatus(err, "VerrazzanoBinding")
 }
 
 // DoesVmiExist returns true if the given VerrazzanoMonitoringInstance exists
 func (c Client) DoesVmiExist(name string) bool {
 	_, err := c.vmiClient.VerrazzanoV1().VerrazzanoMonitoringInstances("verrazzano-system").Get(context.TODO(), name, metav1.GetOptions{})
-	return procExistsStatus(err, "VerrazzanoMonitoringInstances")
+	return procExistsStatus(err, "VerrazzanoMonitoringInstance")
 }

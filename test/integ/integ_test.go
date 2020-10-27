@@ -66,7 +66,7 @@ var _ = Describe("Custom Resource Definition for bindings", func() {
 var _ = Describe("Verrazzano cluster roles for verrazzano operator", func() {
 	It("is deployed", func() {
 		Expect(K8sClient.DoesClusterRoleExist(verrazzanoOperator)).To(BeTrue(),
-			"The verrazzano-operator cluster rol should exist")
+			"The verrazzano-operator cluster role should exist")
 	})
 })
 
@@ -96,7 +96,7 @@ var _ = Describe("verrazzano-system namespace resources ", func() {
 	})
 	It(fmt.Sprintf("Deployment %s exists", verrazzanoOperator), func() {
 		Expect(K8sClient.DoesDeploymentExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
-			"The verrazzano operator doesn't doesn't exist")
+			"The verrazzano operator doesn't exist")
 	})
 	It(fmt.Sprintf("Pod prefixed by %s exists", verrazzanoOperator), func() {
 		Expect(K8sClient.DoesPodExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
@@ -107,7 +107,7 @@ var _ = Describe("verrazzano-system namespace resources ", func() {
 	})
 })
 
-var _ = Describe("logging namespace resources ", func() {
+var _ = Describe("Logging namespace resources ", func() {
 	It("logging namespace should exist ", func() {
 		Eventually(loggingNamespaceExists, oneMinute).Should(BeTrue())
 	})
@@ -125,7 +125,7 @@ var _ = Describe("logging namespace resources ", func() {
 	})
 })
 
-var _ = Describe("lonitoring namespace resources ", func() {
+var _ = Describe("Monitoring namespace resources ", func() {
 	It("monitoring namespace should exist ", func() {
 		Eventually(monitoringNamespaceExists, oneMinute).Should(BeTrue())
 	})
@@ -168,6 +168,12 @@ var _ = Describe("Testing generic app model/binding lifecycle", func() {
 	})
 	It("genapp pod should exist ", func() {
 		Eventually(genAppPodExists, oneMinute).Should(BeTrue())
+	})
+	It("genapp service should not exist ", func() {
+		// there was no container ports specified in the generic component,
+		// so no service is created
+		Expect(K8sClient.DoesServiceExist(genapp, genapp)).To(BeFalse(),
+			"The generic app service should not exist")
 	})
 	It("genapp prom pusher deployment should exist ", func() {
 		Eventually(genappPromPusherDeploymentExists, tenSeconds).Should(BeTrue())
