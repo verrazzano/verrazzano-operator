@@ -283,22 +283,22 @@ func getComponentScrapeConfigInfoList(mbPair *types.ModelBindingPair, secretList
 	hasWeblogicBinding := false
 	for _, component := range mbPair.Model.Spec.WeblogicDomains {
 		// Get the common binding info
-		componnentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, component.Name, clusterName, WeblogicName, WeblogicKeepSourceLabels,
+		componentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, component.Name, clusterName, WeblogicName, WeblogicKeepSourceLabels,
 			strings.Replace(WeblogicKeepSourceLabelsRegex, ComponentBindingNameHolder, component.Name, -1))
 		if err != nil {
 			return nil, err
 		}
 
-		if componnentBindingInfo.BindingName != "" {
+		if componentBindingInfo.BindingName != "" {
 			// Get username and password for the weblogic doamin
 			username, password, err := getWeblogicDomainCredentials(mbPair, secretLister, component.Name)
 			if err != nil {
 				return nil, err
 			}
-			componnentBindingInfo.Username = username
-			componnentBindingInfo.Password = password
+			componentBindingInfo.Username = username
+			componentBindingInfo.Password = password
 
-			scrapeConfigInfoList = append(scrapeConfigInfoList, componnentBindingInfo)
+			scrapeConfigInfoList = append(scrapeConfigInfoList, componentBindingInfo)
 			hasWeblogicBinding = true
 		}
 	}
@@ -320,24 +320,24 @@ func getComponentScrapeConfigInfoList(mbPair *types.ModelBindingPair, secretList
 	var coherenceNamespaces []string
 	for _, component := range mbPair.Model.Spec.CoherenceClusters {
 		// Get the common binding info
-		componnentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, component.Name, clusterName, CoherenceName, CoherenceKeepSourceLabels,
+		componentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, component.Name, clusterName, CoherenceName, CoherenceKeepSourceLabels,
 			strings.Replace(CoherenceKeepSourceLabelsRegex, ComponentBindingNameHolder, component.Name, -1))
 		if err != nil {
 			return nil, err
 		}
 
-		if componnentBindingInfo.BindingName != "" {
-			scrapeConfigInfoList = append(scrapeConfigInfoList, componnentBindingInfo)
+		if componentBindingInfo.BindingName != "" {
+			scrapeConfigInfoList = append(scrapeConfigInfoList, componentBindingInfo)
 
 			namespaceAlreadyExist := false
 			for _, namespace := range coherenceNamespaces {
-				if namespace == componnentBindingInfo.Namespace {
+				if namespace == componentBindingInfo.Namespace {
 					namespaceAlreadyExist = true
 					break
 				}
 			}
 			if !namespaceAlreadyExist {
-				coherenceNamespaces = append(coherenceNamespaces, componnentBindingInfo.Namespace)
+				coherenceNamespaces = append(coherenceNamespaces, componentBindingInfo.Namespace)
 			}
 		}
 	}
@@ -360,14 +360,27 @@ func getComponentScrapeConfigInfoList(mbPair *types.ModelBindingPair, secretList
 	// Get all helidon bindings info
 	for _, component := range mbPair.Model.Spec.HelidonApplications {
 		// Get the common binding info
-		componnentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, component.Name, clusterName, HelidonName, HelidonKeepSourceLabels,
+		componentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, component.Name, clusterName, HelidonName, HelidonKeepSourceLabels,
 			strings.Replace(HelidonKeepSourceLabelsRegex, ComponentBindingNameHolder, component.Name, -1))
 		if err != nil {
 			return nil, err
 		}
 
-		if componnentBindingInfo.BindingName != "" {
-			scrapeConfigInfoList = append(scrapeConfigInfoList, componnentBindingInfo)
+		if componentBindingInfo.BindingName != "" {
+			scrapeConfigInfoList = append(scrapeConfigInfoList, componentBindingInfo)
+		}
+	}
+
+	// Get all generic bindings info
+	for _, component := range mbPair.Model.Spec.GenericComponents {
+		// Get the common binding info
+		componentBindingInfo, err := getComponentScrapeConfigInfo(mbPair, component.Name, clusterName, GenericName, GenericKeepSourceLabels,
+			strings.Replace(GenericKeepSourceLabelsRegex, ComponentBindingNameHolder, component.Name, -1))
+		if err != nil {
+			return nil, err
+		}
+		if componentBindingInfo.BindingName != "" {
+			scrapeConfigInfoList = append(scrapeConfigInfoList, componentBindingInfo)
 		}
 	}
 

@@ -1156,8 +1156,10 @@ github.com/vektah/gqlparser v1.1.2 h1:ZsyLGn7/7jDNI+y4SEhI4yAxRChlv15pUHMjijT+e6
 github.com/vektah/gqlparser v1.1.2/go.mod h1:1ycwN7Ij5njmMkPPAOaRFY4rET2Enx7IkVv3vaXspKw=
 github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.0-20200921120302-d4040fa2f3c4 h1:EjTpEEjjnF2jUu8kd1jiOG9mXymqmPS8fAB3y4yOC8o=
 github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.0-20200921120302-d4040fa2f3c4/go.mod h1:rBbERv1D+QcHlf7aZVulAOjU3Rv4nHOINZhBmcrt9bg=
-github.com/verrazzano/verrazzano-crd-generator v0.0.0-20201006151822-9842cefdda24 h1:StKbXiRet7Ne9UU6CshAKRRaK+xewhZt7Le2BZYR1oI=
-github.com/verrazzano/verrazzano-crd-generator v0.0.0-20201006151822-9842cefdda24/go.mod h1:zm+FruqXAgbgq7Q+F+wA8G4lmsnN8Rv7i2aBup1+DVE=
+github.com/verrazzano/verrazzano-crd-generator v0.0.0-20201021194445-5bed3d2b8538 h1:nD12+CDwIXGEBhnriDaP0kwq+2w0jeAhV9Y2mCKsBb4=
+github.com/verrazzano/verrazzano-crd-generator v0.0.0-20201021194445-5bed3d2b8538/go.mod h1:zm+FruqXAgbgq7Q+F+wA8G4lmsnN8Rv7i2aBup1+DVE=
+github.com/verrazzano/verrazzano-crd-generator v0.0.0-20201022185955-0f25ee2b7108 h1:sXSPJm1i/LdSi6U4nYQlRrRtUdFzQA0cZS0dbgFu/V4=
+github.com/verrazzano/verrazzano-crd-generator v0.0.0-20201022185955-0f25ee2b7108/go.mod h1:zm+FruqXAgbgq7Q+F+wA8G4lmsnN8Rv7i2aBup1+DVE=
 github.com/verrazzano/verrazzano-helidon-app-operator v0.0.0-20200921121606-448c29f0ce58 h1:xE5ezbVDWPNaBgSpOpA1S6kGlKrXyHAE2AO4ws0fnfg=
 github.com/verrazzano/verrazzano-helidon-app-operator v0.0.0-20200921121606-448c29f0ce58/go.mod h1:RVTNJZZ6toH1fJmZVwlpcNXXnzG8kth0FdyPG9m9pq4=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20200925113618-cc189235ad3d h1:36dxwjrsOZ7AXJr+PBjQL+kLmxajfYp8Y7mM4HohvnA=
