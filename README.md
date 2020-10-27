@@ -102,10 +102,22 @@ make go-run
 
 ### Running Tests
 
-To run unit tests:
+To run the integration tests, you must have [Ginkgo](https://github.com/onsi/ginkgo) and 
+[Gomega](https://onsi.github.io/gomega/) installed, as follows:
 
+```bash
+$ go get github.com/onsi/ginkgo/ginkgo
+$ go get github.com/onsi/gomega/...
+```
+
+To run unit tests:
 ```
 make unit-test
+```
+
+To run integration tests:
+```
+make integ-test
 ```
 
 ## Contributing to Verrazzano
