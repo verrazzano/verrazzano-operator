@@ -192,11 +192,10 @@ func getTargetPort(generic *v1beta1v8o.VerrazzanoGenericComponent) int32 {
 
 	// Default target port value is 8080
 	var targetPort int32 = 8080
-	if len (generic.Deployment.Containers[0].Ports) > 0 {
+	if len(generic.Deployment.Containers[0].Ports) > 0 {
 		if generic.Deployment.Containers[0].Ports[0].ContainerPort != 0 {
 			targetPort = generic.Deployment.Containers[0].Ports[0].ContainerPort
 		}
 	}
-	
 	return targetPort
 }
