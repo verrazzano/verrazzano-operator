@@ -7,9 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"k8s.io/client-go/rest"
 	"time"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
+	v8omonitoring "github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -23,11 +24,11 @@ import (
 	vmoinformers "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/informers/externalversions"
 	vmolisters "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/listers/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
-	"github.com/verrazzano/verrazzano-operator/pkg/local"
-	"github.com/verrazzano/verrazzano-operator/pkg/managed"
+	v8olocal "github.com/verrazzano/verrazzano-operator/pkg/local"
+	v8omanaged "github.com/verrazzano/verrazzano-operator/pkg/managed"
 	"github.com/verrazzano/verrazzano-operator/pkg/signals"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	v8outil "github.com/verrazzano/verrazzano-operator/pkg/util"
 	wlsoprclientset "github.com/verrazzano/verrazzano-wko-operator/pkg/client/clientset/versioned"
 	wlsoprinformers "github.com/verrazzano/verrazzano-wko-operator/pkg/client/informers/externalversions"
 	corev1 "k8s.io/api/core/v1"
@@ -39,16 +40,54 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	corev1listers "k8s.io/client-go/listers/core/v1"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/clientcmd"
+	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 )
 
 const controllerAgentName = "verrazzano-controller"
 const bindingFinalizer = "vb.verrazzano.io"
 
+// setupSignalHandler is a function to create signal handler during construction of a new Controller
+var setupSignalHandler = signals.SetupSignalHandler
+
+// buildKubeClientSet is a function to build Kube client from config during construction of a new Controller
+var buildKubeClientSet = buildKubeClientsetFromConfig
+
+// executeCreateUpdateGlobalEntities is a function which creates and updates various global entities in a goroutine
+var executeCreateUpdateGlobalEntities = executeCreateUpdateGlobalEntitiesGoroutine
+
+// newManagedPackage is a function to obtain managed package implementation during construction of a new Controller
+var newManagedPackage = func() managedInterface {
+	return &managedPackage{}
+}
+
+// newCachePackage is a function to get cache package implementation
+var newCachePackage = func() cacheInterface {
+	return &cachePackage{}
+}
+
+// newUtilPackage is a function to get util package implementation
+var newUtilPackage = func() utilInterface {
+	return &utilPackage{}
+}
+
+// newLocalPackage is a function to get local package implementation
+var newLocalPackage = func() localInterface {
+	return &localPackage{}
+}
+
+// newMonitoringPackage is a function to get monitoring package implementation
+var newMonitoringPackage = func() monitoringInterface {
+	return &monitoringPackage{}
+}
+
 // Controller represents the primary controller structure.
 type Controller struct {
+	managed                     managedInterface
+	cache                       cacheInterface
+	util                        utilInterface
+	local                       localInterface
+	monitoring                  monitoringInterface
 	kubeClientSet               kubernetes.Interface
 	kubeExtClientSet            apiextensionsclient.Interface
 	verrazzanoOperatorClientSet clientset.Interface
@@ -59,20 +98,20 @@ type Controller struct {
 
 	// Local cluster listers and informers
 	secretLister                     corev1listers.SecretLister
-	secretInformer                   cache.SharedIndexInformer
+	secretInformer                   k8scache.SharedIndexInformer
 	configMapLister                  corev1listers.ConfigMapLister
-	configMapInformer                cache.SharedIndexInformer
+	configMapInformer                k8scache.SharedIndexInformer
 	verrazzanoManagedClusterLister   listers.VerrazzanoManagedClusterLister
-	verrazzanoManagedClusterInformer cache.SharedIndexInformer
+	verrazzanoManagedClusterInformer k8scache.SharedIndexInformer
 	VerrazzanoModelLister            listers.VerrazzanoModelLister
-	VerrazzanoModelInformer          cache.SharedIndexInformer
+	VerrazzanoModelInformer          k8scache.SharedIndexInformer
 	VerrazzanoBindingLister          listers.VerrazzanoBindingLister
-	VerrazzanoBindingInformer        cache.SharedIndexInformer
+	VerrazzanoBindingInformer        k8scache.SharedIndexInformer
 	vmiLister                        vmolisters.VerrazzanoMonitoringInstanceLister
-	vmiInformer                      cache.SharedIndexInformer
-	secrets                          monitoring.Secrets
+	vmiInformer                      k8scache.SharedIndexInformer
+	secrets                          v8omonitoring.Secrets
 	// The current set of known managed clusters
-	managedClusterConnections map[string]*util.ManagedClusterConnection
+	managedClusterConnections map[string]*v8outil.ManagedClusterConnection
 
 	// The current set of known models
 	applicationModels map[string]*v1beta1v8o.VerrazzanoModel
@@ -91,7 +130,7 @@ type Controller struct {
 	// Kubernetes API.
 	recorder record.EventRecorder
 
-	Manifest *util.Manifest
+	Manifest *v8outil.Manifest
 
 	// Keep track of no. of times add/update events are encountered for unchanged bindings
 	bindingSyncThreshold map[string]int
@@ -118,42 +157,33 @@ func (c *Controller) ListerSet() Listers {
 }
 
 // NewController returns a new Verrazzano Operator controller
-func NewController(kubeconfig string, manifest *util.Manifest, masterURL string, watchNamespace string, verrazzanoURI string, enableMonitoringStorage string) (*Controller, error) {
-	//
-	// Instantiate connection and clients to local k8s cluster
-	//
-	glog.V(6).Info("Building config")
-	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
-	if err != nil {
-		glog.Fatalf("Error building kubeconfig: %v", err)
-	}
-
+func NewController(config *rest.Config, manifest *v8outil.Manifest, watchNamespace string, verrazzanoURI string, enableMonitoringStorage string) (*Controller, error) {
 	glog.V(6).Info("Building kubernetes clientset")
-	kubeClientSet, err := kubernetes.NewForConfig(cfg)
+	kubeClientSet, err := buildKubeClientSet(config)
 	if err != nil {
 		glog.Fatalf("Error building kubernetes clientset: %v", err)
 	}
 
 	glog.V(6).Info("Building Verrazzano Operator clientset")
-	verrazzanoOperatorClientSet, err := clientset.NewForConfig(cfg)
+	verrazzanoOperatorClientSet, err := clientset.NewForConfig(config)
 	if err != nil {
 		glog.Fatalf("Error building verrazzano operator clientset: %v", err)
 	}
 
 	glog.V(6).Info("Building VMO clientset")
-	vmoClientSet, err := vmoclientset.NewForConfig(cfg)
+	vmoClientSet, err := vmoclientset.NewForConfig(config)
 	if err != nil {
 		glog.Fatalf("Error building VMO clientset: %v", err)
 	}
 
 	glog.V(6).Info("Building wls-operator clientset")
-	wlsoprClientSet, err := wlsoprclientset.NewForConfig(cfg)
+	wlsoprClientSet, err := wlsoprclientset.NewForConfig(config)
 	if err != nil {
 		glog.Fatalf("Error building wls-operator clientset: %v", err)
 	}
 
 	glog.V(6).Info("Building api extensions clientset")
-	kubeExtClientSet, err := extclientset.NewForConfig(cfg)
+	kubeExtClientSet, err := extclientset.NewForConfig(config)
 	if err != nil {
 		glog.Fatalf("Error building apiextensions-apiserver clientset: %v", err)
 	}
@@ -184,7 +214,7 @@ func NewController(kubeconfig string, manifest *util.Manifest, masterURL string,
 	VerrazzanoBindingInformer := verrazzanoOperatorInformerFactory.Verrazzano().V1beta1().VerrazzanoBindings()
 	VerrazzanoModelInformer := verrazzanoOperatorInformerFactory.Verrazzano().V1beta1().VerrazzanoModels()
 	vmiInformer := vmoInformerFactory.Verrazzano().V1().VerrazzanoMonitoringInstances()
-	vmiInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{})
+	vmiInformer.Informer().AddEventHandler(k8scache.ResourceEventHandlerFuncs{})
 
 	clientsetscheme.AddToScheme(scheme.Scheme)
 	eventBroadcaster := record.NewBroadcaster()
@@ -195,6 +225,11 @@ func NewController(kubeconfig string, manifest *util.Manifest, masterURL string,
 		namespace: constants.VerrazzanoNamespace, kubeClientSet: kubeClientSet, secretLister: secretsInformer.Lister(),
 	}
 	controller := &Controller{
+		managed:                          newManagedPackage(),
+		cache:                            newCachePackage(),
+		util:                             newUtilPackage(),
+		local:                            newLocalPackage(),
+		monitoring:                       newMonitoringPackage(),
 		watchNamespace:                   watchNamespace,
 		verrazzanoURI:                    verrazzanoURI,
 		enableMonitoringStorage:          enableMonitoringStorage,
@@ -215,7 +250,7 @@ func NewController(kubeconfig string, manifest *util.Manifest, masterURL string,
 		vmiInformer:                      vmiInformer.Informer(),
 		vmiLister:                        vmiInformer.Lister(),
 		recorder:                         recorder,
-		managedClusterConnections:        map[string]*util.ManagedClusterConnection{},
+		managedClusterConnections:        map[string]*v8outil.ManagedClusterConnection{},
 		applicationModels:                map[string]*v1beta1v8o.VerrazzanoModel{},
 		applicationBindings:              map[string]*v1beta1v8o.VerrazzanoBinding{},
 		modelBindingPairs:                map[string]*types.ModelBindingPair{},
@@ -226,7 +261,7 @@ func NewController(kubeconfig string, manifest *util.Manifest, masterURL string,
 
 	// Set up signals so we handle the first shutdown signal gracefully
 	glog.V(6).Info("Setting up signals")
-	stopCh := signals.SetupSignalHandler()
+	stopCh := setupSignalHandler()
 
 	go kubeInformerFactory.Start(stopCh)
 	go verrazzanoOperatorInformerFactory.Start(stopCh)
@@ -235,47 +270,57 @@ func NewController(kubeconfig string, manifest *util.Manifest, masterURL string,
 
 	// Wait for the caches to be synced before starting watchers
 	glog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(controller.stopCh, controller.secretInformer.HasSynced,
+	if ok := controller.cache.WaitForCacheSync(controller.stopCh, controller.secretInformer.HasSynced,
 		controller.verrazzanoManagedClusterInformer.HasSynced, controller.VerrazzanoBindingInformer.HasSynced,
 		controller.VerrazzanoModelInformer.HasSynced, controller.vmiInformer.HasSynced); !ok {
-		return controller, errors.New("Failed to wait for caches to sync")
+		return controller, errors.New("failed to wait for caches to sync")
 	}
 
 	// Install Global Entities
-	go controller.CreateUpdateGlobalEntities()
+	executeCreateUpdateGlobalEntities(&v1beta1v8o.VerrazzanoBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.VmiSystemBindingName,
+		},
+	}, controller)
 
 	return controller, nil
 }
 
-// CreateUpdateGlobalEntities installs global entities
-func (c *Controller) CreateUpdateGlobalEntities() error {
-	// Create or update System VMI
-	// A synthetic binding will be constructed and passed to the generic CreateUpdateVmi API to create the System VMI
-	systemBinding := &v1beta1v8o.VerrazzanoBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VmiSystemBindingName,
-		},
-	}
+// buildKubeClientsetFromConfig builds a kubernetes clientset from configuration
+func buildKubeClientsetFromConfig(config *rest.Config) (kubernetes.Interface, error) {
+	return kubernetes.NewForConfig(config)
+}
+
+// executeCreateUpdateGlobalEntitiesGoroutine executes createUpdateGlobalEntitiesGoroutine() in a goroutine
+func executeCreateUpdateGlobalEntitiesGoroutine(binding *v1beta1v8o.VerrazzanoBinding, c *Controller) {
+	go createUpdateGlobalEntitiesGoroutine(binding, c)
+}
+
+// CreateUpdateGlobalEntitiesGoroutine installs global entities and loops forever so it must be called in a goroutine
+func createUpdateGlobalEntitiesGoroutine(binding *v1beta1v8o.VerrazzanoBinding, c *Controller) {
 	glog.V(4).Info("Configuring System VMI...")
 	for {
-		err := local.CreateUpdateVmi(systemBinding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
-		if err != nil {
-			glog.Errorf("Failed to create System VMI %s: %v", constants.VmiSystemBindingName, err)
-		}
-
-		// Create secrets
-		err = monitoring.CreateVmiSecrets(systemBinding, c.secrets)
-		if err != nil {
-			glog.Errorf("Failed to create secrets for binding %s: %v", systemBinding.Name, err)
-		}
-
-		// Update config maps for system vmi
-		err = local.UpdateConfigMaps(systemBinding, c.kubeClientSet, c.configMapLister)
-		if err != nil {
-			glog.Errorf("Failed to update ConfigMaps for binding %s: %v", systemBinding.Name, err)
-		}
-
+		createUpdateGlobalEntities(binding, c)
 		<-time.After(60 * time.Second)
+	}
+}
+
+func createUpdateGlobalEntities(binding *v1beta1v8o.VerrazzanoBinding, c *Controller) {
+	err := c.local.CreateUpdateVmi(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
+	if err != nil {
+		glog.Errorf("Failed to create System VMI %s: %v", constants.VmiSystemBindingName, err)
+	}
+
+	// Create secrets
+	err = c.monitoring.CreateVmiSecrets(binding, c.secrets)
+	if err != nil {
+		glog.Errorf("Failed to create secrets for binding %s: %v", binding.Name, err)
+	}
+
+	// Update config maps for system vmi
+	err = c.local.UpdateConfigMaps(binding, c.kubeClientSet, c.configMapLister)
+	if err != nil {
+		glog.Errorf("Failed to update ConfigMaps for binding %s: %v", binding.Name, err)
 	}
 }
 
@@ -302,7 +347,7 @@ func (c *Controller) startLocalWatchers() {
 	//
 	// VerrazzanoManagedClusters
 	//
-	c.verrazzanoManagedClusterInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	c.verrazzanoManagedClusterInformer.AddEventHandler(k8scache.ResourceEventHandlerFuncs{
 		AddFunc:    func(new interface{}) { c.processManagedCluster(new) },
 		UpdateFunc: func(old, new interface{}) { c.processManagedCluster(new) },
 	})
@@ -310,7 +355,7 @@ func (c *Controller) startLocalWatchers() {
 	//
 	// VerrazzanoBindings
 	//
-	c.VerrazzanoBindingInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	c.VerrazzanoBindingInformer.AddEventHandler(k8scache.ResourceEventHandlerFuncs{
 		AddFunc:    func(new interface{}) { c.processApplicationBindingAdded(new) },
 		UpdateFunc: func(old, new interface{}) { c.processApplicationBindingAdded(new) },
 		DeleteFunc: func(new interface{}) { c.processApplicationBindingDeleted(new) },
@@ -319,7 +364,7 @@ func (c *Controller) startLocalWatchers() {
 	//
 	// VerrazzanoModels
 	//
-	c.VerrazzanoModelInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	c.VerrazzanoModelInformer.AddEventHandler(k8scache.ResourceEventHandlerFuncs{
 		AddFunc:    func(new interface{}) { c.processApplicationModelAdded(new) },
 		UpdateFunc: func(old, new interface{}) { c.processApplicationModelAdded(new) },
 		DeleteFunc: func(new interface{}) { c.processApplicationModelDeleted(new) },
@@ -366,7 +411,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	if !clusterExists || string(kubeConfigContents) != c.managedClusterConnections[managedCluster.Name].KubeConfig {
 		glog.Infof("(Re)creating k8s clients for Managed Cluster %s", managedCluster.Name)
 
-		managedClusterConnection, err := managed.BuildManagedClusterConnection(kubeConfigContents, c.stopCh)
+		managedClusterConnection, err := c.managed.BuildManagedClusterConnection(kubeConfigContents, c.stopCh)
 		if err != nil {
 			glog.Error(err)
 			return
@@ -389,7 +434,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		 * Create Artifacts in the Managed Cluster
 		 **********************/
 		// Create CRD Definitions
-		err = managed.CreateCrdDefinitions(c.managedClusterConnections[managedCluster.Name], managedCluster, c.Manifest)
+		err = c.managed.CreateCrdDefinitions(c.managedClusterConnections[managedCluster.Name], managedCluster, c.Manifest)
 		if err != nil {
 			glog.Errorf("Failed to create CRD definitions for ManagedCluster %s: %v", managedCluster.Name, err)
 		}
@@ -402,7 +447,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 
 		// Wait for the caches to be synced before starting workers
 		glog.Info("Waiting for informer caches to sync")
-		if ok := cache.WaitForCacheSync(c.stopCh, managedClusterConnection.DeploymentInformer.HasSynced,
+		if ok := c.cache.WaitForCacheSync(c.stopCh, managedClusterConnection.DeploymentInformer.HasSynced,
 			managedClusterConnection.NamespaceInformer.HasSynced, managedClusterConnection.SecretInformer.HasSynced); !ok {
 			fmt.Println(errors.New("failed to wait for caches to sync"))
 		}
@@ -412,7 +457,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 // Start watchers on the given ManagedCluster
 func (c *Controller) startManagedClusterWatchers(managedClusterName string, mbPair *types.ModelBindingPair) {
 	// Pod event handlers
-	c.managedClusterConnections[managedClusterName].PodInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	c.managedClusterConnections[managedClusterName].PodInformer.AddEventHandler(k8scache.ResourceEventHandlerFuncs{
 		AddFunc: func(new interface{}) {
 			c.updateIstioPolicies(mbPair, new.(*corev1.Pod), "added")
 		},
@@ -425,11 +470,11 @@ func (c *Controller) startManagedClusterWatchers(managedClusterName string, mbPa
 // update the Istio destination rules and authorization policies for the given model/binding whenever a pod is added or deleted
 func (c *Controller) updateIstioPolicies(mbPair *types.ModelBindingPair, pod *corev1.Pod, action string) {
 	glog.V(4).Infof("Pod %s : %s %s.", pod.Name, pod.Status.PodIP, action)
-	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
+	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
 	}
-	err = managed.CreateAuthorizationPolicies(mbPair, filteredConnections)
+	err = c.managed.CreateAuthorizationPolicies(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to update authorization policies for binding %s after pod %s: %v", mbPair.Binding.Name, action, err)
 	}
@@ -437,105 +482,106 @@ func (c *Controller) updateIstioPolicies(mbPair *types.ModelBindingPair, pod *co
 
 // Create managed resources on clusters depending upon the binding
 func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.ModelBindingPair) {
-	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
+	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create Namespaces
-	err = managed.CreateNamespaces(mbPair, filteredConnections)
+	err = c.managed.CreateNamespaces(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create namespaces for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create (copy) the Secrets needed from the management cluster to the managed clusters
-	err = managed.CreateSecrets(mbPair, c.managedClusterConnections, c.kubeClientSet, c.secrets)
+	err = c.managed.CreateSecrets(mbPair, c.managedClusterConnections, c.kubeClientSet, c.secrets)
 	if err != nil {
 		glog.Errorf("Failed to create secrets for binding %s: %v", mbPair.Binding.Namespace, err)
 	}
 
 	// Create ServiceAccounts
-	err = managed.CreateServiceAccounts(mbPair.Binding.Name, mbPair.ImagePullSecrets, mbPair.ManagedClusters, filteredConnections)
+	err = c.managed.CreateServiceAccounts(mbPair.Binding.Name, mbPair.ImagePullSecrets, mbPair.ManagedClusters, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create service accounts for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create ConfigMaps
-	err = managed.CreateConfigMaps(mbPair, filteredConnections)
+	err = c.managed.CreateConfigMaps(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create config maps for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create ClusterRoles
-	err = managed.CreateClusterRoles(mbPair, filteredConnections)
+	err = c.managed.CreateClusterRoles(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create cluster roles for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create ClusterRoleBindings
-	err = managed.CreateClusterRoleBindings(mbPair, filteredConnections)
+	err = c.managed.CreateClusterRoleBindings(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create cluster role bindings for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create Ingresses
-	err = managed.CreateIngresses(mbPair, filteredConnections)
+	err = c.managed.CreateIngresses(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create ingresses for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create istio ServiceEntries for each remote rest connection
-	err = managed.CreateServiceEntries(mbPair, filteredConnections, c.managedClusterConnections)
+	err = c.managed.CreateServiceEntries(mbPair, filteredConnections, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to create service entries for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create Deployments
-	err = managed.CreateDeployments(mbPair, filteredConnections, c.Manifest, c.verrazzanoURI, c.secrets)
+	err = c.managed.CreateDeployments(mbPair, filteredConnections, c.Manifest, c.verrazzanoURI, c.secrets)
 	if err != nil {
 		glog.Errorf("Failed to create deployments for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create Services
-	err = managed.CreateServices(mbPair, filteredConnections)
+	err = c.managed.CreateServices(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create service for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create Custom Resources
-	err = managed.CreateCustomResources(mbPair, c.managedClusterConnections, c.stopCh, c.VerrazzanoBindingLister)
+	err = c.managed.CreateCustomResources(mbPair, c.managedClusterConnections, c.stopCh, c.VerrazzanoBindingLister)
 	if err != nil {
 		glog.Errorf("Failed to create custom resources for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Update Istio Prometheus ConfigMaps for a given ModelBindingPair on all managed clusters
-	err = managed.UpdateIstioPrometheusConfigMaps(mbPair, c.secretLister, c.managedClusterConnections)
+	err = c.managed.UpdateIstioPrometheusConfigMaps(mbPair, c.secretLister, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to update Istio Config Map for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create DaemonSets
-	err = managed.CreateDaemonSets(mbPair, filteredConnections, c.verrazzanoURI)
+	err = c.managed.CreateDaemonSets(mbPair, filteredConnections, c.verrazzanoURI)
+
 	if err != nil {
 		glog.Errorf("Failed to create DaemonSets for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create DestinationRules
-	err = managed.CreateDestinationRules(mbPair, filteredConnections)
+	err = c.managed.CreateDestinationRules(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create destination rules for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create AuthorizationPolicies
-	err = managed.CreateAuthorizationPolicies(mbPair, filteredConnections)
+	err = c.managed.CreateAuthorizationPolicies(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to create authorization policies for binding %s: %v", mbPair.Binding.Name, err)
 	}
 }
 
 // Process a change to a VerrazzanoModel
-func (c *Controller) processApplicationModelAdded(cluster interface{}) {
-	model := cluster.(*v1beta1v8o.VerrazzanoModel)
+func (c *Controller) processApplicationModelAdded(verrazzanoModel interface{}) {
+	model := verrazzanoModel.(*v1beta1v8o.VerrazzanoModel)
 
 	if existingModel, ok := c.applicationModels[model.Name]; ok {
 		if existingModel.GetResourceVersion() == model.GetResourceVersion() {
@@ -566,14 +612,13 @@ func (c *Controller) processApplicationModelAdded(cluster interface{}) {
 }
 
 // Process a removal of a VerrazzanoModel
-func (c *Controller) processApplicationModelDeleted(cluster interface{}) {
-	model := cluster.(*v1beta1v8o.VerrazzanoModel)
+func (c *Controller) processApplicationModelDeleted(verrazzanoModel interface{}) {
+	model := verrazzanoModel.(*v1beta1v8o.VerrazzanoModel)
 
 	if _, ok := c.applicationModels[model.Name]; ok {
 		glog.Infof("Deleting the model %s", model.Name)
 		delete(c.applicationModels, model.Name)
 	}
-
 }
 
 func getModelBindingPair(c *Controller, binding *v1beta1v8o.VerrazzanoBinding) (*types.ModelBindingPair, bool) {
@@ -582,8 +627,8 @@ func getModelBindingPair(c *Controller, binding *v1beta1v8o.VerrazzanoBinding) (
 }
 
 // Process a change to a VerrazzanoBinding/Sync existing VerrazzanoBinding with cluster state
-func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
-	binding := cluster.(*v1beta1v8o.VerrazzanoBinding)
+func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{}) {
+	binding := verrazzanoBinding.(*v1beta1v8o.VerrazzanoBinding)
 
 	// Make sure the namespaces in this binding are unique across all bindings
 	namespaceFound := c.checkNamespacesFound(binding)
@@ -611,7 +656,7 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 
 		glog.V(6).Infof("Binding %s is marked for deletion/already deleted", binding.Name)
 		if contains(binding.GetFinalizers(), bindingFinalizer) {
-			c.processApplicationBindingDeleted(cluster)
+			c.processApplicationBindingDeleted(verrazzanoBinding)
 		}
 		return
 	}
@@ -683,25 +728,25 @@ func (c *Controller) processApplicationBindingAdded(cluster interface{}) {
 	 * Create Artifacts in the Local Cluster
 	 **********************/
 	// Create VMIs
-	err = local.CreateUpdateVmi(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
+	err = c.local.CreateUpdateVmi(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
 	if err != nil {
 		glog.Errorf("Failed to create VMIs for binding %s: %v", binding.Name, err)
 	}
 
 	// Create secrets
-	err = monitoring.CreateVmiSecrets(binding, c.secrets)
+	err = c.monitoring.CreateVmiSecrets(binding, c.secrets)
 	if err != nil {
 		glog.Errorf("Failed to create secrets for binding %s: %v", binding.Name, err)
 	}
 
 	// Update ConfigMaps
-	err = local.UpdateConfigMaps(binding, c.kubeClientSet, c.configMapLister)
+	err = c.local.UpdateConfigMaps(binding, c.kubeClientSet, c.configMapLister)
 	if err != nil {
 		glog.Errorf("Failed to update ConfigMaps for binding %s: %v", binding.Name, err)
 	}
 
 	// Update the "bring your own DNS" credentials?
-	err = local.UpdateAcmeDNSSecret(binding, c.kubeClientSet, c.secretLister, constants.AcmeDNSSecret, c.verrazzanoURI)
+	err = c.local.UpdateAcmeDNSSecret(binding, c.kubeClientSet, c.secretLister, constants.AcmeDNSSecret, c.verrazzanoURI)
 	if err != nil {
 		glog.Errorf("Failed to update DNS credentials for binding %s: %v", binding.Name, err)
 	}
@@ -753,55 +798,55 @@ func checkForDuplicateNamespaces(placement *v1beta1v8o.VerrazzanoPlacement, bind
 
 func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 	// Cleanup Custom Resources
-	err := managed.CleanupOrphanedCustomResources(mbPair, c.managedClusterConnections, c.stopCh)
+	err := c.managed.CleanupOrphanedCustomResources(mbPair, c.managedClusterConnections, c.stopCh)
 	if err != nil {
 		glog.Errorf("Failed to cleanup custom resources for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup Services for generic components
-	err = managed.CleanupOrphanedServices(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedServices(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to cleanup services for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup Deployments for generic components
-	err = managed.CleanupOrphanedDeployments(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedDeployments(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to cleanup deployments for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup ServiceEntries
-	err = managed.CleanupOrphanedServiceEntries(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedServiceEntries(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to cleanup ServiceEntries for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup Ingresses
-	err = managed.CleanupOrphanedIngresses(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedIngresses(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to cleanup Ingresses for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup ClusterRoleBindings
-	err = managed.CleanupOrphanedClusterRoleBindings(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedClusterRoleBindings(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to cleanup ClusterRoleBindings for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup ClusterRoles
-	err = managed.CleanupOrphanedClusterRoles(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedClusterRoles(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to cleanup ClusterRoles for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup ConfigMaps
-	err = managed.CleanupOrphanedConfigMaps(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedConfigMaps(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to cleanup ConfigMaps for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup Namespaces - this will also cleanup any ServiceAccounts and Secrets within the namespace
-	err = managed.CleanupOrphanedNamespaces(mbPair, c.managedClusterConnections, c.modelBindingPairs)
+	err = c.managed.CleanupOrphanedNamespaces(mbPair, c.managedClusterConnections, c.modelBindingPairs)
 	if err != nil {
 		glog.Errorf("Failed to cleanup Namespaces for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -820,8 +865,8 @@ func (me *kubeDeployment) DeleteDeployment(namespace, name string) error {
 }
 
 // Process a removal of a VerrazzanoBinding
-func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
-	binding := cluster.(*v1beta1v8o.VerrazzanoBinding)
+func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interface{}) {
+	binding := verrazzanoBinding.(*v1beta1v8o.VerrazzanoBinding)
 
 	if !contains(binding.GetFinalizers(), bindingFinalizer) {
 		glog.Infof("Resources for binding %s already deleted", binding.Name)
@@ -839,20 +884,20 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	 * Delete Artifacts in the Local Cluster
 	 **********************/
 	// Delete VMIs
-	err := local.DeleteVmi(binding, c.vmoClientSet, c.vmiLister)
+	err := c.local.DeleteVmi(binding, c.vmoClientSet, c.vmiLister)
 	if err != nil {
 		glog.Errorf("Failed to delete VMIs for binding %s: %v", binding.Name, err)
 	}
 
 	// Delete Secrets
-	err = local.DeleteSecrets(binding, c.kubeClientSet, c.secretLister)
+	err = c.local.DeleteSecrets(binding, c.kubeClientSet, c.secretLister)
 	if err != nil {
 		glog.Errorf("Failed to delete secrets for binding %s: %v", binding.Name, err)
 		return
 	}
 
 	// Delete ConfigMaps
-	err = local.DeleteConfigMaps(binding, c.kubeClientSet, c.configMapLister)
+	err = c.local.DeleteConfigMaps(binding, c.kubeClientSet, c.configMapLister)
 	if err != nil {
 		glog.Errorf("Failed to delete ConfigMaps for binding %s: %v", binding.Name, err)
 		return
@@ -862,54 +907,54 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	 * Delete Artifacts in the Managed Cluster
 	 **********************/
 
-	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
+	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Delete Custom Resources
-	err = managed.DeleteCustomResources(mbPair, c.managedClusterConnections)
+	err = c.managed.DeleteCustomResources(mbPair, c.managedClusterConnections)
 	if err != nil {
 		glog.Errorf("Failed to delete custom resources for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
 	// Delete Services for generic components
-	err = managed.DeleteServices(mbPair, filteredConnections)
+	err = c.managed.DeleteServices(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to delete services for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
 	// Delete Deployments for generic components
-	err = managed.DeleteDeployments(mbPair, filteredConnections)
+	err = c.managed.DeleteDeployments(mbPair, filteredConnections)
 	if err != nil {
 		glog.Errorf("Failed to delete deployments for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
 	// Delete ClusterRoleBindings
-	err = managed.DeleteClusterRoleBindings(mbPair, c.managedClusterConnections, true)
+	err = c.managed.DeleteClusterRoleBindings(mbPair, c.managedClusterConnections, true)
 	if err != nil {
 		glog.Errorf("Failed to delete cluster role bindings for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
 	// Delete ClusterRoles
-	err = managed.DeleteClusterRoles(mbPair, c.managedClusterConnections, true)
+	err = c.managed.DeleteClusterRoles(mbPair, c.managedClusterConnections, true)
 	if err != nil {
 		glog.Errorf("Failed to delete cluster roles for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
-	err = monitoring.DeletePomPusher(binding.Name, &kubeDeployment{kubeClientSet: c.kubeClientSet})
+	err = c.monitoring.DeletePomPusher(binding.Name, &kubeDeployment{kubeClientSet: c.kubeClientSet})
 	if err != nil {
 		glog.Errorf("Failed to delete prometheus-pusher for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Delete Namespaces - this will also cleanup any Ingresses,
 	// ServiceEntries, ServiceAccounts, ConfigMaps and Secrets within the namespace
-	err = managed.DeleteNamespaces(mbPair, c.managedClusterConnections, true)
+	err = c.managed.DeleteNamespaces(mbPair, c.managedClusterConnections, true)
 	if err != nil {
 		glog.Errorf("Failed delete namespaces for binding %s: %v", binding.Name, err)
 		return
@@ -919,14 +964,14 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 	// among model/binding pairs.
 	if len(c.modelBindingPairs) == 1 {
 		// Delete ClusterRoleBindings
-		err = managed.DeleteClusterRoleBindings(mbPair, c.managedClusterConnections, false)
+		err = c.managed.DeleteClusterRoleBindings(mbPair, c.managedClusterConnections, false)
 		if err != nil {
 			glog.Errorf("Failed to delete cluster role bindings: %v", err)
 			return
 		}
 
 		// Delete ClusterRoles
-		err = managed.DeleteClusterRoles(mbPair, c.managedClusterConnections, false)
+		err = c.managed.DeleteClusterRoles(mbPair, c.managedClusterConnections, false)
 		if err != nil {
 			glog.Errorf("Failed to delete cluster roles: %v", err)
 			return
@@ -934,7 +979,7 @@ func (c *Controller) processApplicationBindingDeleted(cluster interface{}) {
 
 		// Delete Namespaces - this will also cleanup any deployments, Ingresses,
 		// ServiceEntries, ServiceAccounts, and Secrets within the namespace
-		err = managed.DeleteNamespaces(mbPair, c.managedClusterConnections, false)
+		err = c.managed.DeleteNamespaces(mbPair, c.managedClusterConnections, false)
 		if err != nil {
 			glog.Errorf("Failed to delete a common namespace for all bindings: %v", err)
 			return
@@ -970,7 +1015,7 @@ func (c *Controller) waitForManagedClusters(mbPair *types.ModelBindingPair, bind
 			return fmt.Errorf("timed out waiting for Managed clusters referenced in binding %s, error %s", bindingName, err.Error())
 		case <-tick:
 			glog.V(6).Infof("Waiting for all Managed Clusters referenced in binding %s to be available..", bindingName)
-			_, err = util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
+			_, err = c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
 			if err == nil {
 				glog.V(6).Infof("All Managed Clusters referenced in binding %s are available..", bindingName)
 				return nil
@@ -1028,4 +1073,268 @@ func (c *Controller) removeFinalizer(binding *v1beta1v8o.VerrazzanoBinding) erro
 		return err
 	}
 	return nil
+}
+
+// managedInterface defines the functions in the 'managed' package that are used  by the Controller
+type managedInterface interface {
+	BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*v8outil.ManagedClusterConnection, error)
+	CreateCrdDefinitions(managedClusterConnection *v8outil.ManagedClusterConnection, managedCluster *v1beta1v8o.VerrazzanoManagedCluster, manifest *v8outil.Manifest) error
+	CreateNamespaces(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateSecrets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets) error
+	CreateServiceAccounts(bindingName string, imagePullSecrets []corev1.LocalObjectReference, managedClusters map[string]*types.ManagedCluster, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateConfigMaps(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateClusterRoles(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateClusterRoleBindings(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateIngresses(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateServiceEntries(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, manifest *v8outil.Manifest, verrazzanoURI string, sec v8omonitoring.Secrets) error
+	CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}, vbLister listers.VerrazzanoBindingLister) error
+	UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string) error
+	CreateDestinationRules(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateAuthorizationPolicies(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error
+	CleanupOrphanedServiceEntries(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedIngresses(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, allMbPairs map[string]*types.ModelBindingPair) error
+	CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	DeleteClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error
+	DeleteClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error
+	DeleteNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error
+	DeleteServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	DeleteDeployments(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+}
+
+// managedPackage is the managedInterface implementation through which all 'managed' package functions are invoked
+type managedPackage struct {
+	managedInterface
+}
+
+// All managedPackage methods simply delegate to the corresponding function in the 'managed' package
+
+func (*managedPackage) BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*v8outil.ManagedClusterConnection, error) {
+	return v8omanaged.BuildManagedClusterConnection(kubeConfigContents, stopCh)
+}
+
+func (*managedPackage) CreateCrdDefinitions(managedClusterConnection *v8outil.ManagedClusterConnection, managedCluster *v1beta1v8o.VerrazzanoManagedCluster, manifest *v8outil.Manifest) error {
+	return v8omanaged.CreateCrdDefinitions(managedClusterConnection, managedCluster, manifest)
+}
+
+func (*managedPackage) CreateNamespaces(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateNamespaces(mbPair, filteredConnections)
+}
+
+func (*managedPackage) CreateSecrets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets) error {
+	return v8omanaged.CreateSecrets(mbPair, availableManagedClusterConnections, kubeClientSet, sec)
+}
+
+func (*managedPackage) CreateServiceAccounts(bindingName string, imagePullSecrets []corev1.LocalObjectReference, managedClusters map[string]*types.ManagedCluster, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateServiceAccounts(bindingName, imagePullSecrets, managedClusters, filteredConnections)
+}
+
+func (*managedPackage) CreateConfigMaps(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateConfigMaps(mbPair, filteredConnections)
+}
+
+func (*managedPackage) CreateClusterRoles(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateClusterRoles(mbPair, filteredConnections)
+}
+
+func (*managedPackage) CreateClusterRoleBindings(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateClusterRoleBindings(mbPair, filteredConnections)
+}
+
+func (*managedPackage) CreateIngresses(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateIngresses(mbPair, filteredConnections)
+}
+
+func (*managedPackage) CreateServiceEntries(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateServiceEntries(mbPair, filteredConnections, availableManagedClusterConnections)
+}
+
+func (*managedPackage) CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateServices(mbPair, filteredConnections)
+}
+
+func (*managedPackage) CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, manifest *v8outil.Manifest, verrazzanoURI string, sec v8omonitoring.Secrets) error {
+	return v8omanaged.CreateDeployments(mbPair, availableManagedClusterConnections, manifest, verrazzanoURI, sec)
+}
+
+func (*managedPackage) CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}, vbLister listers.VerrazzanoBindingLister) error {
+	return v8omanaged.CreateCustomResources(mbPair, availableManagedClusterConnections, stopCh, vbLister)
+}
+
+func (*managedPackage) UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.UpdateIstioPrometheusConfigMaps(mbPair, secretLister, availableManagedClusterConnections)
+}
+
+func (*managedPackage) CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string) error {
+	return v8omanaged.CreateDaemonSets(mbPair, availableManagedClusterConnections, verrazzanoURI)
+}
+
+func (*managedPackage) CreateDestinationRules(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateDestinationRules(mbPair, filteredConnections)
+}
+
+func (*managedPackage) CreateAuthorizationPolicies(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateAuthorizationPolicies(mbPair, filteredConnections)
+}
+
+func (*managedPackage) CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error {
+	return v8omanaged.CleanupOrphanedCustomResources(mbPair, availableManagedClusterConnections, stopCh)
+}
+
+func (*managedPackage) CleanupOrphanedServiceEntries(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CleanupOrphanedServiceEntries(mbPair, availableManagedClusterConnections)
+}
+
+func (*managedPackage) CleanupOrphanedIngresses(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CleanupOrphanedIngresses(mbPair, availableManagedClusterConnections)
+}
+
+func (*managedPackage) CleanupOrphanedClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CleanupOrphanedClusterRoleBindings(mbPair, availableManagedClusterConnections)
+}
+
+func (*managedPackage) CleanupOrphanedClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CleanupOrphanedClusterRoles(mbPair, availableManagedClusterConnections)
+}
+func (*managedPackage) CleanupOrphanedConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CleanupOrphanedConfigMaps(mbPair, availableManagedClusterConnections)
+}
+
+func (*managedPackage) CleanupOrphanedNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, allMbPairs map[string]*types.ModelBindingPair) error {
+	return v8omanaged.CleanupOrphanedNamespaces(mbPair, availableManagedClusterConnections, allMbPairs)
+}
+
+func (*managedPackage) CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CleanupOrphanedServices(mbPair, availableManagedClusterConnections)
+}
+
+func (*managedPackage) CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CleanupOrphanedDeployments(mbPair, availableManagedClusterConnections)
+}
+
+func (*managedPackage) DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.DeleteCustomResources(mbPair, availableManagedClusterConnections)
+}
+
+func (*managedPackage) DeleteClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error {
+	return v8omanaged.DeleteClusterRoleBindings(mbPair, availableManagedClusterConnections, bindingLabel)
+}
+
+func (*managedPackage) DeleteClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error {
+	return v8omanaged.DeleteClusterRoles(mbPair, availableManagedClusterConnections, bindingLabel)
+}
+
+func (*managedPackage) DeleteNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error {
+	return v8omanaged.DeleteNamespaces(mbPair, availableManagedClusterConnections, bindingLabel)
+}
+
+func (*managedPackage) DeleteServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.DeleteServices(mbPair, filteredConnections)
+}
+
+func (*managedPackage) DeleteDeployments(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.DeleteDeployments(mbPair, filteredConnections)
+}
+
+// cacheInterface defines the functions in the 'cache' package that are used  by the Controller
+type cacheInterface interface {
+	WaitForCacheSync(stopCh <-chan struct{}, cacheSyncs ...k8scache.InformerSynced) bool
+}
+
+// cachePackage is the cacheInterface implementation through which all 'cache' package functions are invoked
+type cachePackage struct {
+	cacheInterface
+}
+
+// All cachePackage methods simply delegate to the corresponding function in the 'cache' package
+
+func (c *cachePackage) WaitForCacheSync(stopCh <-chan struct{}, cacheSyncs ...k8scache.InformerSynced) bool {
+	return k8scache.WaitForCacheSync(stopCh, cacheSyncs...)
+}
+
+// utilInterface defines the functions in the 'util' package that are used  by the Controller
+type utilInterface interface {
+	GetManagedClustersForVerrazzanoBinding(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) (map[string]*v8outil.ManagedClusterConnection, error)
+}
+
+// utilPackage is the utilInterface implementation through which all 'util' package functions are invoked
+type utilPackage struct {
+	utilInterface
+}
+
+// All utilPackage methods simply delegate to the corresponding function in the 'util' package
+
+func (u *utilPackage) GetManagedClustersForVerrazzanoBinding(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) (map[string]*v8outil.ManagedClusterConnection, error) {
+	return v8outil.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+}
+
+// localInterface defines the functions in the 'local' package that are used  by the Controller
+type localInterface interface {
+	DeleteVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error
+	DeleteSecrets(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error
+	DeleteConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error
+	CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error
+	UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error
+	UpdateAcmeDNSSecret(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error
+}
+
+// localPackage is the localInterface implementation through which all 'local' package functions are invoked
+type localPackage struct {
+	localInterface
+}
+
+// All localPackage methods simply delegate to the corresponding function in the 'local' package
+
+func (l *localPackage) DeleteVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
+	return v8olocal.DeleteVmi(binding, vmoClientSet, vmiLister)
+}
+
+func (l *localPackage) DeleteSecrets(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
+	return v8olocal.DeleteSecrets(binding, kubeClientSet, secretLister)
+}
+
+func (l *localPackage) DeleteConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+	return v8olocal.DeleteConfigMaps(binding, kubeClientSet, configMapLister)
+}
+
+func (l *localPackage) CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
+	return v8olocal.CreateUpdateVmi(binding, vmoClientSet, vmiLister, verrazzanoURI, enableMonitoringStorage)
+}
+
+func (l *localPackage) UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+	return v8olocal.UpdateConfigMaps(binding, kubeClientSet, configMapLister)
+}
+
+func (l *localPackage) UpdateAcmeDNSSecret(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
+	return v8olocal.UpdateAcmeDNSSecret(binding, kubeClientSet, secretLister, name, verrazzanoURI)
+}
+
+// monitoringInterface defines the functions in the 'monitoring' package that are used  by the Controller
+type monitoringInterface interface {
+	CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets v8omonitoring.Secrets) error
+	DeletePomPusher(binding string, helper v8outil.DeploymentHelper) error
+}
+
+// monitoringPackage is the monitoringInterface implementation through which all 'monitoring' package functions are invoked
+type monitoringPackage struct {
+	monitoringInterface
+}
+
+// All monitoringPackage methods simply delegate to the corresponding function in the 'monitoring' package
+
+func (m *monitoringPackage) CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets v8omonitoring.Secrets) error {
+	return v8omonitoring.CreateVmiSecrets(binding, secrets)
+}
+
+func (m *monitoringPackage) DeletePomPusher(binding string, helper v8outil.DeploymentHelper) error {
+	return v8omonitoring.DeletePomPusher(binding, helper)
 }
