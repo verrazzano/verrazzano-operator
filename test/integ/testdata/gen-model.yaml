@@ -1,0 +1,21 @@
+# Copyright (C) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: verrazzano.io/v1beta1
+kind: VerrazzanoModel
+metadata:
+  name: genapp
+  namespace: default
+spec:
+  description: "Verrazzano Generic App"
+  genericComponents:
+    - name: "genapp"
+      replicas: 1
+      deployment:
+        containers:
+          - image: container-registry.oracle.com/os/oraclelinux:7-slim
+            name: genapp
+            args:
+              - /bin/sh
+              - -c
+              - echo 'sleeping'; sleep 50000;
