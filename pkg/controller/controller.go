@@ -728,7 +728,14 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 	 * Create Artifacts in the Local Cluster
 	 **********************/
 	// Create VMIs
-	err = c.local.CreateUpdateVmi(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
+	// A synthetic binding will be constructed and passed to the managed clusters
+	systemBinding := &v1beta1v8o.VerrazzanoBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.VmiSystemBindingName,
+		},
+	}
+	glog.Info("CDD Use SystemBinding for call to CreateUpdateVMI")
+	err = c.local.CreateUpdateVmi(systemBinding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
 	if err != nil {
 		glog.Errorf("Failed to create VMIs for binding %s: %v", binding.Name, err)
 	}
