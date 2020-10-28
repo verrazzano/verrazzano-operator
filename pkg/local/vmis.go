@@ -33,22 +33,24 @@ func CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclie
 	if err != nil {
 		return err
 	}
-	glog.Infof("CDD Created NewVMI Instance %+v", newVmi)
+	glog.Infof("CDD Created NewVMI Instance: %+v", newVmi)
 	// Create or update VMIs
 	existingVmi, err := vmiLister.VerrazzanoMonitoringInstances(newVmi.Namespace).Get(newVmi.Name)
+	glog.Infof("CDD Existing VMIs: %+v", newVmi)
 	if existingVmi != nil {
+		glog.Info("CDD In Existing VMIs Logic")
 		newVmi.Spec.Grafana.Storage.PvcNames = existingVmi.Spec.Grafana.Storage.PvcNames
 		newVmi.Spec.Prometheus.Storage.PvcNames = existingVmi.Spec.Prometheus.Storage.PvcNames
 		newVmi.Spec.Elasticsearch.Storage.PvcNames = existingVmi.Spec.Elasticsearch.Storage.PvcNames
 		specDiffs := diff.CompareIgnoreTargetEmpties(existingVmi, newVmi)
 		if specDiffs != "" {
-			glog.V(6).Infof("VMI %s : Spec differences %s", newVmi.Name, specDiffs)
-			glog.V(4).Infof("Updating VMI %s", newVmi.Name)
+			glog.Infof("VMI %s : Spec differences %s", newVmi.Name, specDiffs)
+			glog.Infof("Updating VMI %s", newVmi.Name)
 			newVmi.ResourceVersion = existingVmi.ResourceVersion
 			_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Update(context.TODO(), newVmi, metav1.UpdateOptions{})
 		}
 	} else {
-		glog.V(4).Infof("Creating VMI %s", newVmi.Name)
+		glog.Infof("Creating VMI %s", newVmi.Name)
 		_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Create(context.TODO(), newVmi, metav1.CreateOptions{})
 	}
 	if err != nil {
