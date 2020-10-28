@@ -26,14 +26,14 @@ import (
 // CreateUpdateVmi creates/updates Verrazzano Monitoring Instances for a given binding.
 func CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 
-	glog.V(6).Infof("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
+	glog.Infof("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the expected VMI
 	newVmi, err := createInstance(binding, verrazzanoURI, enableMonitoringStorage)
 	if err != nil {
 		return err
 	}
-
+	glog.Infof("CDD Created NewVMI Instance %+v", newVmi)
 	// Create or update VMIs
 	existingVmi, err := vmiLister.VerrazzanoMonitoringInstances(newVmi.Namespace).Get(newVmi.Name)
 	if existingVmi != nil {
