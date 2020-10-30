@@ -54,13 +54,13 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 	image := util.GetPromtheusPusherImage()
 	_, present := os.LookupEnv("singleSystemVMI")
 	glog.Infof("CDD Env var SingleSystemVMI present? %v", present)
-	var pushGatewayUrl string
+	var pushGatewayURL string
 	if present {
-		pushGatewayUrl = fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", constants.VmiSystemBindingName, constants.VerrazzanoNamespace)
+		pushGatewayURL = fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", constants.VmiSystemBindingName, constants.VerrazzanoNamespace)
 	} else {
-		pushGatewayUrl = fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", bindingName, constants.VerrazzanoNamespace)
+		pushGatewayURL = fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", bindingName, constants.VerrazzanoNamespace)
 	}
-	glog.Infof("CDD Setting pushGatewayUrl to %s", pushGatewayUrl)
+	glog.Infof("CDD Setting pushGatewayUrl to %s", pushGatewayURL)
 	pusherDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:    labels,
@@ -88,7 +88,7 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 								},
 								{
 									Name:  "PUSHGATEWAY_URL",
-									Value: pushGatewayUrl,
+									Value: pushGatewayURL,
 								},
 								{
 									Name:  "PUSHGATEWAY_USER",
