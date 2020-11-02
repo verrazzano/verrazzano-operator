@@ -111,19 +111,19 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 
 	return &vmov1.VerrazzanoMonitoringInstance{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      util.GetVmiNameForBinding(bindingName),
+			Name:      util.GetVmiNameForBinding(binding.Name),
 			Namespace: constants.VerrazzanoNamespace,
 			Labels:    bindingLabels,
 		},
 		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
-			URI:             util.GetVmiURI(binding.Name, verrazzanoURI),
+			URI:             util.GetVmiURI(bindingName, verrazzanoURI),
 			AutoSecret:      true,
 			SecretsName:     constants.VmiSecretName,
 			CascadingDelete: true,
 			Grafana: vmov1.Grafana{
 				Enabled:             true,
 				Storage:             storageOption,
-				DashboardsConfigMap: util.GetVmiNameForBinding(binding.Name) + "-dashboards",
+				DashboardsConfigMap: util.GetVmiNameForBinding(bindingName) + "-dashboards",
 				Resources: vmov1.Resources{
 					RequestMemory: util.GetGrafanaRequestMemory(),
 				},
