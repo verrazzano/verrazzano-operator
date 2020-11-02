@@ -52,8 +52,8 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 		return nil, err
 	}
 	image := util.GetPromtheusPusherImage()
-	_, present := os.LookupEnv("singleSystemVMI")
-	glog.Infof("CDD Env var SingleSystemVMI present? %v", present)
+	_, present := os.LookupEnv("SINGLE_SYSTEM_VMI")
+	glog.Infof("CDD Env var SINGLE_SYSTEM_VMI present? %v", present)
 	var pushGatewayURL string
 	if present {
 		pushGatewayURL = fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", constants.VmiSystemBindingName, constants.VerrazzanoNamespace)

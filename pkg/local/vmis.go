@@ -100,8 +100,8 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 
 	storageOption := createStorageOption(enableMonitoringStorage)
 
-	_, present := os.LookupEnv("singleSystemVMI")
-	glog.Infof("CDD Env var SingleSystemVMI present? %v", present)
+	_, present := os.LookupEnv("SINGLE_SYSTEM_VMI")
+	glog.Infof("CDD Env var SINGLE_SYSTEM_VMI present? %v", present)
 	var bindingName string
 	if present {
 		bindingName = constants.VmiSystemBindingName
