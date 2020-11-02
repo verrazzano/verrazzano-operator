@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/golang/glog"
@@ -99,9 +100,18 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 
 	storageOption := createStorageOption(enableMonitoringStorage)
 
+	_, present := os.LookupEnv("singleSystemVMI")
+	glog.Infof("CDD Env var SingleSystemVMI present? %v", present)
+	var bindingName string
+	if present {
+		bindingName = constants.VmiSystemBindingName
+	} else {
+		bindingName = binding.Name
+	}
+
 	return &vmov1.VerrazzanoMonitoringInstance{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      util.GetVmiNameForBinding(binding.Name),
+			Name:      util.GetVmiNameForBinding(bindingName),
 			Namespace: constants.VerrazzanoNamespace,
 			Labels:    bindingLabels,
 		},
