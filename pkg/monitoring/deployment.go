@@ -53,14 +53,14 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 	}
 	image := util.GetPromtheusPusherImage()
 	_, present := os.LookupEnv("SINGLE_SYSTEM_VMI")
-	glog.Infof("CDD Env var SINGLE_SYSTEM_VMI present? %v", present)
+	glog.V(4).Infof("Env var SINGLE_SYSTEM_VMI present? %v", present)
 	var pushGatewayURL string
 	if present {
 		pushGatewayURL = fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", constants.VmiSystemBindingName, constants.VerrazzanoNamespace)
 	} else {
 		pushGatewayURL = fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", bindingName, constants.VerrazzanoNamespace)
 	}
-	glog.Infof("CDD Setting pushGatewayUrl to %s", pushGatewayURL)
+	glog.V(4).Infof("Setting pushGatewayURL to %s", pushGatewayURL)
 	pusherDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:    labels,

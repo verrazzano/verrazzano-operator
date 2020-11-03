@@ -728,7 +728,6 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 	 * Create Artifacts in the Local Cluster
 	 **********************/
 	// Create VMIs
-
 	err = c.local.CreateUpdateVmi(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
 	if err != nil {
 		glog.Errorf("Failed to create VMIs for binding %s: %v", binding.Name, err)

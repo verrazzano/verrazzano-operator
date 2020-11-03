@@ -101,7 +101,7 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 	storageOption := createStorageOption(enableMonitoringStorage)
 
 	_, present := os.LookupEnv("SINGLE_SYSTEM_VMI")
-	glog.Infof("CDD Env var SINGLE_SYSTEM_VMI present? %v", present)
+	glog.V(4).Infof("Env var SINGLE_SYSTEM_VMI present? %v", present)
 	var bindingName string
 	if present {
 		bindingName = constants.VmiSystemBindingName
@@ -123,7 +123,7 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 			Grafana: vmov1.Grafana{
 				Enabled:             true,
 				Storage:             storageOption,
-				DashboardsConfigMap: util.GetVmiNameForBinding(bindingName) + "-dashboards",
+				DashboardsConfigMap: util.GetVmiNameForBinding(binding.Name) + "-dashboards",
 				Resources: vmov1.Resources{
 					RequestMemory: util.GetGrafanaRequestMemory(),
 				},
