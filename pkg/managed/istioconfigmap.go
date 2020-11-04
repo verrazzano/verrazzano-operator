@@ -6,14 +6,15 @@ package managed
 import (
 	"context"
 	"fmt"
+
 	"strings"
 
 	"github.com/Jeffail/gabs/v2"
-	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1listers "k8s.io/client-go/listers/core/v1"
@@ -48,7 +49,7 @@ func UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretListe
 // UpdateIstioPrometheusConfigMapsForNodeExporter updates the istio prometheus scrape configs to include all the node
 // exporter endpoints in monitoring namespace.
 func UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Add/Update node export scrape target in Istio Prometheus configmaps for all clusters.")
+	zap.S().Debugw("Add/Update node export scrape target in Istio Prometheus configmaps for all clusters.")
 
 	// Construct prometheus.yml configMaps for each managed cluster
 	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
@@ -104,7 +105,7 @@ func UpdateIstioPrometheusConfigMapsForNodeExporter(mbPair *types.ModelBindingPa
 //    myvb_poc-managed-1_myapps_coherence_my-cache-app
 //
 func UpdateIstioPrometheusConfigMapsForBinding(mbPair *types.ModelBindingPair, secretLister corev1listers.SecretLister, clusterConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Create/Update Istio Prometheus configmap [binding]%s [model]%s", mbPair.Binding.Name, mbPair.Model.Name)
+	zap.S().Debugf("Create/Update Istio Prometheus configmap [binding]%s [model]%s", mbPair.Binding.Name, mbPair.Model.Name)
 
 	// Parse out the managed clusters that this binding applies to
 	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, clusterConnections)
@@ -149,7 +150,7 @@ func updateIstioPrometheusConfigMap(clusterName string, managedClusterConnection
 	// Create a new istio prometheus configmap if necessary
 	existingcm, _ := managedClusterConnection.ConfigMapLister.ConfigMaps(IstioNamespace).Get(IstioPrometheusCMName)
 	if existingcm == nil {
-		glog.V(4).Infof("Creating Configmaps %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
+		zap.S().Infof("Creating Configmaps %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
 		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newPrometheusConfigMap.Namespace).Create(context.TODO(), newPrometheusConfigMap, metav1.CreateOptions{})
 		if err != nil {
 			return err
@@ -160,8 +161,8 @@ func updateIstioPrometheusConfigMap(clusterName string, managedClusterConnection
 	// Update the existing istio prometheus configmap if necessary
 	specDiffs := diff.CompareIgnoreTargetEmpties(existingcm, newPrometheusConfigMap)
 	if specDiffs != "" {
-		glog.V(6).Infof("ConfigMap %s : Spec differences %s", newPrometheusConfigMap.Name, specDiffs)
-		glog.V(4).Infof("Updating ConfigMap %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
+		zap.S().Debugf("ConfigMap %s : Spec differences %s", newPrometheusConfigMap.Name, specDiffs)
+		zap.S().Infof("Updating ConfigMap %s in cluster %s", newPrometheusConfigMap.Name, clusterName)
 		_, err = managedClusterConnection.KubeClient.CoreV1().ConfigMaps(newPrometheusConfigMap.Namespace).Update(context.TODO(), newPrometheusConfigMap, metav1.UpdateOptions{})
 		if err != nil {
 			return err
@@ -169,7 +170,7 @@ func updateIstioPrometheusConfigMap(clusterName string, managedClusterConnection
 		// Bounce Prometheus Pod
 		istioPodName, err := managedClusterConnection.KubeClient.CoreV1().Pods(IstioNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: PrometheusLabel})
 		for _, pod := range istioPodName.Items {
-			glog.V(4).Infof("Deleting pod %s in namespace %s in cluster %s", pod.Name, IstioNamespace, clusterName)
+			zap.S().Infof("Deleting pod %s in namespace %s in cluster %s", pod.Name, IstioNamespace, clusterName)
 			err = managedClusterConnection.KubeClient.CoreV1().Pods(IstioNamespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err

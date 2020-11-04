@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
@@ -47,11 +47,10 @@ func GetClusters() ([]Cluster, error) {
 }
 
 func refreshClusters() error {
-
 	clusterSelector := labels.SelectorFromSet(map[string]string{})
 	managedClusters, err := (*listerSet.ManagedClusterLister).VerrazzanoManagedClusters("default").List(clusterSelector)
 	if err != nil {
-		glog.Errorf("Error failed getting managed clusters: %s", err.Error())
+		zap.S().Errorf("Error failed getting managed clusters: %s", err.Error())
 		return err
 	}
 
@@ -73,7 +72,7 @@ func refreshClusters() error {
 
 // ReturnAllClusters returns all Verrazzano managed cluster resources.
 func ReturnAllClusters(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /clusters")
+	zap.S().Infow("GET /clusters")
 
 	err := refreshClusters()
 	if err != nil {
@@ -98,7 +97,7 @@ func ReturnSingleCluster(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /clusters/" + key)
+	zap.S().Infow("GET /clusters/" + key)
 
 	// Loop over all of our Clusters
 	// if the article.Id equals the key we pass in

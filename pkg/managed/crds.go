@@ -9,11 +9,11 @@ import (
 	"context"
 	"io/ioutil"
 
-	"github.com/golang/glog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"go.uber.org/zap"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/yaml"
@@ -21,8 +21,7 @@ import (
 
 // CreateCrdDefinitions creates/updates custom resource definitions needed for each managed cluster.
 func CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnection, managedCluster *v1beta1v8o.VerrazzanoManagedCluster, manifest *util.Manifest) error {
-
-	glog.V(6).Infof("Creating/updating CRDs for ManagedCluster %s", managedCluster.Name)
+	zap.S().Debugf("Creating/updating CRDs for ManagedCluster %s", managedCluster.Name)
 	managedClusterConnection.Lock.RLock()
 	managedClusterConnection.Lock.RUnlock()
 
@@ -36,15 +35,15 @@ func CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnectio
 		if err == nil {
 			specDiffs := diff.CompareIgnoreTargetEmpties(existingCrd, newCrd)
 			if specDiffs != "" {
-				glog.V(6).Infof("CRD %s : Spec differences %s", newCrd.Name, specDiffs)
+				zap.S().Debugf("CRD %s : Spec differences %s", newCrd.Name, specDiffs)
 				if len(newCrd.ResourceVersion) == 0 {
 					newCrd.ResourceVersion = existingCrd.ResourceVersion
 				}
-				glog.V(4).Infof("Updating CRD %s", newCrd.Name)
+				zap.S().Infof("Updating CRD %s", newCrd.Name)
 				_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), newCrd, metav1.UpdateOptions{})
 			}
 		} else {
-			glog.V(4).Infof("Creating CRD %s", newCrd.Name)
+			zap.S().Infof("Creating CRD %s", newCrd.Name)
 			_, err = managedClusterConnection.KubeExtClientSet.ApiextensionsV1().CustomResourceDefinitions().Create(context.TODO(), newCrd, metav1.CreateOptions{})
 		}
 		if err != nil {

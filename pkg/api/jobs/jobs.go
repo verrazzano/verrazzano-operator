@@ -8,10 +8,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
-
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	"go.uber.org/zap"
 )
 
 // This file is very similar to applications.go - please see comments there
@@ -104,7 +103,7 @@ func Init() {
 
 // ReturnAllJobs returns all jobs used by model and bindings.
 func ReturnAllJobs(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /jobs")
+	zap.S().Infow("GET /jobs")
 
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Jobs)), 10))
 	json.NewEncoder(w).Encode(Jobs)
@@ -115,7 +114,7 @@ func ReturnSingleJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /jobs/" + key)
+	zap.S().Infow("GET /jobs/" + key)
 
 	for _, jobs := range Jobs {
 		if jobs.ID == key {

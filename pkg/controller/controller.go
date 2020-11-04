@@ -7,14 +7,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"k8s.io/client-go/rest"
 	"time"
+
+	"go.uber.org/zap"
+
+	"k8s.io/client-go/rest"
 
 	v8omonitoring "github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/golang/glog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
 	clientsetscheme "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/scheme"
@@ -158,34 +160,34 @@ func (c *Controller) ListerSet() Listers {
 
 // NewController returns a new Verrazzano Operator controller
 func NewController(config *rest.Config, manifest *v8outil.Manifest, watchNamespace string, verrazzanoURI string, enableMonitoringStorage string) (*Controller, error) {
-	glog.V(6).Info("Building kubernetes clientset")
+	zap.S().Debugw("Building kubernetes clientset")
 	kubeClientSet, err := buildKubeClientSet(config)
 	if err != nil {
-		glog.Fatalf("Error building kubernetes clientset: %v", err)
+		zap.S().Fatalf("Error building kubernetes clientset: %v", err)
 	}
 
-	glog.V(6).Info("Building Verrazzano Operator clientset")
+	zap.S().Debugw("Building Verrazzano Operator clientset")
 	verrazzanoOperatorClientSet, err := clientset.NewForConfig(config)
 	if err != nil {
-		glog.Fatalf("Error building verrazzano operator clientset: %v", err)
+		zap.S().Fatalf("Error building verrazzano operator clientset: %v", err)
 	}
 
-	glog.V(6).Info("Building VMO clientset")
+	zap.S().Debugw("Building VMO clientset")
 	vmoClientSet, err := vmoclientset.NewForConfig(config)
 	if err != nil {
-		glog.Fatalf("Error building VMO clientset: %v", err)
+		zap.S().Fatalf("Error building VMO clientset: %v", err)
 	}
 
-	glog.V(6).Info("Building wls-operator clientset")
+	zap.S().Debugw("Building wls-operator clientset")
 	wlsoprClientSet, err := wlsoprclientset.NewForConfig(config)
 	if err != nil {
-		glog.Fatalf("Error building wls-operator clientset: %v", err)
+		zap.S().Fatalf("Error building wls-operator clientset: %v", err)
 	}
 
-	glog.V(6).Info("Building api extensions clientset")
+	zap.S().Debugw("Building api extensions clientset")
 	kubeExtClientSet, err := extclientset.NewForConfig(config)
 	if err != nil {
-		glog.Fatalf("Error building apiextensions-apiserver clientset: %v", err)
+		zap.S().Fatalf("Error building apiextensions-apiserver clientset: %v", err)
 	}
 
 	//
@@ -218,7 +220,7 @@ func NewController(config *rest.Config, manifest *v8outil.Manifest, watchNamespa
 
 	clientsetscheme.AddToScheme(scheme.Scheme)
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(zap.S().Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClientSet.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 	kubeSecrets := &KubeSecrets{
@@ -260,7 +262,7 @@ func NewController(config *rest.Config, manifest *v8outil.Manifest, watchNamespa
 	}
 
 	// Set up signals so we handle the first shutdown signal gracefully
-	glog.V(6).Info("Setting up signals")
+	zap.S().Debugw("Setting up signals")
 	stopCh := setupSignalHandler()
 
 	go kubeInformerFactory.Start(stopCh)
@@ -269,7 +271,7 @@ func NewController(config *rest.Config, manifest *v8outil.Manifest, watchNamespa
 	go vmoInformerFactory.Start(stopCh)
 
 	// Wait for the caches to be synced before starting watchers
-	glog.Info("Waiting for informer caches to sync")
+	zap.S().Infow("Waiting for informer caches to sync")
 	if ok := controller.cache.WaitForCacheSync(controller.stopCh, controller.secretInformer.HasSynced,
 		controller.verrazzanoManagedClusterInformer.HasSynced, controller.VerrazzanoBindingInformer.HasSynced,
 		controller.VerrazzanoModelInformer.HasSynced, controller.vmiInformer.HasSynced); !ok {
@@ -298,7 +300,7 @@ func executeCreateUpdateGlobalEntitiesGoroutine(binding *v1beta1v8o.VerrazzanoBi
 
 // CreateUpdateGlobalEntitiesGoroutine installs global entities and loops forever so it must be called in a goroutine
 func createUpdateGlobalEntitiesGoroutine(binding *v1beta1v8o.VerrazzanoBinding, c *Controller) {
-	glog.V(4).Info("Configuring System VMI...")
+	zap.S().Infow("Configuring System VMI...")
 	for {
 		createUpdateGlobalEntities(binding, c)
 		<-time.After(60 * time.Second)
@@ -308,19 +310,19 @@ func createUpdateGlobalEntitiesGoroutine(binding *v1beta1v8o.VerrazzanoBinding, 
 func createUpdateGlobalEntities(binding *v1beta1v8o.VerrazzanoBinding, c *Controller) {
 	err := c.local.CreateUpdateVmi(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
 	if err != nil {
-		glog.Errorf("Failed to create System VMI %s: %v", constants.VmiSystemBindingName, err)
+		zap.S().Errorf("Failed to create System VMI %s: %v", constants.VmiSystemBindingName, err)
 	}
 
 	// Create secrets
 	err = c.monitoring.CreateVmiSecrets(binding, c.secrets)
 	if err != nil {
-		glog.Errorf("Failed to create secrets for binding %s: %v", binding.Name, err)
+		zap.S().Errorf("Failed to create secrets for binding %s: %v", binding.Name, err)
 	}
 
 	// Update config maps for system vmi
 	err = c.local.UpdateConfigMaps(binding, c.kubeClientSet, c.configMapLister)
 	if err != nil {
-		glog.Errorf("Failed to update ConfigMaps for binding %s: %v", binding.Name, err)
+		zap.S().Errorf("Failed to update ConfigMaps for binding %s: %v", binding.Name, err)
 	}
 }
 
@@ -333,9 +335,9 @@ func (c *Controller) Run(threadiness int) error {
 	defer runtime.HandleCrash()
 
 	// Start the informer factories to begin populating the informer caches
-	glog.Info("Starting Verrazzano Operator controller")
+	zap.S().Infow("Starting Verrazzano Operator controller")
 
-	glog.Info("Starting watchers")
+	zap.S().Infow("Starting watchers")
 	c.startLocalWatchers()
 	<-c.stopCh
 	return nil
@@ -376,7 +378,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	// Obtain the optional list of imagePullSecrets from the verrazzano-operator service account
 	sa, err := c.kubeClientSet.CoreV1().ServiceAccounts(constants.VerrazzanoSystem).Get(context.TODO(), constants.VerrazzanoOperatorServiceAccount, metav1.GetOptions{})
 	if err != nil {
-		glog.Errorf("Can't find ServiceAccount %s in namespace %s", constants.VerrazzanoOperatorServiceAccount, constants.VerrazzanoSystem)
+		zap.S().Errorf("Can't find ServiceAccount %s in namespace %s", constants.VerrazzanoOperatorServiceAccount, constants.VerrazzanoSystem)
 		return
 	}
 	c.imagePullSecrets = sa.ImagePullSecrets
@@ -401,7 +403,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	managedCluster := cluster.(*v1beta1v8o.VerrazzanoManagedCluster)
 	secret, err := c.secretLister.Secrets(managedCluster.Namespace).Get(managedCluster.Spec.KubeconfigSecret)
 	if err != nil {
-		glog.Errorf("Can't find secret %s for ManagedCluster %s", managedCluster.Spec.KubeconfigSecret, managedCluster.Name)
+		zap.S().Errorf("Can't find secret %s for ManagedCluster %s", managedCluster.Spec.KubeconfigSecret, managedCluster.Name)
 		return
 	}
 
@@ -409,11 +411,11 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	kubeConfigContents := secret.Data["kubeconfig"]
 	_, clusterExists := c.managedClusterConnections[managedCluster.Name]
 	if !clusterExists || string(kubeConfigContents) != c.managedClusterConnections[managedCluster.Name].KubeConfig {
-		glog.Infof("(Re)creating k8s clients for Managed Cluster %s", managedCluster.Name)
+		zap.S().Infof("(Re)creating k8s clients for Managed Cluster %s", managedCluster.Name)
 
 		managedClusterConnection, err := c.managed.BuildManagedClusterConnection(kubeConfigContents, c.stopCh)
 		if err != nil {
-			glog.Error(err)
+			zap.S().Error(err)
 			return
 		}
 
@@ -436,20 +438,20 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		// Create CRD Definitions
 		err = c.managed.CreateCrdDefinitions(c.managedClusterConnections[managedCluster.Name], managedCluster, c.Manifest)
 		if err != nil {
-			glog.Errorf("Failed to create CRD definitions for ManagedCluster %s: %v", managedCluster.Name, err)
+			zap.S().Errorf("Failed to create CRD definitions for ManagedCluster %s: %v", managedCluster.Name, err)
 		}
 
-		glog.Info("Starting watchers on " + managedCluster.Name)
+		zap.S().Infow("Starting watchers on " + managedCluster.Name)
 		c.startManagedClusterWatchers(managedCluster.Name, mbPair)
 
 		// Create all the components needed by logging and monitoring in managed clusters to push metrics and logs into System VMI in management cluster
 		c.createManagedClusterResourcesForBinding(mbPair)
 
 		// Wait for the caches to be synced before starting workers
-		glog.Info("Waiting for informer caches to sync")
+		zap.S().Infow("Waiting for informer caches to sync")
 		if ok := c.cache.WaitForCacheSync(c.stopCh, managedClusterConnection.DeploymentInformer.HasSynced,
 			managedClusterConnection.NamespaceInformer.HasSynced, managedClusterConnection.SecretInformer.HasSynced); !ok {
-			fmt.Println(errors.New("failed to wait for caches to sync"))
+			zap.S().Error(errors.New("failed to wait for caches to sync"))
 		}
 	}
 }
@@ -469,14 +471,14 @@ func (c *Controller) startManagedClusterWatchers(managedClusterName string, mbPa
 
 // update the Istio destination rules and authorization policies for the given model/binding whenever a pod is added or deleted
 func (c *Controller) updateIstioPolicies(mbPair *types.ModelBindingPair, pod *corev1.Pod, action string) {
-	glog.V(4).Infof("Pod %s : %s %s.", pod.Name, pod.Status.PodIP, action)
+	zap.S().Infof("Pod %s : %s %s.", pod.Name, pod.Status.PodIP, action)
 	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
 	}
 	err = c.managed.CreateAuthorizationPolicies(mbPair, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to update authorization policies for binding %s after pod %s: %v", mbPair.Binding.Name, action, err)
+		zap.S().Errorf("Failed to update authorization policies for binding %s after pod %s: %v", mbPair.Binding.Name, action, err)
 	}
 }
 
@@ -484,98 +486,98 @@ func (c *Controller) updateIstioPolicies(mbPair *types.ModelBindingPair, pod *co
 func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.ModelBindingPair) {
 	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create Namespaces
 	err = c.managed.CreateNamespaces(mbPair, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to create namespaces for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to create namespaces for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create (copy) the Secrets needed from the management cluster to the managed clusters
 	err = c.managed.CreateSecrets(mbPair, c.managedClusterConnections, c.kubeClientSet, c.secrets)
 	if err != nil {
-		glog.Errorf("Failed to create secrets for binding %s: %v", mbPair.Binding.Namespace, err)
+		zap.S().Errorf("Failed to create secrets for binding %s: %v", mbPair.Binding.Namespace, err)
 	}
 
 	// Create ServiceAccounts
 	err = c.managed.CreateServiceAccounts(mbPair.Binding.Name, mbPair.ImagePullSecrets, mbPair.ManagedClusters, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to create service accounts for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to create service accounts for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create ConfigMaps
 	err = c.managed.CreateConfigMaps(mbPair, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to create config maps for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to create config maps for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create ClusterRoles
 	err = c.managed.CreateClusterRoles(mbPair, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to create cluster roles for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to create cluster roles for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create ClusterRoleBindings
 	err = c.managed.CreateClusterRoleBindings(mbPair, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to create cluster role bindings for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to create cluster role bindings for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create Ingresses
 	err = c.managed.CreateIngresses(mbPair, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to create ingresses for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to create ingresses for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create istio ServiceEntries for each remote rest connection
 	err = c.managed.CreateServiceEntries(mbPair, filteredConnections, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to create service entries for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to create service entries for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create Deployments
 	err = c.managed.CreateDeployments(mbPair, filteredConnections, c.Manifest, c.verrazzanoURI, c.secrets)
 	if err != nil {
-		glog.Errorf("Failed to create deployments for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to create deployments for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create Services
 	err = c.managed.CreateServices(mbPair, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to create service for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to create service for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create Custom Resources
 	err = c.managed.CreateCustomResources(mbPair, c.managedClusterConnections, c.stopCh, c.VerrazzanoBindingLister)
 	if err != nil {
-		glog.Errorf("Failed to create custom resources for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to create custom resources for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Update Istio Prometheus ConfigMaps for a given ModelBindingPair on all managed clusters
 	err = c.managed.UpdateIstioPrometheusConfigMaps(mbPair, c.secretLister, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to update Istio Config Map for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to update Istio Config Map for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create DaemonSets
 	err = c.managed.CreateDaemonSets(mbPair, filteredConnections, c.verrazzanoURI)
 
 	if err != nil {
-		glog.Errorf("Failed to create DaemonSets for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to create DaemonSets for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create DestinationRules
 	err = c.managed.CreateDestinationRules(mbPair, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to create destination rules for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to create destination rules for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Create AuthorizationPolicies
 	err = c.managed.CreateAuthorizationPolicies(mbPair, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to create authorization policies for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to create authorization policies for binding %s: %v", mbPair.Binding.Name, err)
 	}
 }
 
@@ -585,13 +587,13 @@ func (c *Controller) processApplicationModelAdded(verrazzanoModel interface{}) {
 
 	if existingModel, ok := c.applicationModels[model.Name]; ok {
 		if existingModel.GetResourceVersion() == model.GetResourceVersion() {
-			glog.V(6).Infof("No changes to the model %s", model.Name)
+			zap.S().Debugf("No changes to the model %s", model.Name)
 			return
 		}
 
-		glog.Infof("Updating the model %s", model.Name)
+		zap.S().Infof("Updating the model %s", model.Name)
 	} else {
-		glog.Infof("Adding the model %s", model.Name)
+		zap.S().Infof("Adding the model %s", model.Name)
 	}
 
 	// Add or replace the model object
@@ -602,7 +604,7 @@ func (c *Controller) processApplicationModelAdded(verrazzanoModel interface{}) {
 	for _, binding := range c.applicationBindings {
 		if _, ok := c.modelBindingPairs[binding.Name]; !ok {
 			if model.Name == binding.Spec.ModelName {
-				glog.Infof("Adding model/binding pair during add model for model %s and binding %s", binding.Spec.ModelName, binding.Name)
+				zap.S().Infof("Adding model/binding pair during add model for model %s and binding %s", binding.Spec.ModelName, binding.Name)
 				mbPair := CreateModelBindingPair(model, binding, c.verrazzanoURI, c.imagePullSecrets)
 				c.modelBindingPairs[binding.Name] = mbPair
 				break
@@ -616,7 +618,7 @@ func (c *Controller) processApplicationModelDeleted(verrazzanoModel interface{})
 	model := verrazzanoModel.(*v1beta1v8o.VerrazzanoModel)
 
 	if _, ok := c.applicationModels[model.Name]; ok {
-		glog.Infof("Deleting the model %s", model.Name)
+		zap.S().Infof("Deleting the model %s", model.Name)
 		delete(c.applicationModels, model.Name)
 	}
 }
@@ -640,21 +642,21 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 		if contains(binding.GetFinalizers(), bindingFinalizer) {
 			// Add binding in the case where delete has been initiated before the binding is added.
 			if _, ok := c.applicationBindings[binding.Name]; !ok {
-				glog.Infof("Adding the binding %s", binding.Name)
+				zap.S().Infof("Adding the binding %s", binding.Name)
 				c.applicationBindings[binding.Name] = binding
 			}
 			_, mbPairExists := getModelBindingPair(c, binding)
 			if !mbPairExists {
 				// During restart of the operator a delete can happen before a model/binding is created so create one now.
 				if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-					glog.Infof("Adding model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
+					zap.S().Infof("Adding model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
 					mbPair := CreateModelBindingPair(model, binding, c.verrazzanoURI, c.imagePullSecrets)
 					c.modelBindingPairs[binding.Name] = mbPair
 				}
 			}
 		}
 
-		glog.V(6).Infof("Binding %s is marked for deletion/already deleted", binding.Name)
+		zap.S().Debugf("Binding %s is marked for deletion/already deleted", binding.Name)
 		if contains(binding.GetFinalizers(), bindingFinalizer) {
 			c.processApplicationBindingDeleted(verrazzanoBinding)
 		}
@@ -679,19 +681,19 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 			}
 
 			if counter < 4 {
-				glog.V(6).Infof("No changes to binding %s. Skip sync as sync threshold has not passed", binding.Name)
+				zap.S().Debugf("No changes to binding %s. Skip sync as sync threshold has not passed", binding.Name)
 				return
 			}
 
-			glog.V(6).Infof("No changes to binding %s. Syncing with cluster state", binding.Name)
+			zap.S().Debugf("No changes to binding %s. Syncing with cluster state", binding.Name)
 			c.bindingSyncThreshold[binding.Name] = 0
 		} else {
-			glog.Infof("Updating the binding %s", binding.Name)
+			zap.S().Infof("Updating the binding %s", binding.Name)
 			c.applicationBindings[binding.Name] = binding
 		}
 
 	} else {
-		glog.Infof("Adding the binding %s", binding.Name)
+		zap.S().Infof("Adding the binding %s", binding.Name)
 		c.applicationBindings[binding.Name] = binding
 	}
 
@@ -700,7 +702,7 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 	if !mbPairExists {
 		// If a model exists for this binding, then create the model/binding pair
 		if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-			glog.Infof("Adding new model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
+			zap.S().Infof("Adding new model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
 			mbPair = CreateModelBindingPair(model, binding, c.verrazzanoURI, c.imagePullSecrets)
 			c.modelBindingPairs[binding.Name] = mbPair
 			mbPairExists = true
@@ -720,7 +722,7 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 
 	err = c.waitForManagedClusters(mbPair, binding.Name)
 	if err != nil {
-		glog.Errorf("Skipping processing of VerrazzanoBinding %s until all referenced Managed Clusters are available, error %s", binding.Name, err.Error())
+		zap.S().Errorf("Skipping processing of VerrazzanoBinding %s until all referenced Managed Clusters are available, error %s", binding.Name, err.Error())
 		return
 	}
 
@@ -730,25 +732,25 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 	// Create VMIs
 	err = c.local.CreateUpdateVmi(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
 	if err != nil {
-		glog.Errorf("Failed to create VMIs for binding %s: %v", binding.Name, err)
+		zap.S().Errorf("Failed to create VMIs for binding %s: %v", binding.Name, err)
 	}
 
 	// Create secrets
 	err = c.monitoring.CreateVmiSecrets(binding, c.secrets)
 	if err != nil {
-		glog.Errorf("Failed to create secrets for binding %s: %v", binding.Name, err)
+		zap.S().Errorf("Failed to create secrets for binding %s: %v", binding.Name, err)
 	}
 
 	// Update ConfigMaps
 	err = c.local.UpdateConfigMaps(binding, c.kubeClientSet, c.configMapLister)
 	if err != nil {
-		glog.Errorf("Failed to update ConfigMaps for binding %s: %v", binding.Name, err)
+		zap.S().Errorf("Failed to update ConfigMaps for binding %s: %v", binding.Name, err)
 	}
 
 	// Update the "bring your own DNS" credentials?
 	err = c.local.UpdateAcmeDNSSecret(binding, c.kubeClientSet, c.secretLister, constants.AcmeDNSSecret, c.verrazzanoURI)
 	if err != nil {
-		glog.Errorf("Failed to update DNS credentials for binding %s: %v", binding.Name, err)
+		zap.S().Errorf("Failed to update DNS credentials for binding %s: %v", binding.Name, err)
 	}
 
 	/*********************
@@ -784,9 +786,9 @@ func checkForDuplicateNamespaces(placement *v1beta1v8o.VerrazzanoPlacement, bind
 		for _, currNamespace := range currPlacement.Namespaces {
 			if currNamespace.Name == namespace.Name {
 				if !dupFound {
-					glog.Errorf("Binding %s has a conflicting namespace with binding %s.  Namespaces must be unique across bindings.", binding.Name, currBinding.Name)
+					zap.S().Errorf("Binding %s has a conflicting namespace with binding %s.  Namespaces must be unique across bindings.", binding.Name, currBinding.Name)
 				}
-				glog.Errorf("Duplicate namespace %s found in placement %s", namespace.Name, placement.Name)
+				zap.S().Errorf("Duplicate namespace %s found in placement %s", namespace.Name, placement.Name)
 				dupFound = true
 				break
 			}
@@ -800,55 +802,55 @@ func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
 	// Cleanup Custom Resources
 	err := c.managed.CleanupOrphanedCustomResources(mbPair, c.managedClusterConnections, c.stopCh)
 	if err != nil {
-		glog.Errorf("Failed to cleanup custom resources for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to cleanup custom resources for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup Services for generic components
 	err = c.managed.CleanupOrphanedServices(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to cleanup services for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to cleanup services for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup Deployments for generic components
 	err = c.managed.CleanupOrphanedDeployments(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to cleanup deployments for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to cleanup deployments for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup ServiceEntries
 	err = c.managed.CleanupOrphanedServiceEntries(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to cleanup ServiceEntries for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to cleanup ServiceEntries for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup Ingresses
 	err = c.managed.CleanupOrphanedIngresses(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to cleanup Ingresses for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to cleanup Ingresses for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup ClusterRoleBindings
 	err = c.managed.CleanupOrphanedClusterRoleBindings(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to cleanup ClusterRoleBindings for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to cleanup ClusterRoleBindings for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup ClusterRoles
 	err = c.managed.CleanupOrphanedClusterRoles(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to cleanup ClusterRoles for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to cleanup ClusterRoles for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup ConfigMaps
 	err = c.managed.CleanupOrphanedConfigMaps(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to cleanup ConfigMaps for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to cleanup ConfigMaps for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Cleanup Namespaces - this will also cleanup any ServiceAccounts and Secrets within the namespace
 	err = c.managed.CleanupOrphanedNamespaces(mbPair, c.managedClusterConnections, c.modelBindingPairs)
 	if err != nil {
-		glog.Errorf("Failed to cleanup Namespaces for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to cleanup Namespaces for binding %s: %v", mbPair.Binding.Name, err)
 	}
 }
 
@@ -869,7 +871,7 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 	binding := verrazzanoBinding.(*v1beta1v8o.VerrazzanoBinding)
 
 	if !contains(binding.GetFinalizers(), bindingFinalizer) {
-		glog.Infof("Resources for binding %s already deleted", binding.Name)
+		zap.S().Infof("Resources for binding %s already deleted", binding.Name)
 		return
 	}
 
@@ -878,7 +880,7 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 		return
 	}
 
-	glog.Infof("Deleting resources for binding %s", binding.Name)
+	zap.S().Infof("Deleting resources for binding %s", binding.Name)
 
 	/*********************
 	 * Delete Artifacts in the Local Cluster
@@ -886,20 +888,20 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 	// Delete VMIs
 	err := c.local.DeleteVmi(binding, c.vmoClientSet, c.vmiLister)
 	if err != nil {
-		glog.Errorf("Failed to delete VMIs for binding %s: %v", binding.Name, err)
+		zap.S().Errorf("Failed to delete VMIs for binding %s: %v", binding.Name, err)
 	}
 
 	// Delete Secrets
 	err = c.local.DeleteSecrets(binding, c.kubeClientSet, c.secretLister)
 	if err != nil {
-		glog.Errorf("Failed to delete secrets for binding %s: %v", binding.Name, err)
+		zap.S().Errorf("Failed to delete secrets for binding %s: %v", binding.Name, err)
 		return
 	}
 
 	// Delete ConfigMaps
 	err = c.local.DeleteConfigMaps(binding, c.kubeClientSet, c.configMapLister)
 	if err != nil {
-		glog.Errorf("Failed to delete ConfigMaps for binding %s: %v", binding.Name, err)
+		zap.S().Errorf("Failed to delete ConfigMaps for binding %s: %v", binding.Name, err)
 		return
 	}
 
@@ -909,54 +911,54 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 
 	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Delete Custom Resources
 	err = c.managed.DeleteCustomResources(mbPair, c.managedClusterConnections)
 	if err != nil {
-		glog.Errorf("Failed to delete custom resources for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to delete custom resources for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
 	// Delete Services for generic components
 	err = c.managed.DeleteServices(mbPair, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to delete services for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to delete services for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
 	// Delete Deployments for generic components
 	err = c.managed.DeleteDeployments(mbPair, filteredConnections)
 	if err != nil {
-		glog.Errorf("Failed to delete deployments for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to delete deployments for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
 	// Delete ClusterRoleBindings
 	err = c.managed.DeleteClusterRoleBindings(mbPair, c.managedClusterConnections, true)
 	if err != nil {
-		glog.Errorf("Failed to delete cluster role bindings for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to delete cluster role bindings for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
 	// Delete ClusterRoles
 	err = c.managed.DeleteClusterRoles(mbPair, c.managedClusterConnections, true)
 	if err != nil {
-		glog.Errorf("Failed to delete cluster roles for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to delete cluster roles for binding %s: %v", mbPair.Binding.Name, err)
 		return
 	}
 
 	err = c.monitoring.DeletePomPusher(binding.Name, &kubeDeployment{kubeClientSet: c.kubeClientSet})
 	if err != nil {
-		glog.Errorf("Failed to delete prometheus-pusher for binding %s: %v", mbPair.Binding.Name, err)
+		zap.S().Errorf("Failed to delete prometheus-pusher for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
 	// Delete Namespaces - this will also cleanup any Ingresses,
 	// ServiceEntries, ServiceAccounts, ConfigMaps and Secrets within the namespace
 	err = c.managed.DeleteNamespaces(mbPair, c.managedClusterConnections, true)
 	if err != nil {
-		glog.Errorf("Failed delete namespaces for binding %s: %v", binding.Name, err)
+		zap.S().Errorf("Failed delete namespaces for binding %s: %v", binding.Name, err)
 		return
 	}
 
@@ -966,14 +968,14 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 		// Delete ClusterRoleBindings
 		err = c.managed.DeleteClusterRoleBindings(mbPair, c.managedClusterConnections, false)
 		if err != nil {
-			glog.Errorf("Failed to delete cluster role bindings: %v", err)
+			zap.S().Errorf("Failed to delete cluster role bindings: %v", err)
 			return
 		}
 
 		// Delete ClusterRoles
 		err = c.managed.DeleteClusterRoles(mbPair, c.managedClusterConnections, false)
 		if err != nil {
-			glog.Errorf("Failed to delete cluster roles: %v", err)
+			zap.S().Errorf("Failed to delete cluster roles: %v", err)
 			return
 		}
 
@@ -981,7 +983,7 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 		// ServiceEntries, ServiceAccounts, and Secrets within the namespace
 		err = c.managed.DeleteNamespaces(mbPair, c.managedClusterConnections, false)
 		if err != nil {
-			glog.Errorf("Failed to delete a common namespace for all bindings: %v", err)
+			zap.S().Errorf("Failed to delete a common namespace for all bindings: %v", err)
 			return
 		}
 
@@ -1014,14 +1016,14 @@ func (c *Controller) waitForManagedClusters(mbPair *types.ModelBindingPair, bind
 		case <-timeout:
 			return fmt.Errorf("timed out waiting for Managed clusters referenced in binding %s, error %s", bindingName, err.Error())
 		case <-tick:
-			glog.V(6).Infof("Waiting for all Managed Clusters referenced in binding %s to be available..", bindingName)
+			zap.S().Debugf("Waiting for all Managed Clusters referenced in binding %s to be available..", bindingName)
 			_, err = c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
 			if err == nil {
-				glog.V(6).Infof("All Managed Clusters referenced in binding %s are available..", bindingName)
+				zap.S().Debugf("All Managed Clusters referenced in binding %s are available..", bindingName)
 				return nil
 			}
 
-			glog.V(4).Info(err.Error())
+			zap.S().Infow(err.Error())
 		}
 	}
 
@@ -1049,13 +1051,13 @@ func remove(list []string, s string) []string {
 
 // Add finalizer to binding for cleanup when binding is deleted
 func (c *Controller) addFinalizer(binding *v1beta1v8o.VerrazzanoBinding) (*v1beta1v8o.VerrazzanoBinding, error) {
-	glog.Infof("Adding finalizer %s to binding %s", bindingFinalizer, binding.Name)
+	zap.S().Infof("Adding finalizer %s to binding %s", bindingFinalizer, binding.Name)
 	binding.SetFinalizers(append(binding.GetFinalizers(), bindingFinalizer))
 
 	// Update binding
 	binding, err := c.verrazzanoOperatorClientSet.VerrazzanoV1beta1().VerrazzanoBindings(binding.Namespace).Update(context.TODO(), binding, metav1.UpdateOptions{})
 	if err != nil {
-		glog.Errorf("Failed adding finalizer %s to binding %s, error %s", bindingFinalizer, binding.Name, err.Error())
+		zap.S().Errorf("Failed adding finalizer %s to binding %s, error %s", bindingFinalizer, binding.Name, err.Error())
 		return nil, err
 	}
 	return binding, nil
@@ -1063,13 +1065,13 @@ func (c *Controller) addFinalizer(binding *v1beta1v8o.VerrazzanoBinding) (*v1bet
 
 // Remove finalizer from binding after binding is deleted
 func (c *Controller) removeFinalizer(binding *v1beta1v8o.VerrazzanoBinding) error {
-	glog.Infof("Removing finalizer %s from binding %s", bindingFinalizer, binding.Name)
+	zap.S().Infof("Removing finalizer %s from binding %s", bindingFinalizer, binding.Name)
 	binding.SetFinalizers(remove(binding.GetFinalizers(), bindingFinalizer))
 
 	// Update binding
 	_, err := c.verrazzanoOperatorClientSet.VerrazzanoV1beta1().VerrazzanoBindings(binding.Namespace).Update(context.TODO(), binding, metav1.UpdateOptions{})
 	if err != nil {
-		glog.Errorf("Failed removing finalizer %s from binding %s, error %s", bindingFinalizer, binding.Name, err.Error())
+		zap.S().Errorf("Failed removing finalizer %s from binding %s, error %s", bindingFinalizer, binding.Name, err.Error())
 		return err
 	}
 	return nil

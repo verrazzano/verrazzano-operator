@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/golang/glog"
+	"go.uber.org/zap"
 )
 
 // CORSHandler is an HTTP handler that will handle CORS preflight requests
@@ -18,7 +18,7 @@ func CORSHandler(h http.Handler) http.Handler {
 		if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
 			// CORS preflight request
 			SetupOptionsResponse(&w, r)
-			glog.Info("OPTIONS /" + r.URL.Path)
+			zap.S().Infow("OPTIONS /" + r.URL.Path)
 			return
 		}
 		// actual request

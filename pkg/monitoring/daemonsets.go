@@ -6,10 +6,10 @@ package monitoring
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/resources"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -26,15 +26,15 @@ func SystemDaemonSets(managedClusterName string, verrazzanoURI string) []*appsv1
 
 	fileabeatDS, err := createFilebeatDaemonSet(constants.LoggingNamespace, constants.FilebeatName, filebeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New Daemonset %s is giving error %s", constants.FilebeatName, err)
+		zap.S().Debugf("New Daemonset %s is giving error %s", constants.FilebeatName, err)
 	}
 	journalbeatDS, err := createJournalbeatDaemonSet(constants.LoggingNamespace, constants.JournalbeatName, journalbeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New Daemonset %s is giving error %s", constants.JournalbeatName, err)
+		zap.S().Debugf("New Daemonset %s is giving error %s", constants.JournalbeatName, err)
 	}
 	nodeExporterDS, err := createNodeExporterDaemonSet(constants.MonitoringNamespace, constants.NodeExporterName, nodeExporterLabels)
 	if err != nil {
-		glog.V(6).Infof("New Daemonset %s is giving error %s", constants.NodeExporterName, err)
+		zap.S().Debugf("New Daemonset %s is giving error %s", constants.NodeExporterName, err)
 	}
 
 	daemonSets = append(daemonSets, fileabeatDS, journalbeatDS, nodeExporterDS)

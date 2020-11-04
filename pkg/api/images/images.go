@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
 // This file is very similar to applications.go - please see comments there
@@ -53,7 +53,7 @@ func Init() {
 
 // ReturnAllImages returns all images available
 func ReturnAllImages(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /images")
+	zap.S().Infow("GET /images")
 
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Images)), 10))
 	json.NewEncoder(w).Encode(Images)
@@ -65,7 +65,7 @@ func ReturnSingleImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /images/" + key)
+	zap.S().Infow("GET /images/" + key)
 
 	found := false
 	for _, images := range Images {

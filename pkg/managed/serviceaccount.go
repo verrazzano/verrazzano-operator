@@ -8,20 +8,19 @@ package managed
 import (
 	"context"
 
-	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // CreateServiceAccounts creates/updates service accounts needed for each managed cluster.
 func CreateServiceAccounts(bindingName string, imagePullSecrets []corev1.LocalObjectReference, managedClusters map[string]*types.ManagedCluster, filteredConnections map[string]*util.ManagedClusterConnection) error {
-
-	glog.V(6).Infof("Creating/updating Deployments for VerrazzanoBinding %s", bindingName)
+	zap.S().Debugf("Creating/updating Deployments for VerrazzanoBinding %s", bindingName)
 
 	// Construct service account for each ManagedCluster
 	for clusterName, managedClusterObj := range managedClusters {
@@ -56,12 +55,12 @@ func createServiceAccount(managedClusterConnection *util.ManagedClusterConnectio
 		if existingServiceAccount != nil {
 			specDiffs := diff.CompareIgnoreTargetEmpties(existingServiceAccount, newServiceAccount)
 			if specDiffs != "" {
-				glog.V(6).Infof("ServiceAccount %s : Spec differences %s", newServiceAccount.Name, specDiffs)
-				glog.V(4).Infof("Updating ServiceAccount %s:%s in cluster %s", newServiceAccount.Namespace, newServiceAccount.Name, clusterName)
+				zap.S().Debugf("ServiceAccount %s : Spec differences %s", newServiceAccount.Name, specDiffs)
+				zap.S().Infof("Updating ServiceAccount %s:%s in cluster %s", newServiceAccount.Namespace, newServiceAccount.Name, clusterName)
 				_, err = managedClusterConnection.KubeClient.CoreV1().ServiceAccounts(newServiceAccount.Namespace).Update(context.TODO(), newServiceAccount, metav1.UpdateOptions{})
 			}
 		} else {
-			glog.V(4).Infof("Creating ServiceAccount %s:%s in cluster %s", newServiceAccount.Namespace, newServiceAccount.Name, clusterName)
+			zap.S().Infof("Creating ServiceAccount %s:%s in cluster %s", newServiceAccount.Namespace, newServiceAccount.Name, clusterName)
 			_, err = managedClusterConnection.KubeClient.CoreV1().ServiceAccounts(newServiceAccount.Namespace).Create(context.TODO(), newServiceAccount, metav1.CreateOptions{})
 		}
 		if err != nil {

@@ -9,20 +9,19 @@ import (
 	"strconv"
 	"strings"
 
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-
-	"github.com/golang/glog"
 	istiocrd "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
+	"go.uber.org/zap"
 	istio "istio.io/api/networking/v1alpha3"
 	istiosecv1beta1 "istio.io/api/security/v1beta1"
 	"istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"istio.io/client-go/pkg/apis/security/v1beta1"
 	v1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -34,11 +33,11 @@ const IstioSystemNamespace = "istio-system"
 
 // CreateIngresses creates/updates istio gateways and virtual services for managed clusters.
 func CreateIngresses(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Creating/updating Ingresses for VerrazzanoBinding %s", mbPair.Binding.Name)
+	zap.S().Debugf("Creating/updating Ingresses for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// In case of System binding, skip creating ingresses
 	if mbPair.Binding.Name == constants.VmiSystemBindingName {
-		glog.V(6).Infof("Skip creating Ingresses for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
+		zap.S().Debugf("Skip creating Ingresses for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
 		return nil
 	}
 
@@ -57,15 +56,15 @@ func CreateIngresses(mbPair *types.ModelBindingPair, filteredConnections map[str
 			if existingGateway != nil {
 				specDiffs := diff.CompareIgnoreTargetEmpties(existingGateway, newGateway)
 				if specDiffs != "" {
-					glog.V(6).Infof("Istio Gateway %s : Spec differences %s", newGateway.Name, specDiffs)
-					glog.V(4).Infof("Updating Istio Gateway %s:%s in cluster %s", newGateway.Namespace, newGateway.Name, clusterName)
+					zap.S().Debugf("Istio Gateway %s : Spec differences %s", newGateway.Name, specDiffs)
+					zap.S().Infof("Updating Istio Gateway %s:%s in cluster %s", newGateway.Namespace, newGateway.Name, clusterName)
 					if len(newGateway.ResourceVersion) == 0 {
 						newGateway.ResourceVersion = existingGateway.ResourceVersion
 					}
 					_, err = managedClusterConnection.IstioClientSet.NetworkingV1alpha3().Gateways(newGateway.Namespace).Update(context.TODO(), newGateway, metav1.UpdateOptions{})
 				}
 			} else {
-				glog.V(4).Infof("Creating Istio Gateway %s:%s in cluster %s", newGateway.Namespace, newGateway.Name, clusterName)
+				zap.S().Infof("Creating Istio Gateway %s:%s in cluster %s", newGateway.Namespace, newGateway.Name, clusterName)
 				_, err = managedClusterConnection.IstioClientSet.NetworkingV1alpha3().Gateways(newGateway.Namespace).Create(context.TODO(), newGateway, metav1.CreateOptions{})
 			}
 			if err != nil {
@@ -79,15 +78,15 @@ func CreateIngresses(mbPair *types.ModelBindingPair, filteredConnections map[str
 			if existingVirtualService != nil {
 				specDiffs := diff.CompareIgnoreTargetEmpties(existingVirtualService, newVirtualService)
 				if specDiffs != "" {
-					glog.V(6).Infof("Istio VirtualService %s : Spec differences %s", newVirtualService.Name, specDiffs)
-					glog.V(4).Infof("Updating Istio VirtualService %s:%s in cluster %s", newVirtualService.Namespace, newVirtualService.Name, clusterName)
+					zap.S().Debugf("Istio VirtualService %s : Spec differences %s", newVirtualService.Name, specDiffs)
+					zap.S().Infof("Updating Istio VirtualService %s:%s in cluster %s", newVirtualService.Namespace, newVirtualService.Name, clusterName)
 					if len(newVirtualService.ResourceVersion) == 0 {
 						newVirtualService.ResourceVersion = existingVirtualService.ResourceVersion
 					}
 					_, err = managedClusterConnection.IstioClientSet.NetworkingV1alpha3().VirtualServices(newVirtualService.Namespace).Update(context.TODO(), newVirtualService, metav1.UpdateOptions{})
 				}
 			} else {
-				glog.V(4).Infof("Creating Istio VirtualService %s:%s in cluster %s", newVirtualService.Namespace, newVirtualService.Name, clusterName)
+				zap.S().Infof("Creating Istio VirtualService %s:%s in cluster %s", newVirtualService.Namespace, newVirtualService.Name, clusterName)
 				_, err = managedClusterConnection.IstioClientSet.NetworkingV1alpha3().VirtualServices(newVirtualService.Namespace).Create(context.TODO(), newVirtualService, metav1.CreateOptions{})
 			}
 			if err != nil {
@@ -101,11 +100,11 @@ func CreateIngresses(mbPair *types.ModelBindingPair, filteredConnections map[str
 
 // CreateServiceEntries creates/updates istio service entries for managed clusters.
 func CreateServiceEntries(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Creating/updating istio serviceentries for VerrazzanoBinding %s", mbPair.Binding.Name)
+	zap.S().Debugf("Creating/updating istio serviceentries for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// In case of System binding, skip creating Service Entries
 	if mbPair.Binding.Name == constants.VmiSystemBindingName {
-		glog.V(6).Infof("Skip creating Service Entries for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
+		zap.S().Debugf("Skip creating Service Entries for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
 		return nil
 	}
 
@@ -135,8 +134,8 @@ func CreateServiceEntries(mbPair *types.ModelBindingPair, filteredConnections ma
 				}
 				specDiffs := diff.CompareIgnoreTargetEmpties(existingServiceEntry, newServiceEntry)
 				if specDiffs != "" {
-					glog.V(6).Infof("Istio ServiceEntry %s : Spec differences %s", newServiceEntry.Name, specDiffs)
-					glog.V(4).Infof("Updating Istio ServiceEntry %s:%s in cluster %s", newServiceEntry.Namespace, newServiceEntry.Name, clusterName)
+					zap.S().Debugf("Istio ServiceEntry %s : Spec differences %s", newServiceEntry.Name, specDiffs)
+					zap.S().Infof("Updating Istio ServiceEntry %s:%s in cluster %s", newServiceEntry.Namespace, newServiceEntry.Name, clusterName)
 					// resourceVersion field cannot be empty on an update
 					if len(newServiceEntry.ResourceVersion) == 0 {
 						newServiceEntry.ResourceVersion = existingServiceEntry.ResourceVersion
@@ -144,14 +143,14 @@ func CreateServiceEntries(mbPair *types.ModelBindingPair, filteredConnections ma
 					_, err = managedClusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries(newServiceEntry.Namespace).Update(context.TODO(), newServiceEntry, metav1.UpdateOptions{})
 				}
 			} else {
-				glog.V(4).Infof("Creating Istio ServiceEntry %s:%s in cluster %s", newServiceEntry.Namespace, newServiceEntry.Name, clusterName)
+				zap.S().Infof("Creating Istio ServiceEntry %s:%s in cluster %s", newServiceEntry.Namespace, newServiceEntry.Name, clusterName)
 				newServiceEntry.Spec.Addresses = make([]string, 1)
 				newServiceEntry.Spec.Addresses[0], err = getUniqueServiceEntryAddress(managedClusterConnection, &startIPIndex)
 				if err != nil {
 					return err
 				}
 
-				glog.V(6).Infof(fmt.Sprintf("%+v", newServiceEntry))
+				zap.S().Infow(fmt.Sprintf("%+v", newServiceEntry))
 				_, err = managedClusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries(newServiceEntry.Namespace).Create(context.TODO(), newServiceEntry, metav1.CreateOptions{})
 			}
 			if err != nil {
@@ -165,7 +164,7 @@ func CreateServiceEntries(mbPair *types.ModelBindingPair, filteredConnections ma
 
 // CreateDestinationRules creates/updates istio destination rules for managed clusters.
 func CreateDestinationRules(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Creating/updating DestinationRules for VerrazzanoBinding %s", mbPair.Binding.Name)
+	zap.S().Debugf("Creating/updating DestinationRules for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Construct istio destination rules for each ManagedCluster
 	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
@@ -185,8 +184,8 @@ func CreateDestinationRules(mbPair *types.ModelBindingPair, filteredConnections 
 				if existingRule != nil {
 					specDiffs := diff.CompareIgnoreTargetEmpties(existingRule, newRule)
 					if specDiffs != "" {
-						glog.V(6).Infof("Istio DestinationRule %s : Spec differences %s", newRule.Name, specDiffs)
-						glog.V(4).Infof("Updating Istio DestinationRule %s:%s in cluster %s", newRule.Namespace, newRule.Name, clusterName)
+						zap.S().Debugf("Istio DestinationRule %s : Spec differences %s", newRule.Name, specDiffs)
+						zap.S().Infof("Updating Istio DestinationRule %s:%s in cluster %s", newRule.Namespace, newRule.Name, clusterName)
 
 						if len(newRule.ResourceVersion) == 0 {
 							newRule.ResourceVersion = existingRule.ResourceVersion
@@ -195,7 +194,7 @@ func CreateDestinationRules(mbPair *types.ModelBindingPair, filteredConnections 
 					}
 				}
 			} else if k8sErrors.IsNotFound(err) {
-				glog.V(4).Infof("Creating Istio DestinationRule %s:%s in cluster %s", newRule.Namespace, newRule.Name, clusterName)
+				zap.S().Infof("Creating Istio DestinationRule %s:%s in cluster %s", newRule.Namespace, newRule.Name, clusterName)
 				_, err = managedClusterConnection.IstioAuthClientSet.NetworkingV1alpha3().DestinationRules(newRule.Namespace).Create(context.TODO(), newRule, metav1.CreateOptions{})
 			}
 			if err != nil {
@@ -208,7 +207,7 @@ func CreateDestinationRules(mbPair *types.ModelBindingPair, filteredConnections 
 
 // CreateAuthorizationPolicies creates/updates istio authorization policies for managed clusters.
 func CreateAuthorizationPolicies(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Creating/updating AuthorizationPolicies for VerrazzanoBinding %s", mbPair.Binding.Name)
+	zap.S().Debugf("Creating/updating AuthorizationPolicies for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Construct istio authorization policies for each ManagedCluster
 	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
@@ -232,8 +231,8 @@ func CreateAuthorizationPolicies(mbPair *types.ModelBindingPair, filteredConnect
 				if existingPolicy != nil {
 					specDiffs := diff.CompareIgnoreTargetEmpties(existingPolicy, newPolicy)
 					if specDiffs != "" {
-						glog.V(6).Infof("Istio AuthorizationPolicy %s : Spec differences %s", newPolicy.Name, specDiffs)
-						glog.V(4).Infof("Updating Istio AuthorizationPolicy %s:%s in cluster %s", newPolicy.Namespace, newPolicy.Name, clusterName)
+						zap.S().Debugf("Istio AuthorizationPolicy %s : Spec differences %s", newPolicy.Name, specDiffs)
+						zap.S().Infof("Updating Istio AuthorizationPolicy %s:%s in cluster %s", newPolicy.Namespace, newPolicy.Name, clusterName)
 
 						if len(newPolicy.ResourceVersion) == 0 {
 							newPolicy.ResourceVersion = existingPolicy.ResourceVersion
@@ -242,7 +241,7 @@ func CreateAuthorizationPolicies(mbPair *types.ModelBindingPair, filteredConnect
 					}
 				}
 			} else if k8sErrors.IsNotFound(err) {
-				glog.V(4).Infof("Creating Istio AuthorizationPolicy %s:%s in cluster %s", newPolicy.Namespace, newPolicy.Name, clusterName)
+				zap.S().Infof("Creating Istio AuthorizationPolicy %s:%s in cluster %s", newPolicy.Namespace, newPolicy.Name, clusterName)
 				_, err = managedClusterConnection.IstioAuthClientSet.SecurityV1beta1().AuthorizationPolicies(newPolicy.Namespace).Create(context.TODO(), newPolicy, metav1.CreateOptions{})
 			}
 			if err != nil {
@@ -271,7 +270,7 @@ func getUniqueServiceEntryAddress(managedClusterConnection *util.ManagedClusterC
 			if se.Spec.Addresses != nil {
 				for _, address := range se.Spec.Addresses {
 					if address == uniqueIP {
-						glog.V(6).Infof("found ServiceEntry with address %s: trying next address", uniqueIP)
+						zap.S().Debugf("found ServiceEntry with address %s: trying next address", uniqueIP)
 						*startIPIndex++
 						uniqueIP = fmt.Sprintf("%s.%s", baseIP, strconv.Itoa(*startIPIndex))
 						match = true
@@ -294,7 +293,7 @@ func getUniqueServiceEntryAddress(managedClusterConnection *util.ManagedClusterC
 
 // CleanupOrphanedIngresses deletes istio gateways and virtual services that have been orphaned.
 func CleanupOrphanedIngresses(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Cleaning up orphaned Ingresses for VerrazzanoBinding %s", mbPair.Binding.Name)
+	zap.S().Debugf("Cleaning up orphaned Ingresses for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Get the managed clusters that this binding applies to
 	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
@@ -325,7 +324,7 @@ func CleanupOrphanedIngresses(mbPair *types.ModelBindingPair, availableManagedCl
 		// Delete any Gateways not expected on this cluster
 		for _, gateway := range existingGatewayList {
 			if !util.Contains(gatewayNames, gateway.Name) {
-				glog.V(4).Infof("Deleting Istio Gateway %s:%s in cluster %s", gateway.Namespace, gateway.Name, clusterName)
+				zap.S().Infof("Deleting Istio Gateway %s:%s in cluster %s", gateway.Namespace, gateway.Name, clusterName)
 				err := managedClusterConnection.IstioClientSet.NetworkingV1alpha3().Gateways(gateway.Namespace).Delete(context.TODO(), gateway.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
@@ -346,7 +345,7 @@ func CleanupOrphanedIngresses(mbPair *types.ModelBindingPair, availableManagedCl
 		// Delete any Virtual Services not expected on this cluster
 		for _, virtualService := range existingVirtualServiceList {
 			if !util.Contains(virtualServices, virtualService.Name) {
-				glog.V(4).Infof("Deleting Istio VirtualService %s:%s in cluster %s", virtualService.Namespace, virtualService.Name, clusterName)
+				zap.S().Infof("Deleting Istio VirtualService %s:%s in cluster %s", virtualService.Namespace, virtualService.Name, clusterName)
 				err := managedClusterConnection.IstioClientSet.NetworkingV1alpha3().VirtualServices(virtualService.Namespace).Delete(context.TODO(), virtualService.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
@@ -371,7 +370,7 @@ func CleanupOrphanedIngresses(mbPair *types.ModelBindingPair, availableManagedCl
 		}
 		// Delete these Gateways since none are expected on this cluster
 		for _, gw := range existingGatewayList {
-			glog.V(4).Infof("Deleting Istio Gateway %s:%s in cluster %s", gw.Namespace, gw.Name, clusterName)
+			zap.S().Infof("Deleting Istio Gateway %s:%s in cluster %s", gw.Namespace, gw.Name, clusterName)
 			err := managedClusterConnection.IstioClientSet.NetworkingV1alpha3().Gateways(gw.Namespace).Delete(context.TODO(), gw.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
@@ -385,7 +384,7 @@ func CleanupOrphanedIngresses(mbPair *types.ModelBindingPair, availableManagedCl
 		}
 		// Delete these Virtual Services since none are expected on this cluster
 		for _, vs := range existingVirtualServiceList {
-			glog.V(4).Infof("Deleting Istio VirtualService %s:%s in cluster %s", vs.Namespace, vs.Name, clusterName)
+			zap.S().Infof("Deleting Istio VirtualService %s:%s in cluster %s", vs.Namespace, vs.Name, clusterName)
 			err := managedClusterConnection.IstioClientSet.NetworkingV1alpha3().VirtualServices(vs.Namespace).Delete(context.TODO(), vs.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
@@ -398,7 +397,7 @@ func CleanupOrphanedIngresses(mbPair *types.ModelBindingPair, availableManagedCl
 
 // CleanupOrphanedServiceEntries deletes istio service entries that have been orphaned.
 func CleanupOrphanedServiceEntries(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Cleaning up orphaned ServiceEntries for VerrazzanoBinding %s", mbPair.Binding.Name)
+	zap.S().Debugf("Cleaning up orphaned ServiceEntries for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Get the managed clusters that this binding applies to
 	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
@@ -429,7 +428,7 @@ func CleanupOrphanedServiceEntries(mbPair *types.ModelBindingPair, availableMana
 		// Delete any ServiceEntries not expected on this cluster
 		for _, serviceEntry := range existingServiceEntryList {
 			if !util.Contains(serviceEntryNames, serviceEntry.Name) {
-				glog.V(4).Infof("Deleting Istio ServiceEntry %s:%s in cluster %s", serviceEntry.Namespace, serviceEntry.Name, clusterName)
+				zap.S().Infof("Deleting Istio ServiceEntry %s:%s in cluster %s", serviceEntry.Namespace, serviceEntry.Name, clusterName)
 				err := managedClusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries(serviceEntry.Namespace).Delete(context.TODO(), serviceEntry.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
@@ -454,14 +453,13 @@ func CleanupOrphanedServiceEntries(mbPair *types.ModelBindingPair, availableMana
 		}
 		// Delete these ServiceEntries since none are expected on this cluster
 		for _, se := range existingServiceEntryList {
-			glog.V(4).Infof("Deleting Istio ServiceEntry %s:%s in cluster %s", se.Namespace, se.Name, clusterName)
+			zap.S().Infof("Deleting Istio ServiceEntry %s:%s in cluster %s", se.Namespace, se.Name, clusterName)
 			err := managedClusterConnection.IstioClientSet.NetworkingV1alpha3().ServiceEntries(se.Namespace).Delete(context.TODO(), se.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -850,7 +848,7 @@ func getIPOfSystemPrometheusPod(pods []*v1.Pod) string {
 			return pod.Status.PodIP
 		}
 	}
-	glog.Errorf("Unable to obtain IP address of System Prometheus Pod for authorization policy")
+	zap.S().Errorw("Unable to obtain IP address of System Prometheus Pod for authorization policy")
 	return ""
 }
 
@@ -874,7 +872,7 @@ func GetNamespaceValues(nsMap map[string]map[string]struct{}, ns string) []strin
 }
 
 func getIstioGateways(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, remoteClusterName string) string {
-	glog.V(6).Infof("Getting istio-ingressgateway addresses for VerrazzanoBinding %s", mbPair.Binding.Name)
+	zap.S().Debugf("Getting istio-ingressgateway addresses for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	if _, ok := mbPair.ManagedClusters[remoteClusterName]; ok {
 		// Parse out the managed clusters that this binding applies to
@@ -887,16 +885,16 @@ func getIstioGateways(mbPair *types.ModelBindingPair, availableManagedClusterCon
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		glog.V(6).Infof("Getting istio-ingressgateway address in cluster %s", remoteClusterName)
+		zap.S().Debugf("Getting istio-ingressgateway address in cluster %s", remoteClusterName)
 		service, err := managedClusterConnection.KubeClient.CoreV1().Services(IstioSystemNamespace).Get(context.TODO(), "istio-ingressgateway", metav1.GetOptions{})
 
 		if err != nil || service == nil {
-			glog.Errorf("failed to get istio-ingressgateway service for cluster %s, %v", remoteClusterName, err)
+			zap.S().Errorf("failed to get istio-ingressgateway service for cluster %s, %v", remoteClusterName, err)
 			return ""
 		}
 
 		if service.Status.LoadBalancer.Ingress == nil || len(service.Status.LoadBalancer.Ingress) == 0 || service.Status.LoadBalancer.Ingress[0].IP == "" {
-			glog.Errorf("Invalid external load balancer configuration for istio-ingressgateway service for cluster %s", remoteClusterName)
+			zap.S().Errorf("Invalid external load balancer configuration for istio-ingressgateway service for cluster %s", remoteClusterName)
 			return ""
 		}
 

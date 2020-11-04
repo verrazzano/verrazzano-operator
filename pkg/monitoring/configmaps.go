@@ -4,8 +4,8 @@
 package monitoring
 
 import (
-	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -18,27 +18,28 @@ func LoggingConfigMaps(managedClusterName string) []*corev1.ConfigMap {
 
 	indexconfig, err := createLoggingConfigMap(constants.LoggingNamespace, "index-config", "index_name", "vmo-demo-filebeat", filebeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New logging config map %s is giving error %s", indexconfig.Name, err)
+		zap.S().Debugf("New logging config map %s is giving error %s", indexconfig.Name, err)
 	}
 	filebeatindexconfig, err := createLoggingConfigMap(constants.LoggingNamespace, "filebeat-index-config", "filebeat-index-name", "vmo-"+managedClusterName+"-filebeat-%{+yyyy.MM.dd}", filebeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New logging config map %s is giving error %s", filebeatindexconfig.Name, err)
+		zap.S().Debugf("New logging config map %s is giving error %s", filebeatindexconfig.Name, err)
 	}
 	filebeatconfig, err := createLoggingConfigMap(constants.LoggingNamespace, "filebeat-config", "filebeat.yml", FilebeatConfigData, filebeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New logging config map %s is giving error %s", filebeatconfig.Name, err)
+		zap.S().Debugf("New logging config map %s is giving error %s", filebeatconfig.Name, err)
 	}
+	filebeatconfig.Data["es-index-template.json"] = FilebeatIndexTemplate
 	filebeatinput, err := createLoggingConfigMap(constants.LoggingNamespace, "filebeat-inputs", "kubernetes.yml", FilebeatInputData, filebeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New logging config map %s is giving error %s", filebeatinput.Name, err)
+		zap.S().Debugf("New logging config map %s is giving error %s", filebeatinput.Name, err)
 	}
 	journalbeatindexconfig, err := createLoggingConfigMap(constants.LoggingNamespace, "journalbeat-index-config", "journalbeat-index-name", "vmo-"+managedClusterName+"-journalbeat-%{+yyyy.MM.dd}", journalbeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New logging config map %s is giving error %s", journalbeatindexconfig.Name, err)
+		zap.S().Debugf("New logging config map %s is giving error %s", journalbeatindexconfig.Name, err)
 	}
 	journalbeatconfig, err := createLoggingConfigMap(constants.LoggingNamespace, "journalbeat-config", "journalbeat.yml", JournalbeatConfigData, journalbeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New logging config map %s is giving error %s", journalbeatconfig.Name, err)
+		zap.S().Debugf("New logging config map %s is giving error %s", journalbeatconfig.Name, err)
 	}
 	configMaps = append(configMaps, indexconfig, filebeatindexconfig, filebeatconfig, filebeatinput, journalbeatindexconfig, journalbeatconfig)
 	return configMaps

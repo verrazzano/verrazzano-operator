@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmoclientset "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
@@ -19,14 +18,14 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
+	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
 // CreateUpdateVmi creates/updates Verrazzano Monitoring Instances for a given binding.
 func CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
-
-	glog.V(6).Infof("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
+	zap.S().Debugf("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the expected VMI
 	newVmi, err := createInstance(binding, verrazzanoURI, enableMonitoringStorage)
@@ -42,13 +41,13 @@ func CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclie
 		newVmi.Spec.Elasticsearch.Storage.PvcNames = existingVmi.Spec.Elasticsearch.Storage.PvcNames
 		specDiffs := diff.CompareIgnoreTargetEmpties(existingVmi, newVmi)
 		if specDiffs != "" {
-			glog.V(6).Infof("VMI %s : Spec differences %s", newVmi.Name, specDiffs)
-			glog.V(4).Infof("Updating VMI %s", newVmi.Name)
+			zap.S().Infof("VMI %s : Spec differences %s", newVmi.Name, specDiffs)
+			zap.S().Infof("Updating VMI %s", newVmi.Name)
 			newVmi.ResourceVersion = existingVmi.ResourceVersion
 			_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Update(context.TODO(), newVmi, metav1.UpdateOptions{})
 		}
 	} else {
-		glog.V(4).Infof("Creating VMI %s", newVmi.Name)
+		zap.S().Infof("Creating VMI %s", newVmi.Name)
 		_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Create(context.TODO(), newVmi, metav1.CreateOptions{})
 	}
 	if err != nil {
@@ -59,8 +58,7 @@ func CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclie
 
 // DeleteVmi deletes Verrazzano Monitoring Instances for a given binding.
 func DeleteVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
-
-	glog.V(4).Infof("Deleting Local (Management Cluster) VMIs for VerrazzanoBinding %s", binding.Name)
+	zap.S().Infof("Deleting Local (Management Cluster) VMIs for VerrazzanoBinding %s", binding.Name)
 
 	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
 
@@ -69,7 +67,7 @@ func DeleteVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.
 		return err
 	}
 	for _, existingVmi := range existingVMIsList {
-		glog.V(4).Infof("Deleting VMI %s", existingVmi.Name)
+		zap.S().Infof("Deleting VMI %s", existingVmi.Name)
 		err := vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(existingVmi.Namespace).Delete(context.TODO(), existingVmi.Name, metav1.DeleteOptions{})
 		if err != nil {
 			return err

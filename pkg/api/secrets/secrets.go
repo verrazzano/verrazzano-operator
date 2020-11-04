@@ -10,11 +10,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 	"github.com/verrazzano/verrazzano-operator/pkg/local"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -72,15 +72,14 @@ func addSecret(secretNames []string, secretName string) []string {
 	return append(secretNames, secretName)
 }
 
-func refreshSecrets() {
-	// initialize secrets as an empty list to avoid json encoding "nil"
+func refreshSecrets() { // initialize secrets as an empty list to avoid json encoding "nil"
 	cachedSecrets = []Secret{}
 
 	// Get a list of the models that have been deployed to the management cluster
 	modelSelector := labels.SelectorFromSet(map[string]string{})
 	models, err := (*listerSet.ModelLister).VerrazzanoModels("default").List(modelSelector)
 	if err != nil {
-		glog.Errorf("Error getting application models: %s", err.Error())
+		zap.S().Errorf("Error getting application models: %s", err.Error())
 		return
 	}
 
@@ -120,7 +119,7 @@ func refreshSecrets() {
 	bindingSelector := labels.SelectorFromSet(map[string]string{})
 	bindings, err := (*listerSet.BindingLister).VerrazzanoBindings("default").List(bindingSelector)
 	if err != nil {
-		glog.Errorf("Error getting application bindings: %s", err.Error())
+		zap.S().Errorf("Error getting application bindings: %s", err.Error())
 		return
 	}
 
@@ -143,11 +142,11 @@ func addSecrets(secretNames []string) {
 		// get the actual secret from the management cluster
 		theSecret, err := local.GetSecret(secretName, constants.DefaultNamespace, *listerSet.KubeClientSet)
 		if err != nil {
-			glog.Warningf("Error getting secret %s in management cluster: %s", secretName, err.Error())
+			zap.S().Warnf("Error getting secret %s in management cluster: %s", secretName, err.Error())
 			continue
 		}
 		if theSecret == nil {
-			glog.Warningf("Secret %s not found in management cluster", secretName)
+			zap.S().Warnf("Secret %s not found in management cluster", secretName)
 			continue
 		}
 
@@ -173,7 +172,7 @@ func addSecrets(secretNames []string) {
 
 // ReturnAllSecrets returns all secrets used by model and bindings.
 func ReturnAllSecrets(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /secrets")
+	zap.S().Infow("GET /secrets")
 	refreshSecrets()
 
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(cachedSecrets)), 10))
@@ -186,7 +185,7 @@ func ReturnSingleSecret(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /secrets/" + key)
+	zap.S().Infow("GET /secrets/" + key)
 
 	var m *Secret = nil
 	for _, s := range cachedSecrets {
@@ -201,14 +200,14 @@ func ReturnSingleSecret(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(cachedSecrets)
 	} else {
 		msg := fmt.Sprintf("Error: secret with UID %s not found: ", key)
-		glog.Error(msg)
+		zap.S().Errorw(msg)
 		http.Error(w, msg, http.StatusNotFound)
 	}
 }
 
 // CreateSecret creates a secret as requested.
 func CreateSecret(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("POST /secrets")
+	zap.S().Infow("POST /secrets")
 
 	// unmarshall the secret from the payload
 	reqBody, _ := ioutil.ReadAll(r.Body)
@@ -216,7 +215,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	err := json.Unmarshal(reqBody, &secret)
 	if err != nil {
 		msg := fmt.Sprintf("Error: failed to unmarshal json: %s", err.Error())
-		glog.Error(msg)
+		zap.S().Errorw(msg)
 		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
@@ -224,7 +223,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	kSecret, _ := local.GetSecret(secret.Name, constants.DefaultNamespace, *listerSet.KubeClientSet)
 	if kSecret != nil {
 		msg := fmt.Sprintf("Error: secret %s already exists in default namespace", secret.Name)
-		glog.Error(msg)
+		zap.S().Errorw(msg)
 		http.Error(w, msg, http.StatusConflict)
 		return
 	}
@@ -264,7 +263,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	err = local.CreateGenericSecret(newSecret, *listerSet.KubeClientSet)
 	if err != nil {
 		msg := fmt.Sprintf("Error creating secret %s:%s failed: %s", secret.Namespace, secret.Name, err.Error())
-		glog.Error(msg)
+		zap.S().Errorw(msg)
 		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}
@@ -275,7 +274,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 func DeleteSecret(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uid := vars["id"]
-	glog.V(4).Info("DELETE /secrets/" + uid)
+	zap.S().Infow("DELETE /secrets/" + uid)
 
 	kubSecret := getSecretLogError(w, uid)
 	if kubSecret == nil {
@@ -293,7 +292,7 @@ func DeleteSecret(w http.ResponseWriter, r *http.Request) {
 func UpdateSecret(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uid := vars["id"]
-	glog.V(4).Info("PATCH /secrets/" + uid)
+	zap.S().Infow("PATCH /secrets/" + uid)
 
 	// unmarshall the secret from the payload
 	reqBody, _ := ioutil.ReadAll(r.Body)
@@ -340,13 +339,13 @@ func getSecretLogError(w http.ResponseWriter, uid string) *corev1.Secret {
 	kubSecret, found, err := local.GetSecretByUID(*listerSet.KubeClientSet, constants.DefaultNamespace, uid)
 	if err != nil {
 		msg := fmt.Sprintf("Error: get secret with UID %s failed: %s", uid, err.Error())
-		glog.Error(msg)
+		zap.S().Errorw(msg)
 		http.Error(w, msg, http.StatusInternalServerError)
 		return nil
 	}
 	if !found {
 		msg := fmt.Sprintf("Error: secret with UID %s not found: ", uid)
-		glog.Error(msg)
+		zap.S().Errorw(msg)
 		http.Error(w, msg, http.StatusNotFound)
 		return nil
 	}

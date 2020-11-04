@@ -19,7 +19,6 @@ import (
 
 	"gopkg.in/square/go-jose.v2"
 
-	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/api/instance"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
@@ -28,6 +27,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"go.uber.org/zap"
 )
 
 var (
@@ -67,7 +67,7 @@ func AuthHandler(h http.Handler) http.Handler {
 		if keyRepo != nil {
 			if err != nil {
 				errMsg := fmt.Sprintf("Error getting Authorization Header: %v", err)
-				glog.Error(errMsg)
+				zap.S().Errorw(errMsg)
 				invalidTokenError(w, err.Error())
 				return
 			}
@@ -75,19 +75,19 @@ func AuthHandler(h http.Handler) http.Handler {
 			ok, err := keyRepo.GetPublicKeys()
 			if !ok || err != nil {
 				errMsg := fmt.Sprintf("Error getting public key from KeyCloak: %v", err)
-				glog.Error(errMsg)
+				zap.S().Errorw(errMsg)
 				InternalServerError(w, errMsg)
 				return
 			}
 			token, err := verifyJSONWebToken(auth)
 			if err != nil {
-				glog.V(5).Infof("%v error verifying token: %v", r.URL.Path, err)
+				zap.S().Infof("%v error verifying token: %v", r.URL.Path, err)
 				invalidTokenError(w, err.Error())
 				return
 			}
 			if token == nil {
 				errMsg := fmt.Sprintf("%v missing Bearer token", r.URL.Path)
-				glog.V(5).Infoln(errMsg)
+				zap.S().Infow(errMsg)
 				invalidTokenError(w, errMsg)
 				return
 			}
@@ -202,14 +202,14 @@ func (kc *KeyCloak) getPublicKeys() (*PublicKeys, error) {
 	url := fmt.Sprintf(certsURL, kc.Endpoint, kc.Realm)
 	httpClient := getKeyCloakClient()
 	httpClient.RetryMax = 10
-	glog.Info(fmt.Sprintf("Calling KeyCloak to get the public keys at url " + url))
+	zap.S().Infow(fmt.Sprintf("Calling KeyCloak to get the public keys at url " + url))
 	res, err := httpClient.Get(url)
 	if err != nil {
-		glog.Error(fmt.Sprintf("Error %s calling %s to get certs ", err.Error(), url))
+		zap.S().Errorw(fmt.Sprintf("Error %s calling %s to get certs ", err.Error(), url))
 		return &PublicKeys{}, err
 	}
 	if res.StatusCode == http.StatusNotFound {
-		glog.Error(fmt.Sprintf("HTTP StatusNotFound calling %s to get certs ", url))
+		zap.S().Errorw(fmt.Sprintf("HTTP StatusNotFound calling %s to get certs ", url))
 		return &PublicKeys{}, fmt.Errorf("Failed retrieving Public Key from %s", url)
 	}
 
@@ -255,11 +255,11 @@ func getCACert(kubeClientSet kubernetes.Interface) []byte {
 	secretResName := instance.GetVerrazzanoName() + "-secret"
 	certSecret, err := kubeClientSet.CoreV1().Secrets(constants.VerrazzanoSystem).Get(context.TODO(), secretResName, metav1.GetOptions{})
 	if err != nil {
-		glog.Warningf("Error getting secret %s/%s in management cluster: %s", constants.VerrazzanoSystem, secretResName, err.Error())
+		zap.S().Warnf("Error getting secret %s/%s in management cluster: %s", constants.VerrazzanoSystem, secretResName, err.Error())
 		return []byte{}
 	}
 	if certSecret == nil {
-		glog.Warningf("Secret %s/%s not found in management cluster", constants.VerrazzanoSystem, secretResName)
+		zap.S().Warnf("Secret %s/%s not found in management cluster", constants.VerrazzanoSystem, secretResName)
 		return []byte{}
 	}
 	return certSecret.Data["ca.crt"]

@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
+	"go.uber.org/zap"
 )
 
 // This file is very similar to applications.go - please see comments there
@@ -68,7 +68,7 @@ func refreshOperators() {
 
 // ReturnAllOperators returns all operators used by model and bindings.
 func ReturnAllOperators(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /operators")
+	zap.S().Infow("GET /operators")
 
 	refreshOperators()
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Operators)), 10))
@@ -80,7 +80,7 @@ func ReturnSingleOperator(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /operators/" + key)
+	zap.S().Infow("GET /operators/" + key)
 
 	var found bool
 	for _, operator := range Operators {

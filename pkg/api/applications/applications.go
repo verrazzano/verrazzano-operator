@@ -10,8 +10,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
+
 	v1beta1 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 	"gopkg.in/yaml.v2"
@@ -47,18 +48,17 @@ func Init(listers controller.Listers) {
 }
 
 func refreshApplications() error {
-
 	bindingSelector := labels.SelectorFromSet(map[string]string{})
 	bindings, err := (*listerSet.BindingLister).VerrazzanoBindings("default").List(bindingSelector)
 	if err != nil {
-		glog.Errorf("Error getting application bindings: %s", err.Error())
+		zap.S().Errorf("Error getting application bindings: %s", err.Error())
 		return err
 	}
 
 	modelSelector := labels.SelectorFromSet(map[string]string{})
 	models, err := (*listerSet.ModelLister).VerrazzanoModels("default").List(modelSelector)
 	if err != nil {
-		glog.Errorf("Error getting application models: %s", err.Error())
+		zap.S().Errorf("Error getting application models: %s", err.Error())
 		return err
 	}
 
@@ -118,7 +118,7 @@ func ReturnAllApplications(w http.ResponseWriter, r *http.Request) {
 			http.StatusInternalServerError)
 		return
 	}
-	glog.V(4).Info("GET /applications")
+	zap.S().Infow("GET /applications")
 
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Applications)), 10))
 	json.NewEncoder(w).Encode(Applications)
@@ -135,7 +135,7 @@ func ReturnSingleApplication(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	key := vars["id"]
-	glog.V(4).Info("GET /applications/" + key)
+	zap.S().Infow("GET /applications/" + key)
 
 	// Loop over all of our Applications
 	// if the article.Id equals the key we pass in
@@ -162,7 +162,7 @@ func CreateNewApplication(w http.ResponseWriter, r *http.Request) {
 			http.StatusInternalServerError)
 		return
 	}
-	glog.V(4).Info("POST /applications")
+	zap.S().Infow("POST /applications")
 
 	// get the body of our POST request
 	// unmarshal this into a new Application struct
@@ -184,6 +184,7 @@ func CreateNewApplication(w http.ResponseWriter, r *http.Request) {
 
 // DeleteApplication deletes an application
 func DeleteApplication(w http.ResponseWriter, r *http.Request) {
+
 	err := refreshApplications()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error getting applications: %s", err.Error()),
@@ -196,7 +197,7 @@ func DeleteApplication(w http.ResponseWriter, r *http.Request) {
 	// we will need to extract the `id` of the application we
 	// wish to delete
 	ID := vars["id"]
-	glog.V(4).Info("DELETE /applications/" + ID)
+	zap.S().Infow("DELETE /applications/" + ID)
 
 	foundApplication := false
 	// we then need to loop through all our applications
@@ -230,7 +231,7 @@ func UpdateApplication(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ID := vars["id"]
 
-	glog.V(4).Info("PUT /applications/" + ID)
+	zap.S().Infow("PUT /applications/" + ID)
 
 	// get the updated application
 	reqBody, _ := ioutil.ReadAll(r.Body)

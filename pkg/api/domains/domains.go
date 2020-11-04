@@ -10,8 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
+
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 	"github.com/verrazzano/verrazzano-operator/pkg/managed"
 )
@@ -165,7 +166,7 @@ func refreshDomains() {
 func ReturnAllDomains(w http.ResponseWriter, r *http.Request) {
 	refreshDomains()
 
-	glog.V(4).Info("GET /domains")
+	zap.S().Infow("GET /domains")
 
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Domains)), 10))
 	json.NewEncoder(w).Encode(Domains)
@@ -177,7 +178,7 @@ func ReturnSingleDomain(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /domain/" + key)
+	zap.S().Infow("GET /domain/" + key)
 
 	for _, domain := range Domains {
 		if domain.ID == key {

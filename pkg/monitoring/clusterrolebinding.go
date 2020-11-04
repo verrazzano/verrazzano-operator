@@ -4,8 +4,8 @@
 package monitoring
 
 import (
-	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"go.uber.org/zap"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -20,15 +20,15 @@ func GetSystemClusterRoleBindings(managedClusterName string) []*rbacv1.ClusterRo
 
 	fileabeatCRD, err := createSystemClusterRoleBinding(constants.LoggingNamespace, constants.FilebeatName, filebeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New cluster role binding %s is giving error %s", constants.FilebeatName, err)
+		zap.S().Debugf("New cluster role binding %s is giving error %s", constants.FilebeatName, err)
 	}
 	journalbeatCRD, err := createSystemClusterRoleBinding(constants.LoggingNamespace, constants.JournalbeatName, journalbeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New cluster role binding %s is giving error %s", constants.JournalbeatName, err)
+		zap.S().Debugf("New cluster role binding %s is giving error %s", constants.JournalbeatName, err)
 	}
 	nodeExporterCRD, err := createSystemClusterRoleBinding(constants.MonitoringNamespace, constants.NodeExporterName, nodeExporterLabels)
 	if err != nil {
-		glog.V(6).Infof("New cluster role binding %s is giving error %s", constants.NodeExporterName, err)
+		zap.S().Debugf("New cluster role binding %s is giving error %s", constants.NodeExporterName, err)
 	}
 	clusterRoleBindings = append(clusterRoleBindings, fileabeatCRD, journalbeatCRD, nodeExporterCRD)
 	return clusterRoleBindings

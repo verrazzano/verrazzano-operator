@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
+	"go.uber.org/zap"
 )
 
 // This file is very similar to applications.go - please see comments there
@@ -64,7 +64,7 @@ func refreshMicroservices() {
 // ReturnAllMicroservices returns all microservices used by model and bindings.
 func ReturnAllMicroservices(w http.ResponseWriter, r *http.Request) {
 	refreshMicroservices()
-	glog.V(4).Info("GET /microservices")
+	zap.S().Infow("GET /microservices")
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Microservices)), 10))
 	json.NewEncoder(w).Encode(Microservices)
 }
@@ -75,7 +75,7 @@ func ReturnSingleMicroservice(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /microservices/" + key)
+	zap.S().Infow("GET /microservices/" + key)
 
 	foundApplication := false
 	for _, microservices := range Microservices {
