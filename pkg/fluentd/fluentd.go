@@ -155,7 +155,7 @@ func CreateFluentdContainer(bindingName string, componentName string) corev1.Con
 			},
 			{
 				Name:  "ELASTICSEARCH_HOST",
-				Value: fmt.Sprintf("vmi-%s-es-ingest.%s.svc.cluster.local", bindingName, constants.VerrazzanoNamespace),
+				Value: fmt.Sprintf("vmi-%s-es-ingest.%s.svc.cluster.local", getBindingName(bindingName), constants.VerrazzanoNamespace),
 			},
 			{
 				Name:  "ELASTICSEARCH_PORT",
