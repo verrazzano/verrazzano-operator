@@ -94,6 +94,7 @@ func TestGetSystemDeployments(t *testing.T) {
 	*/
 	os.Setenv("SINGLE_SYSTEM_VMI", "true")
 	deps, err = GetSystemDeployments(clusterName, url, labels, secrets)
+	dep = deps[0]
 	cont = dep.Spec.Template.Spec.Containers[0]
 	assert.Equal("PUSHGATEWAY_URL", cont.Env[1].Name, "Incorrect env[1] name")
 	assert.Equal("http://vmi-system-prometheus-gw.verrazzano-system.svc.cluster.local:9091", cont.Env[1].Value,
