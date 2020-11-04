@@ -6,6 +6,8 @@ package util
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/golang/glog"
+	"os"
 	"sync"
 
 	cohoprclientset "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/clientset/versioned"
@@ -262,4 +264,11 @@ func GetComponentNamespace(componentName string, binding *v1beta1v8o.VerrazzanoB
 		}
 	}
 	return "", fmt.Errorf("No placement found for component %s", componentName)
+}
+
+// IsDevProfile return true if the singleSystemVMI env var is set
+func IsDevProfile() bool {
+	_, present := os.LookupEnv("SINGLE_SYSTEM_VMI")
+	glog.V(4).Infof("Env var SINGLE_SYSTEM_VMI present? %v", present)
+	return present
 }

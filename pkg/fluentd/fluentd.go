@@ -256,3 +256,10 @@ func CreateFluentdConfigMapVolume(componentName string) corev1.Volume {
 func getFluentdConfigMapName(componentName string) string {
 	return fmt.Sprintf("%s-fluentd", componentName)
 }
+
+func getBindingName(bindingName string) string {
+	if util.IsDevProfile() {
+		return constants.VmiSystemBindingName
+	}
+	return bindingName
+}
