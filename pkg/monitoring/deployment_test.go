@@ -94,6 +94,7 @@ func TestGetSystemDeployments(t *testing.T) {
 	*/
 	os.Setenv("SINGLE_SYSTEM_VMI", "true")
 	deps, err = GetSystemDeployments(clusterName, url, labels, secrets)
+	assert.NoError(err, "Error getting deployments")
 	dep = deps[0]
 	cont = dep.Spec.Template.Spec.Containers[0]
 	assert.Equal("PUSHGATEWAY_URL", cont.Env[1].Name, "Incorrect env[1] name")
