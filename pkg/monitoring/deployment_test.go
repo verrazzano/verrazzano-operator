@@ -7,6 +7,7 @@ import (
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -88,6 +89,15 @@ func TestGetSystemDeployments(t *testing.T) {
 	assert.Equal("system-tls", dep.Spec.Template.Spec.Volumes[0].VolumeSource.Secret.SecretName, "Incorrect volume SecretName")
 	assert.Equal(int32(420), *dep.Spec.Template.Spec.Volumes[0].VolumeSource.Secret.DefaultMode,
 		"Incorrect volume secret DefaultMode")
+	/*
+	   The following tests that when single system VMI is set, the app specific PromPusher is set to push to system Prometheus
+	*/
+	os.Setenv("SINGLE_SYSTEM_VMI", "true")
+	deps, err = GetSystemDeployments(clusterName, url, labels, secrets)
+	cont = dep.Spec.Template.Spec.Containers[0]
+	assert.Equal("PUSHGATEWAY_URL", cont.Env[1].Name, "Incorrect env[1] name")
+	assert.Equal("http://vmi-system-prometheus-gw.verrazzano-system.svc.cluster.local:9091", cont.Env[1].Value,
+		"Incorrect PUSHGATEWAY_URL, should have been the system URL")
 }
 
 // TestGetSystemDeploymentsNoClusterName tests the error handling of GetSystemDeployments
