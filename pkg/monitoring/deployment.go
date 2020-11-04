@@ -7,8 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang/glog"
-	"os"
-
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -52,10 +50,9 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 		return nil, err
 	}
 	image := util.GetPromtheusPusherImage()
-	_, present := os.LookupEnv("SINGLE_SYSTEM_VMI")
-	glog.V(4).Infof("Env var SINGLE_SYSTEM_VMI present? %v", present)
+
 	var pushGatewayURL string
-	if present {
+	if util.IsDevProfile() {
 		pushGatewayURL = fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", constants.VmiSystemBindingName, constants.VerrazzanoNamespace)
 	} else {
 		pushGatewayURL = fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", bindingName, constants.VerrazzanoNamespace)

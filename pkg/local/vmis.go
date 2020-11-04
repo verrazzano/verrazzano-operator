@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/golang/glog"
@@ -100,10 +99,8 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 
 	storageOption := createStorageOption(enableMonitoringStorage)
 
-	_, present := os.LookupEnv("SINGLE_SYSTEM_VMI")
-	glog.V(4).Infof("Env var SINGLE_SYSTEM_VMI present? %v", present)
 	var bindingName string
-	if present {
+	if util.IsDevProfile() {
 		bindingName = constants.VmiSystemBindingName
 	} else {
 		bindingName = binding.Name
