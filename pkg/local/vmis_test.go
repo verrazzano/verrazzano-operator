@@ -6,6 +6,7 @@ package local
 import (
 	"context"
 	"errors"
+	"os"
 	"reflect"
 	"testing"
 
@@ -122,9 +123,22 @@ func TestCreateInstance(t *testing.T) {
 			},
 			true,
 		},
+		{
+			"SingleSystemVMI",
+			args{
+				"singleSystemBinding",
+				"systemURI",
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.args.bindingName == "singleSystemBinding" {
+				os.Setenv("SINGLE_SYSTEM_VMI", "true")
+			} else {
+				os.Unsetenv("SINGLE_SYSTEM_VMI")
+			}
 			got, err := createInstance(createTestBinding(tt.args.bindingName), tt.args.verrazzanoURI, "")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("createInstance() error = %v, wantErr %v", err, tt.wantErr)
@@ -140,8 +154,14 @@ func TestCreateInstance(t *testing.T) {
 				if got.Spec.SecretsName != constants.VmiSecretName {
 					t.Errorf("createInstance() got Spec.SecretsName = %v, want %v", got.Spec.SecretName, constants.VmiSecretName)
 				}
-				if got.Spec.URI != "vmi."+tt.args.bindingName+"."+tt.args.verrazzanoURI {
-					t.Errorf("createInstance() got Spec.URI = %v, want %v", got.Spec.URI, "vmi."+tt.args.bindingName+"."+tt.args.verrazzanoURI)
+				if tt.args.bindingName == "singleSystemBinding" {
+					if got.Spec.URI != "vmi."+"system."+tt.args.verrazzanoURI {
+						t.Errorf("createInstance() got Spec.URI = %v, want %v", got.Spec.URI, "vmi."+tt.args.bindingName+"."+tt.args.verrazzanoURI)
+					}
+				} else {
+					if got.Spec.URI != "vmi."+tt.args.bindingName+"."+tt.args.verrazzanoURI {
+						t.Errorf("createInstance() got Spec.URI = %v, want %v", got.Spec.URI, "vmi."+tt.args.bindingName+"."+tt.args.verrazzanoURI)
+					}
 				}
 				if got.Spec.IngressTargetDNSName != "verrazzano-ingress."+tt.args.verrazzanoURI {
 					t.Errorf("createInstance() got Spec.IngressTargetDNSName = %v, want %v", got.Spec.IngressTargetDNSName, "verrazzano-ingress."+tt.args.verrazzanoURI)

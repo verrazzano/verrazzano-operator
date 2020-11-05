@@ -6,7 +6,7 @@ package monitoring
 import (
 	"errors"
 	"fmt"
-
+	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -50,6 +50,14 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 		return nil, err
 	}
 	image := util.GetPromtheusPusherImage()
+
+	var pushGatewayURL string
+	if util.IsDevProfile() {
+		pushGatewayURL = fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", constants.VmiSystemBindingName, constants.VerrazzanoNamespace)
+	} else {
+		pushGatewayURL = fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", bindingName, constants.VerrazzanoNamespace)
+	}
+	glog.V(4).Infof("Setting pushGatewayURL to %s", pushGatewayURL)
 	pusherDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:    labels,
@@ -76,9 +84,8 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 									Value: "http://prometheus.istio-system.svc.cluster.local:9090/federate?" + payload,
 								},
 								{
-									Name: "PUSHGATEWAY_URL",
-
-									Value: fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", bindingName, constants.VerrazzanoNamespace),
+									Name:  "PUSHGATEWAY_URL",
+									Value: pushGatewayURL,
 								},
 								{
 									Name:  "PUSHGATEWAY_USER",
