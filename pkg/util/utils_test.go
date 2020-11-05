@@ -6,6 +6,7 @@ package util
 import (
 	"fmt"
 	"math"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -248,4 +249,21 @@ func TestLoadManifest(t *testing.T) {
 	manifest, err := LoadManifest()
 	assert.NotNil(manifest, "LoadManifiest returned nil")
 	assert.Error(err, "Error loading manifest")
+}
+
+func TestIsDevProfile(t *testing.T) {
+	assert := assert.New(t)
+
+	assert.False(IsDevProfile(), "Expected DevProfile to return false")
+	os.Setenv("SINGLE_SYSTEM_VMI", "true")
+	assert.True(IsDevProfile(), "Expected DevProfile to return true")
+}
+
+func TestGetProfileBindingName(t *testing.T) {
+	assert := assert.New(t)
+	os.Unsetenv("SINGLE_SYSTEM_VMI")
+	assert.Equal("foobar", GetProfileBindingName("foobar"))
+	os.Setenv("SINGLE_SYSTEM_VMI", "true")
+	assert.Equal(constants.VmiSystemBindingName, GetProfileBindingName("foobar"))
+	os.Unsetenv("SINGLE_SYSTEM_VMI")
 }

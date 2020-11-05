@@ -109,7 +109,7 @@ func TestCreateFluentdContainer(t *testing.T) {
 	assertion.Equal("FLUENT_ELASTICSEARCH_SED_DISABLE", fluentd.Env[2].Name, "Fluentd container envs name not equal to expected value")
 	assertion.Equal("true", fluentd.Env[2].Value, "Fluentd container envs value not equal to expected value")
 	assertion.Equal("ELASTICSEARCH_HOST", fluentd.Env[3].Name, "Fluentd container envs name not equal to expected value")
-	assertion.Equal("vmi-system-es-ingest.verrazzano-system.svc.cluster.local", fluentd.Env[3].Value, "Fluentd container envs value not equal to expected value")
+	assertion.Equal("vmi-"+constants.VmiSystemBindingName+"-es-ingest.verrazzano-system.svc.cluster.local", fluentd.Env[3].Value, "Fluentd container envs value not equal to expected value")
 	assertion.Equal("ELASTICSEARCH_PORT", fluentd.Env[4].Name, "Fluentd container envs name not equal to expected value")
 	assertion.Equal("9200", fluentd.Env[4].Value, "Fluentd container envs value not equal to expected value")
 	assertion.Equal("ELASTICSEARCH_USER", fluentd.Env[5].Name, "Fluentd container envs name not equal to expected value")
