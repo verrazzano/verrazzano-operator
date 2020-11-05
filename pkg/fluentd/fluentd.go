@@ -155,7 +155,7 @@ func CreateFluentdContainer(bindingName string, componentName string) corev1.Con
 			},
 			{
 				Name:  "ELASTICSEARCH_HOST",
-				Value: fmt.Sprintf("vmi-%s-es-ingest.%s.svc.cluster.local", getBindingName(bindingName), constants.VerrazzanoNamespace),
+				Value: fmt.Sprintf("vmi-%s-es-ingest.%s.svc.cluster.local", util.GetProfileBindingName(bindingName), constants.VerrazzanoNamespace),
 			},
 			{
 				Name:  "ELASTICSEARCH_PORT",
@@ -255,11 +255,4 @@ func CreateFluentdConfigMapVolume(componentName string) corev1.Volume {
 // getFluentdConfigMapName returns the name of a components Fluentd config map
 func getFluentdConfigMapName(componentName string) string {
 	return fmt.Sprintf("%s-fluentd", componentName)
-}
-
-func getBindingName(bindingName string) string {
-	if util.IsDevProfile() {
-		return constants.VmiSystemBindingName
-	}
-	return bindingName
 }
