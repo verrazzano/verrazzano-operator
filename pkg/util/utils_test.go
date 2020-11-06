@@ -256,7 +256,7 @@ func TestIsDevProfile(t *testing.T) {
 
 	os.Unsetenv("INSTALL_PROFILE")
 	assert.False(IsDevProfile(), "Expected DevProfile to return false")
-	os.Setenv("INSTALL_PROFILE", "true")
+	os.Setenv("INSTALL_PROFILE", constants.DevelopmentProfile)
 	assert.True(IsDevProfile(), "Expected DevProfile to return true")
 	os.Unsetenv("INSTALL_PROFILE")
 }
@@ -265,7 +265,7 @@ func TestGetProfileBindingName(t *testing.T) {
 	assert := assert.New(t)
 	os.Unsetenv("INSTALL_PROFILE")
 	assert.Equal("foobar", GetProfileBindingName("foobar"))
-	os.Setenv("INSTALL_PROFILE", "true")
+	os.Setenv("INSTALL_PROFILE", constants.DevelopmentProfile)
 	assert.Equal(constants.VmiSystemBindingName, GetProfileBindingName("foobar"))
 	os.Unsetenv("INSTALL_PROFILE")
 }
