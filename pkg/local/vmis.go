@@ -23,13 +23,15 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+var createInstanceFunc = createInstance
+
 // CreateUpdateVmi creates/updates Verrazzano Monitoring Instances for a given binding.
 func CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 
 	glog.V(6).Infof("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the expected VMI
-	newVmi, err := createInstance(binding, verrazzanoURI, enableMonitoringStorage)
+	newVmi, err := createInstanceFunc(binding, verrazzanoURI, enableMonitoringStorage)
 	if err != nil {
 		return err
 	}

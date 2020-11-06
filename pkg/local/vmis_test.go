@@ -6,6 +6,7 @@ package local
 import (
 	"context"
 	"errors"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"reflect"
 	"testing"
@@ -167,6 +168,41 @@ func TestCreateInstance(t *testing.T) {
 					t.Errorf("createInstance() got Spec.IngressTargetDNSName = %v, want %v", got.Spec.IngressTargetDNSName, "verrazzano-ingress."+tt.args.verrazzanoURI)
 				}
 			}
+		})
+	}
+}
+
+func TestCreateInstanceError(t *testing.T) {
+	type args struct {
+		bindingName   string
+		verrazzanoURI string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"TestError",
+			args{
+				"testCreateInstanceError",
+				"",
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			originalCreateInstance := createInstanceFunc
+			defer func() { createInstanceFunc = originalCreateInstance }()
+			createInstanceFunc = func(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string, enableMonitoringStorage string) (*vmov1.VerrazzanoMonitoringInstance, error) {
+				return nil, errors.New("Test Error")
+			}
+			defer func() { createInstanceFunc = originalCreateInstance }()
+			err := CreateUpdateVmi(createTestBinding(tt.args.bindingName), fakeVmoClientSet{}, fakeVmiLister{}, "testVerrazzanoURI", "")
+			assert.EqualError(err, "Test Error", "createInstanceFailed to return an error")
 		})
 	}
 }
