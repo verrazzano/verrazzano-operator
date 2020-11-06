@@ -104,3 +104,9 @@ const MonitoringNamespace = "monitoring"
 
 // LoggingNamespace name for the logging namespace
 const LoggingNamespace = "logging"
+
+// ProductionProfile name of the Production Profile Installation
+const ProductionProfile = "prod"
+
+// DevelopmentProfile name of the Development Profile Installation
+const DevelopmentProfile = "dev"

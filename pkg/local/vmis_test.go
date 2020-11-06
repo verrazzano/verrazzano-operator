@@ -124,9 +124,9 @@ func TestCreateInstance(t *testing.T) {
 			true,
 		},
 		{
-			"SingleSystemVMI",
+			"DevProfile",
 			args{
-				"singleSystemBinding",
+				"devProfile",
 				"systemURI",
 			},
 			false,
@@ -134,10 +134,10 @@ func TestCreateInstance(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.args.bindingName == "singleSystemBinding" {
-				os.Setenv("SINGLE_SYSTEM_VMI", "true")
+			if tt.args.bindingName == "devProfile" {
+				os.Setenv("INSTALL_PROFILE", constants.DevelopmentProfile)
 			} else {
-				os.Unsetenv("SINGLE_SYSTEM_VMI")
+				os.Unsetenv("INSTALL_PROFILE")
 			}
 			got, err := createInstance(createTestBinding(tt.args.bindingName), tt.args.verrazzanoURI, "")
 			if (err != nil) != tt.wantErr {
@@ -154,9 +154,9 @@ func TestCreateInstance(t *testing.T) {
 				if got.Spec.SecretsName != constants.VmiSecretName {
 					t.Errorf("createInstance() got Spec.SecretsName = %v, want %v", got.Spec.SecretName, constants.VmiSecretName)
 				}
-				if tt.args.bindingName == "singleSystemBinding" {
+				if tt.args.bindingName == "devProfile" {
 					if got.Spec.URI != "vmi."+"system."+tt.args.verrazzanoURI {
-						t.Errorf("createInstance() got Spec.URI = %v, want %v", got.Spec.URI, "vmi."+tt.args.bindingName+"."+tt.args.verrazzanoURI)
+						t.Errorf("createInstance() got Spec.URI = %v, want %v", got.Spec.URI, "vmi."+"system."+tt.args.verrazzanoURI)
 					}
 				} else {
 					if got.Spec.URI != "vmi."+tt.args.bindingName+"."+tt.args.verrazzanoURI {

@@ -266,11 +266,16 @@ func GetComponentNamespace(componentName string, binding *v1beta1v8o.VerrazzanoB
 	return "", fmt.Errorf("No placement found for component %s", componentName)
 }
 
-// IsDevProfile return true if the singleSystemVMI env var is set
+// IsDevProfile return true if the installProfile env var is set to dev
 func IsDevProfile() bool {
-	_, present := os.LookupEnv("SINGLE_SYSTEM_VMI")
-	glog.V(4).Infof("Env var SINGLE_SYSTEM_VMI present? %v", present)
-	return present
+	installProfile, present := os.LookupEnv("INSTALL_PROFILE")
+	if present {
+		glog.V(4).Infof("Env var INSTALL_PROFILE = %s", installProfile)
+		if installProfile == constants.DevelopmentProfile {
+			return true
+		}
+	}
+	return false
 }
 
 // GetProfileBindingName will return the binding name based on the profile

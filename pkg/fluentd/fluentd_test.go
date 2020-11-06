@@ -93,9 +93,9 @@ func TestCreateFluentdContainer(t *testing.T) {
 	assertion.Equal(true, fluentd.VolumeMounts[2].ReadOnly, "Fluentd container volume mounts read only flag not equal to expected value")
 
 	// In addition test that when Dev mode is set we get the expected elastic search host
-	os.Setenv("SINGLE_SYSTEM_VMI", "true")
+	os.Setenv("INSTALL_PROFILE", constants.DevelopmentProfile)
 	fluentd = CreateFluentdContainer("test-binding", "test-component")
-	os.Unsetenv("SINGLE_SYSTEM_VMI")
+	os.Unsetenv("INSTALL_PROFILE")
 
 	assertion.Equal("fluentd", fluentd.Name, "Fluentd container name not equal to expected value")
 	assertion.Equal(2, len(fluentd.Args), "Fluentd container args count not equal to expected value")
