@@ -272,3 +272,13 @@ func IsDevProfile() bool {
 	glog.V(4).Infof("Env var SINGLE_SYSTEM_VMI present? %v", present)
 	return present
 }
+
+// GetProfileBindingName will return the binding name based on the profile
+// if the profile doesn't have a special binding name, the binding name supplied is returned
+// for Dev profile the VMI system binding name is returned
+func GetProfileBindingName(bindingName string) string {
+	if IsDevProfile() {
+		return constants.VmiSystemBindingName
+	}
+	return bindingName
+}

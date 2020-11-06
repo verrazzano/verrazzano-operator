@@ -258,3 +258,12 @@ func TestIsDevProfile(t *testing.T) {
 	os.Setenv("SINGLE_SYSTEM_VMI", "true")
 	assert.True(IsDevProfile(), "Expected DevProfile to return true")
 }
+
+func TestGetProfileBindingName(t *testing.T) {
+	assert := assert.New(t)
+	os.Unsetenv("SINGLE_SYSTEM_VMI")
+	assert.Equal("foobar", GetProfileBindingName("foobar"))
+	os.Setenv("SINGLE_SYSTEM_VMI", "true")
+	assert.Equal(constants.VmiSystemBindingName, GetProfileBindingName("foobar"))
+	os.Unsetenv("SINGLE_SYSTEM_VMI")
+}

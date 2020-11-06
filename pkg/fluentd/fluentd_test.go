@@ -4,6 +4,7 @@
 package fluentd
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -70,6 +71,45 @@ func TestCreateFluentdContainer(t *testing.T) {
 	assertion.Equal("true", fluentd.Env[2].Value, "Fluentd container envs value not equal to expected value")
 	assertion.Equal("ELASTICSEARCH_HOST", fluentd.Env[3].Name, "Fluentd container envs name not equal to expected value")
 	assertion.Equal("vmi-test-binding-es-ingest.verrazzano-system.svc.cluster.local", fluentd.Env[3].Value, "Fluentd container envs value not equal to expected value")
+	assertion.Equal("ELASTICSEARCH_PORT", fluentd.Env[4].Name, "Fluentd container envs name not equal to expected value")
+	assertion.Equal("9200", fluentd.Env[4].Value, "Fluentd container envs value not equal to expected value")
+	assertion.Equal("ELASTICSEARCH_USER", fluentd.Env[5].Name, "Fluentd container envs name not equal to expected value")
+	assertion.Equal(constants.VmiSecretName, fluentd.Env[5].ValueFrom.SecretKeyRef.Name, "Fluentd container envs value from secret name not equal to expected value")
+	assertion.Equal("username", fluentd.Env[5].ValueFrom.SecretKeyRef.Key, "Fluentd container envs value from secret key not equal to expected value")
+	assertion.Equal(true, *fluentd.Env[5].ValueFrom.SecretKeyRef.Optional, "Fluentd container envs value from secret optional not equal to expected value")
+	assertion.Equal(constants.VmiSecretName, fluentd.Env[5].ValueFrom.SecretKeyRef.Name, "Fluentd container envs value from secret name not equal to expected value")
+	assertion.Equal("password", fluentd.Env[6].ValueFrom.SecretKeyRef.Key, "Fluentd container envs value from secret key not equal to expected value")
+	assertion.Equal(true, *fluentd.Env[6].ValueFrom.SecretKeyRef.Optional, "Fluentd container envs value from secret optional not equal to expected value")
+	assertion.Equal(3, len(fluentd.VolumeMounts), "Fluentd container volume mounts count not equal to expected value")
+	assertion.Equal("/fluentd/etc/fluentd.conf", fluentd.VolumeMounts[0].MountPath, "Fluentd container volume mounts mount path not equal to expected value")
+	assertion.Equal("fluentd-config-volume", fluentd.VolumeMounts[0].Name, "Fluentd container volume mounts name not equal to expected value")
+	assertion.Equal("fluentd.conf", fluentd.VolumeMounts[0].SubPath, "Fluentd container volume mounts sub path not equal to expected value")
+	assertion.Equal(true, fluentd.VolumeMounts[0].ReadOnly, "Fluentd container volume mounts read only flag not equal to expected value")
+	assertion.Equal("/var/log", fluentd.VolumeMounts[1].MountPath, "Fluentd container volume mounts mount path not equal to expected value")
+	assertion.Equal("varlog", fluentd.VolumeMounts[1].Name, "Fluentd container volume mounts name not equal to expected value")
+	assertion.Equal(true, fluentd.VolumeMounts[1].ReadOnly, "Fluentd container volume mounts read only flag not equal to expected value")
+	assertion.Equal("/u01/data/docker/containers", fluentd.VolumeMounts[2].MountPath, "Fluentd container volume mounts mount path not equal to expected value")
+	assertion.Equal("datadockercontainers", fluentd.VolumeMounts[2].Name, "Fluentd container volume mounts name not equal to expected value")
+	assertion.Equal(true, fluentd.VolumeMounts[2].ReadOnly, "Fluentd container volume mounts read only flag not equal to expected value")
+
+	// In addition test that when Dev mode is set we get the expected elastic search host
+	os.Setenv("SINGLE_SYSTEM_VMI", "true")
+	fluentd = CreateFluentdContainer("test-binding", "test-component")
+	os.Unsetenv("SINGLE_SYSTEM_VMI")
+
+	assertion.Equal("fluentd", fluentd.Name, "Fluentd container name not equal to expected value")
+	assertion.Equal(2, len(fluentd.Args), "Fluentd container args count not equal to expected value")
+	assertion.Equal("-c", fluentd.Args[0], "Fluentd container arg not equal to expected value")
+	assertion.Equal("/etc/fluent.conf", fluentd.Args[1], "Fluentd container arg not equal to expected value")
+	assertion.Equal(7, len(fluentd.Env), "Fluentd container envs count not equal to expected value")
+	assertion.Equal("APPLICATION_NAME", fluentd.Env[0].Name, "Fluentd container envs name not equal to expected value")
+	assertion.Equal("test-component", fluentd.Env[0].Value, "Fluentd container envs value not equal to expected value")
+	assertion.Equal("FLUENTD_CONF", fluentd.Env[1].Name, "Fluentd container envs name not equal to expected value")
+	assertion.Equal("fluentd.conf", fluentd.Env[1].Value, "Fluentd container envs value not equal to expected value")
+	assertion.Equal("FLUENT_ELASTICSEARCH_SED_DISABLE", fluentd.Env[2].Name, "Fluentd container envs name not equal to expected value")
+	assertion.Equal("true", fluentd.Env[2].Value, "Fluentd container envs value not equal to expected value")
+	assertion.Equal("ELASTICSEARCH_HOST", fluentd.Env[3].Name, "Fluentd container envs name not equal to expected value")
+	assertion.Equal("vmi-"+constants.VmiSystemBindingName+"-es-ingest.verrazzano-system.svc.cluster.local", fluentd.Env[3].Value, "Fluentd container envs value not equal to expected value")
 	assertion.Equal("ELASTICSEARCH_PORT", fluentd.Env[4].Name, "Fluentd container envs name not equal to expected value")
 	assertion.Equal("9200", fluentd.Env[4].Value, "Fluentd container envs value not equal to expected value")
 	assertion.Equal("ELASTICSEARCH_USER", fluentd.Env[5].Name, "Fluentd container envs name not equal to expected value")
