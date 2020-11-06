@@ -51,12 +51,7 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 	}
 	image := util.GetPromtheusPusherImage()
 
-	var pushGatewayURL string
-	if util.IsDevProfile() {
-		pushGatewayURL = fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", constants.VmiSystemBindingName, constants.VerrazzanoNamespace)
-	} else {
-		pushGatewayURL = fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", bindingName, constants.VerrazzanoNamespace)
-	}
+	pushGatewayURL := fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", util.GetProfileBindingName(bindingName), constants.VerrazzanoNamespace)
 	glog.V(4).Infof("Setting pushGatewayURL to %s", pushGatewayURL)
 	pusherDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{

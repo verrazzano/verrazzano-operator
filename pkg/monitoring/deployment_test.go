@@ -92,7 +92,7 @@ func TestGetSystemDeployments(t *testing.T) {
 	/*
 	   The following tests that when single system VMI is set, the app specific PromPusher is set to push to system Prometheus
 	*/
-	os.Setenv("SINGLE_SYSTEM_VMI", "true")
+	os.Setenv("INSTALL_PROFILE", constants.DevelopmentProfile)
 	deps, err = GetSystemDeployments(clusterName, url, labels, secrets)
 	assert.NoError(err, "Error getting deployments")
 	dep = deps[0]

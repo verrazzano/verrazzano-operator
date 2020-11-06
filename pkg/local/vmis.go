@@ -99,12 +99,7 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 
 	storageOption := createStorageOption(enableMonitoringStorage)
 
-	var bindingName string
-	if util.IsDevProfile() {
-		bindingName = constants.VmiSystemBindingName
-	} else {
-		bindingName = binding.Name
-	}
+	bindingName := util.GetProfileBindingName(binding.Name)
 
 	return &vmov1.VerrazzanoMonitoringInstance{
 		ObjectMeta: metav1.ObjectMeta{
