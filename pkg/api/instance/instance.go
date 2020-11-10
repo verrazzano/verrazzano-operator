@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
 	clusterPkg "github.com/verrazzano/verrazzano-operator/pkg/api/clusters"
+	"go.uber.org/zap"
 )
 
 // Instance details of instance returned in API calls.
@@ -40,12 +40,12 @@ func SetVerrazzanoURI(s string) {
 
 // ReturnSingleInstance returns a single instance identified by the secret Kubernetes UID.
 func ReturnSingleInstance(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /instance")
+	zap.S().Infow("GET /instance")
 
 	clusters, err := clusterPkg.GetClusters()
 	if err != nil {
 		msg := fmt.Sprintf("Error getting clusters : %s", err.Error())
-		glog.Error(msg)
+		zap.S().Errorw(msg)
 		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}

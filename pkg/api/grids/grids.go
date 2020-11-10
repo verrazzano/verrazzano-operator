@@ -9,8 +9,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
+
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 )
 
@@ -71,7 +72,7 @@ func refreshGrids() {
 
 // ReturnAllGrids returns all grids used by model and bindings.
 func ReturnAllGrids(w http.ResponseWriter, r *http.Request) {
-	glog.V(4).Info("GET /grids")
+	zap.S().Infow("GET /grids")
 
 	refreshGrids()
 	w.Header().Set("X-Total-Count", strconv.FormatInt(int64(len(Grids)), 10))
@@ -84,7 +85,7 @@ func ReturnSingleGrid(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	glog.V(4).Info("GET /grids/" + key)
+	zap.S().Infow("GET /grids/" + key)
 
 	foundApplication := false
 	for _, grids := range Grids {

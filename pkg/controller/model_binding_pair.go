@@ -8,7 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/golang/glog"
+	"go.uber.org/zap"
+
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v8weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
@@ -60,7 +61,6 @@ func UpdateModelBindingPair(mbPair *types.ModelBindingPair, model *v1beta1v8o.Ve
 
 // Common function for building a model/binding pair
 func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPair {
-
 	// Acquire write lock
 	acquireLock(mbPair)
 	defer releaseLock(mbPair)
@@ -256,7 +256,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 								addSecret(mc, secret.Name, namespace.Name)
 							}
 						} else {
-							glog.Errorf("Coherence binding '%s' not found in binding file", cluster.Name)
+							zap.S().Errorf("Coherence binding '%s' not found in binding file", cluster.Name)
 						}
 					}
 				}
@@ -568,7 +568,7 @@ func createRemoteRestConnections(mbPair *types.ModelBindingPair, mc *types.Manag
 				if err == nil {
 					addRemoteRest(mc, rest.Target, localNamespace, mbPair.ManagedClusters[placement.Name], remoteNamespace, remotePort, remoteClusterName, remoteType)
 				} else {
-					glog.Errorf("error getting remote port, %v", err)
+					zap.S().Errorf("error getting remote port, %v", err)
 				}
 				break
 			}
@@ -603,14 +603,14 @@ func getRestConnectionEnvVars(mbPair *types.ModelBindingPair, connections []v1be
 		// Get the placement for the component we need to create env variables for
 		sourcePlacement, err := getSourcePlacement(crName, mbPair.Binding)
 		if err != nil {
-			glog.Errorf("unable to create rest connection env variables: %v", err)
+			zap.S().Errorf("unable to create rest connection env variables: %v", err)
 			continue
 		}
 
 		// Get the namespace and placement for the rest target
 		targetNamespace, targetPlacement, err := getTargetNamespacePlacement(restConnection.Target, mbPair.Binding)
 		if err != nil {
-			glog.Errorf("unable to create rest connection env variables: %v", err)
+			zap.S().Errorf("unable to create rest connection env variables: %v", err)
 			continue
 		}
 
@@ -625,7 +625,7 @@ func getRestConnectionEnvVars(mbPair *types.ModelBindingPair, connections []v1be
 		// Get the target type and target port for the rest connection
 		targetType, targetPort, err := getTargetTypePort(remoteMc, restConnection.Target)
 		if err != nil {
-			glog.Errorf("error getting port, %v", err)
+			zap.S().Errorf("error getting port, %v", err)
 			continue
 		}
 

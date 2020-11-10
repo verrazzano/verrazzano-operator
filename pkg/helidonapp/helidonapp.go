@@ -12,10 +12,10 @@ import (
 
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 
-	"github.com/golang/glog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -88,7 +88,7 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 	for _, connection := range app.Connections {
 		if connection.Coherence != nil {
 			if len(connection.Coherence) > 1 {
-				glog.Errorf("Only one Coherence binding allowed for a Helidon application '%s'. Found %d", app.Name, len(connection.Coherence))
+				zap.S().Errorf("Only one Coherence binding allowed for a Helidon application '%s'. Found %d", app.Name, len(connection.Coherence))
 			}
 			for _, cohConnection := range connection.Coherence {
 				// Get the Coherence cluster
@@ -120,7 +120,7 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 						envs = append(envs, env)
 					}
 				} else {
-					glog.Errorf("Coherence binding '%s' not found in binding file", cohConnection.Target)
+					zap.S().Errorf("Coherence binding '%s' not found in binding file", cohConnection.Target)
 				}
 			}
 		}

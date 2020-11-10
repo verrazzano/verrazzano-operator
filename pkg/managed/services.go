@@ -8,12 +8,12 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 
-	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -21,8 +21,7 @@ import (
 
 // CreateServices creates/updates services needed for each managed cluster.
 func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-
-	glog.V(6).Infof("Creating/updating Service for VerrazzanoBinding %s", mbPair.Binding.Name)
+	zap.S().Debugf("Creating/updating Service for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Construct services for each ManagedCluster
 	for clusterName, mc := range mbPair.ManagedClusters {
@@ -47,12 +46,12 @@ func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 			if existingService != nil {
 				specDiffs := diff.CompareIgnoreTargetEmpties(existingService, service)
 				if specDiffs != "" {
-					glog.V(6).Infof("Service %s : Spec differences %s", service.Name, specDiffs)
-					glog.V(4).Infof("Updating Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
+					zap.S().Debugf("Service %s : Spec differences %s", service.Name, specDiffs)
+					zap.S().Infof("Updating Service %s in cluster %s", service.Name, clusterName)
 					_, err = managedClusterConnection.KubeClient.CoreV1().Services(service.Namespace).Update(context.TODO(), service, metav1.UpdateOptions{})
 				}
 			} else {
-				glog.V(4).Infof("Creating Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
+				zap.S().Infof("Creating Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
 				_, err = managedClusterConnection.KubeClient.CoreV1().Services(service.Namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 			}
 			if err != nil {
@@ -65,7 +64,7 @@ func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 
 // DeleteServices deletes services for a given binding.
 func DeleteServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Deleting Services for VerrazzanoBinding %s", mbPair.Binding.Name)
+	zap.S().Infof("Deleting Services for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Delete Services associated with the given VerrazzanoBinding (based on labels selectors)
 	for clusterName, managedClusterConnection := range filteredConnections {
@@ -79,7 +78,7 @@ func DeleteServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 			return err
 		}
 		for _, service := range existingServiceList {
-			glog.V(4).Infof("Deleting Service %s:%s", service.Namespace, service.Name)
+			zap.S().Infof("Deleting Service %s:%s", service.Namespace, service.Name)
 			err := managedClusterConnection.KubeClient.CoreV1().Services(service.Namespace).Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
@@ -92,7 +91,7 @@ func DeleteServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 // CleanupOrphanedServices deletes services that have been orphaned.  Services can be orphaned when a binding
 // has been changed to not require a service or the service was moved to a different cluster.
 func CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	glog.V(6).Infof("Cleaning up orphaned Services for VerrazzanoBinding %s", mbPair.Binding.Name)
+	zap.S().Infof("Cleaning up orphaned Services for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Get the managed clusters that this binding applies to
 	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
@@ -121,7 +120,7 @@ func CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClu
 		// Delete any Services not expected on this cluster
 		for _, service := range existingServiceList {
 			if !util.Contains(serviceNames, service.Name) {
-				glog.V(4).Infof("Deleting Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
+				zap.S().Infof("Deleting Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
 				err := managedClusterConnection.KubeClient.CoreV1().Services(service.Namespace).Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
 				if err != nil {
 					return err
@@ -148,7 +147,7 @@ func CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClu
 
 		// Delete these Services since they are no longer needed on this cluster.
 		for _, service := range existingServiceList {
-			glog.V(4).Infof("Deleting Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
+			zap.S().Infof("Deleting Service %s:%s in cluster %s", service.Namespace, service.Name, clusterName)
 			err := managedClusterConnection.KubeClient.CoreV1().Services(service.Namespace).Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err

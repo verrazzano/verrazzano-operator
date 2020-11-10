@@ -4,8 +4,8 @@
 package monitoring
 
 import (
-	"github.com/golang/glog"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"go.uber.org/zap"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -20,15 +20,15 @@ func GetSystemClusterRoles(managedClusterName string) []*rbacv1.ClusterRole {
 
 	fileabeatCR, err := createLoggingClusterRoles(constants.FilebeatName, filebeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New logging cluster role %s is giving error %s", constants.FilebeatName, err)
+		zap.S().Debugf("New logging cluster role %s is giving error %s", constants.FilebeatName, err)
 	}
 	journalbeatCR, err := createLoggingClusterRoles(constants.JournalbeatName, journalbeatLabels)
 	if err != nil {
-		glog.V(6).Infof("New logging cluster role %s is giving error %s", constants.JournalbeatName, err)
+		zap.S().Debugf("New logging cluster role %s is giving error %s", constants.JournalbeatName, err)
 	}
 	nodeExporterCR, err := createMonitoringClusterRoles(constants.NodeExporterName, nodeExporterLabels)
 	if err != nil {
-		glog.V(6).Infof("New monitoring cluster role %s is giving error %s", constants.NodeExporterName, err)
+		zap.S().Debugf("New monitoring cluster role %s is giving error %s", constants.NodeExporterName, err)
 	}
 	clusterRoles = append(clusterRoles, fileabeatCR, journalbeatCR, nodeExporterCR)
 	return clusterRoles

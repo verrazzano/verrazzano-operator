@@ -6,7 +6,6 @@ package util
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
 	"os"
 	"sync"
 
@@ -27,6 +26,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	wlsoprclientset "github.com/verrazzano/verrazzano-wko-operator/pkg/client/clientset/versioned"
 	wlsoprlister "github.com/verrazzano/verrazzano-wko-operator/pkg/client/listers/verrazzano/v1beta1"
+	"go.uber.org/zap"
 	istioAuthClientset "istio.io/client-go/pkg/clientset/versioned"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -270,7 +270,7 @@ func GetComponentNamespace(componentName string, binding *v1beta1v8o.VerrazzanoB
 func IsDevProfile() bool {
 	installProfile, present := os.LookupEnv("INSTALL_PROFILE")
 	if present {
-		glog.V(4).Infof("Env var INSTALL_PROFILE = %s", installProfile)
+		zap.S().Infof("Env var INSTALL_PROFILE = %s", installProfile)
 		if installProfile == constants.DevelopmentProfile {
 			return true
 		}

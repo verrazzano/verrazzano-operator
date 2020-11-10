@@ -4,11 +4,12 @@
 package monitoring
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func TestLoggingConfigMaps(t *testing.T) {
@@ -35,7 +36,7 @@ func TestLoggingConfigMaps(t *testing.T) {
 			Name:      "filebeat-config",
 			Namespace: constants.LoggingNamespace,
 			Labels:    filebeatLabels},
-			Data: map[string]string{"filebeat.yml": FilebeatConfigData},
+			Data: map[string]string{"filebeat.yml": FilebeatConfigData, "es-index-template.json": FilebeatIndexTemplate},
 		},
 		"filebeat-inputs": {ObjectMeta: metav1.ObjectMeta{
 			Name:      "filebeat-config",

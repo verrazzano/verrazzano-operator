@@ -4,8 +4,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
@@ -105,7 +107,7 @@ func Test_initFlags(t *testing.T) {
 
 	foundStringFlags := map[string]string{}
 	foundBoolFlags := map[string]bool{}
-
+	var foundFlags *flag.FlagSet
 	// GIVEN functions to "register" string and bool flags
 	stringVarFunc := func(p *string, name string, value string, usage string) {
 		foundStringFlags[name] = value
@@ -113,9 +115,12 @@ func Test_initFlags(t *testing.T) {
 	boolVarFunc := func(p *bool, name string, value bool, usage string) {
 		foundBoolFlags[name] = value
 	}
+	flagSetFunc := func(fs *flag.FlagSet) {
+		foundFlags = fs
+	}
 
 	// WHEN its initFlags is called
-	initFlags(stringVarFunc, boolVarFunc)
+	initFlags(stringVarFunc, boolVarFunc, flagSetFunc)
 
 	// THEN assert that the expected command line flags are initialized
 	assert.Len(t, foundStringFlags, len(expectedStringFlags))
@@ -126,6 +131,7 @@ func Test_initFlags(t *testing.T) {
 	for expectedName, expectedValue := range expectedBoolFlags {
 		assert.Equal(t, expectedValue, foundBoolFlags[expectedName])
 	}
+	assert.NotNil(t, foundFlags)
 }
 
 // assertNotExpected asserts that the rootRouter does NOT contain a match for the given
@@ -163,4 +169,18 @@ func getComplementaryMethods(methods []string) []string {
 		}
 	}
 	return complementaryMethods
+}
+
+// Test_prepare tests the prepare func refactored from main to have better coverage
+// GIVEN a command line argument --zap-log-level=debug
+//  WHEN prepare is called (from main)
+//  THEN the zap-log-level flag is bound and the argument is parsed
+func Test_prepare(t *testing.T) {
+	os.Args[1] = "--zap-log-level=debug"
+	manifest, err := prepare()
+	assert.NotNil(t, manifest)
+	assert.NotNil(t, err)
+	zapLevelFlag := flag.Lookup("zap-log-level")
+	assert.NotNil(t, zapLevelFlag)
+	assert.Equal(t, "debug", zapLevelFlag.Value.String())
 }

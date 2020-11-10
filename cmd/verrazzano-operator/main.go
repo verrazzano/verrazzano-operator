@@ -6,12 +6,14 @@ package main
 import (
 	"flag"
 	"fmt"
-	"k8s.io/client-go/tools/clientcmd"
+
 	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/client-go/tools/clientcmd"
+
 	"github.com/gorilla/mux"
+
 	"github.com/verrazzano/verrazzano-operator/pkg/api/applications"
 	"github.com/verrazzano/verrazzano-operator/pkg/api/clusters"
 	"github.com/verrazzano/verrazzano-operator/pkg/api/domains"
@@ -26,6 +28,8 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/apiserver"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/logs"
+	"go.uber.org/zap"
+	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 var (
@@ -37,6 +41,7 @@ var (
 	enableMonitoringStorage      string
 	apiServerRealm               string
 	startController              bool
+	zapOptions                   = kzap.Options{}
 )
 
 const apiVersionPrefix = "/20210501"
@@ -50,14 +55,11 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 // handleRequests registers the routes and handlers
 func handleRequests(apiServerFinished chan bool, rootRouter *mux.Router) {
 	apiRouter := registerPathHandlers(rootRouter)
-
-	glog.Info("Starting API server...")
-
+	zap.S().Info("Starting API server...")
 	if apiServerRealm == "" {
-		glog.Warning("Bearer token verification is disabled as apiServerRealm is not specified")
+		zap.S().Warn("Bearer token verification is disabled as apiServerRealm is not specified")
 	}
-
-	glog.Fatal(http.ListenAndServe(":3456", apiserver.CORSHandler(apiserver.AuthHandler(apiRouter))))
+	zap.S().Fatal(http.ListenAndServe(":3456", apiserver.CORSHandler(apiserver.AuthHandler(apiRouter))))
 	apiServerFinished <- true
 }
 
@@ -105,8 +107,8 @@ func registerPathHandlers(rootRouter *mux.Router) *mux.Router {
 	return apiRouter
 }
 
-func main() {
-
+func prepare() (*util.Manifest, error) {
+	flag.Parse()
 	fmt.Println(" _    _                                                                    _____")
 	fmt.Println("| |  | |                                                                  / ___ \\                              _")
 	fmt.Println("| |  | |  ____   ____   ____   ____  _____  _____   ____  ____    ___    | |   | | ____    ____   ____   ____ | |_    ___    ____")
@@ -117,31 +119,29 @@ func main() {
 	fmt.Println("")
 	fmt.Println("          Verrazzano Operator")
 	fmt.Println("")
-
+	logs.InitLogs(zapOptions)
 	// Load Verrazzano Operator Manifest
+	return util.LoadManifest()
+}
 
-	manifest, err := util.LoadManifest()
+func main() {
+	manifest, err := prepare()
 	if err != nil {
-		glog.Fatalf("Error loading manifest: %s", err.Error())
+		zap.S().Fatalf("Error loading manifest: %s", err.Error())
 	}
-
-	flag.Parse()
-
-	logs.InitLogs()
-
-	glog.V(6).Infof("Creating new controller watching namespace %s.", watchNamespace)
+	zap.S().Infof("Creating new controller watching namespace %s.", watchNamespace)
 	if strings.EqualFold(helidonAppOperatorDeployment, "false") {
-		glog.V(6).Info("helidonAppOperatorDeployment Disabled")
+		zap.S().Debugf("helidonAppOperatorDeployment Disabled")
 		manifest.HelidonAppOperatorImage = ""
 	}
 
 	config, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
-		glog.Fatalf("Error creating the controller configuration: %s", err.Error())
+		zap.S().Fatalf("Error creating the controller configuration: %s", err.Error())
 	}
 	controller, err := pkgverrazzanooperator.NewController(config, manifest, watchNamespace, verrazzanoURI, enableMonitoringStorage)
 	if err != nil {
-		glog.Fatalf("Error creating the controller: %s", err.Error())
+		zap.S().Fatalf("Error creating the controller: %s", err.Error())
 	}
 
 	apiServerExited := make(chan bool)
@@ -152,13 +152,12 @@ func main() {
 	if startController {
 		// start the controller
 		if err = controller.Run(2); err != nil {
-			glog.Fatalf("Error running controller: %s", err.Error())
+			zap.S().Fatalf("Error running controller: %s", err.Error())
 		}
 	}
 
-	glog.Info("Waiting for api server to exit")
+	zap.S().Infow("Waiting for api server to exit")
 	<-apiServerExited
-
 }
 
 func startRestAPIServer(listerSet pkgverrazzanooperator.Listers, apiServerFinished chan bool) {
@@ -181,15 +180,15 @@ func startRestAPIServer(listerSet pkgverrazzanooperator.Listers, apiServerFinish
 }
 
 func init() {
-	initFlags(flag.StringVar, flag.BoolVar)
+	initFlags(flag.StringVar, flag.BoolVar, zapOptions.BindFlags)
 }
 
 // initFlags registers all command line flags. It accepts a registration function for string vars and
 // one for boolean vars, to enable testing
 func initFlags(
 	stringVarFunc func(p *string, name string, value string, usage string),
-	boolVarFunc func(p *bool, name string, value bool, usage string)) {
-
+	boolVarFunc func(p *bool, name string, value bool, usage string),
+	flagSetFunc func(fs *flag.FlagSet)) {
 	stringVarFunc(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	stringVarFunc(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	stringVarFunc(&watchNamespace, "watchNamespace", "", "Optionally, a namespace to watch exclusively.  If not set, all namespaces will be watched.")
@@ -198,4 +197,5 @@ func initFlags(
 	stringVarFunc(&enableMonitoringStorage, "enableMonitoringStorage", "", "Enable storage for monitoring.  The default is true. 'false' means monitoring storage is disabled.")
 	stringVarFunc(&apiServerRealm, "apiServerRealm", "", "API Server Realm on Keycloak")
 	boolVarFunc(&startController, "startController", true, "Whether to start the Kubernetes controller (true by default)")
+	flagSetFunc(flag.CommandLine)
 }

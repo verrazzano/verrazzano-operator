@@ -4,10 +4,9 @@
 package util
 
 import (
+	"go.uber.org/zap"
 	"os"
 	"strconv"
-
-	"github.com/golang/glog"
 )
 
 // This file contains all of the env vars used by the Verrazzano Operator
@@ -136,7 +135,7 @@ func GetElasticsearchMasterNodeReplicas() int32 {
 	if len(value) != 0 {
 		count, err := strconv.ParseInt(value, 10, 32)
 		if err != nil {
-			glog.V(5).Infof("%v is invalid.  The default value of 3 will be used as replicas of ES master node.", value)
+			zap.S().Infof("%v is invalid.  The default value of 3 will be used as replicas of ES master node.", value)
 		} else {
 			return int32(count)
 		}

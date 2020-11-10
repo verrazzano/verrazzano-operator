@@ -6,9 +6,10 @@ package monitoring
 import (
 	"errors"
 	"fmt"
-	"github.com/golang/glog"
+
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,7 +53,7 @@ func CreateDeployment(namespace string, bindingName string, labels map[string]st
 	image := util.GetPromtheusPusherImage()
 
 	pushGatewayURL := fmt.Sprintf("http://vmi-%s-prometheus-gw.%s.svc.cluster.local:9091", util.GetProfileBindingName(bindingName), constants.VerrazzanoNamespace)
-	glog.V(4).Infof("Setting pushGatewayURL to %s", pushGatewayURL)
+	zap.S().Infof("Setting pushGatewayURL to %s", pushGatewayURL)
 	pusherDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:    labels,

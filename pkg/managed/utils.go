@@ -5,8 +5,9 @@ package managed
 
 import (
 	"io/ioutil"
-	"k8s.io/client-go/rest"
 	"os"
+
+	"k8s.io/client-go/rest"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 

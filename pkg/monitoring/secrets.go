@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/pbkdf2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,7 +82,7 @@ func saltedHash(sec *corev1.Secret) *corev1.Secret {
 	pw := sec.Data["password"]
 	sec.Data["salt"] = salt
 	sec.Data["hash"] = pbkdf2.Key(pw, salt, 27500, 64, sha256.New)
-	glog.V(6).Infof("Creating/updating %s secret %s", sec.Namespace, sec.Name)
+	zap.S().Debugf("Creating/updating %s secret %s", sec.Namespace, sec.Name)
 	return sec
 }
 
@@ -123,7 +123,7 @@ func CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets Secrets) er
 	}
 	for _, existingSecret := range existingSecretsList {
 		if !util.Contains(secretNames, existingSecret.Name) {
-			glog.V(4).Infof("Deleting Secret %s", existingSecret.Name)
+			zap.S().Infof("Deleting Secret %s", existingSecret.Name)
 			err := secrets.Delete(existingSecret.Namespace, existingSecret.Name)
 			if err != nil {
 				return err
@@ -138,15 +138,15 @@ func GetSystemSecrets(sec Secrets) []*corev1.Secret {
 	var secrets []*corev1.Secret
 	password, err := sec.GetVmiPassword()
 	if err != nil {
-		glog.Errorf("Failed to retrieve secret %v", err)
+		zap.S().Errorf("Failed to retrieve secret %v", err)
 	}
 	fileabeatSecret, err := createLoggingSecret(constants.LoggingNamespace, constants.FilebeatName, password)
 	if err != nil {
-		glog.V(6).Infof("New logging secret %s is giving error %s", constants.FilebeatName, err)
+		zap.S().Debugf("New logging secret %s is giving error %s", constants.FilebeatName, err)
 	}
 	journalbeatSecret, err := createLoggingSecret(constants.LoggingNamespace, constants.JournalbeatName, password)
 	if err != nil {
-		glog.V(6).Infof("New logging secret %s is giving error %s", constants.JournalbeatName, err)
+		zap.S().Debugf("New logging secret %s is giving error %s", constants.JournalbeatName, err)
 	}
 	secrets = append(secrets, fileabeatSecret, journalbeatSecret)
 	return secrets
