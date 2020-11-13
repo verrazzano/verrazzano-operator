@@ -9,16 +9,15 @@ import (
 	"strconv"
 	"strings"
 
-	istiocrd "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
 	"go.uber.org/zap"
-	istio "istio.io/api/networking/v1alpha3"
+	istionetv1alpha3 "istio.io/api/networking/v1alpha3"
 	istiosecv1beta1 "istio.io/api/security/v1beta1"
-	"istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclientv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"istio.io/client-go/pkg/apis/security/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -464,26 +463,27 @@ func CleanupOrphanedServiceEntries(mbPair *types.ModelBindingPair, availableMana
 }
 
 // Construct the necessary Gateway and VirtualService objects
-func newIngresses(binding *v1beta1v8o.VerrazzanoBinding, mc *types.ManagedCluster) ([]*istiocrd.Gateway, []*istiocrd.VirtualService) {
+func newIngresses(binding *v1beta1v8o.VerrazzanoBinding, mc *types.ManagedCluster) ([]*istioclientv1alpha3.Gateway, []*istioclientv1alpha3.VirtualService) {
 	ingressLabels := util.GetManagedBindingLabels(binding, mc.Name)
-	var gateways []*istiocrd.Gateway
-	var virtualServices []*istiocrd.VirtualService
+	var gateways []*istioclientv1alpha3.Gateway
+	var virtualServices []*istioclientv1alpha3.VirtualService
 
 	for namespace, ingresses := range mc.Ingresses {
 		for _, ingress := range ingresses {
 			ingressBinding := getIngressBinding(binding, ingress.Name)
 			if ingressBinding != nil {
 				// Create the Istio Gateway
-				gateways = append(gateways, &istiocrd.Gateway{
+				gateways = append(gateways, &istioclientv1alpha3.Gateway{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      ingress.Name + "-gateway",
 						Namespace: namespace,
 						Labels:    ingressLabels,
 					},
-					Spec: istiocrd.GatewaySpec{
-						Servers: []istiocrd.Server{
-							{
-								Port: istiocrd.Port{
+					Spec: istionetv1alpha3.Gateway{
+						Servers: func() []*istionetv1alpha3.Server {
+							var servers []*istionetv1alpha3.Server
+							server := &istionetv1alpha3.Server{
+								Port: &istionetv1alpha3.Port{
 									Name:     "http",
 									Number:   80,
 									Protocol: "HTTP",
@@ -491,8 +491,10 @@ func newIngresses(binding *v1beta1v8o.VerrazzanoBinding, mc *types.ManagedCluste
 								Hosts: []string{
 									ingressBinding.DnsName,
 								},
-							},
-						},
+							}
+							servers = append(servers, server)
+							return servers
+						}(),
 						Selector: map[string]string{"istio": "ingressgateway"},
 					},
 				})
@@ -507,14 +509,14 @@ func newIngresses(binding *v1beta1v8o.VerrazzanoBinding, mc *types.ManagedCluste
 }
 
 // Create the Istio VirtualService
-func newVirtualService(namespace string, ingressLabels map[string]string, ingress *types.Ingress, ingressBinding *v1beta1v8o.VerrazzanoIngressBinding) *istiocrd.VirtualService {
-	return &istiocrd.VirtualService{
+func newVirtualService(namespace string, ingressLabels map[string]string, ingress *types.Ingress, ingressBinding *v1beta1v8o.VerrazzanoIngressBinding) *istioclientv1alpha3.VirtualService {
+	return &istioclientv1alpha3.VirtualService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ingress.Name + "-virtualservice",
 			Namespace: namespace,
 			Labels:    ingressLabels,
 		},
-		Spec: istiocrd.VirtualServiceSpec{
+		Spec: istionetv1alpha3.VirtualService{
 			Gateways: []string{
 				ingress.Name + "-gateway",
 			},
@@ -526,16 +528,16 @@ func newVirtualService(namespace string, ingressLabels map[string]string, ingres
 	}
 }
 
-func httpRoutes(namespace string, ingress *types.Ingress) []istiocrd.HttpRoute {
-	var routes []istiocrd.HttpRoute
+func httpRoutes(namespace string, ingress *types.Ingress) []*istionetv1alpha3.HTTPRoute {
+	var routes []*istionetv1alpha3.HTTPRoute
 	for _, destination := range ingress.Destination {
-		route := istiocrd.HttpRoute{
-			Match: []istiocrd.MatchRequest{},
-			Route: []istiocrd.HTTPRouteDestination{
+		route := &istionetv1alpha3.HTTPRoute{
+			Match: []*istionetv1alpha3.HTTPMatchRequest{},
+			Route: []*istionetv1alpha3.HTTPRouteDestination{
 				{
-					Destination: istiocrd.Destination{
+					Destination: &istionetv1alpha3.Destination{
 						Host: destination.Host,
-						Port: istiocrd.PortSelector{
+						Port: &istionetv1alpha3.PortSelector{
 							Number: destination.Port,
 						},
 					},
@@ -552,17 +554,21 @@ func httpRoutes(namespace string, ingress *types.Ingress) []istiocrd.HttpRoute {
 		// If the destination is a WebLogic domain then add a match for the
 		// WLS console
 		if len(destination.DomainName) != 0 {
-			routes = append(routes, istiocrd.HttpRoute{
-				Match: []istiocrd.MatchRequest{
+			routes = append(routes, &istionetv1alpha3.HTTPRoute{
+				Match: []*istionetv1alpha3.HTTPMatchRequest{
 					{
-						Uri: map[string]string{"prefix": "/console"},
+						Uri: &istionetv1alpha3.StringMatch{
+							MatchType: &istionetv1alpha3.StringMatch_Prefix{
+								Prefix: "/console",
+							},
+						},
 					},
 				},
-				Route: []istiocrd.HTTPRouteDestination{
+				Route: []*istionetv1alpha3.HTTPRouteDestination{
 					{
-						Destination: istiocrd.Destination{
+						Destination: &istionetv1alpha3.Destination{
 							Host: fmt.Sprintf("%s-%s.%s.svc.cluster.local", destination.DomainName, GetDomainAdminServerNameAsInAddress(), namespace),
-							Port: istiocrd.PortSelector{
+							Port: &istionetv1alpha3.PortSelector{
 								Number: 7001,
 							},
 						},
@@ -584,52 +590,56 @@ func GetDomainAdminServerNameAsInTarget() string {
 	return "AdminServer"
 }
 
-func addMatch(matches []istiocrd.MatchRequest, key, value string) []istiocrd.MatchRequest {
+func addMatch(matches []*istionetv1alpha3.HTTPMatchRequest, key, value string) []*istionetv1alpha3.HTTPMatchRequest {
 	found := false
 	for _, match := range matches {
-		if match.Uri[key] == value {
+		if match.Uri.GetPrefix() == value {
 			found = true
 		}
 	}
 	if !found {
-		matches = append(matches, istiocrd.MatchRequest{
-			Uri: map[string]string{key: value},
+		matches = append(matches, &istionetv1alpha3.HTTPMatchRequest{
+			Uri: &istionetv1alpha3.StringMatch{
+				MatchType: &istionetv1alpha3.StringMatch_Prefix{
+					Prefix: value,
+				},
+			},
 		})
 	}
 	return matches
 }
 
 // Construct the necessary ServiceEntry objects
-func newServiceEntries(mbPair *types.ModelBindingPair, mc *types.ManagedCluster, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) []*istiocrd.ServiceEntry {
+func newServiceEntries(mbPair *types.ModelBindingPair, mc *types.ManagedCluster, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) []*istioclientv1alpha3.ServiceEntry {
 
 	bindingLabels := util.GetManagedBindingLabels(mbPair.Binding, mc.Name)
-	var serviceEntries []*istiocrd.ServiceEntry
+	var serviceEntries []*istioclientv1alpha3.ServiceEntry
 
 	for namespace, rests := range mc.RemoteRests {
 		for _, rest := range rests {
 			// Get the istio gateway address
 			gatewayAddress := getIstioGateways(mbPair, availableManagedClusterConnections, rest.RemoteClusterName)
 			// Create the istio ServiceEntry
-			serviceEntries = append(serviceEntries, &istiocrd.ServiceEntry{
+			serviceEntries = append(serviceEntries, &istioclientv1alpha3.ServiceEntry{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      rest.Name,
 					Namespace: namespace,
 					Labels:    bindingLabels,
 				},
-				Spec: istio.ServiceEntry{
+				Spec: istionetv1alpha3.ServiceEntry{
 					Hosts: []string{
 						fmt.Sprintf("%s.%s.global", rest.Name, rest.RemoteNamespace),
 					},
-					Location: istio.ServiceEntry_MESH_INTERNAL,
-					Ports: []*istio.Port{
+					Location: istionetv1alpha3.ServiceEntry_MESH_INTERNAL,
+					Ports: []*istionetv1alpha3.Port{
 						{
 							Name:     "http1",
 							Number:   rest.Port,
 							Protocol: "http",
 						},
 					},
-					Resolution: istio.ServiceEntry_DNS,
-					Endpoints: []*istio.WorkloadEntry{
+					Resolution: istionetv1alpha3.ServiceEntry_DNS,
+					Endpoints: []*istionetv1alpha3.WorkloadEntry{
 						{
 							Address: gatewayAddress,
 							Ports: map[string]uint32{
@@ -652,8 +662,8 @@ func newServiceEntries(mbPair *types.ModelBindingPair, mc *types.ManagedCluster,
 // Destination rules are created for each namespace named in the binding placement.  Each destination rule enables
 // MTLS for the entire namespace with one exception... MTLS is disabled for traffic on the WebLogic admin port to avoid
 // issues with WebLogic managed server communication with the admin server.
-func newDestinationRules(mbPair *types.ModelBindingPair, mc *types.ManagedCluster) ([]*v1alpha3.DestinationRule, error) {
-	var rules []*v1alpha3.DestinationRule
+func newDestinationRules(mbPair *types.ModelBindingPair, mc *types.ManagedCluster) ([]*istioclientv1alpha3.DestinationRule, error) {
+	var rules []*istioclientv1alpha3.DestinationRule
 	namespaceMap := make(map[string]*v1beta1v8o.KubernetesNamespace)
 
 	// Get all the coherence extend ports for each coherence component.
@@ -685,16 +695,16 @@ func newDestinationRules(mbPair *types.ModelBindingPair, mc *types.ManagedCluste
 				}
 			}
 			// create a destination rule spec that enables MTLS for the namespace
-			rules = append(rules, &v1alpha3.DestinationRule{
+			rules = append(rules, &istioclientv1alpha3.DestinationRule{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      namespace + "-destination-rule",
 					Namespace: namespace,
 				},
-				Spec: istio.DestinationRule{
+				Spec: istionetv1alpha3.DestinationRule{
 					Host: "*." + namespace + ".svc.cluster.local",
-					TrafficPolicy: &istio.TrafficPolicy{
-						Tls: &istio.ClientTLSSettings{
-							Mode: istio.ClientTLSSettings_ISTIO_MUTUAL,
+					TrafficPolicy: &istionetv1alpha3.TrafficPolicy{
+						Tls: &istionetv1alpha3.ClientTLSSettings{
+							Mode: istionetv1alpha3.ClientTLSSettings_ISTIO_MUTUAL,
 						},
 						PortLevelSettings: getCohTrafficPolicy(cohPorts),
 					},
@@ -707,15 +717,15 @@ func newDestinationRules(mbPair *types.ModelBindingPair, mc *types.ManagedCluste
 
 // Construct the traffic policy needed for Coherence extend ports.  These
 // ports need TLS disabled.
-func getCohTrafficPolicy(cohPorts []uint32) []*istio.TrafficPolicy_PortTrafficPolicy {
-	var tps []*istio.TrafficPolicy_PortTrafficPolicy
+func getCohTrafficPolicy(cohPorts []uint32) []*istionetv1alpha3.TrafficPolicy_PortTrafficPolicy {
+	var tps []*istionetv1alpha3.TrafficPolicy_PortTrafficPolicy
 	for _, port := range cohPorts {
-		tp := istio.TrafficPolicy_PortTrafficPolicy{
-			Port: &istio.PortSelector{
+		tp := istionetv1alpha3.TrafficPolicy_PortTrafficPolicy{
+			Port: &istionetv1alpha3.PortSelector{
 				Number: port,
 			},
-			Tls: &istio.ClientTLSSettings{
-				Mode: istio.ClientTLSSettings_DISABLE,
+			Tls: &istionetv1alpha3.ClientTLSSettings{
+				Mode: istionetv1alpha3.ClientTLSSettings_DISABLE,
 			},
 		}
 		tps = append(tps, &tp)

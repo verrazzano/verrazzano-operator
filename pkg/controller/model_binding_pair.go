@@ -8,8 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	"go.uber.org/zap"
-
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v8weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
@@ -24,6 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsdom"
 	"github.com/verrazzano/verrazzano-operator/pkg/wlsopr"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -205,7 +204,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 						// Add secret for binding to the namespace, it contains the credentials Fluentd needs for ElasticSearch
 						addSecret(mc, constants.VmiSecretName, namespace.Name)
 
-						virtualSerivceDestinationPort := int(getDomainDestinationPort(domainCR))
+						virtualSerivceDestinationPort := getDomainDestinationPort(domainCR)
 						processIngressConnections(mc, domain.Connections, namespace.Name, domainCR, getDomainDestinationHost(domainCR), virtualSerivceDestinationPort, &mbPair.Binding.Spec.IngressBindings)
 					}
 				}
@@ -284,7 +283,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 							addSecret(mc, constants.VmiSecretName, namespace.Name)
 						}
 
-						virtualSerivceDestinationPort := int(helidonCR.Spec.Port) //service.port
+						virtualSerivceDestinationPort := uint32(helidonCR.Spec.Port) //service.port
 						processIngressConnections(mc, app.Connections, namespace.Name, nil,
 							getHelidonDestinationHost(helidonCR), virtualSerivceDestinationPort, &mbPair.Binding.Spec.IngressBindings)
 					}
@@ -330,7 +329,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 					// future, we must allow for multiple ingress connections for generic components with different
 					// service ports.
 					if service != nil {
-						virtualSerivceDestinationPort := int(service.Spec.Ports[0].Port)
+						virtualSerivceDestinationPort := uint32(service.Spec.Ports[0].Port)
 						processIngressConnections(mc, generic.Connections, namespace, nil,
 							getGenericComponentDestinationHost(generic.Name, namespace),
 							virtualSerivceDestinationPort, &mbPair.Binding.Spec.IngressBindings)
@@ -442,7 +441,7 @@ func addSecret(mc *types.ManagedCluster, secretName string, namespace string) {
 }
 
 // Add the name of an ingress to the array of ingresses in a managed cluster
-func addIngress(mc *types.ManagedCluster, ingressConn v1beta1v8o.VerrazzanoIngressConnection, namespace string, domainCR *v8weblogic.Domain, destinationHost string, virtualSerivceDestinationPort int) {
+func addIngress(mc *types.ManagedCluster, ingressConn v1beta1v8o.VerrazzanoIngressConnection, namespace string, domainCR *v8weblogic.Domain, destinationHost string, virtualSerivceDestinationPort uint32) {
 	var domainName = ""
 	if domainCR != nil {
 		domainName = domainCR.Spec.DomainUID
@@ -494,7 +493,7 @@ func getOrNewIngress(mc *types.ManagedCluster, ingressConn v1beta1v8o.Verrazzano
 	return &ingress
 }
 
-func getOrNewDest(ingress *types.Ingress, destinationHost string, virtualSerivceDestinationPort int) *types.IngressDestination {
+func getOrNewDest(ingress *types.Ingress, destinationHost string, virtualSerivceDestinationPort uint32) *types.IngressDestination {
 	for _, destination := range ingress.Destination {
 		if destination.Host == destinationHost && destination.Port == virtualSerivceDestinationPort {
 			return destination
@@ -542,10 +541,10 @@ func addRemoteRest(mc *types.ManagedCluster, restName string, localNamespace str
 	})
 }
 
-func processIngressConnections(mc *types.ManagedCluster, connections []v1beta1v8o.VerrazzanoConnections, namespace string, domainCR *v8weblogic.Domain, destinationHost string, virtualSerivceDestinationPort int, ingressBindings *[]v1beta1v8o.VerrazzanoIngressBinding) {
+func processIngressConnections(mc *types.ManagedCluster, connections []v1beta1v8o.VerrazzanoConnections, namespace string, domainCR *v8weblogic.Domain, destinationHost string, virtualSerivceDestinationPort uint32, ingressBindings *[]v1beta1v8o.VerrazzanoIngressBinding) {
 	for _, connection := range connections {
 		for _, ingress := range connection.Ingress {
-			inBindings := []v1beta1v8o.VerrazzanoIngressBinding{}
+			var inBindings []v1beta1v8o.VerrazzanoIngressBinding
 			for _, binding := range *ingressBindings {
 				if binding.Name == ingress.Name {
 					inBindings = append(inBindings, binding)

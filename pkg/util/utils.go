@@ -15,8 +15,6 @@ import (
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
 	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned"
 	cohclulister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/listers/coherence/v1"
-	istioClientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/clientset/versioned"
-	istioLister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/listers/networking.istio.io/v1alpha3"
 	domclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned"
 	domlister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/listers/weblogic/v8"
 	helidonclientset "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/clientset/versioned"
@@ -28,6 +26,7 @@ import (
 	wlsoprlister "github.com/verrazzano/verrazzano-wko-operator/pkg/client/listers/verrazzano/v1beta1"
 	"go.uber.org/zap"
 	istioAuthClientset "istio.io/client-go/pkg/clientset/versioned"
+	istioLister "istio.io/client-go/pkg/listers/networking/v1alpha3"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/kubernetes"
@@ -47,7 +46,7 @@ type ManagedClusterConnection struct {
 	HelidonClientSet            helidonclientset.Interface
 	CohOprClientSet             cohoprclientset.Interface
 	CohClusterClientSet         cohcluclientset.Interface
-	IstioClientSet              istioClientset.Interface
+	IstioClientSet              istioAuthClientset.Interface
 	IstioAuthClientSet          istioAuthClientset.Interface
 	KubeConfig                  string
 	Lock                        sync.RWMutex

@@ -8,19 +8,17 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	istio2 "istio.io/api/networking/v1alpha3"
+	istionetv1alpha3 "istio.io/api/networking/v1alpha3"
+	istioclientv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-
-	istio "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
-	istio2 "istio.io/api/networking/v1alpha3"
-
-	"github.com/stretchr/testify/assert"
-
-	v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano-operator/pkg/types"
 )
 
 func TestGetUniqueServiceEntryAddress(t *testing.T) {
@@ -34,7 +32,7 @@ func TestGetUniqueServiceEntryAddress(t *testing.T) {
 	}
 	assert.Equal(t, "240.0.0.1", address)
 
-	entry := istio.ServiceEntry{
+	entry := istioclientv1alpha3.ServiceEntry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "test",
@@ -95,7 +93,7 @@ func TestCleanupOrphanedServiceEntries(t *testing.T) {
 	clusterConnection := clusterConnections["cluster1"]
 	clusterConnection2 := clusterConnections["cluster3"]
 
-	se := istio.ServiceEntry{
+	se := istioclientv1alpha3.ServiceEntry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "test",
@@ -132,7 +130,7 @@ func TestCleanupOrphanedIngresses(t *testing.T) {
 	clusterConnection := clusterConnections["cluster1"]
 	clusterConnection2 := clusterConnections["cluster3"]
 
-	gw := istio.Gateway{
+	gw := istioclientv1alpha3.Gateway{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "test",
@@ -147,7 +145,7 @@ func TestCleanupOrphanedIngresses(t *testing.T) {
 		t.Fatal(fmt.Sprintf("can't create gateway: %v", err))
 	}
 
-	vs := istio.VirtualService{
+	vs := istioclientv1alpha3.VirtualService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "bar",
 			Namespace: "test",
@@ -581,7 +579,7 @@ func TestSockshopVirtualService(t *testing.T) {
 	t.Log("VirtualService", len(vs)) //string(yaml))
 }
 
-func assertMatch(t *testing.T, match []istio.MatchRequest, expected ...Pair) {
+func assertMatch(t *testing.T, match []istionetv1alpha3.HTTPMatchRequest, expected ...Pair) {
 	size := len(expected)
 	assert.Equal(t, size, len(match), fmt.Sprintf("Expected %v HttpMatch", size))
 	for i, pair := range expected {
@@ -600,7 +598,7 @@ type Dest struct {
 	Port int
 }
 
-func assertRoute(t *testing.T, dest []istio.HTTPRouteDestination, expected ...Dest) {
+func assertRoute(t *testing.T, dest []istionetv1alpha3.HTTPRouteDestination, expected ...Dest) {
 	size := len(expected)
 	assert.Equal(t, size, len(dest), fmt.Sprintf("Expected %v HTTPRouteDestination", size))
 	for i := range expected {

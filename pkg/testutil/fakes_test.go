@@ -6,25 +6,23 @@ package testutil
 import (
 	"context"
 	"fmt"
+	"testing"
+
+	asserts "github.com/stretchr/testify/assert"
 	cohv1beta1 "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/apis/verrazzano/v1beta1"
 	cohv1 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
 	v8 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	helidionv1beta1 "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
-	"github.com/verrazzano/verrazzano-wko-operator/pkg/apis/verrazzano/v1beta1"
-	"testing"
-
-	v1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/selection"
-
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-
-	asserts "github.com/stretchr/testify/assert"
-	istio "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3"
+	"github.com/verrazzano/verrazzano-wko-operator/pkg/apis/verrazzano/v1beta1"
+	istio "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
