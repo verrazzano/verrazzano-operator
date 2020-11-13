@@ -591,22 +591,54 @@ func GetDomainAdminServerNameAsInTarget() string {
 }
 
 func addMatch(matches []*istionetv1alpha3.HTTPMatchRequest, key, value string) []*istionetv1alpha3.HTTPMatchRequest {
-	found := false
-	for _, match := range matches {
-		if match.Uri.GetPrefix() == value {
-			found = true
+	if !matchFound(matches, key, value) {
+		uri := &istionetv1alpha3.StringMatch{}
+		switch key {
+		case "prefix":
+			uri.MatchType = &istionetv1alpha3.StringMatch_Prefix{
+				Prefix: value,
+			}
+		case "exact":
+			uri.MatchType = &istionetv1alpha3.StringMatch_Exact{
+				Exact: value,
+			}
+		case "regex":
+			uri.MatchType = &istionetv1alpha3.StringMatch_Regex{
+				Regex: value,
+			}
 		}
-	}
-	if !found {
+
 		matches = append(matches, &istionetv1alpha3.HTTPMatchRequest{
-			Uri: &istionetv1alpha3.StringMatch{
-				MatchType: &istionetv1alpha3.StringMatch_Prefix{
-					Prefix: value,
-				},
-			},
+			Uri: uri,
 		})
 	}
+
 	return matches
+}
+
+// Is there a match request
+func matchFound(matches []*istionetv1alpha3.HTTPMatchRequest, key, value string) bool {
+	found := false
+	for _, match := range matches {
+		switch key {
+		case "prefix":
+			if match.Uri.GetPrefix() == value {
+				found = true
+				break
+			}
+		case "exact":
+			if match.Uri.GetExact() == value {
+				found = true
+				break
+			}
+		case "regex":
+			if match.Uri.GetRegex() == value {
+				found = true
+				break
+			}
+		}
+	}
+	return found
 }
 
 // Construct the necessary ServiceEntry objects

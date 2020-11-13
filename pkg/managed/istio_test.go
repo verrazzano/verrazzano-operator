@@ -579,12 +579,11 @@ func TestSockshopVirtualService(t *testing.T) {
 	t.Log("VirtualService", len(vs)) //string(yaml))
 }
 
-func assertMatch(t *testing.T, match []istionetv1alpha3.HTTPMatchRequest, expected ...Pair) {
+func assertMatch(t *testing.T, matches []*istionetv1alpha3.HTTPMatchRequest, expected ...Pair) {
 	size := len(expected)
-	assert.Equal(t, size, len(match), fmt.Sprintf("Expected %v HttpMatch", size))
-	for i, pair := range expected {
-		uri := match[i].Uri[pair.k]
-		assert.Equal(t, pair.v, uri, fmt.Sprintf("Expected match %v: %v", pair.k, pair.v))
+	assert.Equal(t, size, len(matches), fmt.Sprintf("Expected %v HttpMatch", size))
+	for _, pair := range expected {
+		assert.True(t, matchFound(matches, pair.k, pair.v), fmt.Sprintf("Expected match %v: %v", pair.k, pair.v))
 	}
 }
 
@@ -595,10 +594,10 @@ type Pair struct {
 
 type Dest struct {
 	Host string
-	Port int
+	Port uint32
 }
 
-func assertRoute(t *testing.T, dest []istionetv1alpha3.HTTPRouteDestination, expected ...Dest) {
+func assertRoute(t *testing.T, dest []*istionetv1alpha3.HTTPRouteDestination, expected ...Dest) {
 	size := len(expected)
 	assert.Equal(t, size, len(dest), fmt.Sprintf("Expected %v HTTPRouteDestination", size))
 	for i := range expected {
