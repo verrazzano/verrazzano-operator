@@ -480,9 +480,8 @@ func newIngresses(binding *v1beta1v8o.VerrazzanoBinding, mc *types.ManagedCluste
 						Labels:    ingressLabels,
 					},
 					Spec: istionetv1alpha3.Gateway{
-						Servers: func() []*istionetv1alpha3.Server {
-							var servers []*istionetv1alpha3.Server
-							server := &istionetv1alpha3.Server{
+						Servers: []*istionetv1alpha3.Server{
+							{
 								Port: &istionetv1alpha3.Port{
 									Name:     "http",
 									Number:   80,
@@ -491,10 +490,8 @@ func newIngresses(binding *v1beta1v8o.VerrazzanoBinding, mc *types.ManagedCluste
 								Hosts: []string{
 									ingressBinding.DnsName,
 								},
-							}
-							servers = append(servers, server)
-							return servers
-						}(),
+							},
+						},
 						Selector: map[string]string{"istio": "ingressgateway"},
 					},
 				})
