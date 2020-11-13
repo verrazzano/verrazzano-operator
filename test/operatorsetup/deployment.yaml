@@ -69,7 +69,8 @@ spec:
           imagePullPolicy: Never
           image: IMAGE_NAME:IMAGE_TAG
           args:
-            - --v=4
+            - --zap-log-level=info
+            - --zap-devel=false
             - --verrazzanoUri=default.1.1.1.1.xip.io
             - --enableMonitoringStorage=false
             - --apiServerRealm=verrazzano-system

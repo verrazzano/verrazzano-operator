@@ -36,7 +36,7 @@ const (
 type IngressDestination struct {
 	Host string
 	// VirtualService destination Port
-	Port       int
+	Port       uint32
 	Match      []MatchRequest
 	DomainName string
 }

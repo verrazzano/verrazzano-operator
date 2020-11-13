@@ -3,14 +3,15 @@
 package managed
 
 import (
+	"os"
+	"testing"
+
 	asserts "github.com/stretchr/testify/assert"
 	cohoprclientset "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/clientset/versioned"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
 	clientsetfake "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
 	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned"
 	cohcluclientsetfake "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned/fake"
-	istioclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/clientset/versioned"
-	istioclientsetfake "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/clientset/versioned/fake"
 	domclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned"
 	domclientsetfake "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned/fake"
 	helidionclientset "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/clientset/versioned"
@@ -23,8 +24,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
-	"os"
-	"testing"
 )
 
 // TestBuildManagedClusterConnection test the creation of a managed cluster connection
@@ -101,9 +100,9 @@ func TestBuildManagedClusterConnection(t *testing.T) {
 
 	// mock Istio client set creation to return fake
 	origNewIstioClientSet := newIstioClientSet
-	newIstioClientSet = func(c *rest.Config) (istioclientset.Interface, error) {
+	newIstioClientSet = func(c *rest.Config) (istioauthclientset.Interface, error) {
 		assert.Equal(testConfig, c, "didn't get the expected config")
-		return istioclientsetfake.NewSimpleClientset(), nil
+		return istioauthclientsetfake.NewSimpleClientset(), nil
 	}
 	defer func() { newIstioClientSet = origNewIstioClientSet }()
 

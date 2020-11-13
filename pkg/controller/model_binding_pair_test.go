@@ -39,7 +39,7 @@ func TestProcessIngressConnections(t *testing.T) {
 	}}
 	var domainCR wls.Domain
 	destinationHost := "bobbys.destinationHost"
-	vsDestPort := 80
+	vsDestPort := uint32(80)
 	ingressBindings := []v8o.VerrazzanoIngressBinding{{
 		Name:    ingressName,
 		DnsName: "*",
@@ -92,7 +92,7 @@ func TestMultipleIngressBindings(t *testing.T) {
 	}}
 	var domainCR wls.Domain
 	destinationHost := "bobbys.destinationHost"
-	matchPort := 80
+	matchPort := uint32(80)
 	ingressBindings := []v8o.VerrazzanoIngressBinding{{
 		Name:    ingressName,
 		DnsName: "*",
@@ -597,11 +597,11 @@ func TestAddRemoteRestNewConnectionNotWLSType(t *testing.T) {
 
 // validateIngressBindings validates the ingress bindings for the provided ModelBindingPair
 func validateIngressBindings(t *testing.T, mbp *types.ModelBindingPair, cluster string, namespace string,
-	exptectedWlsHost string, expectedWlsPort int) {
+	exptectedWlsHost string, expectedWlsPort uint32) {
 	assert.Equal(t, 2, len(mbp.ManagedClusters[cluster].Ingresses[namespace]), "Expected 1 Ingress")
 	frontendIngress := getIngress(t, cluster, namespace, "sockshop-frontend-ingress", mbp)
 	assert.Equal(t, 1, len(frontendIngress.Destination), "Expected 1 IngressDestination")
-	assert.Equal(t, 8088, frontendIngress.Destination[0].Port, "Expected IngressDestination Port")
+	assert.Equal(t, uint32(8088), frontendIngress.Destination[0].Port, "Expected IngressDestination Port")
 	wlIngress := getIngress(t, cluster, namespace, "wl-ingress", mbp)
 	assert.Equal(t, 1, len(wlIngress.Destination), "Expected 1 IngressDestination")
 	assert.Equal(t, exptectedWlsHost, wlIngress.Destination[0].Host, "Expected IngressDestination Host")

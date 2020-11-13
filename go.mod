@@ -9,11 +9,11 @@ require (
 	github.com/onsi/gomega v1.9.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
-	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.0-20200921120302-d4040fa2f3c4
-	github.com/verrazzano/verrazzano-crd-generator v0.0.0-20201022185955-0f25ee2b7108
-	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.0-20200921121606-448c29f0ce58
-	github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20200925113618-cc189235ad3d
-	github.com/verrazzano/verrazzano-wko-operator v0.0.0-20201005195304-9238fa0e1f4a
+	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.0-20201112155446-709d712760e1
+	github.com/verrazzano/verrazzano-crd-generator v0.0.0-20201113162618-4a0d7ef140db
+	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.0-20201112153444-e0e479077045
+	github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20201110193547-32e100ccdb72
+	github.com/verrazzano/verrazzano-wko-operator v0.0.0-20201112153813-48bbb61a1abb
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	gopkg.in/square/go-jose.v2 v2.5.1

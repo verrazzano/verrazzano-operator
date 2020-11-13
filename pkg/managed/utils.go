@@ -7,28 +7,25 @@ import (
 	"io/ioutil"
 	"os"
 
-	"k8s.io/client-go/rest"
-
-	"github.com/verrazzano/verrazzano-operator/pkg/types"
-
 	cohoprclientset "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/clientset/versioned"
 	cohoprinformers "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/informers/externalversions"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
 	informers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/informers/externalversions"
 	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned"
-	istioclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/clientset/versioned"
-	istioInformers "github.com/verrazzano/verrazzano-crd-generator/pkg/clientistio/informers/externalversions"
 	domclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned"
 	helidionclientset "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/clientset/versioned"
 	helidoninformers "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/informers/externalversions"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	wlsoprclientset "github.com/verrazzano/verrazzano-wko-operator/pkg/client/clientset/versioned"
 	wlsoprinformers "github.com/verrazzano/verrazzano-wko-operator/pkg/client/informers/externalversions"
 	istioauthclientset "istio.io/client-go/pkg/clientset/versioned"
+	istioInformers "istio.io/client-go/pkg/informers/externalversions"
 	extclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -68,8 +65,8 @@ var newCOHClusterClientSet = func(c *rest.Config) (cohcluclientset.Interface, er
 	return clientSet, err
 }
 
-var newIstioClientSet = func(c *rest.Config) (istioclientset.Interface, error) {
-	clientSet, err := istioclientset.NewForConfig(c)
+var newIstioClientSet = func(c *rest.Config) (istioauthclientset.Interface, error) {
+	clientSet, err := istioauthclientset.NewForConfig(c)
 	return clientSet, err
 }
 
