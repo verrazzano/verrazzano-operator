@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 
 	cohoprclientset "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/clientset/versioned"
@@ -265,24 +266,33 @@ func GetComponentNamespace(componentName string, binding *v1beta1v8o.VerrazzanoB
 	return "", fmt.Errorf("No placement found for component %s", componentName)
 }
 
-// IsDevProfile return true if the installProfile env var is set to dev
-func IsDevProfile() bool {
-	installProfile, present := os.LookupEnv("INSTALL_PROFILE")
+// SharedVMIDefault return true if the env var SHARED_VMI_DEFAULT is true; this may be overridden by an app binding (future)
+func SharedVMIDefault() bool {
+	useSharedVMI := false
+	envValue, present := os.LookupEnv(sharedVMIDefault)
 	if present {
-		zap.S().Infof("Env var INSTALL_PROFILE = %s", installProfile)
-		if installProfile == constants.DevelopmentProfile {
-			return true
+		zap.S().Debugf("Env var %s = %s", sharedVMIDefault, envValue)
+		value, err := strconv.ParseBool(envValue)
+		if err == nil {
+			useSharedVMI = value
+		} else {
+			zap.S().Errorf("Invalid value for %s: %s", sharedVMIDefault, envValue)
 		}
 	}
-	return false
+	return useSharedVMI
 }
+
 
 // GetProfileBindingName will return the binding name based on the profile
 // if the profile doesn't have a special binding name, the binding name supplied is returned
 // for Dev profile the VMI system binding name is returned
 func GetProfileBindingName(bindingName string) string {
-	if IsDevProfile() {
+	if SharedVMIDefault() {
 		return constants.VmiSystemBindingName
 	}
 	return bindingName
+}
+
+func IsSystemProfileBindingName(bindingName string) bool {
+	return constants.VmiSystemBindingName == bindingName
 }

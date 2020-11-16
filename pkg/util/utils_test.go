@@ -251,21 +251,24 @@ func TestLoadManifest(t *testing.T) {
 	assert.Error(err, "Error loading manifest")
 }
 
-func TestIsDevProfile(t *testing.T) {
+func TestSharedVMIDefault(t *testing.T) {
 	assert := assert.New(t)
-
-	os.Unsetenv("INSTALL_PROFILE")
-	assert.False(IsDevProfile(), "Expected DevProfile to return false")
-	os.Setenv("INSTALL_PROFILE", constants.DevelopmentProfile)
-	assert.True(IsDevProfile(), "Expected DevProfile to return true")
-	os.Unsetenv("INSTALL_PROFILE")
+	os.Unsetenv("USE_SYSTEM_VMI")
+	assert.False(SharedVMIDefault(), "Expected SharedVMIDefault() to return false when var not set")
+	os.Setenv("USE_SYSTEM_VMI", "false")
+	assert.False(SharedVMIDefault(), "Expected SharedVMIDefault() to return false when var set to false")
+	os.Setenv("USE_SYSTEM_VMI", "boo")
+	assert.False(SharedVMIDefault(), "Expected SharedVMIDefault() to return false when var set to bad value")
+	os.Setenv("USE_SYSTEM_VMI", "true")
+	assert.True(SharedVMIDefault(), "Expected SharedVMIDefault() to return true")
+	os.Unsetenv("USE_SYSTEM_VMI")
 }
 
 func TestGetProfileBindingName(t *testing.T) {
 	assert := assert.New(t)
-	os.Unsetenv("INSTALL_PROFILE")
+	os.Unsetenv("USE_SYSTEM_VMI")
 	assert.Equal("foobar", GetProfileBindingName("foobar"))
-	os.Setenv("INSTALL_PROFILE", constants.DevelopmentProfile)
+	os.Setenv("USE_SYSTEM_VMI", "true")
 	assert.Equal(constants.VmiSystemBindingName, GetProfileBindingName("foobar"))
-	os.Unsetenv("INSTALL_PROFILE")
+	os.Unsetenv("USE_SYSTEM_VMI")
 }

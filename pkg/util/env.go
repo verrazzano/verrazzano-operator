@@ -34,8 +34,12 @@ const esDataNodeRequestMemory = "ES_DATA_NODE_REQUEST_MEMORY"
 const grafanaRequestMemory = "GRAFANA_REQUEST_MEMORY"
 const prometheusRequestMemory = "PROMETHEUS_REQUEST_MEMORY"
 const kibanaRequestMemory = "KIBANA_REQUEST_MEMORY"
+const esDataNodeReplicas = "ES_DATA_NODE_REPLICAS"
+const esIngestNodeReplicas = "ES_INGEST_NODE_REPLICAS"
 const esMasterNodeReplicas = "ES_MASTER_NODE_REPLICAS"
+const esDataStorageSize = "ES_DATA_STORAGE"
 const accessControlAllowOrigin = "ACCESS_CONTROL_ALLOW_ORIGIN"
+const sharedVMIDefault = "USE_SYSTEM_VMI"
 
 func getCohMicroImage() string {
 	return GetEnvFunc(cohMicroImage)
@@ -114,6 +118,9 @@ func GetElasticsearchDataNodeRequestMemory() string {
 	return GetEnvFunc(esDataNodeRequestMemory)
 }
 
+func GetElasticsearchDataStorageSize() string {
+	return GetEnvFunc(esDataStorageSize)
+}
 // GetGrafanaRequestMemory returns the Grafana memory request resource.
 func GetGrafanaRequestMemory() string {
 	return GetEnvFunc(grafanaRequestMemory)
@@ -129,18 +136,33 @@ func GetKibanaRequestMemory() string {
 	return GetEnvFunc(kibanaRequestMemory)
 }
 
-// GetElasticsearchMasterNodeReplicas returns the Elasticsearch master replicas.
-func GetElasticsearchMasterNodeReplicas() int32 {
-	value := GetEnvFunc(esMasterNodeReplicas)
+// getEnvReplicaCount gets a replica count from the named env var, returning the provided default if not present
+func getEnvReplicaCount(envVarName string, defaultValue int32) int32 {
+	value := GetEnvFunc(envVarName)
 	if len(value) != 0 {
 		count, err := strconv.ParseInt(value, 10, 32)
 		if err != nil {
-			zap.S().Infof("%v is invalid.  The default value of 3 will be used as replicas of ES master node.", value)
+			zap.S().Infof("%s: %v is invalid.  The default value of %v will be used for node replicas.", envVarName, value, defaultValue)
 		} else {
 			return int32(count)
 		}
 	}
-	return 3
+	return defaultValue
+}
+
+// GetElasticsearchMasterNodeReplicas returns the Elasticsearch master replicas.
+func GetElasticsearchMasterNodeReplicas() int32 {
+	return getEnvReplicaCount(esMasterNodeReplicas, 3)
+}
+
+// GetElasticsearchMasterNodeReplicas returns the Elasticsearch master replicas.
+func GetElasticsearchDataNodeReplicas() int32 {
+	return getEnvReplicaCount(esDataNodeReplicas, 2)
+}
+
+// GetElasticsearchMasterNodeReplicas returns the Elasticsearch master replicas.
+func GetElasticsearchIngestNodeReplicas() int32 {
+	return getEnvReplicaCount(esIngestNodeReplicas, 1)
 }
 
 // GetAccessControlAllowOrigin returns the additional allowed origins for API requests - these

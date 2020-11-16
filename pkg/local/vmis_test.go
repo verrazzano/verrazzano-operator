@@ -136,9 +136,9 @@ func TestCreateInstance(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.args.bindingName == "devProfile" {
-				os.Setenv("INSTALL_PROFILE", constants.DevelopmentProfile)
+				os.Setenv("USE_SYSTEM_VMI", "true")
 			} else {
-				os.Unsetenv("INSTALL_PROFILE")
+				os.Unsetenv("USE_SYSTEM_VMI")
 			}
 			got, err := createInstance(createTestBinding(tt.args.bindingName), tt.args.verrazzanoURI, "")
 			if (err != nil) != tt.wantErr {

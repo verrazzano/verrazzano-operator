@@ -29,6 +29,11 @@ var createInstanceFunc = createInstance
 func CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 	zap.S().Debugf("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
 
+	if util.SharedVMIDefault() && !util.IsSystemProfileBindingName(binding.Name){
+		zap.S().Infof("Using shared VMI for binding %s", binding.Name)
+		return nil
+	}
+
 	// Construct the expected VMI
 	newVmi, err := createInstanceFunc(binding, verrazzanoURI, enableMonitoringStorage)
 	if err != nil {
@@ -78,6 +83,18 @@ func DeleteVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.
 	return nil
 }
 
+func createESStorageOption() vmov1.Storage {
+	defaultESDataStorageSize := util.GetElasticsearchDataStorageSize()
+	if len(defaultESDataStorageSize) == 0 || strings.ToLower(defaultESDataStorageSize) == "0" {
+		return vmov1.Storage{
+			Size: "",
+		}
+	}
+	return vmov1.Storage{
+		Size: defaultESDataStorageSize,
+	}
+}
+
 func createStorageOption(enableMonitoringStorage string) vmov1.Storage {
 	if strings.ToLower(enableMonitoringStorage) == "false" {
 		return vmov1.Storage{
@@ -97,8 +114,6 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 
 	bindingLabels := util.GetLocalBindingLabels(binding)
 
-	storageOption := createStorageOption(enableMonitoringStorage)
-
 	bindingName := util.GetProfileBindingName(binding.Name)
 
 	return &vmov1.VerrazzanoMonitoringInstance{
@@ -114,7 +129,7 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 			CascadingDelete: true,
 			Grafana: vmov1.Grafana{
 				Enabled:             true,
-				Storage:             storageOption,
+				Storage:             createStorageOption(enableMonitoringStorage),
 				DashboardsConfigMap: util.GetVmiNameForBinding(binding.Name) + "-dashboards",
 				Resources: vmov1.Resources{
 					RequestMemory: util.GetGrafanaRequestMemory(),
@@ -123,16 +138,16 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 			IngressTargetDNSName: fmt.Sprintf("verrazzano-ingress.%s", verrazzanoURI),
 			Prometheus: vmov1.Prometheus{
 				Enabled: true,
-				Storage: storageOption,
+				Storage: createStorageOption(enableMonitoringStorage),
 				Resources: vmov1.Resources{
 					RequestMemory: util.GetPrometheusRequestMemory(),
 				},
 			},
 			Elasticsearch: vmov1.Elasticsearch{
 				Enabled: true,
-				Storage: storageOption,
+				Storage: createESStorageOption(),
 				IngestNode: vmov1.ElasticsearchNode{
-					Replicas: 1,
+					Replicas: util.GetElasticsearchIngestNodeReplicas(),
 					Resources: vmov1.Resources{
 						RequestMemory: util.GetElasticsearchIngestNodeRequestMemory(),
 					},
@@ -144,7 +159,7 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 					},
 				},
 				DataNode: vmov1.ElasticsearchNode{
-					Replicas: 2,
+					Replicas: util.GetElasticsearchDataNodeReplicas(),
 					Resources: vmov1.Resources{
 						RequestMemory: util.GetElasticsearchDataNodeRequestMemory(),
 					},
