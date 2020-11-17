@@ -43,6 +43,7 @@ const (
 
 func TestCreateStorageOption(t *testing.T) {
 	type args struct {
+		storageValue            string
 		enableMonitoringStorage string
 	}
 	tests := []struct {
@@ -51,39 +52,39 @@ func TestCreateStorageOption(t *testing.T) {
 		want string
 	}{
 		{
-			"false enableMonitoringStorage",
-			args{"false"},
+			"50Gi Enabled",
+			args{"50Gi", "true"},
+			"50Gi",
+		},
+		{
+			"100Gi Enabled",
+			args{"100Gi", "true"},
+			"100Gi",
+		},
+		{
+			"None Enabled",
+			args{"", "true"},
 			"",
 		},
 		{
-			"False enableMonitoringStorage",
-			args{"False"},
+			"100Gi Disabled",
+			args{"100Gi", "false"},
 			"",
 		},
 		{
-			"empty enableMonitoringStorage",
-			args{""},
-			"50Gi",
+			"None Disabled",
+			args{"", "false"},
+			"",
 		},
 		{
-			"true enableMonitoringStorage",
-			args{"true"},
-			"50Gi",
-		},
-		{
-			"True enableMonitoringStorage",
-			args{"True"},
-			"50Gi",
-		},
-		{
-			"random enableMonitoringStorage",
-			args{"random"},
-			"50Gi",
+			"100Gi InvalidFlag",
+			args{"100Gi", "boo"},
+			"",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := createStorageOption(tt.args.enableMonitoringStorage).Size; !reflect.DeepEqual(got, tt.want) {
+			if got := createStorageOption(tt.args.storageValue, tt.args.enableMonitoringStorage).Size; !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("createStorageOption() = %v, want %v", got, tt.want)
 			}
 		})
@@ -133,6 +134,7 @@ func TestCreateInstance(t *testing.T) {
 			false,
 		},
 	}
+	defer func() { os.Unsetenv("USE_SYSTEM_VMI") }()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.args.bindingName == "devProfile" {

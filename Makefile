@@ -260,3 +260,9 @@ push-tag:
 	docker pull "${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}"; \
 	docker tag "${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}" "${DOCKER_IMAGE_FULLNAME}:$$PUBLISH_TAG"; \
 	docker push "${DOCKER_IMAGE_FULLNAME}:$$PUBLISH_TAG"
+
+#
+# Run all checks, convenient as a sanity-check before committing/pushing
+#
+.PHONY: check-all
+check-all: go-fmt go-lint go-ineffassign go-vet unit-test

@@ -282,7 +282,6 @@ func SharedVMIDefault() bool {
 	return useSharedVMI
 }
 
-
 // GetProfileBindingName will return the binding name based on the profile
 // if the profile doesn't have a special binding name, the binding name supplied is returned
 // for Dev profile the VMI system binding name is returned
@@ -293,6 +292,7 @@ func GetProfileBindingName(bindingName string) string {
 	return bindingName
 }
 
+// IsSystemProfileBindingName return true if the specified binding name is the system VMI name
 func IsSystemProfileBindingName(bindingName string) bool {
 	return constants.VmiSystemBindingName == bindingName
 }

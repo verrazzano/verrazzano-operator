@@ -32,7 +32,9 @@ const esMasterNodeRequestMemory = "ES_MASTER_NODE_REQUEST_MEMORY"
 const esIngestNodeRequestMemory = "ES_INGEST_NODE_REQUEST_MEMORY"
 const esDataNodeRequestMemory = "ES_DATA_NODE_REQUEST_MEMORY"
 const grafanaRequestMemory = "GRAFANA_REQUEST_MEMORY"
+const grafanaDataStorageSize = "GRAFANA_DATA_STORAGE"
 const prometheusRequestMemory = "PROMETHEUS_REQUEST_MEMORY"
+const prometheusDataStorageSize = "PROMETHEUS_DATA_STORAGE"
 const kibanaRequestMemory = "KIBANA_REQUEST_MEMORY"
 const esDataNodeReplicas = "ES_DATA_NODE_REPLICAS"
 const esIngestNodeReplicas = "ES_INGEST_NODE_REPLICAS"
@@ -118,17 +120,29 @@ func GetElasticsearchDataNodeRequestMemory() string {
 	return GetEnvFunc(esDataNodeRequestMemory)
 }
 
+// GetElasticsearchDataStorageSize returns the Elasticsearch storage size request
 func GetElasticsearchDataStorageSize() string {
 	return GetEnvFunc(esDataStorageSize)
 }
+
 // GetGrafanaRequestMemory returns the Grafana memory request resource.
 func GetGrafanaRequestMemory() string {
 	return GetEnvFunc(grafanaRequestMemory)
 }
 
+// GetGrafanaDataStorageSize returns the Prometheus storage size request
+func GetGrafanaDataStorageSize() string {
+	return GetEnvFunc(grafanaDataStorageSize)
+}
+
 // GetPrometheusRequestMemory returns the Prometheus memory request resource.
 func GetPrometheusRequestMemory() string {
 	return GetEnvFunc(prometheusRequestMemory)
+}
+
+// GetPrometheusDataStorageSize returns the Prometheus storage size request
+func GetPrometheusDataStorageSize() string {
+	return GetEnvFunc(prometheusDataStorageSize)
 }
 
 // GetKibanaRequestMemory returns the Kibana memory request resource.
@@ -150,17 +164,17 @@ func getEnvReplicaCount(envVarName string, defaultValue int32) int32 {
 	return defaultValue
 }
 
-// GetElasticsearchMasterNodeReplicas returns the Elasticsearch master replicas.
+// GetElasticsearchMasterNodeReplicas returns the Elasticsearch master node replicas.
 func GetElasticsearchMasterNodeReplicas() int32 {
 	return getEnvReplicaCount(esMasterNodeReplicas, 3)
 }
 
-// GetElasticsearchMasterNodeReplicas returns the Elasticsearch master replicas.
+// GetElasticsearchDataNodeReplicas returns the Elasticsearch data node replicas.
 func GetElasticsearchDataNodeReplicas() int32 {
 	return getEnvReplicaCount(esDataNodeReplicas, 2)
 }
 
-// GetElasticsearchMasterNodeReplicas returns the Elasticsearch master replicas.
+// GetElasticsearchIngestNodeReplicas returns the Elasticsearch ingest node replicas.
 func GetElasticsearchIngestNodeReplicas() int32 {
 	return getEnvReplicaCount(esIngestNodeReplicas, 1)
 }
