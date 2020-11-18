@@ -89,7 +89,7 @@ func createStorageOption(envSetting string, enableMonitoringStorageEnvFlag strin
 	}
 	monitoringStorageEnabled, err := strconv.ParseBool(enableMonitoringStorageEnvFlag)
 	if err != nil {
-		zap.S().Errorf("Invalid storage setting: %s", envSetting)
+		zap.S().Errorf("Invalid storage setting: %s", enableMonitoringStorageEnvFlag)
 	} else if monitoringStorageEnabled && len(envSetting) > 0 {
 		storageSetting = vmov1.Storage{
 			Size: envSetting,

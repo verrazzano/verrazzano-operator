@@ -194,7 +194,7 @@ func initFlags(
 	stringVarFunc(&watchNamespace, "watchNamespace", "", "Optionally, a namespace to watch exclusively.  If not set, all namespaces will be watched.")
 	stringVarFunc(&verrazzanoURI, "verrazzanoUri", "", "Verrazzano URI, for example my-verrazzano-1.verrazzano.example.com")
 	stringVarFunc(&helidonAppOperatorDeployment, "helidonAppOperatorDeployment", "", "--helidonAppOperatorDeployment=false disables helidonAppOperatorDeployment")
-	stringVarFunc(&enableMonitoringStorage, "enableMonitoringStorage", "", "Enable storage for monitoring.  The default is true. 'false' means monitoring storage is disabled.")
+	stringVarFunc(&enableMonitoringStorage, "enableMonitoringStorage", "true", "Enable storage for monitoring.  The default is true. 'false' means monitoring storage is disabled.")
 	stringVarFunc(&apiServerRealm, "apiServerRealm", "", "API Server Realm on Keycloak")
 	boolVarFunc(&startController, "startController", true, "Whether to start the Kubernetes controller (true by default)")
 	flagSetFunc(flag.CommandLine)
