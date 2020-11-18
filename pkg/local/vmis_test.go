@@ -397,6 +397,14 @@ func TestCreateUpdateVmi(t *testing.T) {
 	}
 }
 
+func TestSharedVMIAppBinding(t *testing.T) {
+	os.Setenv("USE_SYSTEM_VMI", "true")
+	defer os.Unsetenv("USE_SYSTEM_VMI")
+
+	err := CreateUpdateVmi(createTestBinding("foo"), fakeVmoClientSet{}, fakeVmiLister{}, "testVerrazzanoURI", "")
+	assert.Nil(t, err, "Unexpected error for shared VMI with app binding")
+}
+
 func TestDeleteVmi(t *testing.T) {
 	type args struct {
 		bindingName string
