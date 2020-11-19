@@ -99,7 +99,8 @@ func newConfigMap(binding *v1beta1v8o.VerrazzanoBinding) (*corev1.ConfigMap, err
 	if util.IsDevProfile() {
 		// Include the default dashboards with system vmi for dev profile
 		if binding.Name == constants.VmiSystemBindingName {
-			dashboards = append(constants.SystemDashboards, constants.DefaultDashboards[1:]...)
+			alldashboards := append(constants.SystemDashboards, constants.DefaultDashboards...)
+			dashboards = util.RemoveDuplicateValues(alldashboards)
 		}
 	} else {
 		switch binding.Name {
