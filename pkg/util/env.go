@@ -38,8 +38,12 @@ const prometheusDataStorageSize = "PROMETHEUS_DATA_STORAGE"
 const kibanaRequestMemory = "KIBANA_REQUEST_MEMORY"
 const esDataNodeReplicas = "ES_DATA_NODE_REPLICAS"
 const esIngestNodeReplicas = "ES_INGEST_NODE_REPLICAS"
+const esIngestNodeReplicasDefault = 1
 const esMasterNodeReplicas = "ES_MASTER_NODE_REPLICAS"
+const esMasterNodeReplicasDefault = 3
 const esDataStorageSize = "ES_DATA_STORAGE"
+const esDataNodeReplicasDefault = 2
+
 const accessControlAllowOrigin = "ACCESS_CONTROL_ALLOW_ORIGIN"
 const sharedVMIDefault = "USE_SYSTEM_VMI"
 
@@ -166,17 +170,17 @@ func getEnvReplicaCount(envVarName string, defaultValue int32) int32 {
 
 // GetElasticsearchMasterNodeReplicas returns the Elasticsearch master node replicas.
 func GetElasticsearchMasterNodeReplicas() int32 {
-	return getEnvReplicaCount(esMasterNodeReplicas, 3)
+	return getEnvReplicaCount(esMasterNodeReplicas, esMasterNodeReplicasDefault)
 }
 
 // GetElasticsearchDataNodeReplicas returns the Elasticsearch data node replicas.
 func GetElasticsearchDataNodeReplicas() int32 {
-	return getEnvReplicaCount(esDataNodeReplicas, 2)
+	return getEnvReplicaCount(esDataNodeReplicas, esDataNodeReplicasDefault)
 }
 
 // GetElasticsearchIngestNodeReplicas returns the Elasticsearch ingest node replicas.
 func GetElasticsearchIngestNodeReplicas() int32 {
-	return getEnvReplicaCount(esIngestNodeReplicas, 1)
+	return getEnvReplicaCount(esIngestNodeReplicas, esIngestNodeReplicasDefault)
 }
 
 // GetAccessControlAllowOrigin returns the additional allowed origins for API requests - these
