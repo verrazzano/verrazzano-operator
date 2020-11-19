@@ -272,18 +272,16 @@ func TestGetProfileBindingName(t *testing.T) {
 
 func TestRemoveDuplicateValues(t *testing.T) {
 	assert := assert.New(t)
-	var testslice = []string{
+	testSlice := []string{
 		"abc",
 		"def",
 		"ghi",
 		"def",
 	}
-	var expectedOutput = []string{
+	expectedOutput := []string{
 		"abc",
 		"def",
 		"ghi",
 	}
-	testslice = RemoveDuplicateValues(testslice)
-	assert.ElementsMatch(testslice, expectedOutput)
+	assert.ElementsMatch(expectedOutput, RemoveDuplicateValues(testSlice))
 }
-
