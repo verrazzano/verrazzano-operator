@@ -269,3 +269,21 @@ func TestGetProfileBindingName(t *testing.T) {
 	assert.Equal(constants.VmiSystemBindingName, GetProfileBindingName("foobar"))
 	os.Unsetenv("INSTALL_PROFILE")
 }
+
+func TestRemoveDuplicateValues(t *testing.T) {
+	assert := assert.New(t)
+	var testslice = []string{
+		"abc",
+		"def",
+		"ghi",
+		"def",
+	}
+	var expectedOutput = []string{
+		"abc",
+		"def",
+		"ghi",
+	}
+	testslice = RemoveDuplicateValues(testslice)
+	assert.ElementsMatch(testslice, expectedOutput)
+}
+
