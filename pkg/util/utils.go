@@ -287,7 +287,7 @@ func GetProfileBindingName(bindingName string) string {
 	return bindingName
 }
 
-// Remove duplicates from a slice containing string values
+// RemoveDuplicateValues removes duplicates from a slice containing string values
 func RemoveDuplicateValues(stringSlice []string) []string {
 	keys := make(map[string]bool)
 	var list []string
