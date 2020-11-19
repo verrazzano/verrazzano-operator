@@ -98,7 +98,7 @@ func Test_initFlags(t *testing.T) {
 		"watchNamespace":               "",
 		"verrazzanoUri":                "",
 		"helidonAppOperatorDeployment": "",
-		"enableMonitoringStorage":      "",
+		"enableMonitoringStorage":      "true",
 		"apiServerRealm":               "",
 	}
 	var expectedBoolFlags = map[string]bool{
