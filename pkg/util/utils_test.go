@@ -272,3 +272,27 @@ func TestGetProfileBindingName(t *testing.T) {
 	assert.Equal(constants.VmiSystemBindingName, GetProfileBindingName("foobar"))
 	os.Unsetenv("USE_SYSTEM_VMI")
 }
+
+func TestRemoveDuplicateValues(t *testing.T) {
+	assert := assert.New(t)
+	testSlice := []string{
+		"abc",
+		"def",
+		"ghi",
+		"def",
+	}
+	expectedOutput := []string{
+		"abc",
+		"def",
+		"ghi",
+	}
+	assert.ElementsMatch(expectedOutput, RemoveDuplicateValues(testSlice))
+}
+
+func TestIsSystemProfileBindingName(t *testing.T) {
+	assert := assert.New(t)
+	assert.True(IsSystemProfileBindingName(constants.VmiSystemBindingName),
+		"Expected IsSystemProfileBindingName() to return true")
+	assert.False(IsSystemProfileBindingName("dummy"),
+		"Expected IsSystemProfileBindingName() to return false for binding name dummy")
+}

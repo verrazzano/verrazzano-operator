@@ -96,13 +96,21 @@ func newConfigMap(binding *v1beta1v8o.VerrazzanoBinding) (*corev1.ConfigMap, err
 
 	// check binding name and if system vmi, use system vmi dashboards
 	var dashboards []string
-	switch binding.Name {
-	case constants.VmiSystemBindingName:
-		// Add an entry in the ConfigMap for each of the system dashboards
-		dashboards = constants.SystemDashboards
-	default:
-		// Add an entry in the ConfigMap for each of the default dashboards
-		dashboards = constants.DefaultDashboards
+	if util.SharedVMIDefault() {
+		// Include the default dashboards with system vmi for dev profile
+		if binding.Name == constants.VmiSystemBindingName {
+			alldashboards := append(constants.SystemDashboards, constants.DefaultDashboards...)
+			dashboards = util.RemoveDuplicateValues(alldashboards)
+		}
+	} else {
+		switch binding.Name {
+		case constants.VmiSystemBindingName:
+			// Add an entry in the ConfigMap for each of the system dashboards
+			dashboards = constants.SystemDashboards
+		default:
+			// Add an entry in the ConfigMap for each of the default dashboards
+			dashboards = constants.DefaultDashboards
+		}
 	}
 
 	for _, dashboard := range dashboards {

@@ -292,6 +292,20 @@ func GetProfileBindingName(bindingName string) string {
 	return bindingName
 }
 
+// RemoveDuplicateValues removes duplicates from a slice containing string values
+func RemoveDuplicateValues(stringSlice []string) []string {
+	keys := make(map[string]bool)
+	var list []string
+
+	for _, entry := range stringSlice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
 // IsSystemProfileBindingName return true if the specified binding name is the system VMI name
 func IsSystemProfileBindingName(bindingName string) bool {
 	return constants.VmiSystemBindingName == bindingName
