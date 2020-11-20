@@ -11,120 +11,67 @@ import (
 )
 
 func TestGetEnvValues(t *testing.T) {
-	assert := assert.New(t)
+
 	const sizeValue = "1Gi"
-
 	testVars := []struct {
-		name  string
-		value string
+		name   string
+		value  string
+		method func() string
 	}{
-		{name: "COH_MICRO_IMAGE", value: "foo"},
-		{name: "HELIDON_MICRO_IMAGE", value: "foo"},
-		{name: "WLS_MICRO_IMAGE", value: "foo"},
-		{name: "PROMETHEUS_PUSHER_IMAGE", value: "foo"},
-		{name: "NODE_EXPORTER_IMAGE", value: "foo"},
-		{name: "FILEBEAT_IMAGE", value: "foo"},
-		{name: "JOURNALBEAT_IMAGE", value: "foo"},
-		{name: "WEBLOGIC_OPERATOR_IMAGE", value: "foo"},
-		{name: "FLUENTD_IMAGE", value: "foo"},
-		{name: "COH_MICRO_REQUEST_MEMORY", value: "foo"},
-		{name: "HELIDON_MICRO_REQUEST_MEMORY", value: sizeValue},
-		{name: "WLS_MICRO_REQUEST_MEMORY", value: sizeValue},
-		{name: "ES_MASTER_NODE_REQUEST_MEMORY", value: sizeValue},
-		{name: "ES_INGEST_NODE_REQUEST_MEMORY", value: sizeValue},
-		{name: "ES_DATA_NODE_REQUEST_MEMORY", value: sizeValue},
-		{name: "GRAFANA_REQUEST_MEMORY", value: sizeValue},
-		{name: "GRAFANA_DATA_STORAGE", value: sizeValue},
-		{name: "PROMETHEUS_REQUEST_MEMORY", value: sizeValue},
-		{name: "PROMETHEUS_DATA_STORAGE", value: sizeValue},
-		{name: "KIBANA_REQUEST_MEMORY", value: sizeValue},
-		{name: "ES_DATA_NODE_REPLICAS", value: "1"},
-		{name: "ES_INGEST_NODE_REPLICAS", value: "1"},
-		{name: "ES_MASTER_NODE_REPLICAS", value: "1"},
-		{name: "ES_DATA_STORAGE", value: sizeValue},
-		{name: "ACCESS_CONTROL_ALLOW_ORIGIN", value: "foo"},
+		{name: "COH_MICRO_IMAGE", value: "foo", method: getCohMicroImage},
+		{name: "HELIDON_MICRO_IMAGE", value: "foo", method: getHelidonMicroImage},
+		{name: "WLS_MICRO_IMAGE", value: "foo", method: getWlsMicroImage},
+		{name: "PROMETHEUS_PUSHER_IMAGE", value: "foo", method: GetPromtheusPusherImage},
+		{name: "NODE_EXPORTER_IMAGE", value: "foo", method: GetNodeExporterImage},
+		{name: "FILEBEAT_IMAGE", value: "foo", method: GetFilebeatImage},
+		{name: "JOURNALBEAT_IMAGE", value: "foo", method: GetJournalbeatImage},
+		{name: "WEBLOGIC_OPERATOR_IMAGE", value: "foo", method: GetWeblogicOperatorImage},
+		{name: "FLUENTD_IMAGE", value: "foo", method: GetFluentdImage},
+		{name: "COH_MICRO_REQUEST_MEMORY", value: "foo", method: GetCohMicroRequestMemory},
+		{name: "HELIDON_MICRO_REQUEST_MEMORY", value: sizeValue, method: GetHelidonMicroRequestMemory},
+		{name: "WLS_MICRO_REQUEST_MEMORY", value: sizeValue, method: GetWlsMicroRequestMemory},
+		{name: "ES_MASTER_NODE_REQUEST_MEMORY", value: sizeValue, method: GetElasticsearchMasterNodeRequestMemory},
+		{name: "ES_INGEST_NODE_REQUEST_MEMORY", value: sizeValue, method: GetElasticsearchIngestNodeRequestMemory},
+		{name: "ES_DATA_NODE_REQUEST_MEMORY", value: sizeValue, method: GetElasticsearchDataNodeRequestMemory},
+		{name: "GRAFANA_REQUEST_MEMORY", value: sizeValue, method: GetGrafanaRequestMemory},
+		{name: "GRAFANA_DATA_STORAGE", value: sizeValue, method: GetGrafanaDataStorageSize},
+		{name: "PROMETHEUS_REQUEST_MEMORY", value: sizeValue, method: GetPrometheusRequestMemory},
+		{name: "PROMETHEUS_DATA_STORAGE", value: sizeValue, method: GetPrometheusDataStorageSize},
+		{name: "KIBANA_REQUEST_MEMORY", value: sizeValue, method: GetKibanaRequestMemory},
+		{name: "ES_DATA_STORAGE", value: sizeValue, method: GetElasticsearchDataStorageSize},
+		{name: "ACCESS_CONTROL_ALLOW_ORIGIN", value: "foo", method: GetAccessControlAllowOrigin},
 	}
 
-	for _, envVar := range testVars {
-		os.Setenv(envVar.name, envVar.value)
+	for _, tt := range testVars {
+		t.Run(tt.name, func(t *testing.T) {
+			os.Setenv(tt.name, tt.value)
+			assert.Equal(t, tt.value, tt.method())
+			os.Unsetenv(tt.name)
+		})
 	}
 
-	assert.NotNil(GetAccessControlAllowOrigin(),
-		"GetElasticsearchDataStorageSize is not null")
-
-	assert.NotNil(GetCohMicroRequestMemory(),
-		"GetCohMicroRequestMemory is not null")
-
-	assert.NotNil(GetElasticsearchDataNodeReplicas(),
-		"GetElasticsearchDataNodeReplicas is not null")
-
-	assert.NotNil(GetElasticsearchDataNodeRequestMemory(),
-		"GetElasticsearchDataNodeRequestMemory is not null")
-
-	assert.NotNil(GetElasticsearchIngestNodeReplicas(),
-		"GetElasticsearchIngestNodeReplicas is not null")
-
-	assert.NotNil(GetElasticsearchDataStorageSize(),
-		"GetElasticsearchDataStorageSize is not null")
-
-	assert.NotNil(GetElasticsearchIngestNodeRequestMemory(),
-		"GetElasticsearchIngestNodeRequestMemory is not null")
-
-	assert.NotNil(GetElasticsearchMasterNodeReplicas(),
-		"GetElasticsearchMasterNodeReplicas is not null")
-
-	assert.NotNil(GetElasticsearchMasterNodeRequestMemory(),
-		"GetElasticsearchMasterNodeRequestMemory is not null")
-
-	assert.NotNil(GetFilebeatImage(),
-		"GetFilebeatImage is not null")
-
-	assert.NotNil(GetFluentdImage(),
-		"GetFluentdImage is not null")
-
-	assert.NotNil(GetGrafanaDataStorageSize(),
-		"GetGrafanaDataStorageSize is not null")
-
-	assert.NotNil(GetGrafanaRequestMemory(),
-		"GetGrafanaRequestMemory is not null")
-
-	assert.NotNil(GetHelidonMicroRequestMemory(),
-		"GetHelidonMicroRequestMemory is not null")
-
-	assert.NotNil(GetJournalbeatImage(),
-		"GetJournalbeatImage is not null")
-
-	assert.NotNil(GetKibanaRequestMemory(),
-		"GetKibanaRequestMemory is not null")
-
-	assert.NotNil(GetNodeExporterImage(),
-		"GetNodeExporterImage is not null")
-
-	assert.NotNil(GetPrometheusDataStorageSize(),
-		"GetPrometheusDataStorageSize is not null")
-
-	assert.NotNil(GetPrometheusRequestMemory(),
-		"GetPrometheusRequestMemory is not null")
-
-	assert.NotNil(GetPromtheusPusherImage(),
-		"GetPromtheusPusherImage is not null")
-
-	assert.NotNil(GetTestWlsFrontendImage(),
-		"GetTestWlsFrontendImage is not null")
-
-	assert.NotNil(GetWeblogicOperatorImage(),
-		"GetWeblogicOperatorImage is not null")
-
-	assert.NotNil(GetWlsMicroRequestMemory(),
-		"GetWlsMicroRequestMemory is not null")
-
-	for _, envVar := range testVars {
-		os.Unsetenv(envVar.name)
+	testIntVars := []struct {
+		name   string
+		value  string
+		intVal int32
+		method func() int32
+	}{
+		{name: "ES_DATA_NODE_REPLICAS", value: "10", intVal: 10, method: GetElasticsearchDataNodeReplicas},
+		{name: "ES_INGEST_NODE_REPLICAS", value: "11", intVal: 11, method: GetElasticsearchIngestNodeReplicas},
+		{name: "ES_MASTER_NODE_REPLICAS", value: "12", intVal: 12, method: GetElasticsearchMasterNodeReplicas},
 	}
+	for _, tt := range testIntVars {
+		t.Run(tt.name, func(t *testing.T) {
+			os.Setenv(tt.name, tt.value)
+			assert.Equal(t, tt.intVal, tt.method())
+			os.Unsetenv(tt.name)
+		})
+	}
+
+	assert.Equal(t, "container-registry.oracle.com/verrazzano/wl-frontend:324813", GetTestWlsFrontendImage())
 }
 
 func TestGetEnvReplicaCount(t *testing.T) {
-	assert := assert.New(t)
 	getEnvReplicaCount("foo", 0)
 	tests := []struct {
 		name          string
@@ -132,32 +79,11 @@ func TestGetEnvReplicaCount(t *testing.T) {
 		setVar        bool
 		expectDefault bool
 	}{
-		{
-			name:          "Valid-Nonzero-int",
-			value:         "3",
-			setVar:        true,
-			expectDefault: false,
-		},
-		{
-			name:          "Zero-val",
-			value:         "0",
-			setVar:        true,
-			expectDefault: false,
-		},
-		{
-			name:          "Use-default",
-			value:         "blah",
-			setVar:        true,
-			expectDefault: true,
-		},
-		{
-			name:          "No-env-var",
-			value:         "5",
-			setVar:        false,
-			expectDefault: true,
-		},
+		{name: "Valid-Nonzero-int", value: "3", setVar: true, expectDefault: false},
+		{name: "Zero-val", value: "0", setVar: true, expectDefault: false},
+		{name: "Use-default", value: "blah", setVar: true, expectDefault: true},
+		{name: "No-env-var", value: "5", setVar: false, expectDefault: true},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			const envVarName = "foo"
