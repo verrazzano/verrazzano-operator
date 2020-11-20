@@ -32,10 +32,20 @@ const esMasterNodeRequestMemory = "ES_MASTER_NODE_REQUEST_MEMORY"
 const esIngestNodeRequestMemory = "ES_INGEST_NODE_REQUEST_MEMORY"
 const esDataNodeRequestMemory = "ES_DATA_NODE_REQUEST_MEMORY"
 const grafanaRequestMemory = "GRAFANA_REQUEST_MEMORY"
+const grafanaDataStorageSize = "GRAFANA_DATA_STORAGE"
 const prometheusRequestMemory = "PROMETHEUS_REQUEST_MEMORY"
+const prometheusDataStorageSize = "PROMETHEUS_DATA_STORAGE"
 const kibanaRequestMemory = "KIBANA_REQUEST_MEMORY"
+const esDataNodeReplicas = "ES_DATA_NODE_REPLICAS"
+const esIngestNodeReplicas = "ES_INGEST_NODE_REPLICAS"
+const esIngestNodeReplicasDefault = 1
 const esMasterNodeReplicas = "ES_MASTER_NODE_REPLICAS"
+const esMasterNodeReplicasDefault = 3
+const esDataStorageSize = "ES_DATA_STORAGE"
+const esDataNodeReplicasDefault = 2
+
 const accessControlAllowOrigin = "ACCESS_CONTROL_ALLOW_ORIGIN"
+const sharedVMIDefault = "USE_SYSTEM_VMI"
 
 func getCohMicroImage() string {
 	return GetEnvFunc(cohMicroImage)
@@ -114,9 +124,19 @@ func GetElasticsearchDataNodeRequestMemory() string {
 	return GetEnvFunc(esDataNodeRequestMemory)
 }
 
+// GetElasticsearchDataStorageSize returns the Elasticsearch storage size request
+func GetElasticsearchDataStorageSize() string {
+	return GetEnvFunc(esDataStorageSize)
+}
+
 // GetGrafanaRequestMemory returns the Grafana memory request resource.
 func GetGrafanaRequestMemory() string {
 	return GetEnvFunc(grafanaRequestMemory)
+}
+
+// GetGrafanaDataStorageSize returns the Prometheus storage size request
+func GetGrafanaDataStorageSize() string {
+	return GetEnvFunc(grafanaDataStorageSize)
 }
 
 // GetPrometheusRequestMemory returns the Prometheus memory request resource.
@@ -124,23 +144,43 @@ func GetPrometheusRequestMemory() string {
 	return GetEnvFunc(prometheusRequestMemory)
 }
 
+// GetPrometheusDataStorageSize returns the Prometheus storage size request
+func GetPrometheusDataStorageSize() string {
+	return GetEnvFunc(prometheusDataStorageSize)
+}
+
 // GetKibanaRequestMemory returns the Kibana memory request resource.
 func GetKibanaRequestMemory() string {
 	return GetEnvFunc(kibanaRequestMemory)
 }
 
-// GetElasticsearchMasterNodeReplicas returns the Elasticsearch master replicas.
-func GetElasticsearchMasterNodeReplicas() int32 {
-	value := GetEnvFunc(esMasterNodeReplicas)
+// getEnvReplicaCount gets a replica count from the named env var, returning the provided default if not present
+func getEnvReplicaCount(envVarName string, defaultValue int32) int32 {
+	value := GetEnvFunc(envVarName)
 	if len(value) != 0 {
 		count, err := strconv.ParseInt(value, 10, 32)
 		if err != nil {
-			zap.S().Infof("%v is invalid.  The default value of 3 will be used as replicas of ES master node.", value)
+			zap.S().Infof("%s: %v is invalid.  The default value of %v will be used for node replicas.", envVarName, value, defaultValue)
 		} else {
 			return int32(count)
 		}
 	}
-	return 3
+	return defaultValue
+}
+
+// GetElasticsearchMasterNodeReplicas returns the Elasticsearch master node replicas.
+func GetElasticsearchMasterNodeReplicas() int32 {
+	return getEnvReplicaCount(esMasterNodeReplicas, esMasterNodeReplicasDefault)
+}
+
+// GetElasticsearchDataNodeReplicas returns the Elasticsearch data node replicas.
+func GetElasticsearchDataNodeReplicas() int32 {
+	return getEnvReplicaCount(esDataNodeReplicas, esDataNodeReplicasDefault)
+}
+
+// GetElasticsearchIngestNodeReplicas returns the Elasticsearch ingest node replicas.
+func GetElasticsearchIngestNodeReplicas() int32 {
+	return getEnvReplicaCount(esIngestNodeReplicas, esIngestNodeReplicasDefault)
 }
 
 // GetAccessControlAllowOrigin returns the additional allowed origins for API requests - these

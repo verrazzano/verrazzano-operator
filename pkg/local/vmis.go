@@ -9,8 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
-
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmoclientset "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
@@ -21,6 +19,7 @@ import (
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"strconv"
 )
 
 var createInstanceFunc = createInstance
@@ -28,6 +27,11 @@ var createInstanceFunc = createInstance
 // CreateUpdateVmi creates/updates Verrazzano Monitoring Instances for a given binding.
 func CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 	zap.S().Debugf("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
+
+	if util.SharedVMIDefault() && !util.IsSystemProfileBindingName(binding.Name) {
+		zap.S().Infof("Using shared VMI for binding %s", binding.Name)
+		return nil
+	}
 
 	// Construct the expected VMI
 	newVmi, err := createInstanceFunc(binding, verrazzanoURI, enableMonitoringStorage)
@@ -78,15 +82,20 @@ func DeleteVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.
 	return nil
 }
 
-func createStorageOption(enableMonitoringStorage string) vmov1.Storage {
-	if strings.ToLower(enableMonitoringStorage) == "false" {
-		return vmov1.Storage{
-			Size: "",
+// Create a storage setting based on the specified value if monitoring storage is enabled
+func createStorageOption(envSetting string, enableMonitoringStorageEnvFlag string) vmov1.Storage {
+	storageSetting := vmov1.Storage{
+		Size: "",
+	}
+	monitoringStorageEnabled, err := strconv.ParseBool(enableMonitoringStorageEnvFlag)
+	if err != nil {
+		zap.S().Errorf("Invalid storage setting: %s", enableMonitoringStorageEnvFlag)
+	} else if monitoringStorageEnabled && len(envSetting) > 0 {
+		storageSetting = vmov1.Storage{
+			Size: envSetting,
 		}
 	}
-	return vmov1.Storage{
-		Size: "50Gi",
-	}
+	return storageSetting
 }
 
 // Constructs the necessary VerrazzanoMonitoringInstance for the given VerrazzanoBinding
@@ -96,8 +105,6 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 	}
 
 	bindingLabels := util.GetLocalBindingLabels(binding)
-
-	storageOption := createStorageOption(enableMonitoringStorage)
 
 	bindingName := util.GetProfileBindingName(binding.Name)
 
@@ -114,7 +121,7 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 			CascadingDelete: true,
 			Grafana: vmov1.Grafana{
 				Enabled:             true,
-				Storage:             storageOption,
+				Storage:             createStorageOption(util.GetGrafanaDataStorageSize(), enableMonitoringStorage),
 				DashboardsConfigMap: util.GetVmiNameForBinding(binding.Name) + "-dashboards",
 				Resources: vmov1.Resources{
 					RequestMemory: util.GetGrafanaRequestMemory(),
@@ -123,16 +130,16 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 			IngressTargetDNSName: fmt.Sprintf("verrazzano-ingress.%s", verrazzanoURI),
 			Prometheus: vmov1.Prometheus{
 				Enabled: true,
-				Storage: storageOption,
+				Storage: createStorageOption(util.GetPrometheusDataStorageSize(), enableMonitoringStorage),
 				Resources: vmov1.Resources{
 					RequestMemory: util.GetPrometheusRequestMemory(),
 				},
 			},
 			Elasticsearch: vmov1.Elasticsearch{
 				Enabled: true,
-				Storage: storageOption,
+				Storage: createStorageOption(util.GetElasticsearchDataStorageSize(), enableMonitoringStorage),
 				IngestNode: vmov1.ElasticsearchNode{
-					Replicas: 1,
+					Replicas: util.GetElasticsearchIngestNodeReplicas(),
 					Resources: vmov1.Resources{
 						RequestMemory: util.GetElasticsearchIngestNodeRequestMemory(),
 					},
@@ -144,7 +151,7 @@ func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string,
 					},
 				},
 				DataNode: vmov1.ElasticsearchNode{
-					Replicas: 2,
+					Replicas: util.GetElasticsearchDataNodeReplicas(),
 					Resources: vmov1.Resources{
 						RequestMemory: util.GetElasticsearchDataNodeRequestMemory(),
 					},

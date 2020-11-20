@@ -49,6 +49,9 @@ HELM_CHART_ARCHIVE_NAME = ${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz
 .PHONY: all
 all: build
 
+#
+# Run all checks, convenient as a sanity-check before committing/pushing
+#
 .PHONY: check
 check: go-fmt go-vet go-ineffassign go-lint
 
@@ -260,3 +263,4 @@ push-tag:
 	docker pull "${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}"; \
 	docker tag "${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}" "${DOCKER_IMAGE_FULLNAME}:$$PUBLISH_TAG"; \
 	docker push "${DOCKER_IMAGE_FULLNAME}:$$PUBLISH_TAG"
+

@@ -96,7 +96,7 @@ func newConfigMap(binding *v1beta1v8o.VerrazzanoBinding) (*corev1.ConfigMap, err
 
 	// check binding name and if system vmi, use system vmi dashboards
 	var dashboards []string
-	if util.IsDevProfile() {
+	if util.SharedVMIDefault() {
 		// Include the default dashboards with system vmi for dev profile
 		if binding.Name == constants.VmiSystemBindingName {
 			alldashboards := append(constants.SystemDashboards, constants.DefaultDashboards...)
