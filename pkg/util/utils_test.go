@@ -288,3 +288,11 @@ func TestRemoveDuplicateValues(t *testing.T) {
 	}
 	assert.ElementsMatch(expectedOutput, RemoveDuplicateValues(testSlice))
 }
+
+func TestIsSystemProfileBindingName(t *testing.T) {
+	assert := assert.New(t)
+	assert.True(IsSystemProfileBindingName(constants.VmiSystemBindingName),
+		"Expected IsSystemProfileBindingName() to return true")
+	assert.False(IsSystemProfileBindingName("dummy"),
+		"Expected IsSystemProfileBindingName() to return false for binding name dummy")
+}
