@@ -149,9 +149,11 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 		}
 	}
 
-	// Each WebLogic domain requires a runtime encryption secret that contains a randomly generated password.
-	// Note: we are assuming that each domain has DomainHomeSourceType is set to FromModel.
+	// Process WebLogic domain secrets
 	for _, domain := range managedCluster.WlsDomainCRs {
+		// Each WebLogic domain requires a runtime encryption secret that contains a randomly generated password.
+		// Note: we are assuming that each domain has DomainHomeSourceType is set to FromModel.
+
 		// Find the namespace for this domain in the binding placements
 		namespace, err := util.GetComponentNamespace(domain.Name, binding)
 		if err != nil {
