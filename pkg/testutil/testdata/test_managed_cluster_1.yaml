@@ -86,6 +86,9 @@ WlsDomainCRs:
       configuration:
         Model:
           runtimeEncryptionSecret: test-wls-secret
+        secrets:
+          - arbitrary-secret-1
+          - arbitrary-secret-2
     status: {}
 GenericComponents:
   - name: test-generic

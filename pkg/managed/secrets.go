@@ -177,6 +177,15 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 		}
 
 		secrets = append(secrets, secretObj)
+
+		// VZ-1596: Create secrets for configured list of arbitrary secrets
+		for _, secretName = range domain.Spec.Configuration.Secrets {
+			if secretObj, err = newSecret(secretName, namespace, kubeClientSet, nil, nil); err == nil {
+				secrets = append(secrets, secretObj)
+			} else {
+				zap.S().Errorf("Copying secret %s to namespace %s is giving error %v", secretName, namespace, err)
+			}
+		}
 	}
 
 	return secrets

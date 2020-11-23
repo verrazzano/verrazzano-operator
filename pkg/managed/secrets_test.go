@@ -73,7 +73,7 @@ func TestCreateSecrets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("got an error listing secrets: %v", err)
 	}
-	assert.Len(list.Items, 2, "expected exactly 2 Secrets")
+	assert.Len(list.Items, 4, "expected exactly 4 Secrets")
 	secretProperties = []SecretProperties{
 		{
 			name:      "test-wls-secret",
@@ -81,6 +81,14 @@ func TestCreateSecrets(t *testing.T) {
 		},
 		{
 			name:      "testMysqlSecret",
+			namespace: "test3",
+		},
+		{
+			name:      "arbitrary-secret-1",
+			namespace: "test3",
+		},
+		{
+			name:      "arbitrary-secret-2",
 			namespace: "test3",
 		},
 	}

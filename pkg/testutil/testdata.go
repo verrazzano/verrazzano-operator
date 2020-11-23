@@ -170,6 +170,18 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 			Namespace: "default",
 		},
 	}, metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Secrets("default").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "arbitrary-secret-1",
+			Namespace: "default",
+		},
+	}, metav1.CreateOptions{})
+	clusterConnection.KubeClient.CoreV1().Secrets("default").Create(context.TODO(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "arbitrary-secret-2",
+			Namespace: "default",
+		},
+	}, metav1.CreateOptions{})
 
 	clusterConnection.KubeClient.CoreV1().Services(IstioSystemNamespace).Create(context.TODO(),
 		&corev1.Service{
