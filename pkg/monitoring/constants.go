@@ -116,14 +116,6 @@ const FilebeatIndexTemplate = `{
           "fields" : {
             "keyword" : { "type": "keyword", "ignore_above": 256 }
           }
-        }, {
-        "match" : "labels.app",
-        "match_mapping_type" : "string",
-        "mapping" : {
-          "type" : "text", "norms" : false,
-          "fields" : {
-            "keyword" : { "type": "keyword", "ignore_above": 256 }
-          }
         }
       }
     } ],
