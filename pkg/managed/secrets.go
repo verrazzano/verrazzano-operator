@@ -149,9 +149,11 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 		}
 	}
 
-	// Each WebLogic domain requires a runtime encryption secret that contains a randomly generated password.
-	// Note: we are assuming that each domain has DomainHomeSourceType is set to FromModel.
+	// Process WebLogic domain secrets
 	for _, domain := range managedCluster.WlsDomainCRs {
+		// Each WebLogic domain requires a runtime encryption secret that contains a randomly generated password.
+		// Note: we are assuming that each domain has DomainHomeSourceType set to FromModel.
+
 		// Find the namespace for this domain in the binding placements
 		namespace, err := util.GetComponentNamespace(domain.Name, binding)
 		if err != nil {
@@ -177,6 +179,15 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 		}
 
 		secrets = append(secrets, secretObj)
+
+		// VZ-1596: Create secrets for configured list of arbitrary secrets
+		for _, secretName = range domain.Spec.Configuration.Secrets {
+			if secretObj, err = newSecret(secretName, namespace, kubeClientSet, nil, nil); err == nil {
+				secrets = append(secrets, secretObj)
+			} else {
+				zap.S().Errorf("Copying secret %s to namespace %s is giving error %v", secretName, namespace, err)
+			}
+		}
 	}
 
 	return secrets
