@@ -17,10 +17,10 @@ const FilebeatConfigData = `filebeat.config:
 name: ${NODENAME}
 filebeat.autodiscover:
   providers:
-	- type: kubernetes
-	  hints.enabled: true
-	  labels.dedot: true
-	  annotations.dedot: true
+  - type: kubernetes
+    hints.enabled: true
+    labels.dedot: true
+    annotations.dedot: true
 filebeat.inputs:
 - type: docker
   containers.ids:
