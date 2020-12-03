@@ -115,6 +115,7 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 					ConfigMap:               datasourceModelConfigMap,
 					RuntimeEncryptionSecret: fmt.Sprintf("%s-runtime-encrypt-secret", domainUID),
 				},
+				Secrets: append(domainCRValues.Configuration.Secrets, dbSecrets...),
 			},
 			ServerStartPolicy: func() string {
 				if len(domainCRValues.ServerStartPolicy) > 0 {
@@ -162,10 +163,6 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 			RestartVersion: domainCRValues.RestartVersion,
 		},
 		Status: v8weblogic.DomainStatus{},
-	}
-
-	if len(dbSecrets) > 0 {
-		domainCR.Spec.Configuration.Secrets = dbSecrets
 	}
 
 	// ConfigOverrides

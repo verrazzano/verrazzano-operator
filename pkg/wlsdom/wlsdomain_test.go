@@ -67,6 +67,83 @@ func TestFluentdEnabledDefault(t *testing.T) {
 	checkDomainModel(t, weblogicDomain, domainName)
 }
 
+// Test arbitrary domain secrets
+func TestDomainSecrets(t *testing.T) {
+	namespace, domainName := "myNs", "myDomain"
+	vzWeblogicDomain := createWeblogicDomainModel(domainName, true)
+	mbPair := types.ModelBindingPair{
+		Binding: &vz.VerrazzanoBinding{
+			Spec: vz.VerrazzanoBindingSpec{},
+		},
+		VerrazzanoURI: "test.v8o.xyz.com",
+	}
+	mbPair.Binding.Spec.WeblogicBindings = []vz.VerrazzanoWeblogicBinding{{Name: domainName}}
+	labels := make(map[string]string)
+
+	testSecret1 := "test-secret-1"
+	testSecret2 := "test-secret-2"
+	vzWeblogicDomain.DomainCRValues.Configuration = v8weblogic.Configuration{
+		Secrets: []string{testSecret1, testSecret2},
+	}
+	weblogicDomain := CreateWlsDomainCR(namespace, vzWeblogicDomain, &mbPair, labels, "", nil)
+	checkDomainModel(t, weblogicDomain, domainName)
+
+	assert.Equal(t, 2, len(weblogicDomain.Spec.Configuration.Secrets), fmt.Sprint("Expected 2 secrets"))
+	assert.Equal(t, testSecret1, weblogicDomain.Spec.Configuration.Secrets[0], fmt.Sprintf("Expected secret to be %s", testSecret1))
+	assert.Equal(t, testSecret2, weblogicDomain.Spec.Configuration.Secrets[1], fmt.Sprintf("Expected secret to be %s", testSecret2))
+}
+
+// Test DB secrets
+func TestDbSecrets(t *testing.T) {
+	namespace, domainName := "myNs", "myDomain"
+	vzWeblogicDomain := createWeblogicDomainModel(domainName, true)
+	mbPair := types.ModelBindingPair{
+		Binding: &vz.VerrazzanoBinding{
+			Spec: vz.VerrazzanoBindingSpec{},
+		},
+		VerrazzanoURI: "test.v8o.xyz.com",
+	}
+	mbPair.Binding.Spec.WeblogicBindings = []vz.VerrazzanoWeblogicBinding{{Name: domainName}}
+	labels := make(map[string]string)
+
+	testDbSecret := "test-db-secret"
+	dbSecrets := []string{testDbSecret}
+	weblogicDomain := CreateWlsDomainCR(namespace, vzWeblogicDomain, &mbPair, labels, "", dbSecrets)
+	checkDomainModel(t, weblogicDomain, domainName)
+
+	assert.Equal(t, 1, len(weblogicDomain.Spec.Configuration.Secrets), fmt.Sprint("Expected 1 secret"))
+	assert.Equal(t, testDbSecret, weblogicDomain.Spec.Configuration.Secrets[0], fmt.Sprintf("Expected secret to be %s", testDbSecret))
+}
+
+// Test arbitrary domain secrets with DB secrets
+func TestDomainSecretsWithDbSecrets(t *testing.T) {
+	namespace, domainName := "myNs", "myDomain"
+	vzWeblogicDomain := createWeblogicDomainModel(domainName, true)
+	mbPair := types.ModelBindingPair{
+		Binding: &vz.VerrazzanoBinding{
+			Spec: vz.VerrazzanoBindingSpec{},
+		},
+		VerrazzanoURI: "test.v8o.xyz.com",
+	}
+	mbPair.Binding.Spec.WeblogicBindings = []vz.VerrazzanoWeblogicBinding{{Name: domainName}}
+	labels := make(map[string]string)
+
+	testSecret1 := "test-secret-1"
+	testSecret2 := "test-secret-2"
+	vzWeblogicDomain.DomainCRValues.Configuration = v8weblogic.Configuration{
+		Secrets: []string{testSecret1, testSecret2},
+	}
+	testDbSecret := "test-db-secret"
+	dbSecrets := []string{testDbSecret}
+	weblogicDomain := CreateWlsDomainCR(namespace, vzWeblogicDomain, &mbPair, labels, "", dbSecrets)
+	checkDomainModel(t, weblogicDomain, domainName)
+
+	assert.Equal(t, 3, len(weblogicDomain.Spec.Configuration.Secrets), fmt.Sprint("Expected 3 secrets"))
+	assert.Equal(t, testSecret1, weblogicDomain.Spec.Configuration.Secrets[0], fmt.Sprintf("Expected secret to be %s", testSecret1))
+	assert.Equal(t, testSecret2, weblogicDomain.Spec.Configuration.Secrets[1], fmt.Sprintf("Expected secret to be %s", testSecret2))
+	assert.Equal(t, testDbSecret, weblogicDomain.Spec.Configuration.Secrets[2], fmt.Sprintf("Expected secret to be %s", testDbSecret))
+}
+
 func createWeblogicDomainModel(name string, fluentd bool) vz.VerrazzanoWebLogicDomain {
 	return vz.VerrazzanoWebLogicDomain{
 		Name:           name,
