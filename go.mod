@@ -10,12 +10,14 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.0-20201112155446-709d712760e1
-	github.com/verrazzano/verrazzano-crd-generator v0.0.0-20201113162618-4a0d7ef140db
-	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.0-20201112153444-e0e479077045
+	github.com/verrazzano/verrazzano-crd-generator v0.3.35-0.20201208055305-79441d526e28
+	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.10-0.20201208052318-d5caabad2f02
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20201110193547-32e100ccdb72
 	github.com/verrazzano/verrazzano-wko-operator v0.0.0-20201112153813-48bbb61a1abb
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
+	golang.org/x/tools v0.0.0-20201208002638-66f931576d67 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.2.8
 	istio.io/api v0.0.0-20200629210345-933b83065c19
