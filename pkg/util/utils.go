@@ -37,6 +37,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+var LookupEnvFunc = os.LookupEnv
+
 // ManagedClusterConnection maintains the connection details to a ManagedCluster.
 type ManagedClusterConnection struct {
 	KubeClient                  kubernetes.Interface
@@ -269,7 +271,7 @@ func GetComponentNamespace(componentName string, binding *v1beta1v8o.VerrazzanoB
 // SharedVMIDefault return true if the env var SHARED_VMI_DEFAULT is true; this may be overridden by an app binding (future)
 func SharedVMIDefault() bool {
 	useSharedVMI := false
-	envValue, present := os.LookupEnv(sharedVMIDefault)
+	envValue, present := LookupEnvFunc(sharedVMIDefault)
 	if present {
 		zap.S().Debugf("Env var %s = %s", sharedVMIDefault, envValue)
 		value, err := strconv.ParseBool(envValue)

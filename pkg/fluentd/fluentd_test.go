@@ -7,6 +7,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 )
@@ -94,8 +96,11 @@ func TestCreateFluentdContainer(t *testing.T) {
 
 	// In addition test that when Dev mode is set we get the expected elastic search host
 	os.Setenv("USE_SYSTEM_VMI", "true")
+
+	origLookupEnvFunc := util.LookupEnvFunc
+	util.LookupEnvFunc = makeLookupEnvFunc("USE_SYSTEM_VMI", "true")
+	defer func() { util.LookupEnvFunc = origLookupEnvFunc }()
 	fluentd = CreateFluentdContainer("test-binding", "test-component")
-	os.Unsetenv("USE_SYSTEM_VMI")
 
 	assertion.Equal("fluentd", fluentd.Name, "Fluentd container name not equal to expected value")
 	assertion.Equal(2, len(fluentd.Args), "Fluentd container args count not equal to expected value")
@@ -130,6 +135,17 @@ func TestCreateFluentdContainer(t *testing.T) {
 	assertion.Equal("/u01/data/docker/containers", fluentd.VolumeMounts[2].MountPath, "Fluentd container volume mounts mount path not equal to expected value")
 	assertion.Equal("datadockercontainers", fluentd.VolumeMounts[2].Name, "Fluentd container volume mounts name not equal to expected value")
 	assertion.Equal(true, fluentd.VolumeMounts[2].ReadOnly, "Fluentd container volume mounts read only flag not equal to expected value")
+}
+
+// Returns a function with the same signature as os.LookupEnv, which has an override value for the
+// given key
+func makeLookupEnvFunc(givenKey string, overrideValue string) func(key string) (string, bool) {
+	return func(key string) (string, bool) {
+		if key == givenKey {
+			return overrideValue, true
+		}
+		return os.LookupEnv(key)
+	}
 }
 
 // TestCreateFluentdHostPathVolumes tests that a Fluentd host path volumes are created
