@@ -37,6 +37,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+// LookupEnvFunc is the function used to lookup env vars - it is made available here so that tests
+// can override it rather than setting env vars
 var LookupEnvFunc = os.LookupEnv
 
 // ManagedClusterConnection maintains the connection details to a ManagedCluster.
