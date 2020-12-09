@@ -7,6 +7,10 @@ import (
 	"fmt"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/stretchr/testify/assert"
 	vz "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	v8weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
@@ -22,7 +26,8 @@ func TestIntrospectorJobActiveDeadlineSecondsWithDefaultValue(t *testing.T) {
 	vzWeblogicDomain := createWeblogicDomainModel("testDomain", true)
 	mbPair := types.ModelBindingPair{
 		Binding: &vz.VerrazzanoBinding{
-			Spec: vz.VerrazzanoBindingSpec{},
+			Spec:       vz.VerrazzanoBindingSpec{},
+			ObjectMeta: metav1.ObjectMeta{Name: vzWeblogicDomain.Name},
 		},
 		VerrazzanoURI: "test.v8o.xyz.com",
 	}
@@ -41,7 +46,8 @@ func TestIntrospectorJobActiveDeadlineSecondsWithOverrideValue(t *testing.T) {
 	vzWeblogicDomain.DomainCRValues.Configuration.IntrospectorJobActiveDeadlineSeconds = 900
 	mbPair := types.ModelBindingPair{
 		Binding: &vz.VerrazzanoBinding{
-			Spec: vz.VerrazzanoBindingSpec{},
+			Spec:       vz.VerrazzanoBindingSpec{},
+			ObjectMeta: metav1.ObjectMeta{Name: vzWeblogicDomain.Name},
 		},
 		VerrazzanoURI: "test.v8o.xyz.com",
 	}
@@ -57,14 +63,30 @@ func TestFluentdEnabledDefault(t *testing.T) {
 	vzWeblogicDomain := createWeblogicDomainModel(domainName, true)
 	mbPair := types.ModelBindingPair{
 		Binding: &vz.VerrazzanoBinding{
-			Spec: vz.VerrazzanoBindingSpec{},
+			Spec:       vz.VerrazzanoBindingSpec{},
+			ObjectMeta: metav1.ObjectMeta{Name: domainName},
 		},
 		VerrazzanoURI: "test.v8o.xyz.com",
 	}
 	mbPair.Binding.Spec.WeblogicBindings = []vz.VerrazzanoWeblogicBinding{{Name: domainName}}
 	labels := make(map[string]string)
+
+	useSystemVmi := false
 	weblogicDomain := CreateWlsDomainCR(namespace, vzWeblogicDomain, &mbPair, labels, "", nil)
-	checkDomainModel(t, weblogicDomain, domainName)
+	checkDomainModel(t, weblogicDomain, domainName, useSystemVmi)
+
+	// Repeat using the system VMI and re-check the fluentd config (and entire domain model)
+	origLookupEnvFunc := util.LookupEnvFunc
+	defer func() { util.LookupEnvFunc = origLookupEnvFunc }()
+	util.LookupEnvFunc = func(key string) (string, bool) {
+		if key == "USE_SYSTEM_VMI" {
+			return "true", true
+		}
+		return origLookupEnvFunc(key)
+	}
+	useSystemVmi = true
+	systemVmiWeblogicDomain := CreateWlsDomainCR(namespace, vzWeblogicDomain, &mbPair, labels, "", nil)
+	checkDomainModel(t, systemVmiWeblogicDomain, domainName, useSystemVmi)
 }
 
 // Test arbitrary domain secrets
@@ -73,7 +95,8 @@ func TestDomainSecrets(t *testing.T) {
 	vzWeblogicDomain := createWeblogicDomainModel(domainName, true)
 	mbPair := types.ModelBindingPair{
 		Binding: &vz.VerrazzanoBinding{
-			Spec: vz.VerrazzanoBindingSpec{},
+			Spec:       vz.VerrazzanoBindingSpec{},
+			ObjectMeta: metav1.ObjectMeta{Name: domainName},
 		},
 		VerrazzanoURI: "test.v8o.xyz.com",
 	}
@@ -86,7 +109,7 @@ func TestDomainSecrets(t *testing.T) {
 		Secrets: []string{testSecret1, testSecret2},
 	}
 	weblogicDomain := CreateWlsDomainCR(namespace, vzWeblogicDomain, &mbPair, labels, "", nil)
-	checkDomainModel(t, weblogicDomain, domainName)
+	checkDomainModel(t, weblogicDomain, domainName, false)
 
 	assert.Equal(t, 2, len(weblogicDomain.Spec.Configuration.Secrets), fmt.Sprint("Expected 2 secrets"))
 	assert.Equal(t, testSecret1, weblogicDomain.Spec.Configuration.Secrets[0], fmt.Sprintf("Expected secret to be %s", testSecret1))
@@ -99,7 +122,8 @@ func TestDbSecrets(t *testing.T) {
 	vzWeblogicDomain := createWeblogicDomainModel(domainName, true)
 	mbPair := types.ModelBindingPair{
 		Binding: &vz.VerrazzanoBinding{
-			Spec: vz.VerrazzanoBindingSpec{},
+			Spec:       vz.VerrazzanoBindingSpec{},
+			ObjectMeta: metav1.ObjectMeta{Name: domainName},
 		},
 		VerrazzanoURI: "test.v8o.xyz.com",
 	}
@@ -109,7 +133,7 @@ func TestDbSecrets(t *testing.T) {
 	testDbSecret := "test-db-secret"
 	dbSecrets := []string{testDbSecret}
 	weblogicDomain := CreateWlsDomainCR(namespace, vzWeblogicDomain, &mbPair, labels, "", dbSecrets)
-	checkDomainModel(t, weblogicDomain, domainName)
+	checkDomainModel(t, weblogicDomain, domainName, false)
 
 	assert.Equal(t, 1, len(weblogicDomain.Spec.Configuration.Secrets), fmt.Sprint("Expected 1 secret"))
 	assert.Equal(t, testDbSecret, weblogicDomain.Spec.Configuration.Secrets[0], fmt.Sprintf("Expected secret to be %s", testDbSecret))
@@ -121,7 +145,8 @@ func TestDomainSecretsWithDbSecrets(t *testing.T) {
 	vzWeblogicDomain := createWeblogicDomainModel(domainName, true)
 	mbPair := types.ModelBindingPair{
 		Binding: &vz.VerrazzanoBinding{
-			Spec: vz.VerrazzanoBindingSpec{},
+			Spec:       vz.VerrazzanoBindingSpec{},
+			ObjectMeta: metav1.ObjectMeta{Name: domainName},
 		},
 		VerrazzanoURI: "test.v8o.xyz.com",
 	}
@@ -136,7 +161,7 @@ func TestDomainSecretsWithDbSecrets(t *testing.T) {
 	testDbSecret := "test-db-secret"
 	dbSecrets := []string{testDbSecret}
 	weblogicDomain := CreateWlsDomainCR(namespace, vzWeblogicDomain, &mbPair, labels, "", dbSecrets)
-	checkDomainModel(t, weblogicDomain, domainName)
+	checkDomainModel(t, weblogicDomain, domainName, false)
 
 	assert.Equal(t, 3, len(weblogicDomain.Spec.Configuration.Secrets), fmt.Sprint("Expected 3 secrets"))
 	assert.Equal(t, testSecret1, weblogicDomain.Spec.Configuration.Secrets[0], fmt.Sprintf("Expected secret to be %s", testSecret1))
@@ -156,7 +181,7 @@ func createWeblogicDomainModel(name string, fluentd bool) vz.VerrazzanoWebLogicD
 	}
 }
 
-func checkDomainModel(t *testing.T, weblogicDomain *v8weblogic.Domain, domainName string) {
+func checkDomainModel(t *testing.T, weblogicDomain *v8weblogic.Domain, domainName string, useSystemVmi bool) {
 	containers := weblogicDomain.Spec.ServerPod.Containers
 	volumes := weblogicDomain.Spec.ServerPod.Volumes
 
@@ -184,8 +209,8 @@ func checkDomainModel(t *testing.T, weblogicDomain *v8weblogic.Domain, domainNam
 	name = "/scratch"
 	assert.Equal(t, name, containers[0].VolumeMounts[1].MountPath, fmt.Sprintf("Expect volume mount path to be %s", name))
 	assert.Equal(t, true, containers[0].VolumeMounts[1].ReadOnly, "Expect volume mount to be readOnly")
-	assert.Equal(t, 9, len(containers[0].Env), "Expected env count to be 9")
 
+	checkFluentdEnv(t, containers[0], domainName, useSystemVmi)
 	assert.Equal(t, 2, len(volumes), "Expected volumes count to be 2")
 	name = "weblogic-domain-storage-volume"
 	assert.Equal(t, name, volumes[0].Name, fmt.Sprintf("Expected volume name to be %s", name))
@@ -193,4 +218,20 @@ func checkDomainModel(t *testing.T, weblogicDomain *v8weblogic.Domain, domainNam
 	assert.Equal(t, name, volumes[1].Name, fmt.Sprintf("Expected volume name to be %s", name))
 	name = "fluentd-config"
 	assert.Equal(t, name, volumes[1].VolumeSource.ConfigMap.Name, fmt.Sprintf("Expected volume configmap name to be %s", name))
+}
+
+func checkFluentdEnv(t *testing.T, fluentdContainer corev1.Container, domainName string, useSystemVmi bool) {
+	assert.Equal(t, 9, len(fluentdContainer.Env), "Expected env count to be 9")
+	esHostVmiSuffix := domainName
+	if useSystemVmi {
+		esHostVmiSuffix = "system"
+	}
+	expectedEsHost := "vmi-" + esHostVmiSuffix + "-es-ingest.verrazzano-system.svc.cluster.local"
+
+	for _, envVar := range fluentdContainer.Env {
+		if envVar.Name == "ELASTICSEARCH_HOST" {
+			assert.Equal(t, expectedEsHost, envVar.Value)
+			break
+		}
+	}
 }
