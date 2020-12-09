@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +26,8 @@ func TestIntrospectorJobActiveDeadlineSecondsWithDefaultValue(t *testing.T) {
 	vzWeblogicDomain := createWeblogicDomainModel("testDomain", true)
 	mbPair := types.ModelBindingPair{
 		Binding: &vz.VerrazzanoBinding{
-			Spec: vz.VerrazzanoBindingSpec{},
+			Spec:       vz.VerrazzanoBindingSpec{},
+			ObjectMeta: metav1.ObjectMeta{Name: vzWeblogicDomain.Name},
 		},
 		VerrazzanoURI: "test.v8o.xyz.com",
 	}
@@ -43,7 +46,8 @@ func TestIntrospectorJobActiveDeadlineSecondsWithOverrideValue(t *testing.T) {
 	vzWeblogicDomain.DomainCRValues.Configuration.IntrospectorJobActiveDeadlineSeconds = 900
 	mbPair := types.ModelBindingPair{
 		Binding: &vz.VerrazzanoBinding{
-			Spec: vz.VerrazzanoBindingSpec{},
+			Spec:       vz.VerrazzanoBindingSpec{},
+			ObjectMeta: metav1.ObjectMeta{Name: vzWeblogicDomain.Name},
 		},
 		VerrazzanoURI: "test.v8o.xyz.com",
 	}
@@ -59,12 +63,12 @@ func TestFluentdEnabledDefault(t *testing.T) {
 	vzWeblogicDomain := createWeblogicDomainModel(domainName, true)
 	mbPair := types.ModelBindingPair{
 		Binding: &vz.VerrazzanoBinding{
-			Spec: vz.VerrazzanoBindingSpec{},
+			Spec:       vz.VerrazzanoBindingSpec{},
+			ObjectMeta: metav1.ObjectMeta{Name: domainName},
 		},
 		VerrazzanoURI: "test.v8o.xyz.com",
 	}
 	mbPair.Binding.Spec.WeblogicBindings = []vz.VerrazzanoWeblogicBinding{{Name: domainName}}
-	mbPair.Binding.Name = domainName
 	labels := make(map[string]string)
 
 	useSystemVmi := false
@@ -91,7 +95,8 @@ func TestDomainSecrets(t *testing.T) {
 	vzWeblogicDomain := createWeblogicDomainModel(domainName, true)
 	mbPair := types.ModelBindingPair{
 		Binding: &vz.VerrazzanoBinding{
-			Spec: vz.VerrazzanoBindingSpec{},
+			Spec:       vz.VerrazzanoBindingSpec{},
+			ObjectMeta: metav1.ObjectMeta{Name: domainName},
 		},
 		VerrazzanoURI: "test.v8o.xyz.com",
 	}
@@ -117,7 +122,8 @@ func TestDbSecrets(t *testing.T) {
 	vzWeblogicDomain := createWeblogicDomainModel(domainName, true)
 	mbPair := types.ModelBindingPair{
 		Binding: &vz.VerrazzanoBinding{
-			Spec: vz.VerrazzanoBindingSpec{},
+			Spec:       vz.VerrazzanoBindingSpec{},
+			ObjectMeta: metav1.ObjectMeta{Name: domainName},
 		},
 		VerrazzanoURI: "test.v8o.xyz.com",
 	}
@@ -139,7 +145,8 @@ func TestDomainSecretsWithDbSecrets(t *testing.T) {
 	vzWeblogicDomain := createWeblogicDomainModel(domainName, true)
 	mbPair := types.ModelBindingPair{
 		Binding: &vz.VerrazzanoBinding{
-			Spec: vz.VerrazzanoBindingSpec{},
+			Spec:       vz.VerrazzanoBindingSpec{},
+			ObjectMeta: metav1.ObjectMeta{Name: domainName},
 		},
 		VerrazzanoURI: "test.v8o.xyz.com",
 	}
