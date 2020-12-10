@@ -15,6 +15,12 @@ const FilebeatConfigData = `filebeat.config:
     # Reload module configs as they change:
     reload.enabled: false
 name: ${NODENAME}
+filebeat.autodiscover:
+  providers:
+  - type: kubernetes
+    hints.enabled: true
+    labels.dedot: true
+    annotations.dedot: true
 filebeat.inputs:
 - type: docker
   containers.ids:
