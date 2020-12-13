@@ -790,10 +790,16 @@ github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijb
 github.com/vektah/gqlparser v1.1.2/go.mod h1:1ycwN7Ij5njmMkPPAOaRFY4rET2Enx7IkVv3vaXspKw=
 github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.0-20201112155446-709d712760e1 h1:4/IVu4rO/YBb02uo+fWVJSMSJe7m/sYVD4KmCBjQbtI=
 github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.0-20201112155446-709d712760e1/go.mod h1:JPclOZzz8/pYE/l1fbGyI7xIoVBW04u16utyo6rfXs8=
+github.com/verrazzano/verrazzano-crd-generator v0.0.0-20201113162618-4a0d7ef140db/go.mod h1:XEbm3f7FIKp+BRY/NXAGkh/Lh0G4E46DuPLT0tf+4Gc=
 github.com/verrazzano/verrazzano-crd-generator v0.3.35-0.20201208203141-297a4fb37d88 h1:hfz+oUTocfejMfArj2x4j+T5kL7IfGzzW6JokmhwbFU=
 github.com/verrazzano/verrazzano-crd-generator v0.3.35-0.20201208203141-297a4fb37d88/go.mod h1:+ijEw6N+H+gVrGjLn2wTdYOb5ZdZi3WNO6vBZz4f9Qs=
+github.com/verrazzano/verrazzano-crd-generator v0.3.35-0.20201211145006-a6882074bd8d h1:DLn2ZcNEIeRlj53Rp/41bjwJdX0La/5WbNyW+pNGH7A=
+github.com/verrazzano/verrazzano-crd-generator v0.3.35-0.20201211145006-a6882074bd8d/go.mod h1:+ijEw6N+H+gVrGjLn2wTdYOb5ZdZi3WNO6vBZz4f9Qs=
+github.com/verrazzano/verrazzano-helidon-app-operator v0.0.0-20201112153444-e0e479077045/go.mod h1:f490PS79Sdz8rVUX13WSMif3H0fwXJO5Fmgy7XsSaaY=
 github.com/verrazzano/verrazzano-helidon-app-operator v0.0.10-0.20201208203954-1e486168bb69 h1:6OFFWpAzT0sL0IZFkkAdB//S035ubLgigysGwaYTpqY=
 github.com/verrazzano/verrazzano-helidon-app-operator v0.0.10-0.20201208203954-1e486168bb69/go.mod h1:FHlj0Z5Yxdqakd/vbef3Gds7pl/N8U10dOTy3ybyIA0=
+github.com/verrazzano/verrazzano-helidon-app-operator v0.0.10-0.20201211142429-71170a9814c4 h1:a93eTVMSbuexQQJTWfJG0SVCookkCMPCX6wZ0cxGJHI=
+github.com/verrazzano/verrazzano-helidon-app-operator v0.0.10-0.20201211142429-71170a9814c4/go.mod h1:FHlj0Z5Yxdqakd/vbef3Gds7pl/N8U10dOTy3ybyIA0=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20201110193547-32e100ccdb72 h1:G5buINf5YA7Z5xbUp67ZPwSB7z/8abiNtWrUrI8z1n0=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20201110193547-32e100ccdb72/go.mod h1:kylCNdrWsJJbUCac/ON4x8+2wUB8K0a+DDNXaiyWExA=
 github.com/verrazzano/verrazzano-wko-operator v0.0.0-20201112153813-48bbb61a1abb h1:QzQ/zk+IhF/qy3DIaQy/SYIPLQtMRuMLEvuVA/cP5a0=
