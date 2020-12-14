@@ -188,3 +188,13 @@ func GetElasticsearchIngestNodeReplicas() int32 {
 func GetAccessControlAllowOrigin() string {
 	return GetEnvFunc(accessControlAllowOrigin)
 }
+
+// GetRancherURL returns Rancher URL
+func GetRancherURL() string {
+	return GetEnvFunc("rancherURL")
+}
+
+// GetRancherHost returns optional host name to use in host headers when accessing Rancher
+func GetRancherHost() string {
+	return GetEnvFunc("rancherHost")
+}
