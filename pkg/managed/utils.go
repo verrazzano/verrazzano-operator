@@ -4,8 +4,15 @@
 package managed
 
 import (
+	"context"
 	"io/ioutil"
+	"net"
+	"net/url"
 	"os"
+	"time"
+
+	"go.uber.org/zap"
+	restclient "k8s.io/client-go/rest"
 
 	cohoprclientset "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/clientset/versioned"
 	cohoprinformers "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/informers/externalversions"
@@ -85,6 +92,37 @@ var osRemove = os.Remove
 var ioWriteFile = ioutil.WriteFile
 var createKubeconfig = createTempKubeconfigFile
 
+// When the in-cluster accessible host is different from the outside accessible URL's host (parsedHost),
+// do a 'curl --resolve' equivalent
+func setupHTTPResolve(cfg *restclient.Config) error {
+	rancherURL := util.GetRancherURL()
+	if rancherURL != "" {
+		urlObj, err := url.Parse(rancherURL)
+		if err != nil {
+			zap.S().Fatalf("Invalid URL '%s': %v", rancherURL, err)
+			return err
+		}
+		parsedHost := urlObj.Host
+		host := util.GetRancherHost()
+		if host != "" && host != parsedHost {
+			dialer := &net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}
+			cfg.Dial = func(ctx context.Context, network, addr string) (net.Conn, error) {
+				zap.S().Debugf("address original: %s \n", addr)
+				if addr == parsedHost+":443" {
+					addr = host + ":443"
+					zap.S().Debugf("address modified: %s \n", addr)
+				}
+				return dialer.DialContext(ctx, network, addr)
+			}
+		}
+	}
+
+	return nil
+}
+
 // BuildManagedClusterConnection builds a ManagedClusterConnection for the given KubeConfig contents.
 func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*util.ManagedClusterConnection, error) {
 	managedClusterConnection := &util.ManagedClusterConnection{}
@@ -103,6 +141,10 @@ func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan stru
 	// Build client connections
 	managedClusterConnection.KubeConfig = string(kubeConfigContents)
 	cfg, err := buildConfigFromFlags("", tmpFileName)
+	if err != nil {
+		return nil, err
+	}
+	setupHTTPResolve(cfg)
 	if err != nil {
 		return nil, err
 	}
