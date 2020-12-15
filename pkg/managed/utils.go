@@ -92,18 +92,15 @@ var osRemove = os.Remove
 var ioWriteFile = ioutil.WriteFile
 var createKubeconfig = createTempKubeconfigFile
 
-func buildConfig(tmpFileName string) (*restclient.Config, error) {
-	cfg, err := buildConfigFromFlags("", tmpFileName)
-	if err != nil {
-		return nil, err
-	}
-
+// When the in-cluster accessible host is different from the outside accessible URL's host (parsedHost),
+// do a 'curl --resolve' equivalent
+func setupHTTPResolve(cfg *restclient.Config) error {
 	rancherURL := util.GetRancherURL()
 	if rancherURL != "" {
 		urlObj, err := url.Parse(rancherURL)
 		if err != nil {
 			zap.S().Fatalf("Invalid URL '%s': %v", rancherURL, err)
-			return nil, err
+			return err
 		}
 		parsedHost := urlObj.Host
 		host := util.GetRancherHost()
@@ -123,7 +120,7 @@ func buildConfig(tmpFileName string) (*restclient.Config, error) {
 		}
 	}
 
-	return cfg, nil
+	return nil
 }
 
 // BuildManagedClusterConnection builds a ManagedClusterConnection for the given KubeConfig contents.
@@ -143,7 +140,11 @@ func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan stru
 
 	// Build client connections
 	managedClusterConnection.KubeConfig = string(kubeConfigContents)
-	cfg, err := buildConfig(tmpFileName)
+	cfg, err := buildConfigFromFlags("", tmpFileName)
+	if err != nil {
+		return nil, err
+	}
+	setupHTTPResolve(cfg)
 	if err != nil {
 		return nil, err
 	}
