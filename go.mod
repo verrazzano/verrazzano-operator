@@ -10,8 +10,8 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	github.com/verrazzano/verrazzano-coh-cluster-operator v0.0.0-20201112155446-709d712760e1
-	github.com/verrazzano/verrazzano-crd-generator v0.3.35-0.20201214161122-0330d094db41
-	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.10-0.20201214161020-501df7fe4ccc
+	github.com/verrazzano/verrazzano-crd-generator v0.0.0-20201214161122-0330d094db41
+	github.com/verrazzano/verrazzano-helidon-app-operator v0.0.0-20201214161020-501df7fe4ccc
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20201110193547-32e100ccdb72
 	github.com/verrazzano/verrazzano-wko-operator v0.0.0-20201112153813-48bbb61a1abb
 	go.uber.org/zap v1.16.0
