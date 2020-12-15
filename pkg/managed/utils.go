@@ -99,7 +99,6 @@ func setupHTTPResolve(cfg *restclient.Config) error {
 	if rancherURL != "" {
 		urlObj, err := url.Parse(rancherURL)
 		if err != nil {
-			zap.S().Fatalf("Invalid URL '%s': %v", rancherURL, err)
 			return err
 		}
 		parsedHost := urlObj.Host
