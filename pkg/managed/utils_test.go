@@ -218,6 +218,10 @@ func TestGetFilteredConnections(t *testing.T) {
 	}
 }
 
+// Test_setupHTTPResolve test setting nup http resolve for a given restConfig.
+// GIVEN a restConfig and env var "rancherURL" and "rancherHost"
+//  WHEN I call setupHTTPResolve
+//  THEN the restConfig should setup Dial correctly depending on the URL and host
 func Test_setupHTTPResolve(t *testing.T) {
 	type args struct {
 		url  string
