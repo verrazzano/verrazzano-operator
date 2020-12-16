@@ -109,10 +109,9 @@ func setupHTTPResolve(cfg *restclient.Config) error {
 				KeepAlive: 30 * time.Second,
 			}
 			cfg.Dial = func(ctx context.Context, network, addr string) (net.Conn, error) {
-				zap.S().Debugf("address original: %s \n", addr)
 				if addr == parsedHost+":443" {
 					addr = host + ":443"
-					zap.S().Debugf("address modified: %s \n", addr)
+					zap.S().Debugf("address modified from %s to %s \n", parsedHost+":443", addr)
 				}
 				return dialer.DialContext(ctx, network, addr)
 			}

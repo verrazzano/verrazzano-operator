@@ -218,7 +218,7 @@ func TestGetFilteredConnections(t *testing.T) {
 	}
 }
 
-// Test_setupHTTPResolve test setting nup http resolve for a given restConfig.
+// Test_setupHTTPResolve test setting up http resolve for a given restConfig.
 // GIVEN a restConfig and env var "rancherURL" and "rancherHost"
 //  WHEN I call setupHTTPResolve
 //  THEN the restConfig should setup Dial correctly depending on the URL and host
@@ -265,6 +265,33 @@ func Test_setupHTTPResolve(t *testing.T) {
 			config := &rest.Config{}
 			if err := setupHTTPResolve(config); (err != nil) != tt.wantErr {
 				t.Errorf("setupHTTPResolve() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// Test_createTempKubeconfigFile test creating temp file for storing kubeconfig.
+//  WHEN I call createTempKubeconfigFile
+//  THEN a temp file should be created and the name should be returned
+func Test_createTempKubeconfigFile(t *testing.T) {
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			name:    "postive_test",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := createTempKubeconfigFile()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("createTempKubeconfigFile() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if _, err := os.Stat(got); os.IsNotExist(err) {
+				t.Errorf("createTempKubeconfigFile() got %v, but it doesn't exist", got)
 			}
 		})
 	}
