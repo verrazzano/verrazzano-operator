@@ -29,7 +29,7 @@ type Instance struct {
 	KibanaURL        string `json:"kibanaUrl"`
 	GrafanaURL       string `json:"grafanaUrl"`
 	PrometheusURL    string `json:"prometheusUrl"`
-	IsUsingSharedVMI bool   `json:"IsUsingSharedVMI"`
+	IsUsingSharedVMI bool   `json:"isUsingSharedVMI"`
 }
 
 // This is global for the operator
