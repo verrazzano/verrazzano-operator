@@ -201,7 +201,12 @@ func (kc *KeyCloak) refreshKeyCache() error {
 // when the public key id specified by the JWT token is not
 // cached, which should not happen often.
 func (kc *KeyCloak) getPublicKeys() (*PublicKeys, error) {
-	url := fmt.Sprintf(certsURL, kc.Endpoint, kc.Realm)
+	ep := util.GetEnvFunc("KEYCLOAK_EP")
+	if ep == "" {
+		ep = kc.Endpoint
+	}
+	url := fmt.Sprintf(certsURL, ep, kc.Realm)
+	fmt.Println("++++++++++++++++url: %s", url)
 	httpClient := getKeyCloakClient()
 	httpClient.RetryMax = 10
 	zap.S().Infow(fmt.Sprintf("Calling KeyCloak to get the public keys at url " + url))
@@ -245,7 +250,7 @@ func getKeyCloakClient() *retryablehttp.Client {
 		ResponseHeaderTimeout: 10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
-	setupHTTPResolve(tr)
+	//setupHTTPResolve(tr)
 
 	// Replace inner http client with client that uses the Transport object
 	client := retryablehttp.NewClient()
