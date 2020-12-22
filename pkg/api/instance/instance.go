@@ -10,24 +10,26 @@ import (
 	"strings"
 
 	clusterPkg "github.com/verrazzano/verrazzano-operator/pkg/api/clusters"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"go.uber.org/zap"
 )
 
 // Instance details of instance returned in API calls.
 type Instance struct {
-	ID            string `json:"id"`
-	Name          string `json:"name"`
-	MgmtCluster   string `json:"mgmtCluster"`
-	MgmtPlatform  string `json:"mgmtPlatform"`
-	Status        string `json:"status"`
-	Version       string `json:"version"`
-	KeyCloakURL   string `json:"keyCloakUrl"`
-	RancherURL    string `json:"rancherUrl"`
-	VzAPIURL      string `json:"vzApiUri"`
-	ElasticURL    string `json:"elasticUrl"`
-	KibanaURL     string `json:"kibanaUrl"`
-	GrafanaURL    string `json:"grafanaUrl"`
-	PrometheusURL string `json:"prometheusUrl"`
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	MgmtCluster      string `json:"mgmtCluster"`
+	MgmtPlatform     string `json:"mgmtPlatform"`
+	Status           string `json:"status"`
+	Version          string `json:"version"`
+	KeyCloakURL      string `json:"keyCloakUrl"`
+	RancherURL       string `json:"rancherUrl"`
+	VzAPIURL         string `json:"vzApiUri"`
+	ElasticURL       string `json:"elasticUrl"`
+	KibanaURL        string `json:"kibanaUrl"`
+	GrafanaURL       string `json:"grafanaUrl"`
+	PrometheusURL    string `json:"prometheusUrl"`
+	IsUsingSharedVMI bool   `json:"isUsingSharedVMI"`
 }
 
 // This is global for the operator
@@ -59,19 +61,20 @@ func ReturnSingleInstance(w http.ResponseWriter, r *http.Request) {
 	}
 
 	instance := Instance{
-		ID:            "0",
-		Name:          GetVerrazzanoName(),
-		MgmtCluster:   mgmtCluster.Name,
-		MgmtPlatform:  mgmtCluster.Type,
-		Status:        mgmtCluster.Status,
-		Version:       getVersion(),
-		VzAPIURL:      deriveURL("api"),
-		RancherURL:    deriveURL("rancher"),
-		ElasticURL:    GetElasticURL(),
-		KibanaURL:     GetKibanaURL(),
-		GrafanaURL:    GetGrafanaURL(),
-		PrometheusURL: GetPrometheusURL(),
-		KeyCloakURL:   GetKeyCloakURL(),
+		ID:               "0",
+		Name:             GetVerrazzanoName(),
+		MgmtCluster:      mgmtCluster.Name,
+		MgmtPlatform:     mgmtCluster.Type,
+		Status:           mgmtCluster.Status,
+		Version:          getVersion(),
+		VzAPIURL:         deriveURL("api"),
+		RancherURL:       deriveURL("rancher"),
+		ElasticURL:       GetElasticURL(),
+		KibanaURL:        GetKibanaURL(),
+		GrafanaURL:       GetGrafanaURL(),
+		PrometheusURL:    GetPrometheusURL(),
+		KeyCloakURL:      GetKeyCloakURL(),
+		IsUsingSharedVMI: util.SharedVMIDefault(),
 	}
 
 	json.NewEncoder(w).Encode(instance)
