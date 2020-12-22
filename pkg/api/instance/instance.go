@@ -103,7 +103,7 @@ func GetVerrazzanoName() string {
 
 // GetKeyCloakURL returns Keycloak URL
 func GetKeyCloakURL() string {
-	return deriveURL("keycloak")
+	return "http://keycloak-http.keycloak.svc.cluster.local"
 }
 
 // GetKibanaURL returns Kibana URL

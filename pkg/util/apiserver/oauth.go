@@ -12,9 +12,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -201,12 +199,7 @@ func (kc *KeyCloak) refreshKeyCache() error {
 // when the public key id specified by the JWT token is not
 // cached, which should not happen often.
 func (kc *KeyCloak) getPublicKeys() (*PublicKeys, error) {
-	ep := util.GetEnvFunc("KEYCLOAK_EP")
-	if ep == "" {
-		ep = kc.Endpoint
-	}
-	url := fmt.Sprintf(certsURL, ep, kc.Realm)
-	fmt.Println("++++++++++++++++url: %s", url)
+	url := fmt.Sprintf(certsURL, kc.Endpoint, kc.Realm)
 	httpClient := getKeyCloakClient()
 	httpClient.RetryMax = 10
 	zap.S().Infow(fmt.Sprintf("Calling KeyCloak to get the public keys at url " + url))
@@ -250,29 +243,11 @@ func getKeyCloakClient() *retryablehttp.Client {
 		ResponseHeaderTimeout: 10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
-	//setupHTTPResolve(tr)
 
 	// Replace inner http client with client that uses the Transport object
 	client := retryablehttp.NewClient()
 	client.HTTPClient = &http.Client{Transport: tr, Timeout: 300 * time.Second}
 	return client
-}
-
-func setupHTTPResolve(tr *http.Transport) {
-	host := util.GetRancherHost()
-	if host != "" {
-		dialer := &net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}
-		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			if strings.Contains(addr, "127.0.0.1") && strings.Contains(addr, ":443") {
-				zap.S().Debugf("address modified from %s to %s \n", addr, host+":443")
-				addr = host + ":443"
-			}
-			return dialer.DialContext(ctx, network, addr)
-		}
-	}
 }
 
 // get the ca.crt from secret "<vz-env-name>-secret" in namespace "verrazzano-system"
