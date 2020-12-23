@@ -69,6 +69,10 @@ func ReturnSingleInstance(w http.ResponseWriter, r *http.Request) {
 		Version:          getVersion(),
 		VzAPIURL:         deriveURL("api"),
 		RancherURL:       deriveURL("rancher"),
+		ElasticURL:       GetElasticURL(),
+		KibanaURL:        GetKibanaURL(),
+		GrafanaURL:       GetGrafanaURL(),
+		PrometheusURL:    GetPrometheusURL(),
 		KeyCloakURL:      GetKeyCloakURL(),
 		IsUsingSharedVMI: util.SharedVMIDefault(),
 	}
@@ -99,7 +103,27 @@ func GetVerrazzanoName() string {
 
 // GetKeyCloakURL returns Keycloak URL
 func GetKeyCloakURL() string {
-	return "http://keycloak-http.keycloak.svc.cluster.local"
+	return deriveURL("keycloak")
+}
+
+// GetKibanaURL returns Kibana URL
+func GetKibanaURL() string {
+	return deriveURL("kibana.vmi.system")
+}
+
+// GetGrafanaURL returns Grafana URL
+func GetGrafanaURL() string {
+	return deriveURL("grafana.vmi.system")
+}
+
+// GetPrometheusURL returns Prometheus URL
+func GetPrometheusURL() string {
+	return deriveURL("prometheus.vmi.system")
+}
+
+// GetElasticURL returns Elasticsearch URL
+func GetElasticURL() string {
+	return deriveURL("elasticsearch.vmi.system")
 }
 
 // GetConsoleURL returns the Verrazzano Console URL

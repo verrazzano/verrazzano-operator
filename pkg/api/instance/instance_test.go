@@ -38,7 +38,57 @@ var origLookupEnvFunc = util.LookupEnvFunc
 
 // Test KeyCloak Url
 func TestGetKeyCloakUrl(t *testing.T) {
-	assert.Equal(t, "http://keycloak-http.keycloak.svc.cluster.local", GetKeyCloakURL(), "URL not as expected")
+	var tests = [...]uriTest{
+		{"With Verrazzano URI set", "keycloak", true, vzURI},
+		{"Without Verrazzano URI set", "", false, ""},
+	}
+	for _, tt := range tests {
+		runURLTestWithExpectedPrefix(t, tt, GetKeyCloakURL, tt.expectedPrefix)
+	}
+}
+
+// Test Kibana Url
+func TestGetKibanaUrl(t *testing.T) {
+	var tests = [...]uriTest{
+		{"With Verrazzano URI set", "kibana.vmi.system", true, vzURI},
+		{"Without Verrazzano URI set", "", false, ""},
+	}
+	for _, tt := range tests {
+		runURLTestWithExpectedPrefix(t, tt, GetKibanaURL, tt.expectedPrefix)
+	}
+}
+
+// Test Grafana Url
+func TestGetGrafanaUrl(t *testing.T) {
+	var tests = [...]uriTest{
+		{"With Verrazzano URI set", "grafana.vmi.system", true, vzURI},
+		{"Without Verrazzano URI set", "", false, ""},
+	}
+	for _, tt := range tests {
+		runURLTestWithExpectedPrefix(t, tt, GetGrafanaURL, tt.expectedPrefix)
+	}
+}
+
+// Test Prometheus Url
+func TestGetPrometheusUrl(t *testing.T) {
+	var tests = [...]uriTest{
+		{"With Verrazzano URI set", "prometheus.vmi.system", true, vzURI},
+		{"Without Verrazzano URI set", "", false, ""},
+	}
+	for _, tt := range tests {
+		runURLTestWithExpectedPrefix(t, tt, GetPrometheusURL, tt.expectedPrefix)
+	}
+}
+
+// Test Elastic Search Url
+func TestGetElasticUrl(t *testing.T) {
+	var tests = [...]uriTest{
+		{"With Verrazzano URI set", "elasticsearch.vmi.system", true, vzURI},
+		{"Without Verrazzano URI set", "", false, ""},
+	}
+	for _, tt := range tests {
+		runURLTestWithExpectedPrefix(t, tt, GetElasticURL, tt.expectedPrefix)
+	}
 }
 
 // Test Console Url
