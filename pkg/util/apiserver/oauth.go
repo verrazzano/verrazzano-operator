@@ -199,7 +199,8 @@ func (kc *KeyCloak) refreshKeyCache() error {
 // when the public key id specified by the JWT token is not
 // cached, which should not happen often.
 func (kc *KeyCloak) getPublicKeys() (*PublicKeys, error) {
-	url := fmt.Sprintf(certsURL, kc.Endpoint, kc.Realm)
+	// use in-cluster address to connect to keycloak
+	url := fmt.Sprintf(certsURL, "http://keycloak-http.keycloak.svc.cluster.local", kc.Realm)
 	httpClient := getKeyCloakClient()
 	httpClient.RetryMax = 10
 	zap.S().Infow(fmt.Sprintf("Calling KeyCloak to get the public keys at url " + url))
