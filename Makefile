@@ -88,7 +88,7 @@ go-lint:
 .PHONY: go-ineffassign
 go-ineffassign:
 	$(GO) get -u github.com/gordonklaus/ineffassign
-	ineffassign $(shell find . -name "*.go" | grep -v /vendor/ | grep -v /pkg/assets/)
+	ineffassign $(shell go list ./...)
 
 .PHONY: go-mod
 go-mod:
