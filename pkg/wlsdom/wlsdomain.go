@@ -1,4 +1,4 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package wlsdom
@@ -115,7 +115,7 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 					ConfigMap:               datasourceModelConfigMap,
 					RuntimeEncryptionSecret: fmt.Sprintf("%s-runtime-encrypt-secret", domainUID),
 				},
-				Secrets: append(domainCRValues.Configuration.Secrets, dbSecrets...),
+				Secrets: SliceUniqMap(append(domainCRValues.Configuration.Secrets, dbSecrets...)),
 			},
 			ServerStartPolicy: func() string {
 				if len(domainCRValues.ServerStartPolicy) > 0 {
@@ -214,4 +214,21 @@ func addFluentdConfig(serverPod *v8weblogic.ServerPod, domainModel v1beta1v8o.Ve
 
 	// Add fluentd volume mount
 	serverPod.VolumeMounts = append(serverPod.VolumeMounts, createFluentdVolumeMount("weblogic-domain-storage-volume"))
+}
+
+// SliceUniqMap will remove duplicate entries from the input
+// slice - essentially turning a "list" into a "set"
+// a "list" can have duplicate entries, a "set" cannot
+func SliceUniqMap(s []string) []string {
+	seen := make(map[string]struct{}, len(s))
+	j := 0
+	for _, v := range s {
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		s[j] = v
+		j++
+	}
+	return s[:j]
 }

@@ -1,4 +1,4 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package wlsdom
@@ -234,4 +234,29 @@ func checkFluentdEnv(t *testing.T, fluentdContainer corev1.Container, domainName
 			break
 		}
 	}
+}
+
+func TestSliceUniqMap(t *testing.T) {
+	input := []string{"ant", "cat", "dog", "ant", "anteater", "cow"}
+
+	output := SliceUniqMap(input)
+
+	if !(len(output) == 5 &&
+		contains(output, "ant") &&
+		contains(output, "cat") &&
+		contains(output, "dog") &&
+		contains(output, "anteater") &&
+		contains(output, "cow")) {
+		t.Errorf("SliceUniqMap was incorrect, got: %s, wanted %s", output, []string{"ant", "cat", "dog", "anteater", "cow"})
+	}
+}
+
+// Contains returns true if a slice element has an exact match to the input string
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
