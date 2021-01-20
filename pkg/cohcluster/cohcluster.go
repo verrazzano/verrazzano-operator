@@ -48,15 +48,23 @@ func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, 
 					"prometheus.io/port":      "9612",
 					"prometheus.io/scrape":    "true",
 				},
-				Coherence: &v1coh.CoherenceSpec{
-					// Set the cacheConfig
-					CacheConfig: &cacheConfig,
-					// Enable metrics for Prometheus
-					Metrics: &v1coh.PortSpecWithSSL{
-						Enabled: func() *bool { b := true; return &b }(),
-						Port:    util.NewVal(9612),
-					},
-				},
+				Coherence: func() *v1coh.CoherenceSpec {
+					var coh = &v1coh.CoherenceSpec{
+						// Set the cacheConfig
+						CacheConfig: &cacheConfig,
+						// Enable metrics for Prometheus
+						Metrics: &v1coh.PortSpecWithSSL{
+							Enabled: func() *bool { b := true; return &b }(),
+							Port:    util.NewVal(9612),
+						},
+					}
+					if cluster.CoherenceImage != "" {
+						coh.ImageSpec = v1coh.ImageSpec{
+							Image: &cluster.CoherenceImage,
+						}
+					}
+					return coh
+				}(),
 				// Set the pofConfig
 				JVM: &v1coh.JVMSpec{
 					Args: []string{
