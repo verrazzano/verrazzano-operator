@@ -22,6 +22,7 @@ const APIVersion = "coherenceclusters.coherence.oracle.com/v1"
 func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, cohBinding *v1beta1v8o.VerrazzanoCoherenceBinding, labels map[string]string) *v1coh.CoherenceCluster {
 	applicationImage := cluster.Image
 	cacheConfig := cluster.CacheConfig
+	coherenceImage := "ghcr.io/oracle/coherence-ce:14.1.1-0-3"
 	coherenceCluster := v1coh.CoherenceCluster{
 		TypeMeta: v1meta.TypeMeta{
 			Kind:       Kind,
@@ -51,6 +52,10 @@ func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, 
 				Coherence: &v1coh.CoherenceSpec{
 					// Set the cacheConfig
 					CacheConfig: &cacheConfig,
+					// Set the coherence image to coherence CE
+					ImageSpec: v1coh.ImageSpec{
+						Image: &coherenceImage,
+					},
 					// Enable metrics for Prometheus
 					Metrics: &v1coh.PortSpecWithSSL{
 						Enabled: func() *bool { b := true; return &b }(),
