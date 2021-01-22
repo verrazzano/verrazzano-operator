@@ -17,7 +17,6 @@ var GetEnvFunc = os.Getenv
 // Define the ENV vars
 
 const cohUtilsImage = "COH_UTILS_IMAGE"
-const cohImage = "COH_IMAGE"
 const cohMicroImage = "COH_MICRO_IMAGE"
 const helidonMicroImage = "HELIDON_MICRO_IMAGE"
 const wlsMicroImage = "WLS_MICRO_IMAGE"
@@ -54,10 +53,6 @@ func GetCohUtilsImage() string {
 	return GetEnvFunc(cohUtilsImage)
 }
 
-// GetCohImage returns the Coherence base image
-func GetCohImage() string {
-	return GetEnvFunc(cohImage)
-}
 
 func getCohMicroImage() string {
 	return GetEnvFunc(cohMicroImage)

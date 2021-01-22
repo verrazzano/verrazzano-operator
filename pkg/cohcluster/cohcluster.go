@@ -23,7 +23,6 @@ func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, 
 	applicationImage := cluster.Image
 	cacheConfig := cluster.CacheConfig
 	coherenceUtilsImage := util.GetCohUtilsImage()
-	coherenceImage := util.GetCohImage()
 
 	coherenceCluster := v1coh.CoherenceCluster{
 		TypeMeta: v1meta.TypeMeta{
@@ -58,9 +57,6 @@ func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, 
 					Metrics: &v1coh.PortSpecWithSSL{
 						Enabled: func() *bool { b := true; return &b }(),
 						Port:    util.NewVal(9612),
-					},
-					ImageSpec: v1coh.ImageSpec{
-						Image: &coherenceImage,
 					},
 				},
 				// Set the pofConfig
