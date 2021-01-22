@@ -22,6 +22,9 @@ const APIVersion = "coherenceclusters.coherence.oracle.com/v1"
 func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, cohBinding *v1beta1v8o.VerrazzanoCoherenceBinding, labels map[string]string) *v1coh.CoherenceCluster {
 	applicationImage := cluster.Image
 	cacheConfig := cluster.CacheConfig
+	coherenceUtilsImage := "ghcr.io/oracle/coherence-operator:2.1.1-utils"
+	coherenceImage := "ghcr.io/oracle/coherence-ce:14.1.1-0-3"
+
 	coherenceCluster := v1coh.CoherenceCluster{
 		TypeMeta: v1meta.TypeMeta{
 			Kind:       Kind,
@@ -56,6 +59,9 @@ func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, 
 						Enabled: func() *bool { b := true; return &b }(),
 						Port:    util.NewVal(9612),
 					},
+					ImageSpec: v1coh.ImageSpec{
+						Image:           &coherenceImage,
+					},
 				},
 				// Set the pofConfig
 				JVM: &v1coh.JVMSpec{
@@ -85,6 +91,9 @@ func CreateCR(namespace string, cluster *v1beta1v8o.VerrazzanoCoherenceCluster, 
 					}
 					return portSpecs
 				}(),
+				CoherenceUtils: &v1coh.ImageSpec{
+					Image:           &coherenceUtilsImage,
+				},
 			},
 			// Add any imagePullSecrets that were specified
 			ImagePullSecrets: func() []v1coh.LocalObjectReference {
