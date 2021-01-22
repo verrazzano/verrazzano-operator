@@ -49,10 +49,12 @@ const esDataNodeReplicasDefault = 2
 const accessControlAllowOrigin = "ACCESS_CONTROL_ALLOW_ORIGIN"
 const sharedVMIDefault = "USE_SYSTEM_VMI"
 
+// GetCohUtilsImage returns the Coherence Utilities image
 func GetCohUtilsImage() string {
 	return GetEnvFunc(cohUtilsImage)
 }
 
+// GetCohImage returns the Coherence base image
 func GetCohImage() string {
 	return GetEnvFunc(cohImage)
 }
