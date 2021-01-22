@@ -16,6 +16,8 @@ var GetEnvFunc = os.Getenv
 
 // Define the ENV vars
 
+const cohUtilsImage = "COH_UTILS_IMAGE"
+const cohImage = "COH_IMAGE"
 const cohMicroImage = "COH_MICRO_IMAGE"
 const helidonMicroImage = "HELIDON_MICRO_IMAGE"
 const wlsMicroImage = "WLS_MICRO_IMAGE"
@@ -46,6 +48,14 @@ const esDataNodeReplicasDefault = 2
 
 const accessControlAllowOrigin = "ACCESS_CONTROL_ALLOW_ORIGIN"
 const sharedVMIDefault = "USE_SYSTEM_VMI"
+
+func GetCohUtilsImage() string {
+	return GetEnvFunc(cohUtilsImage)
+}
+
+func GetCohImage() string {
+	return GetEnvFunc(cohImage)
+}
 
 func getCohMicroImage() string {
 	return GetEnvFunc(cohMicroImage)
