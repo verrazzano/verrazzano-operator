@@ -133,7 +133,7 @@ func CreateHelidonAppCR(mcName string, namespace string, app *v1beta1v8o.Verrazz
 	// Include fluentd needed resource if fluentd integration is enabled
 	if IsFluentdEnabled(app) {
 		// Add fluentd container
-		helidonApp.Spec.Containers = append(helidonApp.Spec.Containers, fluentd.CreateFluentdContainer(mbPair.Binding.Name, app.Name))
+		helidonApp.Spec.Containers = append(helidonApp.Spec.Containers, fluentd.CreateFluentdContainer(mbPair.Binding.Name, app.Name, namespace))
 
 		// Add fluentd volumes
 		volumes := fluentd.CreateFluentdHostPathVolumes()

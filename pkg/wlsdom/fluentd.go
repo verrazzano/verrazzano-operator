@@ -17,13 +17,17 @@ import (
 )
 
 // Create the fluentd container
-func createFluentdContainer(domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbPair *types.ModelBindingPair) corev1.Container {
+func createFluentdContainer(domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbPair *types.ModelBindingPair, namespace string) corev1.Container {
 	container := corev1.Container{
 		Name:            "fluentd",
 		Args:            []string{"-c", "/etc/fluent.conf"},
 		Image:           util.GetFluentdImage(),
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Env: []corev1.EnvVar{
+			{
+				Name:  "NAMESPACE",
+				Value: namespace,
+			},
 			{
 				Name: "DOMAIN_UID",
 				ValueFrom: &corev1.EnvVarSource{
@@ -199,7 +203,7 @@ func CreateFluentdConfigMap(namespace string, labels map[string]string) *corev1.
   port "#{ENV['ELASTICSEARCH_PORT']}"
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "#{ENV['DOMAIN_UID']}"
+  index_name "#{ENV['NAMESPACE']}_#{ENV['DOMAIN_UID']}"
   scheme http
   key_name timestamp 
   types timestamp:time

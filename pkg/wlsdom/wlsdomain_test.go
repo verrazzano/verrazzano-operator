@@ -221,7 +221,7 @@ func checkDomainModel(t *testing.T, weblogicDomain *v8weblogic.Domain, domainNam
 }
 
 func checkFluentdEnv(t *testing.T, fluentdContainer corev1.Container, domainName string, useSystemVmi bool) {
-	assert.Equal(t, 9, len(fluentdContainer.Env), "Expected env count to be 9")
+	assert.Equal(t, 10, len(fluentdContainer.Env), "Expected env count to be 10")
 	esHostVmiSuffix := domainName
 	if useSystemVmi {
 		esHostVmiSuffix = "system"

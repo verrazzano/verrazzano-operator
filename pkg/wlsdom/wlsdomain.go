@@ -127,7 +127,7 @@ func CreateWlsDomainCR(namespace string, domainModel v1beta1v8o.VerrazzanoWebLog
 				serverPod := domainCRValues.ServerPod
 
 				// Add fluentd config
-				addFluentdConfig(&serverPod, domainModel, mbPair)
+				addFluentdConfig(&serverPod, domainModel, mbPair, namespace)
 
 				// Provide default values for some env values
 				javaOptionsFound := false
@@ -204,9 +204,9 @@ func UpdateEnvVars(mc *types.ManagedCluster, component string, envs *[]corev1.En
 }
 
 // Add fluentd to the server pod
-func addFluentdConfig(serverPod *v8weblogic.ServerPod, domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbPair *types.ModelBindingPair) {
+func addFluentdConfig(serverPod *v8weblogic.ServerPod, domainModel v1beta1v8o.VerrazzanoWebLogicDomain, mbPair *types.ModelBindingPair, namespace string) {
 	// Add fluentd container
-	serverPod.Containers = append(serverPod.Containers, createFluentdContainer(domainModel, mbPair))
+	serverPod.Containers = append(serverPod.Containers, createFluentdContainer(domainModel, mbPair, namespace))
 
 	// Add fluentd volumes
 	serverPod.Volumes = append(serverPod.Volumes, createFluentdVolEmptyDir("weblogic-domain-storage-volume"))

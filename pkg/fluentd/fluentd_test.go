@@ -58,13 +58,13 @@ func TestCreateHelidonFluentdConfigMap(t *testing.T) {
 func TestCreateFluentdContainer(t *testing.T) {
 	assertion := assert.New(t)
 
-	fluentd := CreateFluentdContainer("test-binding", "test-component")
+	fluentd := CreateFluentdContainer("test-binding", "test-component", "test-ns")
 
 	assertion.Equal("fluentd", fluentd.Name, "Fluentd container name not equal to expected value")
 	assertion.Equal(2, len(fluentd.Args), "Fluentd container args count not equal to expected value")
 	assertion.Equal("-c", fluentd.Args[0], "Fluentd container arg not equal to expected value")
 	assertion.Equal("/etc/fluent.conf", fluentd.Args[1], "Fluentd container arg not equal to expected value")
-	assertion.Equal(7, len(fluentd.Env), "Fluentd container envs count not equal to expected value")
+	assertion.Equal(8, len(fluentd.Env), "Fluentd container envs count not equal to expected value")
 	assertion.Equal("APPLICATION_NAME", fluentd.Env[0].Name, "Fluentd container envs name not equal to expected value")
 	assertion.Equal("test-component", fluentd.Env[0].Value, "Fluentd container envs value not equal to expected value")
 	assertion.Equal("FLUENTD_CONF", fluentd.Env[1].Name, "Fluentd container envs name not equal to expected value")
@@ -100,13 +100,13 @@ func TestCreateFluentdContainer(t *testing.T) {
 	origLookupEnvFunc := util.LookupEnvFunc
 	util.LookupEnvFunc = makeLookupEnvFunc("USE_SYSTEM_VMI", "true")
 	defer func() { util.LookupEnvFunc = origLookupEnvFunc }()
-	fluentd = CreateFluentdContainer("test-binding", "test-component")
+	fluentd = CreateFluentdContainer("test-binding", "test-component", "test-ns")
 
 	assertion.Equal("fluentd", fluentd.Name, "Fluentd container name not equal to expected value")
 	assertion.Equal(2, len(fluentd.Args), "Fluentd container args count not equal to expected value")
 	assertion.Equal("-c", fluentd.Args[0], "Fluentd container arg not equal to expected value")
 	assertion.Equal("/etc/fluent.conf", fluentd.Args[1], "Fluentd container arg not equal to expected value")
-	assertion.Equal(7, len(fluentd.Env), "Fluentd container envs count not equal to expected value")
+	assertion.Equal(8, len(fluentd.Env), "Fluentd container envs count not equal to expected value")
 	assertion.Equal("APPLICATION_NAME", fluentd.Env[0].Name, "Fluentd container envs name not equal to expected value")
 	assertion.Equal("test-component", fluentd.Env[0].Value, "Fluentd container envs value not equal to expected value")
 	assertion.Equal("FLUENTD_CONF", fluentd.Env[1].Name, "Fluentd container envs name not equal to expected value")

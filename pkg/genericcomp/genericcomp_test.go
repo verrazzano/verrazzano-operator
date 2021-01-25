@@ -138,7 +138,7 @@ func TestNewDeployment(t *testing.T) {
 	assert.Equal(2, len(fluentd.Args), "Fluentd container args count not equal to expected value")
 	assert.Equal("-c", fluentd.Args[0], "Fluentd container arg not equal to expected value")
 	assert.Equal("/etc/fluent.conf", fluentd.Args[1], "Fluentd container arg not equal to expected value")
-	assert.Equal(7, len(fluentd.Env), "Fluentd container envs count not equal to expected value")
+	assert.Equal(8, len(fluentd.Env), "Fluentd container envs count not equal to expected value")
 	assert.Equal("APPLICATION_NAME", fluentd.Env[0].Name, "Fluentd container envs name not equal to expected value")
 	assert.Equal("test-generic", fluentd.Env[0].Value, "Fluentd container envs value not equal to expected value")
 	assert.Equal("FLUENTD_CONF", fluentd.Env[1].Name, "Fluentd container envs name not equal to expected value")

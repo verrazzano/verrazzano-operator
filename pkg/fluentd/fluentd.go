@@ -40,7 +40,7 @@ const GenericComponentFluentdConfiguration = `<label @FLUENT_LOG>
   port "#{ENV['ELASTICSEARCH_PORT']}"
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "#{ENV['APPLICATION_NAME']}"
+  index_name "#{ENV['NAMESPACE']}_#{ENV['APPLICATION_NAME']}"
   scheme http
   include_timestamp true
   flush_interval 10s
@@ -109,7 +109,7 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
   port "#{ENV['ELASTICSEARCH_PORT']}"
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "#{ENV['APPLICATION_NAME']}"
+  index_name "#{ENV['NAMESPACE']}_#{ENV['APPLICATION_NAME']}"
   scheme http
   include_timestamp true
   flush_interval 10s
@@ -134,7 +134,7 @@ func CreateFluentdConfigMap(fluentdConfig string, componentName string, namespac
 }
 
 // CreateFluentdContainer creates a Fluentd sidecar container.
-func CreateFluentdContainer(bindingName string, componentName string) corev1.Container {
+func CreateFluentdContainer(bindingName string, componentName string, namespace string) corev1.Container {
 	container := corev1.Container{
 		Name:            "fluentd",
 		Args:            []string{"-c", "/etc/fluent.conf"},
@@ -188,6 +188,10 @@ func CreateFluentdContainer(bindingName string, componentName string) corev1.Con
 						}(true),
 					},
 				},
+			},
+			{
+				Name:  "NAMESPACE",
+				Value: namespace,
 			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
