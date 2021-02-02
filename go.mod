@@ -3,7 +3,6 @@ module github.com/verrazzano/verrazzano-operator
 require (
 	github.com/Jeffail/gabs/v2 v2.3.0
 	github.com/gorilla/mux v1.7.3
-	github.com/hashicorp/go-retryablehttp v0.6.6
 	github.com/kylelemons/godebug v1.1.0
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
@@ -16,8 +15,6 @@ require (
 	github.com/verrazzano/verrazzano-wko-operator v0.0.0-20201112153813-48bbb61a1abb
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	gopkg.in/square/go-jose.v2 v2.5.1
-	gopkg.in/yaml.v2 v2.2.8
 	istio.io/api v0.0.0-20200629210345-933b83065c19
 	istio.io/client-go v0.0.0-20200630182733-fd3f873f3f52
 	k8s.io/api v0.18.2

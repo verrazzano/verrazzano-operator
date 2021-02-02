@@ -10,14 +10,11 @@ import (
 	"errors"
 
 	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano-operator/pkg/cohoperator"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
-	"github.com/verrazzano/verrazzano-operator/pkg/helidonapp"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
-	"github.com/verrazzano/verrazzano-operator/pkg/wlsopr"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -175,29 +172,10 @@ func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManaged
 
 // Constructs the necessary Verrazzano system deployments for the specified ManagedCluster in the given VerrazzanoBinding
 func newSystemDeployments(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.ManagedCluster, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
-	managedNamespace := util.GetManagedClusterNamespaceForSystem()
 	deployPromPusher := true //temporary variable to create pusher deployment
 	depLabels := util.GetManagedLabelsNoBinding(managedCluster.Name)
 	var deployments []*appsv1.Deployment
 
-	// Does a WebLogic application need to be deployed to this cluster?  If so, deploy the micro-operator that will manage it.
-	if managedCluster.WlsOperator != nil {
-		deployment := wlsopr.CreateDeployment(managedNamespace, binding.Name, depLabels, manifest.WlsMicroOperatorImage)
-		deployments = append(deployments, deployment)
-	}
-
-	// Does a Coherence applications need to be deployed to this cluster?  If so, deploy the micro-operator that will manage it.
-	if managedCluster.CohOperatorCRs != nil {
-		deployment := cohoperator.CreateDeployment(managedNamespace, binding.Name, depLabels, manifest.CohClusterOperatorImage)
-		deployments = append(deployments, deployment)
-	}
-
-	// Does a Helidon Application need to be deployed to this cluster?  If so, deploy the micro-operator that will manage it.
-	if managedCluster.HelidonApps != nil && manifest.HelidonAppOperatorImage != "" {
-		deployment := helidonapp.CreateAppOperatorDeployment(managedNamespace, depLabels,
-			manifest.HelidonAppOperatorImage, util.GetHelidonMicroRequestMemory())
-		deployments = append(deployments, deployment)
-	}
 
 	// Does a Prometheus pusher need to be deployed to this cluster?
 	if deployPromPusher == true {

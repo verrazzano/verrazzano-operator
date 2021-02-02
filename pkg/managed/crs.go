@@ -19,7 +19,6 @@ import (
 	cohcluinformers "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/informers/externalversions"
 	dominformers "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/informers/externalversions"
 	helidontypes "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano-operator/pkg/cohcluster"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
@@ -264,9 +263,6 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 			for _, clusterCR := range mc.CohClusterCRs {
 				existingCR, err := managedClusterConnection.CohClusterLister.CoherenceClusters(clusterCR.Namespace).Get(clusterCR.Name)
 				if existingCR != nil {
-					// Make sure the Kind and APIVersion are set since they are not always set when returned from k8s
-					existingCR.TypeMeta.Kind = cohcluster.Kind
-					existingCR.TypeMeta.APIVersion = cohcluster.APIVersion
 
 					// Don't try to update the Status field, it ia managed by the downstream operator and we don't
 					// want to overwrite it.

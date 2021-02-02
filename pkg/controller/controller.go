@@ -354,23 +354,6 @@ func (c *Controller) startLocalWatchers() {
 		UpdateFunc: func(old, new interface{}) { c.processManagedCluster(new) },
 	})
 
-	//
-	// VerrazzanoBindings
-	//
-	c.VerrazzanoBindingInformer.AddEventHandler(k8scache.ResourceEventHandlerFuncs{
-		AddFunc:    func(new interface{}) { c.processApplicationBindingAdded(new) },
-		UpdateFunc: func(old, new interface{}) { c.processApplicationBindingAdded(new) },
-		DeleteFunc: func(new interface{}) { c.processApplicationBindingDeleted(new) },
-	})
-
-	//
-	// VerrazzanoModels
-	//
-	c.VerrazzanoModelInformer.AddEventHandler(k8scache.ResourceEventHandlerFuncs{
-		AddFunc:    func(new interface{}) { c.processApplicationModelAdded(new) },
-		UpdateFunc: func(old, new interface{}) { c.processApplicationModelAdded(new) },
-		DeleteFunc: func(new interface{}) { c.processApplicationModelDeleted(new) },
-	})
 }
 
 // Process a change to a VerrazzanoManagedCluster
@@ -382,23 +365,6 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		return
 	}
 	c.imagePullSecrets = sa.ImagePullSecrets
-
-	// A synthetic binding will be constructed and passed to the managed clusters
-	systemBinding := &v1beta1v8o.VerrazzanoBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VmiSystemBindingName,
-		},
-	}
-
-	// A synthetic model will be constructed and passed to the managed clusters
-	systemModel := &v1beta1v8o.VerrazzanoModel{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VmiSystemBindingName,
-		},
-	}
-
-	// A synthetic Model binding pair will be constructed and passed to the managed clusters
-	mbPair := CreateModelBindingPair(systemModel, systemBinding, c.verrazzanoURI, c.imagePullSecrets)
 
 	managedCluster := cluster.(*v1beta1v8o.VerrazzanoManagedCluster)
 	secret, err := c.secretLister.Secrets(managedCluster.Namespace).Get(managedCluster.Spec.KubeconfigSecret)
@@ -427,7 +393,6 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 			Ingresses:   map[string][]*types.Ingress{},
 			RemoteRests: map[string][]*types.RemoteRestConnection{},
 		}
-		mbPair.ManagedClusters[managedCluster.Name] = mc
 
 		// Add in the monitoring and logging namespace if not already added
 		mc.Namespaces = append(mc.Namespaces, constants.MonitoringNamespace, constants.LoggingNamespace)
@@ -441,12 +406,6 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 			zap.S().Errorf("Failed to create CRD definitions for ManagedCluster %s: %v", managedCluster.Name, err)
 		}
 
-		zap.S().Infow("Starting watchers on " + managedCluster.Name)
-		c.startManagedClusterWatchers(managedCluster.Name, mbPair)
-
-		// Create all the components needed by logging and monitoring in managed clusters to push metrics and logs into System VMI in management cluster
-		c.createManagedClusterResourcesForBinding(mbPair)
-
 		// Wait for the caches to be synced before starting workers
 		zap.S().Infow("Waiting for informer caches to sync")
 		if ok := c.cache.WaitForCacheSync(c.stopCh, managedClusterConnection.DeploymentInformer.HasSynced,
@@ -456,31 +415,6 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	}
 }
 
-// Start watchers on the given ManagedCluster
-func (c *Controller) startManagedClusterWatchers(managedClusterName string, mbPair *types.ModelBindingPair) {
-	// Pod event handlers
-	c.managedClusterConnections[managedClusterName].PodInformer.AddEventHandler(k8scache.ResourceEventHandlerFuncs{
-		AddFunc: func(new interface{}) {
-			c.updateIstioPolicies(mbPair, new.(*corev1.Pod), "added")
-		},
-		DeleteFunc: func(old interface{}) {
-			c.updateIstioPolicies(mbPair, old.(*corev1.Pod), "deleted")
-		},
-	})
-}
-
-// update the Istio destination rules and authorization policies for the given model/binding whenever a pod is added or deleted
-func (c *Controller) updateIstioPolicies(mbPair *types.ModelBindingPair, pod *corev1.Pod, action string) {
-	zap.S().Infof("Pod %s : %s %s.", pod.Name, pod.Status.PodIP, action)
-	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
-	}
-	err = c.managed.CreateAuthorizationPolicies(mbPair, filteredConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to update authorization policies for binding %s after pod %s: %v", mbPair.Binding.Name, action, err)
-	}
-}
 
 // Create managed resources on clusters depending upon the binding
 func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.ModelBindingPair) {
@@ -596,21 +530,6 @@ func (c *Controller) processApplicationModelAdded(verrazzanoModel interface{}) {
 		zap.S().Infof("Adding the model %s", model.Name)
 	}
 
-	// Add or replace the model object
-	c.applicationModels[model.Name] = model
-
-	// During restart of the operator a binding can be added before a model so make sure we create
-	// model/binding pair now.
-	for _, binding := range c.applicationBindings {
-		if _, ok := c.modelBindingPairs[binding.Name]; !ok {
-			if model.Name == binding.Spec.ModelName {
-				zap.S().Infof("Adding model/binding pair during add model for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-				mbPair := CreateModelBindingPair(model, binding, c.verrazzanoURI, c.imagePullSecrets)
-				c.modelBindingPairs[binding.Name] = mbPair
-				break
-			}
-		}
-	}
 }
 
 // Process a removal of a VerrazzanoModel
@@ -626,140 +545,6 @@ func (c *Controller) processApplicationModelDeleted(verrazzanoModel interface{})
 func getModelBindingPair(c *Controller, binding *v1beta1v8o.VerrazzanoBinding) (*types.ModelBindingPair, bool) {
 	mbPair, mbPairExists := c.modelBindingPairs[binding.Name]
 	return mbPair, mbPairExists
-}
-
-// Process a change to a VerrazzanoBinding/Sync existing VerrazzanoBinding with cluster state
-func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{}) {
-	binding := verrazzanoBinding.(*v1beta1v8o.VerrazzanoBinding)
-
-	// Make sure the namespaces in this binding are unique across all bindings
-	namespaceFound := c.checkNamespacesFound(binding)
-	if namespaceFound {
-		return
-	}
-
-	if binding.GetDeletionTimestamp() != nil {
-		if contains(binding.GetFinalizers(), bindingFinalizer) {
-			// Add binding in the case where delete has been initiated before the binding is added.
-			if _, ok := c.applicationBindings[binding.Name]; !ok {
-				zap.S().Infof("Adding the binding %s", binding.Name)
-				c.applicationBindings[binding.Name] = binding
-			}
-			_, mbPairExists := getModelBindingPair(c, binding)
-			if !mbPairExists {
-				// During restart of the operator a delete can happen before a model/binding is created so create one now.
-				if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-					zap.S().Infof("Adding model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-					mbPair := CreateModelBindingPair(model, binding, c.verrazzanoURI, c.imagePullSecrets)
-					c.modelBindingPairs[binding.Name] = mbPair
-				}
-			}
-		}
-
-		zap.S().Debugf("Binding %s is marked for deletion/already deleted", binding.Name)
-		if contains(binding.GetFinalizers(), bindingFinalizer) {
-			c.processApplicationBindingDeleted(verrazzanoBinding)
-		}
-		return
-	}
-
-	var err error
-	if !contains(binding.GetFinalizers(), bindingFinalizer) {
-		binding, err = c.addFinalizer(binding)
-		if err != nil {
-			return
-		}
-	}
-
-	if existingBinding, ok := c.applicationBindings[binding.Name]; ok {
-		if existingBinding.GetResourceVersion() == binding.GetResourceVersion() {
-			counter, ok := c.bindingSyncThreshold[binding.Name]
-			if !ok {
-				c.bindingSyncThreshold[binding.Name] = 0
-			} else {
-				c.bindingSyncThreshold[binding.Name] = counter + 1
-			}
-
-			if counter < 4 {
-				zap.S().Debugf("No changes to binding %s. Skip sync as sync threshold has not passed", binding.Name)
-				return
-			}
-
-			zap.S().Debugf("No changes to binding %s. Syncing with cluster state", binding.Name)
-			c.bindingSyncThreshold[binding.Name] = 0
-		} else {
-			zap.S().Infof("Updating the binding %s", binding.Name)
-			c.applicationBindings[binding.Name] = binding
-		}
-
-	} else {
-		zap.S().Infof("Adding the binding %s", binding.Name)
-		c.applicationBindings[binding.Name] = binding
-	}
-
-	// Does a model/binding pair already exist?
-	mbPair, mbPairExists := getModelBindingPair(c, binding)
-	if !mbPairExists {
-		// If a model exists for this binding, then create the model/binding pair
-		if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-			zap.S().Infof("Adding new model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-			mbPair = CreateModelBindingPair(model, binding, c.verrazzanoURI, c.imagePullSecrets)
-			c.modelBindingPairs[binding.Name] = mbPair
-			mbPairExists = true
-		}
-	} else {
-		// Rebuild the existing model/binding pair
-		if existingModel, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-			UpdateModelBindingPair(mbPair, existingModel, binding, c.verrazzanoURI, c.imagePullSecrets)
-		}
-
-	}
-
-	// Nothing further to do if the model/binding pair does not exist yet
-	if !mbPairExists {
-		return
-	}
-
-	err = c.waitForManagedClusters(mbPair, binding.Name)
-	if err != nil {
-		zap.S().Errorf("Skipping processing of VerrazzanoBinding %s until all referenced Managed Clusters are available, error %s", binding.Name, err.Error())
-		return
-	}
-
-	/*********************
-	 * Create Artifacts in the Local Cluster
-	 **********************/
-	// Create VMIs
-	err = c.local.CreateUpdateVmi(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
-	if err != nil {
-		zap.S().Errorf("Failed to create VMIs for binding %s: %v", binding.Name, err)
-	}
-
-	// Create secrets
-	err = c.monitoring.CreateVmiSecrets(binding, c.secrets)
-	if err != nil {
-		zap.S().Errorf("Failed to create secrets for binding %s: %v", binding.Name, err)
-	}
-
-	// Update ConfigMaps
-	err = c.local.UpdateConfigMaps(binding, c.kubeClientSet, c.configMapLister)
-	if err != nil {
-		zap.S().Errorf("Failed to update ConfigMaps for binding %s: %v", binding.Name, err)
-	}
-
-	// Update the "bring your own DNS" credentials?
-	err = c.local.UpdateAcmeDNSSecret(binding, c.kubeClientSet, c.secretLister, constants.AcmeDNSSecret, c.verrazzanoURI)
-	if err != nil {
-		zap.S().Errorf("Failed to update DNS credentials for binding %s: %v", binding.Name, err)
-	}
-
-	/*********************
-	 * Create Artifacts in the Managed Cluster
-	 **********************/
-	c.createManagedClusterResourcesForBinding(mbPair)
-
-	// Cleanup any resources no longer needed
-	c.cleanupOrphanedResources(mbPair)
 }
 
 // Make sure the namespaces in binding are unique across all bindings
