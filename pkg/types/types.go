@@ -15,14 +15,6 @@ import (
 type ComponentType int
 
 const (
-	// WLS component type
-	WLS ComponentType = 0
-	// Helidon component type
-	Helidon ComponentType = 1
-	// Coherence component type
-	Coherence ComponentType = 2
-	// Generic component type
-	Generic ComponentType = 3
 	// Unknown component type
 	Unknown ComponentType = 4
 )

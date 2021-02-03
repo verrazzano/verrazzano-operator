@@ -9,22 +9,10 @@ import (
 	"strconv"
 	"sync"
 
-	cohoprclientset "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/clientset/versioned"
-	cohoprlister "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/listers/verrazzano/v1beta1"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
-	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned"
-	cohclulister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/listers/coherence/v1"
-	domclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned"
-	domlister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/listers/weblogic/v8"
-	helidonclientset "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/clientset/versioned"
-	helidionlister "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/listers/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
-	wlsoprclientset "github.com/verrazzano/verrazzano-wko-operator/pkg/client/clientset/versioned"
-	wlsoprlister "github.com/verrazzano/verrazzano-wko-operator/pkg/client/listers/verrazzano/v1beta1"
 	"go.uber.org/zap"
-	istioAuthClientset "istio.io/client-go/pkg/clientset/versioned"
-	istioLister "istio.io/client-go/pkg/listers/networking/v1alpha3"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
 	appslistersv1 "k8s.io/client-go/listers/apps/v1"
@@ -42,13 +30,6 @@ type ManagedClusterConnection struct {
 	KubeClient                  kubernetes.Interface
 	KubeExtClientSet            apiextensionsclient.Interface
 	VerrazzanoOperatorClientSet clientset.Interface
-	WlsOprClientSet             wlsoprclientset.Interface
-	DomainClientSet             domclientset.Interface
-	HelidonClientSet            helidonclientset.Interface
-	CohOprClientSet             cohoprclientset.Interface
-	CohClusterClientSet         cohcluclientset.Interface
-	IstioClientSet              istioAuthClientset.Interface
-	IstioAuthClientSet          istioAuthClientset.Interface
 	KubeConfig                  string
 	Lock                        sync.RWMutex
 	DeploymentLister            appslistersv1.DeploymentLister
@@ -65,22 +46,6 @@ type ManagedClusterConnection struct {
 	ClusterRoleInformer         cache.SharedIndexInformer
 	ClusterRoleBindingLister    rbaclistersv1.ClusterRoleBindingLister
 	ClusterRoleBindingInformer  cache.SharedIndexInformer
-	WlsOperatorLister           wlsoprlister.WlsOperatorLister
-	WlsOperatorInformer         cache.SharedIndexInformer
-	DomainLister                domlister.DomainLister
-	DomainInformer              cache.SharedIndexInformer
-	HelidonLister               helidionlister.HelidonAppLister
-	HelidonInformer             cache.SharedIndexInformer
-	CohOperatorLister           cohoprlister.CohClusterLister
-	CohOperatorInformer         cache.SharedIndexInformer
-	CohClusterLister            cohclulister.CoherenceClusterLister
-	CohClusterBindingrmer          cache.SharedIndexInformer
-	IstioGatewayLister          istioLister.GatewayLister
-	IstioGatewayInformer        cache.SharedIndexInformer
-	IstioVirtualServiceLister   istioLister.VirtualServiceLister
-	IstioVirtualServiceInformer cache.SharedIndexInformer
-	IstioServiceEntryLister     istioLister.ServiceEntryLister
-	IstioServiceEntryInformer   cache.SharedIndexInformer
 	ConfigMapLister             corelistersv1.ConfigMapLister
 	ConfigMapInformer           cache.SharedIndexInformer
 	DaemonSetLister             appslistersv1.DaemonSetLister

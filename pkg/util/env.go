@@ -16,18 +16,11 @@ var GetEnvFunc = os.Getenv
 
 // Define the ENV vars
 
-const cohMicroImage = "COH_MICRO_IMAGE"
-const helidonMicroImage = "HELIDON_MICRO_IMAGE"
-const wlsMicroImage = "WLS_MICRO_IMAGE"
 const prometheusPusherImage = "PROMETHEUS_PUSHER_IMAGE"
 const nodeExporterImage = "NODE_EXPORTER_IMAGE"
 const filebeatImage = "FILEBEAT_IMAGE"
 const journalbeatImage = "JOURNALBEAT_IMAGE"
-const weblogicOperatorImage = "WEBLOGIC_OPERATOR_IMAGE"
 const fluentdImage = "FLUENTD_IMAGE"
-const cohMicroRequestMemory = "COH_MICRO_REQUEST_MEMORY"
-const helidonMicroRequestMemory = "HELIDON_MICRO_REQUEST_MEMORY"
-const wlsMicroRequestMemory = "WLS_MICRO_REQUEST_MEMORY"
 const esMasterNodeRequestMemory = "ES_MASTER_NODE_REQUEST_MEMORY"
 const esIngestNodeRequestMemory = "ES_INGEST_NODE_REQUEST_MEMORY"
 const esDataNodeRequestMemory = "ES_DATA_NODE_REQUEST_MEMORY"
@@ -46,18 +39,6 @@ const esDataNodeReplicasDefault = 2
 
 const accessControlAllowOrigin = "ACCESS_CONTROL_ALLOW_ORIGIN"
 const sharedVMIDefault = "USE_SYSTEM_VMI"
-
-func getCohMicroImage() string {
-	return GetEnvFunc(cohMicroImage)
-}
-
-func getHelidonMicroImage() string {
-	return GetEnvFunc(helidonMicroImage)
-}
-
-func getWlsMicroImage() string {
-	return GetEnvFunc(wlsMicroImage)
-}
 
 // GetPromtheusPusherImage returns the Prometheus Pusher image.
 func GetPromtheusPusherImage() string {
@@ -84,29 +65,9 @@ func GetTestWlsFrontendImage() string {
 	return "container-registry.oracle.com/verrazzano/wl-frontend:324813"
 }
 
-// GetWeblogicOperatorImage returns the WebLogic Kubernetes Operator image.
-func GetWeblogicOperatorImage() string {
-	return GetEnvFunc(weblogicOperatorImage)
-}
-
 // GetFluentdImage returns the Fluentd image.
 func GetFluentdImage() string {
 	return GetEnvFunc(fluentdImage)
-}
-
-// GetCohMicroRequestMemory returns the Coherence micro operator memory request resource.
-func GetCohMicroRequestMemory() string {
-	return GetEnvFunc(cohMicroRequestMemory)
-}
-
-// GetHelidonMicroRequestMemory returns the Helidon App micro operator memory request resource.
-func GetHelidonMicroRequestMemory() string {
-	return GetEnvFunc(helidonMicroRequestMemory)
-}
-
-// GetWlsMicroRequestMemory returns the Weblogic micro operator memory request resource.
-func GetWlsMicroRequestMemory() string {
-	return GetEnvFunc(wlsMicroRequestMemory)
 }
 
 // GetElasticsearchMasterNodeRequestMemory returns the Elasticsearch master memory request resource.

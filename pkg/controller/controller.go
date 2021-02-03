@@ -31,8 +31,6 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/signals"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	v8outil "github.com/verrazzano/verrazzano-operator/pkg/util"
-	wlsoprclientset "github.com/verrazzano/verrazzano-wko-operator/pkg/client/clientset/versioned"
-	wlsoprinformers "github.com/verrazzano/verrazzano-wko-operator/pkg/client/informers/externalversions"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	extclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -177,12 +175,6 @@ func NewController(config *rest.Config,  watchNamespace string, verrazzanoURI st
 		zap.S().Fatalf("Error building VMO clientset: %v", err)
 	}
 
-	zap.S().Debugw("Building wls-operator clientset")
-	wlsoprClientSet, err := wlsoprclientset.NewForConfig(config)
-	if err != nil {
-		zap.S().Fatalf("Error building wls-operator clientset: %v", err)
-	}
-
 	zap.S().Debugw("Building api extensions clientset")
 	kubeExtClientSet, err := extclientset.NewForConfig(config)
 	if err != nil {
@@ -195,18 +187,15 @@ func NewController(config *rest.Config,  watchNamespace string, verrazzanoURI st
 	var kubeInformerFactory kubeinformers.SharedInformerFactory
 	var verrazzanoOperatorInformerFactory informers.SharedInformerFactory
 	var vmoInformerFactory vmoinformers.SharedInformerFactory
-	var wlsoprInformerFactory wlsoprinformers.SharedInformerFactory
 	if watchNamespace == "" {
 		// Consider all namespaces if our namespace is left wide open our set to default
 		kubeInformerFactory = kubeinformers.NewSharedInformerFactory(kubeClientSet, constants.ResyncPeriod)
 		verrazzanoOperatorInformerFactory = informers.NewSharedInformerFactory(verrazzanoOperatorClientSet, constants.ResyncPeriod)
-		wlsoprInformerFactory = wlsoprinformers.NewSharedInformerFactory(wlsoprClientSet, constants.ResyncPeriod)
 		vmoInformerFactory = vmoinformers.NewSharedInformerFactory(vmoClientSet, constants.ResyncPeriod)
 	} else {
 		// Otherwise, restrict to a specific namespace
 		kubeInformerFactory = kubeinformers.NewFilteredSharedInformerFactory(kubeClientSet, constants.ResyncPeriod, watchNamespace, nil)
 		verrazzanoOperatorInformerFactory = informers.NewFilteredSharedInformerFactory(verrazzanoOperatorClientSet, constants.ResyncPeriod, watchNamespace, nil)
-		wlsoprInformerFactory = wlsoprinformers.NewFilteredSharedInformerFactory(wlsoprClientSet, constants.ResyncPeriod, watchNamespace, nil)
 		vmoInformerFactory = vmoinformers.NewFilteredSharedInformerFactory(vmoClientSet, constants.ResyncPeriod, watchNamespace, nil)
 	}
 	secretsInformer := kubeInformerFactory.Core().V1().Secrets()
@@ -265,7 +254,6 @@ func NewController(config *rest.Config,  watchNamespace string, verrazzanoURI st
 
 	go kubeInformerFactory.Start(stopCh)
 	go verrazzanoOperatorInformerFactory.Start(stopCh)
-	go wlsoprInformerFactory.Start(stopCh)
 	go vmoInformerFactory.Start(stopCh)
 
 	// Wait for the caches to be synced before starting watchers

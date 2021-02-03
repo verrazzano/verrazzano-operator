@@ -5,16 +5,4 @@ Name: cluster2
 Namespaces:
   - default
   - test2
-HelidonApps:
-  - metadata:
-      creationTimestamp: null
-    spec:
-      description: HelidonApp Deployed to ManagedCluster2
-      image: HelidonApp2:latest
-      imagePullPolicy: IfNotPresent
-      name: HelidonApp2
-      namespace: defaultOnMC2
-      port: 9011
-      serviceAccountName: henry
-      targetPort: 9001
-    status: {}
+

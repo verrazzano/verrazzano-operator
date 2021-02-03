@@ -18,18 +18,11 @@ func TestGetEnvValues(t *testing.T) {
 		value  string
 		method func() string
 	}{
-		{name: "COH_MICRO_IMAGE", value: "foo", method: getCohMicroImage},
-		{name: "HELIDON_MICRO_IMAGE", value: "foo", method: getHelidonMicroImage},
-		{name: "WLS_MICRO_IMAGE", value: "foo", method: getWlsMicroImage},
 		{name: "PROMETHEUS_PUSHER_IMAGE", value: "foo", method: GetPromtheusPusherImage},
 		{name: "NODE_EXPORTER_IMAGE", value: "foo", method: GetNodeExporterImage},
 		{name: "FILEBEAT_IMAGE", value: "foo", method: GetFilebeatImage},
 		{name: "JOURNALBEAT_IMAGE", value: "foo", method: GetJournalbeatImage},
-		{name: "WEBLOGIC_OPERATOR_IMAGE", value: "foo", method: GetWeblogicOperatorImage},
 		{name: "FLUENTD_IMAGE", value: "foo", method: GetFluentdImage},
-		{name: "COH_MICRO_REQUEST_MEMORY", value: "foo", method: GetCohMicroRequestMemory},
-		{name: "HELIDON_MICRO_REQUEST_MEMORY", value: sizeValue, method: GetHelidonMicroRequestMemory},
-		{name: "WLS_MICRO_REQUEST_MEMORY", value: sizeValue, method: GetWlsMicroRequestMemory},
 		{name: "ES_MASTER_NODE_REQUEST_MEMORY", value: sizeValue, method: GetElasticsearchMasterNodeRequestMemory},
 		{name: "ES_INGEST_NODE_REQUEST_MEMORY", value: sizeValue, method: GetElasticsearchIngestNodeRequestMemory},
 		{name: "ES_DATA_NODE_REQUEST_MEMORY", value: sizeValue, method: GetElasticsearchDataNodeRequestMemory},

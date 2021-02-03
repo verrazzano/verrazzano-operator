@@ -40,7 +40,6 @@ var policyRules = []rbacv1.PolicyRule{
 	{
 		APIGroups:     []string{"apps"},
 		Resources:     []string{"deployments/finalizers"},
-		ResourceNames: []string{"coherence-operator"},
 		Verbs:         []string{"update"},
 	},
 	{
@@ -92,21 +91,6 @@ var policyRules = []rbacv1.PolicyRule{
 		APIGroups: []string{"rbac.authorization.k8s.io"},
 		Resources: []string{"clusterrolebindings", "rolebindings"},
 		Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "patch"},
-	},
-	{
-		APIGroups: []string{"weblogic.oracle"},
-		Resources: []string{"domains"},
-		Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "patch", "deletecollection"},
-	},
-	{
-		APIGroups: []string{"weblogic.oracle"},
-		Resources: []string{"domains/status"},
-		Verbs:     []string{"get", "list", "watch", "update", "patch"},
-	},
-	{
-		APIGroups: []string{"coherence.oracle.com"},
-		Resources: []string{"*"},
-		Verbs:     []string{"*"},
 	},
 }
 

@@ -51,9 +51,6 @@ func TestCreateDeploymentsVmiSystem(t *testing.T) {
 
 // getenv returns a mocked response for keys used by these tests
 func getenv(key string) string {
-	if key == "WLS_MICRO_REQUEST_MEMORY" || key == "COH_MICRO_REQUEST_MEMORY" || key == "HELIDON_MICRO_REQUEST_MEMORY" {
-		return "2.5Gi"
-	}
 	return origGetEnvFunc(key)
 }
 

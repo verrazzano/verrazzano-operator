@@ -14,21 +14,11 @@ import (
 	"go.uber.org/zap"
 	restclient "k8s.io/client-go/rest"
 
-	cohoprclientset "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/clientset/versioned"
-	cohoprinformers "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/informers/externalversions"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
 	informers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/informers/externalversions"
-	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned"
-	domclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned"
-	helidionclientset "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/clientset/versioned"
-	helidoninformers "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/informers/externalversions"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	wlsoprclientset "github.com/verrazzano/verrazzano-wko-operator/pkg/client/clientset/versioned"
-	wlsoprinformers "github.com/verrazzano/verrazzano-wko-operator/pkg/client/informers/externalversions"
-	istioauthclientset "istio.io/client-go/pkg/clientset/versioned"
-	istioInformers "istio.io/client-go/pkg/informers/externalversions"
 	extclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -44,41 +34,6 @@ var newKubernetesClientSet = func(c *rest.Config) (kubernetes.Interface, error) 
 
 var newVerrazzanoOperatorClientSet = func(c *rest.Config) (clientset.Interface, error) {
 	clientSet, err := clientset.NewForConfig(c)
-	return clientSet, err
-}
-
-var newWLSOperatorClientSet = func(c *rest.Config) (wlsoprclientset.Interface, error) {
-	clientSet, err := wlsoprclientset.NewForConfig(c)
-	return clientSet, err
-}
-
-var newDomainClientSet = func(c *rest.Config) (domclientset.Interface, error) {
-	clientSet, err := domclientset.NewForConfig(c)
-	return clientSet, err
-}
-
-var newHelidonClientSet = func(c *rest.Config) (helidionclientset.Interface, error) {
-	clientSet, err := helidionclientset.NewForConfig(c)
-	return clientSet, err
-}
-
-var newCOHOperatorClientSet = func(c *rest.Config) (cohoprclientset.Interface, error) {
-	clientSet, err := cohoprclientset.NewForConfig(c)
-	return clientSet, err
-}
-
-var newCOHClusterClientSet = func(c *rest.Config) (cohcluclientset.Interface, error) {
-	clientSet, err := cohcluclientset.NewForConfig(c)
-	return clientSet, err
-}
-
-var newIstioClientSet = func(c *rest.Config) (istioauthclientset.Interface, error) {
-	clientSet, err := istioauthclientset.NewForConfig(c)
-	return clientSet, err
-}
-
-var newIstioAuthClientSet = func(c *rest.Config) (istioauthclientset.Interface, error) {
-	clientSet, err := istioauthclientset.NewForConfig(c)
 	return clientSet, err
 }
 
@@ -159,55 +114,6 @@ func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan stru
 	}
 	managedClusterConnection.VerrazzanoOperatorClientSet = verrazzanoOperatorClientSet
 
-	// Build client connections for wlsOperatorClientSet
-	wlsoprClientset, err := newWLSOperatorClientSet(cfg)
-	if err != nil {
-		return nil, err
-	}
-	managedClusterConnection.WlsOprClientSet = wlsoprClientset
-
-	// Build client connections for domainClientSet
-	domainClientSet, err := newDomainClientSet(cfg)
-	if err != nil {
-		return nil, err
-	}
-	managedClusterConnection.DomainClientSet = domainClientSet
-
-	// Build client connections for helidonClientSet
-	helidonClientSet, err := newHelidonClientSet(cfg)
-	if err != nil {
-		return nil, err
-	}
-	managedClusterConnection.HelidonClientSet = helidonClientSet
-
-	// Build client connections for cohOprClientSet
-	cohClientSet, err := newCOHOperatorClientSet(cfg)
-	if err != nil {
-		return nil, err
-	}
-	managedClusterConnection.CohOprClientSet = cohClientSet
-
-	// Build client connections for cohCluClientSet
-	cohCluClientSet, err := newCOHClusterClientSet(cfg)
-	if err != nil {
-		return nil, err
-	}
-	managedClusterConnection.CohClusterClientSet = cohCluClientSet
-
-	// Build client connections for istioClient
-	istioClientSet, err := newIstioClientSet(cfg)
-	if err != nil {
-		return nil, err
-	}
-	managedClusterConnection.IstioClientSet = istioClientSet
-
-	// Build client connections for istioAuthClient
-	istioAuthClientSet, err := newIstioAuthClientSet(cfg)
-	if err != nil {
-		return nil, err
-	}
-	managedClusterConnection.IstioAuthClientSet = istioAuthClientSet
-
 	kubeClientExt, err := newExtClientSet(cfg)
 	if err != nil {
 		return nil, err
@@ -261,44 +167,6 @@ func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan stru
 	// Informers on our CRs
 	verrazzanoOperatorInformerFactory := informers.NewSharedInformerFactory(verrazzanoOperatorClientSet, constants.ResyncPeriod)
 	go verrazzanoOperatorInformerFactory.Start(stopCh)
-
-	// Informers on WlsOperator CRs
-	wlsOperatorInformerFactory := wlsoprinformers.NewSharedInformerFactory(wlsoprClientset, constants.ResyncPeriod)
-	wlsoprInformer := wlsOperatorInformerFactory.Verrazzano().V1beta1().WlsOperators()
-	managedClusterConnection.WlsOperatorInformer = wlsoprInformer.Informer()
-	managedClusterConnection.WlsOperatorLister = wlsoprInformer.Lister()
-	go wlsOperatorInformerFactory.Start(stopCh)
-
-	// Informers on Domain CRs - delay setup until weblogic-operator is deployed
-
-	// Informers on Helidion App CRs
-	helidionOperatorInformerFactory := helidoninformers.NewSharedInformerFactory(helidonClientSet, constants.ResyncPeriod)
-	helidonInformer := helidionOperatorInformerFactory.Verrazzano().V1beta1().HelidonApps()
-	managedClusterConnection.HelidonInformer = helidonInformer.Informer()
-	managedClusterConnection.HelidonLister = helidonInformer.Lister()
-	go helidionOperatorInformerFactory.Start(stopCh)
-
-	// Informers on Coherence Operator CRs
-	cohOperatorInformerFactory := cohoprinformers.NewSharedInformerFactory(cohClientSet, constants.ResyncPeriod)
-	cohInformer := cohOperatorInformerFactory.Verrazzano().V1beta1().CohClusters()
-	managedClusterConnection.CohOperatorInformer = cohInformer.Informer()
-	managedClusterConnection.CohOperatorLister = cohInformer.Lister()
-	go cohOperatorInformerFactory.Start(stopCh)
-
-	// Informers on Coherence Cluster CRs - delay setup until coherence-operator is deployed
-
-	// Informers on istio CRs
-	istioOperatorInformerFactory := istioInformers.NewSharedInformerFactory(istioClientSet, constants.ResyncPeriod)
-	gatewayInformer := istioOperatorInformerFactory.Networking().V1alpha3().Gateways()
-	managedClusterConnection.IstioGatewayInformer = gatewayInformer.Informer()
-	managedClusterConnection.IstioGatewayLister = gatewayInformer.Lister()
-	virtualServiceInformer := istioOperatorInformerFactory.Networking().V1alpha3().VirtualServices()
-	managedClusterConnection.IstioVirtualServiceInformer = virtualServiceInformer.Informer()
-	managedClusterConnection.IstioVirtualServiceLister = virtualServiceInformer.Lister()
-	serviceEntryInformer := istioOperatorInformerFactory.Networking().V1alpha3().ServiceEntries()
-	managedClusterConnection.IstioServiceEntryInformer = serviceEntryInformer.Informer()
-	managedClusterConnection.IstioServiceEntryLister = serviceEntryInformer.Lister()
-	go istioOperatorInformerFactory.Start(stopCh)
 
 	return managedClusterConnection, nil
 }
