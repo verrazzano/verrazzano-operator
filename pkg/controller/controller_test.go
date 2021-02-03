@@ -68,7 +68,7 @@ var testClientset = testclient.NewSimpleClientset(&v1.ServiceAccount{
 // WHEN I create a controller
 // THEN the PUBLIC state of the controller is in the expected state for a non-running controller
 func TestNewController(t *testing.T) {
-	binding := &v1beta1.VerrazzanoBinding{
+	binding := &types.ClusterBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
@@ -98,60 +98,6 @@ func TestNewController(t *testing.T) {
 	assert.Equal(t, controller.verrazzanoManagedClusterLister, *listers.ManagedClusterLister)
 	assert.Equal(t, 0, len(*listers.ModelBindingPairs))
 	assert.NotNil(t, listers.KubeClientSet)
-}
-
-// TestAddFinalizer tests adding a finalizer to a binding
-// GIVEN an existing binding
-// WHEN I add a finalizer to the existing binding by invoking addFinalizer()
-// THEN the finalizer is added to the binding
-func TestAddFinalizer(t *testing.T) {
-	controller := createController(t, testManifest, nil, nil)
-	binding := &v1beta1.VerrazzanoBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace"},
-		Spec: v1beta1.VerrazzanoBindingSpec{
-			ModelName: "test-model",
-			Placement: []v1beta1.VerrazzanoPlacement{{Name: "test-placement", Namespaces: []v1beta1.KubernetesNamespace{{Name: "test-namespace"}}}}}}
-
-	controller.verrazzanoOperatorClientSet.VerrazzanoV1beta1().VerrazzanoBindings("test-namespace").
-		Create(context.TODO(), binding, metav1.CreateOptions{})
-
-	controller.addFinalizer(binding)
-
-	updatedBinding, err := controller.verrazzanoOperatorClientSet.VerrazzanoV1beta1().
-		VerrazzanoBindings("test-namespace").Get(context.TODO(), binding.Name, metav1.GetOptions{})
-
-	assert.Nil(t, err)
-	assert.Len(t, updatedBinding.Finalizers, 1)
-	assert.Equal(t, bindingFinalizer, updatedBinding.Finalizers[0])
-}
-
-// TestRemoveFinalizer tests removing a finalizer from an existing binding
-// GIVEN an existing binding
-// WHEN a finalizer is removed from the binding by calling removeFinalizer()
-// THEN the finalizer is removed from the binding
-func TestRemoveFinalizer(t *testing.T) {
-	controller := createController(t, testManifest, nil, nil)
-	binding := &v1beta1.VerrazzanoBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace",
-		Finalizers: []string{bindingFinalizer}},
-		Spec: v1beta1.VerrazzanoBindingSpec{
-			ModelName: "test-model",
-			Placement: []v1beta1.VerrazzanoPlacement{{Name: "test-placement", Namespaces: []v1beta1.KubernetesNamespace{{Name: "test-namespace"}}}}}}
-
-	// Add the binding
-	binding, _ = controller.verrazzanoOperatorClientSet.VerrazzanoV1beta1().VerrazzanoBindings("test-namespace").
-		Create(context.TODO(), binding, metav1.CreateOptions{})
-	// sanity check. Ensure that added binding has 1 finalizer
-	assert.Len(t, binding.Finalizers, 1)
-
-	// invoke method being tested
-	err := controller.removeFinalizer(binding)
-	assert.Nil(t, err)
-
-	// get the binding after remove finalizer
-	updatedBinding, err := controller.verrazzanoOperatorClientSet.VerrazzanoV1beta1().
-		VerrazzanoBindings("test-namespace").Get(context.TODO(), binding.Name, metav1.GetOptions{})
-
-	assert.Nil(t, err)
-	assert.Len(t, updatedBinding.Finalizers, 0)
 }
 
 // Create Controller instances for the tests.
@@ -571,7 +517,7 @@ func newTestLocal(expectations func(*testLocalPackage)) *testLocalPackage {
 	return t
 }
 
-func (l *testLocalPackage) DeleteVmi(binding *v1beta1.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
+func (l *testLocalPackage) DeleteVmi(binding *types.ClusterBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
 	l.Record("DeleteVmi", map[string]interface{}{
 		"binding":      binding,
 		"vmoClientSet": vmoClientSet,
@@ -580,7 +526,7 @@ func (l *testLocalPackage) DeleteVmi(binding *v1beta1.VerrazzanoBinding, vmoClie
 	return nil
 }
 
-func (l *testLocalPackage) DeleteSecrets(binding *v1beta1.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
+func (l *testLocalPackage) DeleteSecrets(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
 	l.Record("DeleteSecrets", map[string]interface{}{
 		"binding":       binding,
 		"kubeClientSet": kubeClientSet,
@@ -589,7 +535,7 @@ func (l *testLocalPackage) DeleteSecrets(binding *v1beta1.VerrazzanoBinding, kub
 	return nil
 }
 
-func (l *testLocalPackage) DeleteConfigMaps(binding *v1beta1.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func (l *testLocalPackage) DeleteConfigMaps(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	l.Record("DeleteConfigMaps", map[string]interface{}{
 		"binding":         binding,
 		"kubeClientSet":   kubeClientSet,
@@ -598,7 +544,7 @@ func (l *testLocalPackage) DeleteConfigMaps(binding *v1beta1.VerrazzanoBinding, 
 	return nil
 }
 
-func (l *testLocalPackage) CreateUpdateVmi(binding *v1beta1.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
+func (l *testLocalPackage) CreateUpdateVmi(binding *types.ClusterBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 	l.Record("CreateUpdateVmi", map[string]interface{}{
 		"binding":                 binding,
 		"vmoClientSet":            vmoClientSet,
@@ -608,7 +554,7 @@ func (l *testLocalPackage) CreateUpdateVmi(binding *v1beta1.VerrazzanoBinding, v
 	return nil
 }
 
-func (l *testLocalPackage) UpdateConfigMaps(binding *v1beta1.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func (l *testLocalPackage) UpdateConfigMaps(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	l.Record("UpdateConfigMaps", map[string]interface{}{
 		"binding":         binding,
 		"kubeClientSet":   kubeClientSet,
@@ -616,7 +562,7 @@ func (l *testLocalPackage) UpdateConfigMaps(binding *v1beta1.VerrazzanoBinding, 
 	return nil
 }
 
-func (l *testLocalPackage) UpdateAcmeDNSSecret(binding *v1beta1.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
+func (l *testLocalPackage) UpdateAcmeDNSSecret(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
 	l.Record("UpdateAcmeDNSSecret", map[string]interface{}{
 		"binding":       binding,
 		"kubeClientSet": kubeClientSet,
@@ -646,7 +592,7 @@ func newTestMonitoring(expectations func(*testMonitoringPackage)) *testMonitorin
 	return t
 }
 
-func (m *testMonitoringPackage) CreateVmiSecrets(binding *v1beta1.VerrazzanoBinding, secrets monitoring.Secrets) error {
+func (m *testMonitoringPackage) CreateVmiSecrets(binding *types.ClusterBinding, secrets monitoring.Secrets) error {
 	m.Record("CreateVmiSecrets", map[string]interface{}{
 		"binding": binding,
 		"secrets": secrets})
@@ -661,7 +607,7 @@ func (m *testMonitoringPackage) DeletePomPusher(binding string, helper util.Depl
 	return nil
 }
 
-func testExecuteCreateUpdateGlobaEntitiesGoroutine(binding *v1beta1.VerrazzanoBinding, c *Controller) {
+func testExecuteCreateUpdateGlobaEntitiesGoroutine(binding *types.ClusterBinding, c *Controller) {
 	createUpdateGlobalEntities(binding, c)
 }
 

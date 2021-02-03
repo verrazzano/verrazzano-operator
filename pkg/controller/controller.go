@@ -546,23 +546,6 @@ func getModelBindingPair(c *Controller, binding *types.ClusterBinding) (*types.M
 	return mbPair, mbPairExists
 }
 
-// Make sure the namespaces in binding are unique across all bindings
-func (c *Controller) checkNamespacesFound(binding *types.ClusterBinding) bool {
-	for _, placement := range binding.Spec.Placement {
-		for _, currBinding := range c.applicationBindings {
-			if binding.Name != currBinding.Name {
-				for _, currPlacement := range currBinding.Spec.Placement {
-					if placement.Name == currPlacement.Name {
-						return checkForDuplicateNamespaces(&placement, binding, &currPlacement, currBinding)
-					}
-				}
-			}
-		}
-	}
-
-	return false
-}
-
 // Check for a duplicate namespaces being used across two differrent bindings
 func checkForDuplicateNamespaces(placement *v1beta1v8o.VerrazzanoPlacement, binding *types.ClusterBinding, currPlacement *v1beta1v8o.VerrazzanoPlacement, currBinding *types.ClusterBinding) bool {
 	dupFound := false
@@ -580,62 +563,6 @@ func checkForDuplicateNamespaces(placement *v1beta1v8o.VerrazzanoPlacement, bind
 	}
 
 	return dupFound
-}
-
-func (c *Controller) cleanupOrphanedResources(mbPair *types.ModelBindingPair) {
-	// Cleanup Custom Resources
-	err := c.managed.CleanupOrphanedCustomResources(mbPair, c.managedClusterConnections, c.stopCh)
-	if err != nil {
-		zap.S().Errorf("Failed to cleanup custom resources for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
-	// Cleanup Services for generic components
-	err = c.managed.CleanupOrphanedServices(mbPair, c.managedClusterConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to cleanup services for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
-	// Cleanup Deployments for generic components
-	err = c.managed.CleanupOrphanedDeployments(mbPair, c.managedClusterConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to cleanup deployments for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
-	// Cleanup ServiceEntries
-	err = c.managed.CleanupOrphanedServiceEntries(mbPair, c.managedClusterConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to cleanup ServiceEntries for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
-	// Cleanup Ingresses
-	err = c.managed.CleanupOrphanedIngresses(mbPair, c.managedClusterConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to cleanup Ingresses for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
-	// Cleanup ClusterRoleBindings
-	err = c.managed.CleanupOrphanedClusterRoleBindings(mbPair, c.managedClusterConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to cleanup ClusterRoleBindings for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
-	// Cleanup ClusterRoles
-	err = c.managed.CleanupOrphanedClusterRoles(mbPair, c.managedClusterConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to cleanup ClusterRoles for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
-	// Cleanup ConfigMaps
-	err = c.managed.CleanupOrphanedConfigMaps(mbPair, c.managedClusterConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to cleanup ConfigMaps for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
-	// Cleanup Namespaces - this will also cleanup any ServiceAccounts and Secrets within the namespace
-	err = c.managed.CleanupOrphanedNamespaces(mbPair, c.managedClusterConnections, c.modelBindingPairs)
-	if err != nil {
-		zap.S().Errorf("Failed to cleanup Namespaces for binding %s: %v", mbPair.Binding.Name, err)
-	}
 }
 
 type kubeDeployment struct {
@@ -773,20 +700,8 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 
 	}
 
-	if _, ok := c.applicationBindings[binding.Name]; ok {
-		delete(c.applicationBindings, binding.Name)
-	}
-
-	if mbPairExists {
-		delete(c.modelBindingPairs, binding.Name)
-	}
-
 	if _, ok := c.bindingSyncThreshold[binding.Name]; ok {
 		delete(c.bindingSyncThreshold, binding.Name)
-	}
-
-	if contains(binding.GetFinalizers(), bindingFinalizer) {
-		c.removeFinalizer(binding)
 	}
 
 }
@@ -833,34 +748,6 @@ func remove(list []string, s string) []string {
 	return list
 }
 
-// Add finalizer to binding for cleanup when binding is deleted
-func (c *Controller) addFinalizer(binding *types.ClusterBinding) (*types.ClusterBinding, error) {
-	zap.S().Infof("Adding finalizer %s to binding %s", bindingFinalizer, binding.Name)
-	binding.SetFinalizers(append(binding.GetFinalizers(), bindingFinalizer))
-
-	// Update binding
-	binding, err := c.verrazzanoOperatorClientSet.VerrazzanoV1beta1().VerrazzanoBindings(binding.Namespace).Update(context.TODO(), binding, metav1.UpdateOptions{})
-	if err != nil {
-		zap.S().Errorf("Failed adding finalizer %s to binding %s, error %s", bindingFinalizer, binding.Name, err.Error())
-		return nil, err
-	}
-	return binding, nil
-}
-
-// Remove finalizer from binding after binding is deleted
-func (c *Controller) removeFinalizer(binding *types.ClusterBinding) error {
-	zap.S().Infof("Removing finalizer %s from binding %s", bindingFinalizer, binding.Name)
-	binding.SetFinalizers(remove(binding.GetFinalizers(), bindingFinalizer))
-
-	// Update binding
-	_, err := c.verrazzanoOperatorClientSet.VerrazzanoV1beta1().VerrazzanoBindings(binding.Namespace).Update(context.TODO(), binding, metav1.UpdateOptions{})
-	if err != nil {
-		zap.S().Errorf("Failed removing finalizer %s from binding %s, error %s", bindingFinalizer, binding.Name, err.Error())
-		return err
-	}
-	return nil
-}
-
 // managedInterface defines the functions in the 'managed' package that are used  by the Controller
 type managedInterface interface {
 	BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*v8outil.ManagedClusterConnection, error)
@@ -880,15 +767,6 @@ type managedInterface interface {
 	CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string) error
 	CreateDestinationRules(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateAuthorizationPolicies(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error
-	CleanupOrphanedServiceEntries(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedIngresses(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, allMbPairs map[string]*types.ModelBindingPair) error
-	CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
 	DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
 	DeleteClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error
 	DeleteClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error

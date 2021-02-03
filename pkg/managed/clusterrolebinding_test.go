@@ -4,48 +4,11 @@
 package managed
 
 import (
-	"context"
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano-operator/pkg/constants"
-	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
-	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
-	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
 	"testing"
 )
-
-// TestCreateClusterRoleBindingsVmiSystem tests creation of cluster role bindings when the binding name is 'system'
-// GIVEN a cluster which has no cluster role bindings
-//  WHEN I call CreateClusterRoleBindings with a binding named 'system'
-//  THEN there should be an expected set of system cluster role bindings
-//   AND each system cluster role binding should have an expected set of properties
-func TestCreateClusterRoleBindingsVmiSystem(t *testing.T) {
-	modelBindingPair := types.NewModelBindingPair()
-	clusterConnections := testutil.GetManagedClusterConnections()
-	clusterConnection := clusterConnections["cluster1"]
-
-	// change the binding name to the VmiSystemBindingName so that CreateClusterRoleBindings creates the system cluster role bindings
-	modelBindingPair.Binding.Name = constants.VmiSystemBindingName
-
-	err := CreateClusterRoleBindings(&modelBindingPair, clusterConnections)
-	if err != nil {
-		t.Fatalf("got an error from CreateClusterRoleBindings: %v", err)
-	}
-	// it is expected that after the call to CreateClusterRoleBindings that all of the system cluster role bindings exist
-	expectedRoleBindings := monitoring.GetSystemClusterRoleBindings("cluster1")
-
-	// make sure that all of the expected role bindings exist
-	for _, expectedBinding := range expectedRoleBindings {
-		binding, err := clusterConnection.KubeClient.RbacV1().ClusterRoleBindings().Get(context.TODO(), expectedBinding.Name, metav1.GetOptions{})
-		if err != nil {
-			t.Fatalf("got an error trying to get a cluster role binding %s: %v", expectedBinding.Name, err)
-		}
-		// verify that the expected properties are set on each role binding
-		assertClusterRoleBindingMatches(t, binding, expectedBinding)
-	}
-}
 
 // assertClusterRoleBindingMatches asserts that the given cluster role binding matches the expected cluster role binding
 func assertClusterRoleBindingMatches(t *testing.T, binding *rbacv1.ClusterRoleBinding, expectedBinding *rbacv1.ClusterRoleBinding) {

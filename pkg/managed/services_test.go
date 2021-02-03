@@ -5,7 +5,6 @@ package managed
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,13 +23,13 @@ import (
 func TestCreateServicesVMIBinding(t *testing.T) {
 	assert := assert.New(t)
 
-	mbPairSystemBinding := types.NewModelBindingPair()
+	mbPairSystemBinding := testutil.GetModelBindingPair()
 	mbPairSystemBinding.Model.Name = constants.VmiSystemBindingName
 	mbPairSystemBinding.Binding.Name = constants.VmiSystemBindingName
 
 	// Model/binding for VMI system binding - Node Exporter service is created.
 	managedConnections := testutil.GetManagedClusterConnections()
-	err := CreateServices(&mbPairSystemBinding, managedConnections)
+	err := CreateServices(mbPairSystemBinding, managedConnections)
 	assert.Nil(err, "got an error from CreateServices: %v", err)
 
 	for clusterName := range mbPairSystemBinding.ManagedClusters {
@@ -46,7 +45,7 @@ func TestCreateServicesVMIBinding(t *testing.T) {
 	}
 
 	// Model/binding for VMI system binding - service already exist
-	err = CreateServices(&mbPairSystemBinding, managedConnections)
+	err = CreateServices(mbPairSystemBinding, managedConnections)
 	assert.Nil(err, "got an error from CreateServices: %v", err)
 
 	for clusterName := range mbPairSystemBinding.ManagedClusters {

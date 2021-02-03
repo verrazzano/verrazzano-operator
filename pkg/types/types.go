@@ -123,28 +123,8 @@ type ManagedCluster struct {
 	GenericComponents []*v1beta1v8o.VerrazzanoGenericComponent
 }
 
-type ClusterPlacement struct {
-	// The name of the placement
-	Name string `json:"name" yaml:"name"`
-
-	// Namespaces for this placement
-	Namespaces []struct {
-		Name       string
-		Components []struct {
-			Name string
-		}
-	}
-}
-
 type ClusterModel struct {
 	metav1.ObjectMeta
-}
-
-type ClusterBinding struct {
-	metav1.ObjectMeta
-	Spec struct {
-		Placement []ClusterPlacement
-	}
 }
 
 // ModelBindingPair represents an instance of a model/binding pair and
@@ -165,9 +145,35 @@ type ModelBindingPair struct {
 	ImagePullSecrets []corev1.LocalObjectReference
 }
 
-func NewModelBindingPair() ModelBindingPair {
-	return ModelBindingPair{
-		Binding: &ClusterBinding{},
-		Model: &ClusterModel{},
-	}
+type ClusterBinding struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   VerrazzanoBindingSpec   `json:"spec"`
+}
+
+type VerrazzanoBindingSpec struct {
+	// A description of the binding
+	Description string `json:"description" yaml:"description"`
+
+	// The model name to associate the bindings
+	ModelName string `json:"modelName" yaml:"modelName"`
+
+	// The set of Placement definitions
+	// +x-kubernetes-list-type=set
+	Placement []VerrazzanoPlacement `json:"placement" yaml:"placement"`
+}
+
+type VerrazzanoPlacement struct {
+	// The name of the placement
+	Name string `json:"name" yaml:"name"`
+
+	// Namespaces for this placement
+	// +x-kubernetes-list-type=set
+	Namespaces []KubernetesNamespace `json:"namespaces" yaml:"namespaces"`
+}
+
+type KubernetesNamespace struct {
+	// Name of the namespace
+	Name string `json:"name" yaml:"name"`
 }

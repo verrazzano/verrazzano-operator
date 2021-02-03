@@ -4,7 +4,6 @@ package managed
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"reflect"
 	"testing"
 
@@ -28,7 +27,7 @@ var origGetEnvFunc = util.GetEnvFunc
 func TestCreateDeploymentsVmiSystem(t *testing.T) {
 	assert := assert.New(t)
 
-	modelBindingPair := types.NewModelBindingPair()
+	modelBindingPair := testutil.GetModelBindingPair()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 	manifest := testutil.GetManifest()
@@ -42,7 +41,7 @@ func TestCreateDeploymentsVmiSystem(t *testing.T) {
 	defer func() { util.GetEnvFunc = origGetEnvFunc }()
 
 	modelBindingPair.Binding.Name = constants.VmiSystemBindingName
-	err := CreateDeployments(&modelBindingPair, clusterConnections, &manifest, "testURI", secrets)
+	err := CreateDeployments(modelBindingPair, clusterConnections, &manifest, "testURI", secrets)
 	assert.Nil(err, "got an error from CreateDeployments: %v", err)
 
 	// validate that the created deployments match the expected deployments

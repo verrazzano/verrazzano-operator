@@ -255,20 +255,6 @@ func IsClusterInBinding(clusterName string, allMbPairs map[string]*types.ModelBi
 	return false
 }
 
-// GetComponentNamespace finds the namespace for the component from the given binding placements.
-func GetComponentNamespace(componentName string, binding *types.ClusterBinding) (string, error) {
-	for _, placement := range binding.Spec.Placement {
-		for _, namespace := range placement.Namespaces {
-			for _, component := range namespace.Components {
-				if component.Name == componentName {
-					return namespace.Name, nil
-				}
-			}
-		}
-	}
-	return "", fmt.Errorf("No placement found for component %s", componentName)
-}
-
 // SharedVMIDefault return true if the env var SHARED_VMI_DEFAULT is true; this may be overridden by an app binding (future)
 func SharedVMIDefault() bool {
 	useSharedVMI := false

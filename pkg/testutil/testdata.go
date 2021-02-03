@@ -12,7 +12,9 @@ import (
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
 	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned/fake"
 	domclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned/fake"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	testutil "github.com/verrazzano/verrazzano-operator/test/integ/util"
 	istioAuthClientset "istio.io/client-go/pkg/clientset/versioned/fake"
 	istioClientsetFake "istio.io/client-go/pkg/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
@@ -247,6 +249,33 @@ func getPods() []*corev1.Pod {
 		getPod("test2-pod", "test2", "123.99.0.3"),
 		getPod("test3-pod", "test3", "123.99.0.4"),
 	}
+}
+
+// GetModelBindingPair returns a test model binding pair.
+func GetModelBindingPair() *types.ModelBindingPair {
+	return ReadModelBindingPair(
+		"../testutil/testdata/test_managed_cluster_1.yaml", "../testutil/testdata/test_managed_cluster_2.yaml")
+}
+
+// ReadModelBindingPair returns a test model binding pair for the given model/binding/cluster descriptors.
+func ReadModelBindingPair(managedClusterPaths ...string) *types.ModelBindingPair {
+	managedClusters := map[string]*types.ManagedCluster{}
+
+	for _, managedClusterPath := range managedClusterPaths {
+		managedCluster, _ := testutil.ReadManagedCluster(managedClusterPath)
+		managedClusters[managedCluster.Name] = managedCluster
+	}
+	var pair = &types.ModelBindingPair{
+		Model: &types.ClusterModel{},
+		Binding: &types.ClusterBinding{},
+		ManagedClusters: managedClusters,
+		ImagePullSecrets: []corev1.LocalObjectReference{
+			{
+				Name: "test-imagePullSecret",
+			},
+		},
+	}
+	return pair
 }
 
 // GetTestClusters returns a list of Verrazzano Managed Cluster resources.

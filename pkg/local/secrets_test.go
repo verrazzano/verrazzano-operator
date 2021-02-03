@@ -14,9 +14,9 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 
 	"github.com/stretchr/testify/assert"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 
 	corev1 "k8s.io/api/core/v1"

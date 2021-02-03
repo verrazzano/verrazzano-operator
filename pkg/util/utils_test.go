@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,7 +19,9 @@ func TestGetManagedBindingLabels(t *testing.T) {
 	assert := assert.New(t)
 	const bindingName = "testbinding"
 	binding := types.ClusterBinding{
+		ObjectMeta: v1.ObjectMeta{
 			Name: bindingName,
+		},
 	}
 	const clusterName = "testCluster"
 	bm := GetManagedBindingLabels(&binding, clusterName)
@@ -186,58 +187,6 @@ func TestGetManagedClustersNotForVerrazzanoBinding(t *testing.T) {
 	assert.Equal(&mcc2, v)
 	_, ok = results[cname1]
 	assert.False(ok, "Map returned by GetManagedClustersForVerrazzanoBinding should not contain entry")
-}
-
-func TestIsClusterInBinding(t *testing.T) {
-	assert := assert.New(t)
-	const cname1 = "cluster1"
-	const cname2 = "cluster2"
-	mbMap := map[string]*types.ModelBindingPair{
-		cname1: {
-			Binding: &types.ClusterBinding{
-				Spec: types.ClusterBindingSpec{
-					Placement: []v1beta1v8o.VerrazzanoPlacement{{Name: cname1}},
-				},
-				Status: types.ClusterBindingStatus{},
-			},
-		},
-	}
-	assert.True(IsClusterInBinding(cname1, mbMap))
-	assert.False(IsClusterInBinding(cname2, mbMap))
-}
-
-func TestGetComponentNamespace(t *testing.T) {
-	assert := assert.New(t)
-	const ns1 = "ns1"
-	const ns2 = "ns2"
-	const compname1 = "comp1"
-	const compname2 = "comp2"
-	const compname3 = "comp3"
-	binding := &types.ClusterBinding{
-		Spec: types.ClusterBindingSpec{
-			Placement: []v1beta1v8o.VerrazzanoPlacement{
-				{Namespaces: []v1beta1v8o.KubernetesNamespace{
-					{Name: ns1,
-						Components: []v1beta1v8o.BindingComponent{{
-							Name: compname1}},
-					},
-					{Name: ns2,
-						Components: []v1beta1v8o.BindingComponent{{
-							Name: compname2}},
-					},
-				}},
-			},
-		},
-		Status: types.ClusterBindingStatus{},
-	}
-	ns, err := GetComponentNamespace(compname1, binding)
-	assert.NoError(err, "Error finding component in GetComponentNamespace")
-	assert.Equal(ns1, ns)
-	ns, err = GetComponentNamespace(compname2, binding)
-	assert.NoError(err, "Error finding component in GetComponentNamespace")
-	assert.Equal(ns2, ns)
-	_, err = GetComponentNamespace(compname3, binding)
-	assert.Error(err, "Error finding component in GetComponentNamespace. Component should not be found")
 }
 
 func TestLoadManifest(t *testing.T) {
