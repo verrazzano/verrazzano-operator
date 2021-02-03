@@ -30,10 +30,6 @@ import (
 var testClusterName = "test-cluster"
 var testVerrazzanoURI = "/verrazzano/uri"
 
-var testManifest = util.Manifest{WlsMicroOperatorImage: "wlsMicroOperatorImage", WlsMicroOperatorCrd: "wlsMicroOperatorCrd",
-	HelidonAppOperatorImage: "helidonAppOperatorImage", HelidonAppOperatorCrd: "helidonAppOperatorCrd",
-	CohClusterOperatorImage: "cohClusterOperatorImage", CohClusterOperatorCrd: "cohClusterOperatorCrd"}
-
 var testPodInformer = &controllertest.FakeInformer{}
 var testDeploymentInformer = &controllertest.FakeInformer{}
 var testNamespaceInformer = &controllertest.FakeInformer{}
@@ -84,7 +80,7 @@ func TestNewController(t *testing.T) {
 	}
 
 	// createController invokes NewController which is the function that is being tested
-	controller := createController(t, testManifest, localMockSetupFunc, monitoringMockSetupFunc)
+	controller := createController(t, localMockSetupFunc, monitoringMockSetupFunc)
 
 	assert.NotNil(t, controller.VerrazzanoBindingInformer)
 	assert.NotNil(t, controller.VerrazzanoBindingLister)
@@ -102,7 +98,7 @@ func TestNewController(t *testing.T) {
 
 // Create Controller instances for the tests.
 // Replaces several external functions used by the Controller to allow for unit testing
-func createController(t *testing.T, manifest util.Manifest, localMockSetup func(*testLocalPackage), monitoringMockSetup func(*testMonitoringPackage)) *Controller {
+func createController(t *testing.T, localMockSetup func(*testLocalPackage), monitoringMockSetup func(*testMonitoringPackage)) *Controller {
 
 	// rewrite the function that is used to get the managed package implementation during creation of a new controller
 	originalGetManagedFunc := newManagedPackage
@@ -162,7 +158,7 @@ func createController(t *testing.T, manifest util.Manifest, localMockSetup func(
 	config := &rest.Config{}
 
 	// Create a new Controller instance
-	controller, err := NewController(config, &manifest, "", testVerrazzanoURI, "false")
+	controller, err := NewController(config, "", testVerrazzanoURI, "false")
 
 	// set secretLister
 	controller.secretLister = testSecretLister
@@ -211,11 +207,10 @@ func (t *testManagedPackage) BuildManagedClusterConnection(kubeConfigContents []
 	return &testManagedClusterConnection, nil
 }
 
-func (t *testManagedPackage) CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnection, managedCluster *v1beta1.VerrazzanoManagedCluster, manifest *util.Manifest) error {
+func (t *testManagedPackage) CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnection, managedCluster *v1beta1.VerrazzanoManagedCluster) error {
 	t.Record("CreateCrdDefinitions", map[string]interface{}{
 		"managedClusterConnection": managedClusterConnection,
-		"managedCluster":           managedCluster,
-		"manifest":                 manifest})
+		"managedCluster":           managedCluster})
 	return nil
 }
 
@@ -286,11 +281,10 @@ func (t *testManagedPackage) CreateServices(mbPair *types.ModelBindingPair, filt
 	return nil
 }
 
-func (t *testManagedPackage) CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) error {
+func (t *testManagedPackage) CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, sec monitoring.Secrets) error {
 	t.Record("CreateDeployments", map[string]interface{}{
 		"mbPair":                             mbPair,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
-		"manifest":                           manifest,
 		"sec":                                sec})
 	return nil
 }

@@ -132,7 +132,6 @@ type Controller struct {
 	// Kubernetes API.
 	recorder record.EventRecorder
 
-	Manifest *v8outil.Manifest
 
 	// Keep track of no. of times add/update events are encountered for unchanged bindings
 	bindingSyncThreshold map[string]int
@@ -159,7 +158,7 @@ func (c *Controller) ListerSet() Listers {
 }
 
 // NewController returns a new Verrazzano Operator controller
-func NewController(config *rest.Config, manifest *v8outil.Manifest, watchNamespace string, verrazzanoURI string, enableMonitoringStorage string) (*Controller, error) {
+func NewController(config *rest.Config,  watchNamespace string, verrazzanoURI string, enableMonitoringStorage string) (*Controller, error) {
 	zap.S().Debugw("Building kubernetes clientset")
 	kubeClientSet, err := buildKubeClientSet(config)
 	if err != nil {
@@ -256,7 +255,6 @@ func NewController(config *rest.Config, manifest *v8outil.Manifest, watchNamespa
 		applicationModels:                map[string]*v1beta1v8o.VerrazzanoModel{},
 		applicationBindings:              map[string]*types.ClusterBinding{},
 		modelBindingPairs:                map[string]*types.ModelBindingPair{},
-		Manifest:                         manifest,
 		bindingSyncThreshold:             map[string]int{},
 		secrets:                          kubeSecrets,
 	}
@@ -400,11 +398,6 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		/*********************
 		 * Create Artifacts in the Managed Cluster
 		 **********************/
-		// Create CRD Definitions
-		err = c.managed.CreateCrdDefinitions(c.managedClusterConnections[managedCluster.Name], managedCluster, c.Manifest)
-		if err != nil {
-			zap.S().Errorf("Failed to create CRD definitions for ManagedCluster %s: %v", managedCluster.Name, err)
-		}
 
 		// Wait for the caches to be synced before starting workers
 		zap.S().Infow("Waiting for informer caches to sync")
@@ -471,7 +464,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create Deployments
-	err = c.managed.CreateDeployments(mbPair, filteredConnections, c.Manifest, c.verrazzanoURI, c.secrets)
+	err = c.managed.CreateDeployments(mbPair, filteredConnections, c.verrazzanoURI, c.secrets)
 	if err != nil {
 		zap.S().Errorf("Failed to create deployments for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -751,7 +744,6 @@ func remove(list []string, s string) []string {
 // managedInterface defines the functions in the 'managed' package that are used  by the Controller
 type managedInterface interface {
 	BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*v8outil.ManagedClusterConnection, error)
-	CreateCrdDefinitions(managedClusterConnection *v8outil.ManagedClusterConnection, managedCluster *v1beta1v8o.VerrazzanoManagedCluster, manifest *v8outil.Manifest) error
 	CreateNamespaces(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateSecrets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets) error
 	CreateServiceAccounts(bindingName string, imagePullSecrets []corev1.LocalObjectReference, managedClusters map[string]*types.ManagedCluster, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
@@ -761,7 +753,7 @@ type managedInterface interface {
 	CreateIngresses(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateServiceEntries(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, manifest *v8outil.Manifest, verrazzanoURI string, sec v8omonitoring.Secrets) error
+	CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, sec v8omonitoring.Secrets) error
 	CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}, vbLister listers.VerrazzanoBindingLister) error
 	UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string) error
@@ -784,10 +776,6 @@ type managedPackage struct {
 
 func (*managedPackage) BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*v8outil.ManagedClusterConnection, error) {
 	return v8omanaged.BuildManagedClusterConnection(kubeConfigContents, stopCh)
-}
-
-func (*managedPackage) CreateCrdDefinitions(managedClusterConnection *v8outil.ManagedClusterConnection, managedCluster *v1beta1v8o.VerrazzanoManagedCluster, manifest *v8outil.Manifest) error {
-	return v8omanaged.CreateCrdDefinitions(managedClusterConnection, managedCluster, manifest)
 }
 
 func (*managedPackage) CreateNamespaces(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
@@ -818,20 +806,12 @@ func (*managedPackage) CreateServices(mbPair *types.ModelBindingPair, filteredCo
 	return v8omanaged.CreateServices(mbPair, filteredConnections)
 }
 
-func (*managedPackage) CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, manifest *v8outil.Manifest, verrazzanoURI string, sec v8omonitoring.Secrets) error {
-	return v8omanaged.CreateDeployments(mbPair, availableManagedClusterConnections, manifest, verrazzanoURI, sec)
-}
-
-func (*managedPackage) CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}, vbLister listers.VerrazzanoBindingLister) error {
-	return v8omanaged.CreateCustomResources(mbPair, availableManagedClusterConnections, stopCh, vbLister)
+func (*managedPackage) CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection,  verrazzanoURI string, sec v8omonitoring.Secrets) error {
+	return v8omanaged.CreateDeployments(mbPair, availableManagedClusterConnections,  verrazzanoURI, sec)
 }
 
 func (*managedPackage) CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string) error {
 	return v8omanaged.CreateDaemonSets(mbPair, availableManagedClusterConnections, verrazzanoURI)
-}
-
-func (*managedPackage) CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error {
-	return v8omanaged.CleanupOrphanedCustomResources(mbPair, availableManagedClusterConnections, stopCh)
 }
 
 func (*managedPackage) CleanupOrphanedClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
@@ -855,10 +835,6 @@ func (*managedPackage) CleanupOrphanedServices(mbPair *types.ModelBindingPair, a
 
 func (*managedPackage) CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
 	return v8omanaged.CleanupOrphanedDeployments(mbPair, availableManagedClusterConnections)
-}
-
-func (*managedPackage) DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.DeleteCustomResources(mbPair, availableManagedClusterConnections)
 }
 
 func (*managedPackage) DeleteClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error {

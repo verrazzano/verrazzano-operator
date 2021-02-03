@@ -189,13 +189,6 @@ func TestGetManagedClustersNotForVerrazzanoBinding(t *testing.T) {
 	assert.False(ok, "Map returned by GetManagedClustersForVerrazzanoBinding should not contain entry")
 }
 
-func TestLoadManifest(t *testing.T) {
-	assert := assert.New(t)
-	manifest, err := LoadManifest()
-	assert.NotNil(manifest, "LoadManifiest returned nil")
-	assert.Error(err, "Error loading manifest")
-}
-
 func TestSharedVMIDefault(t *testing.T) {
 	assert := assert.New(t)
 	os.Unsetenv("USE_SYSTEM_VMI")

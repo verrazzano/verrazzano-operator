@@ -7,18 +7,8 @@ import (
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
-	cohoprclientset "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/clientset/versioned"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
 	clientsetfake "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
-	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned"
-	cohcluclientsetfake "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned/fake"
-	domclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned"
-	domclientsetfake "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned/fake"
-	helidionclientset "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/clientset/versioned"
-	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
-	wlsoprclientset "github.com/verrazzano/verrazzano-wko-operator/pkg/client/clientset/versioned"
-	istioauthclientset "istio.io/client-go/pkg/clientset/versioned"
-	istioauthclientsetfake "istio.io/client-go/pkg/clientset/versioned/fake"
 	extclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	extclientsetfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	"k8s.io/client-go/kubernetes"
@@ -57,62 +47,6 @@ func TestBuildManagedClusterConnection(t *testing.T) {
 		return clientsetfake.NewSimpleClientset(), nil
 	}
 	defer func() { newVerrazzanoOperatorClientSet = origNewVerrazzanoOperatorClientSet }()
-
-	// mock wls operator client set creation to return fake
-	origNewWLSOperatorClientSet := newWLSOperatorClientSet
-	newWLSOperatorClientSet = func(c *rest.Config) (wlsoprclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return testutil.NewWlsOprClientset(), nil
-	}
-	defer func() { newWLSOperatorClientSet = origNewWLSOperatorClientSet }()
-
-	// mock domain client set creation to return fake
-	origNewDomainClientSet := newDomainClientSet
-	newDomainClientSet = func(c *rest.Config) (domclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return domclientsetfake.NewSimpleClientset(), nil
-	}
-	defer func() { newDomainClientSet = origNewDomainClientSet }()
-
-	// mock helidon client set creation to return fake
-	origNewHelidonClientSet := newHelidonClientSet
-	newHelidonClientSet = func(c *rest.Config) (helidionclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return testutil.NewHelidionClientset(), nil
-	}
-	defer func() { newHelidonClientSet = origNewHelidonClientSet }()
-
-	// mock Coherence operator client set creation to return fake
-	origNewCOHOperatorClientSet := newCOHOperatorClientSet
-	newCOHOperatorClientSet = func(c *rest.Config) (cohoprclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return testutil.NewCohOprClientset(), nil
-	}
-	defer func() { newCOHOperatorClientSet = origNewCOHOperatorClientSet }()
-
-	// mock Coherence cluster client set creation to return fake
-	origNewCOHClusterClientSet := newCOHClusterClientSet
-	newCOHClusterClientSet = func(c *rest.Config) (cohcluclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return cohcluclientsetfake.NewSimpleClientset(), nil
-	}
-	defer func() { newCOHClusterClientSet = origNewCOHClusterClientSet }()
-
-	// mock Istio client set creation to return fake
-	origNewIstioClientSet := newIstioClientSet
-	newIstioClientSet = func(c *rest.Config) (istioauthclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return istioauthclientsetfake.NewSimpleClientset(), nil
-	}
-	defer func() { newIstioClientSet = origNewIstioClientSet }()
-
-	// mock Istio auth client set creation to return fake
-	origNewIstioAuthClientSet := newIstioAuthClientSet
-	newIstioAuthClientSet = func(c *rest.Config) (istioauthclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return istioauthclientsetfake.NewSimpleClientset(), nil
-	}
-	defer func() { newIstioAuthClientSet = origNewIstioAuthClientSet }()
 
 	// mock kubernetes ext client set creation to return fake
 	origNewExtClientSet := newExtClientSet

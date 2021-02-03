@@ -6,8 +6,6 @@ package testutilcontroller
 import (
 	"errors"
 	"fmt"
-	"reflect"
-
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
@@ -15,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+	"reflect"
 )
 
 func testIndexFunc(obj interface{}) ([]string, error) {
@@ -65,24 +64,9 @@ func NewControllerListers(clients *kubernetes.Interface, clusters []v1beta1.Verr
 		clusterIndexer.Add(&clusters[i])
 	}
 
-	modelIndexer := cache.NewIndexer(testKeyFunc, testIndexers)
-	for _, mb := range *modelBindingPairs {
-		modelIndexer.Add(mb.Model)
-	}
-
-	bindingIndexer := cache.NewIndexer(testKeyFunc, testIndexers)
-	for _, mb := range *modelBindingPairs {
-		bindingIndexer.Add(mb.Binding)
-	}
-
 	clusterLister := listers.NewVerrazzanoManagedClusterLister(clusterIndexer)
-	modelLister := listers.NewVerrazzanoModelLister(modelIndexer)
-	bindingLister := listers.NewVerrazzanoBindingLister(bindingIndexer)
 	return controller.Listers{
 		ManagedClusterLister: &clusterLister,
-		ModelLister:          &modelLister,
-		BindingLister:        &bindingLister,
-		ModelBindingPairs:    modelBindingPairs,
 		KubeClientSet:        clients,
 	}
 }

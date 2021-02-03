@@ -7,12 +7,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sync"
 
-	v1cohoperator "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/apis/verrazzano/v1beta1"
-	v1cohcluster "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	v8weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
-	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
-	v1wlsopr "github.com/verrazzano/verrazzano-wko-operator/pkg/apis/verrazzano/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -104,23 +98,6 @@ type ManagedCluster struct {
 	// Remote rest connections (istio ServicEntries) to generate within each namespace for this cluster
 	RemoteRests map[string][]*RemoteRestConnection
 
-	// wls-operator deployment for this cluster
-	WlsOperator *v1wlsopr.WlsOperator
-
-	// WebLogic domain CRs for this cluster
-	WlsDomainCRs []*v8weblogic.Domain
-
-	// Helidon applications for this cluster
-	HelidonApps []*v1helidonapp.HelidonApp
-
-	// Coherence operator for this cluster
-	CohOperatorCRs []*v1cohoperator.CohCluster
-
-	// Coherence cluster CRs for this cluster
-	CohClusterCRs []*v1cohcluster.CoherenceCluster
-
-	// Generic components for this cluster
-	GenericComponents []*v1beta1v8o.VerrazzanoGenericComponent
 }
 
 type ClusterModel struct {

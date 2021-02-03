@@ -21,7 +21,7 @@ import (
 )
 
 // CreateDeployments creates/updates deployments needed for each managed cluster.
-func CreateDeployments(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) error {
+func CreateDeployments(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, sec monitoring.Secrets) error {
 	zap.S().Infof("Creating/updating Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
 
 	// Construct deployments for each ManagedCluster
@@ -39,7 +39,7 @@ func CreateDeployments(mbPair *types.ModelBindingPair, filteredConnections map[s
 				continue
 			}
 		} else {
-			deployments, err = newSystemDeployments(mbPair.Binding, managedClusterObj, manifest, verrazzanoURI, sec)
+			deployments, err = newSystemDeployments(mbPair.Binding, managedClusterObj, verrazzanoURI, sec)
 			if err != nil {
 				zap.S().Errorf("Error creating new deployments %v", err)
 				continue
@@ -170,7 +170,7 @@ func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManaged
 }
 
 // Constructs the necessary Verrazzano system deployments for the specified ManagedCluster in the given VerrazzanoBinding
-func newSystemDeployments(binding *types.ClusterBinding, managedCluster *types.ManagedCluster, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
+func newSystemDeployments(binding *types.ClusterBinding, managedCluster *types.ManagedCluster, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
 	deployPromPusher := true //temporary variable to create pusher deployment
 	depLabels := util.GetManagedLabelsNoBinding(managedCluster.Name)
 	var deployments []*appsv1.Deployment

@@ -4,7 +4,6 @@
 package util
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -19,7 +18,6 @@ import (
 	domlister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/listers/weblogic/v8"
 	helidonclientset "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/clientset/versioned"
 	helidionlister "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/listers/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano-operator/pkg/assets"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	wlsoprclientset "github.com/verrazzano/verrazzano-wko-operator/pkg/client/clientset/versioned"
@@ -28,7 +26,6 @@ import (
 	istioAuthClientset "istio.io/client-go/pkg/clientset/versioned"
 	istioLister "istio.io/client-go/pkg/listers/networking/v1alpha3"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/kubernetes"
 	appslistersv1 "k8s.io/client-go/listers/apps/v1"
 	corelistersv1 "k8s.io/client-go/listers/core/v1"
@@ -90,16 +87,6 @@ type ManagedClusterConnection struct {
 	DaemonSetInformer           cache.SharedIndexInformer
 	ServiceLister               corelistersv1.ServiceLister
 	ServiceInformer             cache.SharedIndexInformer
-}
-
-// Manifest maintains the concrete set of images for components the Verrazzano Operator launches.
-type Manifest struct {
-	WlsMicroOperatorImage   string `json:"wlsMicroOperatorImage"`
-	WlsMicroOperatorCrd     string `json:"wlsMicroOperatorCrd"`
-	HelidonAppOperatorImage string `json:"helidonAppOperatorImage"`
-	HelidonAppOperatorCrd   string `json:"helidonAppOperatorCrd"`
-	CohClusterOperatorImage string `json:"cohClusterOperatorImage"`
-	CohClusterOperatorCrd   string `json:"cohClusterOperatorCrd"`
 }
 
 // DeploymentHelper defines an interface for deployments.
@@ -201,46 +188,6 @@ func GetManagedClustersNotForVerrazzanoBinding(mbPair *types.ModelBindingPair, a
 		}
 	}
 	return filteredManagedClusters
-}
-
-// LoadManifest loads and verifies the Verrazzano Operator Manifest.
-func LoadManifest() (*Manifest, error) {
-	manifestString, err := assets.Asset(constants.ManifestFile)
-	if err != nil {
-		return nil, err
-	}
-
-	var manifest Manifest
-	err = json.Unmarshal(manifestString, &manifest)
-	if err != nil {
-		return nil, err
-	}
-	allErrs := field.ErrorList{}
-
-	// Get the image info from ENV vars, defaulting to manifest.yaml values
-	manifest.CohClusterOperatorImage = getCohMicroImage()
-	manifest.HelidonAppOperatorImage = getHelidonMicroImage()
-	manifest.WlsMicroOperatorImage = getWlsMicroImage()
-
-	if manifest.WlsMicroOperatorImage == "" {
-		allErrs = append(allErrs, field.Required(field.NewPath("WlsMicroOperatorImage"), ""))
-	}
-	if manifest.WlsMicroOperatorCrd == "" {
-		allErrs = append(allErrs, field.Required(field.NewPath("WlsMicroOperatorCrd"), ""))
-	}
-	if manifest.HelidonAppOperatorImage == "" {
-		allErrs = append(allErrs, field.Required(field.NewPath("HelidonAppOperatorImage"), ""))
-	}
-	if manifest.HelidonAppOperatorCrd == "" {
-		allErrs = append(allErrs, field.Required(field.NewPath("HelidonAppOperatorCrd"), ""))
-	}
-	if manifest.CohClusterOperatorImage == "" {
-		allErrs = append(allErrs, field.Required(field.NewPath("CohClusterOperatorImage"), ""))
-	}
-	if manifest.CohClusterOperatorCrd == "" {
-		allErrs = append(allErrs, field.Required(field.NewPath("CohClusterOperatorCrd"), ""))
-	}
-	return &manifest, allErrs.ToAggregate()
 }
 
 // IsClusterInBinding checks if a cluster was found in a binding.
