@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"math/rand"
 
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/local"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
@@ -56,7 +55,7 @@ func CreateSecrets(mbPair *types.ModelBindingPair, availableManagedClusterConnec
 	return nil
 }
 
-func createSecrets(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnection *util.ManagedClusterConnection, newSecrets []*corev1.Secret, clusterName string) error {
+func createSecrets(binding *types.ClusterBinding, managedClusterConnection *util.ManagedClusterConnection, newSecrets []*corev1.Secret, clusterName string) error {
 	// Create or update secrets
 	var secretNames = []string{}
 	for _, newSecret := range newSecrets {
@@ -87,47 +86,6 @@ func createSecrets(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnecti
 func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedCluster, kubeClientSet kubernetes.Interface) []*corev1.Secret {
 	var secrets []*corev1.Secret
 
-	// For each database binding check to see if there are any corresponding WebLogic domain connections
-	binding := mbPair.Binding
-	for _, databaseBinding := range binding.Spec.DatabaseBindings {
-		secretName := databaseBinding.Credentials
-
-		// Get the url from the binding to add to the data for the new secret
-		data := make(map[string][]byte)
-		data["url"] = []byte(databaseBinding.Url)
-
-		for _, domain := range mbPair.Model.Spec.WeblogicDomains {
-
-			hasConnection := false
-			for _, connection := range domain.Connections {
-				for _, databaseConnection := range connection.Database {
-					if databaseConnection.Target == databaseBinding.Name {
-						hasConnection = true
-						break
-					}
-				}
-			}
-			// If this domain has a database connection that targets this database binding...
-			if hasConnection {
-				// Find the namespace for this domain in the binding placements
-				namespace, err := util.GetComponentNamespace(domain.Name, binding)
-				if err != nil {
-					zap.S().Debugf("Getting namespace for domain %s is giving error %s", domain.Name, err)
-					continue
-				}
-
-				// Create the new secret in the domain's namespace from the secret named in this database binding
-				labels := make(map[string]string)
-				labels["weblogic.domainUID"] = domain.Name
-				secretObj, err := newSecret(secretName, namespace, kubeClientSet, data, labels)
-				if err != nil {
-					zap.S().Debugf("Copying secret %s to namespace %s for database binding %s is giving error %s", secretName, namespace, databaseBinding.Name, err)
-					continue
-				}
-				secrets = append(secrets, secretObj)
-			}
-		}
-	}
 
 	for namespace, secretNames := range managedCluster.Secrets {
 		for _, secretName := range secretNames {
@@ -145,47 +103,6 @@ func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedClu
 					continue
 				}
 				secrets = append(secrets, secretObj)
-			}
-		}
-	}
-
-	// Process WebLogic domain secrets
-	for _, domain := range managedCluster.WlsDomainCRs {
-		// Each WebLogic domain requires a runtime encryption secret that contains a randomly generated password.
-		// Note: we are assuming that each domain has DomainHomeSourceType set to FromModel.
-
-		// Find the namespace for this domain in the binding placements
-		namespace, err := util.GetComponentNamespace(domain.Name, binding)
-		if err != nil {
-			zap.S().Errorf("Getting namespace for domain %s is giving error %s", domain.Name, err)
-			continue
-		}
-
-		data := make(map[string][]byte)
-		data["password"] = []byte(generateRandomString())
-
-		labels := make(map[string]string)
-		labels["weblogic.domainUID"] = domain.Spec.DomainUID
-
-		secretName := domain.Spec.Configuration.Model.RuntimeEncryptionSecret
-		secretObj := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      secretName,
-				Namespace: namespace,
-				Labels:    labels,
-			},
-			Data: data,
-			Type: wlsRuntimeEncryptionSecret,
-		}
-
-		secrets = append(secrets, secretObj)
-
-		// VZ-1596: Create secrets for configured list of arbitrary secrets
-		for _, secretName = range domain.Spec.Configuration.Secrets {
-			if secretObj, err = newSecret(secretName, namespace, kubeClientSet, nil, nil); err == nil {
-				secrets = append(secrets, secretObj)
-			} else {
-				zap.S().Errorf("Copying secret %s to namespace %s is giving error %v", secretName, namespace, err)
 			}
 		}
 	}

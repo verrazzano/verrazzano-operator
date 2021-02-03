@@ -19,10 +19,8 @@ import (
 func TestGetManagedBindingLabels(t *testing.T) {
 	assert := assert.New(t)
 	const bindingName = "testbinding"
-	binding := v1beta1v8o.VerrazzanoBinding{
-		ObjectMeta: v1.ObjectMeta{
+	binding := types.ClusterBinding{
 			Name: bindingName,
-		},
 	}
 	const clusterName = "testCluster"
 	bm := GetManagedBindingLabels(&binding, clusterName)
@@ -57,7 +55,7 @@ func TestGetManagedLabelsNoBinding(t *testing.T) {
 func TestGetManagedNamespaceForBinding(t *testing.T) {
 	assert := assert.New(t)
 	const bindingName = "testbinding"
-	binding := v1beta1v8o.VerrazzanoBinding{
+	binding := types.ClusterBinding{
 		ObjectMeta: v1.ObjectMeta{
 			Name: bindingName,
 		},
@@ -69,7 +67,7 @@ func TestGetManagedNamespaceForBinding(t *testing.T) {
 func TestGetLocalBindingLabels(t *testing.T) {
 	assert := assert.New(t)
 	const bindingName = "testbinding"
-	binding := v1beta1v8o.VerrazzanoBinding{
+	binding := types.ClusterBinding{
 		ObjectMeta: v1.ObjectMeta{
 			Name: bindingName,
 		},
@@ -146,8 +144,7 @@ func TestGetManagedClustersForVerrazzanoBinding(t *testing.T) {
 	const cname2 = "cluster2"
 
 	mbPair := types.ModelBindingPair{
-		Model:   &v1beta1v8o.VerrazzanoModel{},
-		Binding: &v1beta1v8o.VerrazzanoBinding{},
+		Binding: &types.ClusterBinding{},
 		ManagedClusters: map[string]*types.ManagedCluster{
 			cname1: {Name: cname1},
 		},
@@ -174,8 +171,7 @@ func TestGetManagedClustersNotForVerrazzanoBinding(t *testing.T) {
 	const cname2 = "cluster2"
 
 	mbPair := types.ModelBindingPair{
-		Model:   &v1beta1v8o.VerrazzanoModel{},
-		Binding: &v1beta1v8o.VerrazzanoBinding{},
+		Binding: &types.ClusterBinding{},
 		ManagedClusters: map[string]*types.ManagedCluster{
 			cname2: {Name: cname1},
 		},
@@ -198,11 +194,11 @@ func TestIsClusterInBinding(t *testing.T) {
 	const cname2 = "cluster2"
 	mbMap := map[string]*types.ModelBindingPair{
 		cname1: {
-			Binding: &v1beta1v8o.VerrazzanoBinding{
-				Spec: v1beta1v8o.VerrazzanoBindingSpec{
+			Binding: &types.ClusterBinding{
+				Spec: types.ClusterBindingSpec{
 					Placement: []v1beta1v8o.VerrazzanoPlacement{{Name: cname1}},
 				},
-				Status: v1beta1v8o.VerrazzanoBindingStatus{},
+				Status: types.ClusterBindingStatus{},
 			},
 		},
 	}
@@ -217,8 +213,8 @@ func TestGetComponentNamespace(t *testing.T) {
 	const compname1 = "comp1"
 	const compname2 = "comp2"
 	const compname3 = "comp3"
-	binding := &v1beta1v8o.VerrazzanoBinding{
-		Spec: v1beta1v8o.VerrazzanoBindingSpec{
+	binding := &types.ClusterBinding{
+		Spec: types.ClusterBindingSpec{
 			Placement: []v1beta1v8o.VerrazzanoPlacement{
 				{Namespaces: []v1beta1v8o.KubernetesNamespace{
 					{Name: ns1,
@@ -232,7 +228,7 @@ func TestGetComponentNamespace(t *testing.T) {
 				}},
 			},
 		},
-		Status: v1beta1v8o.VerrazzanoBindingStatus{},
+		Status: types.ClusterBindingStatus{},
 	}
 	ns, err := GetComponentNamespace(compname1, binding)
 	assert.NoError(err, "Error finding component in GetComponentNamespace")

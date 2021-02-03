@@ -199,25 +199,6 @@ func TestBuildManagedClusterConnection(t *testing.T) {
 	assert.NotNil(clusterConnection.ServiceInformer, "expected informer to be initialized")
 }
 
-// TestGetFilteredConnections test getting a filtered set of connections based on a given VerrazzanoBinding.
-// GIVEN a VerrazzanoBinding and map of managed cluster connections
-//  WHEN I call GetFilteredConnections
-//  THEN a filtered map of connections (applicable to the given VerrazzanoBinding) should be returned
-func TestGetFilteredConnections(t *testing.T) {
-	assert := asserts.New(t)
-
-	modelBindingPair := testutil.GetModelBindingPair()
-	clusterConnections := testutil.GetManagedClusterConnections()
-
-	connections, err := GetFilteredConnections(modelBindingPair, clusterConnections)
-	assert.NoError(err, "got error from BuildManagedClusterConnection")
-	expectedClusterNames := map[string]struct{}{"cluster1": {}, "cluster2": {}}
-	assert.Len(connections, len(expectedClusterNames), "expected 2 connections")
-	for name := range connections {
-		assert.Contains(expectedClusterNames, name, "connection %s not expected", name)
-	}
-}
-
 // Test_setupHTTPResolve test setting up http resolve for a given restConfig.
 // GIVEN a restConfig and env var "rancherURL" and "rancherHost"
 //  WHEN I call setupHTTPResolve

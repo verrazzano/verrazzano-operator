@@ -4,7 +4,6 @@ package monitoring
 
 import (
 	"fmt"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"os"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 )
 
 type MockDeployment struct {
@@ -146,7 +146,7 @@ func TestDeletePomPusher(t *testing.T) {
 
 // Get secrets and labels used by the tests
 func getSecretsAndLabels() (secrets Secrets, labels map[string]string) {
-	binding := v1beta1v8o.VerrazzanoBinding{}
+	binding := types.ClusterBinding{}
 	binding.Name = "vmiSecrets"
 	vmiSecret := NewVmiSecret(&binding)
 	secrets = &MockSecrets{secrets: map[string]*corev1.Secret{

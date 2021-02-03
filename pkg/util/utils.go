@@ -12,7 +12,6 @@ import (
 
 	cohoprclientset "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/clientset/versioned"
 	cohoprlister "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/listers/verrazzano/v1beta1"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
 	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned"
 	cohclulister "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/listers/coherence/v1"
@@ -78,7 +77,7 @@ type ManagedClusterConnection struct {
 	CohOperatorLister           cohoprlister.CohClusterLister
 	CohOperatorInformer         cache.SharedIndexInformer
 	CohClusterLister            cohclulister.CoherenceClusterLister
-	CohClusterInformer          cache.SharedIndexInformer
+	CohClusterBindingrmer          cache.SharedIndexInformer
 	IstioGatewayLister          istioLister.GatewayLister
 	IstioGatewayInformer        cache.SharedIndexInformer
 	IstioVirtualServiceLister   istioLister.VirtualServiceLister
@@ -109,7 +108,7 @@ type DeploymentHelper interface {
 }
 
 // GetManagedBindingLabels returns binding labels for managed cluster.
-func GetManagedBindingLabels(binding *v1beta1v8o.VerrazzanoBinding, managedClusterName string) map[string]string {
+func GetManagedBindingLabels(binding *types.ClusterBinding, managedClusterName string) map[string]string {
 	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoBinding: binding.Name, constants.VerrazzanoCluster: managedClusterName}
 }
 
@@ -119,12 +118,12 @@ func GetManagedLabelsNoBinding(managedClusterName string) map[string]string {
 }
 
 // GetManagedNamespaceForBinding return the namespace for a given binding.
-func GetManagedNamespaceForBinding(binding *v1beta1v8o.VerrazzanoBinding) string {
+func GetManagedNamespaceForBinding(binding *types.ClusterBinding) string {
 	return fmt.Sprintf("%s-%s", constants.VerrazzanoPrefix, binding.Name)
 }
 
 // GetLocalBindingLabels returns binding labels for local cluster.
-func GetLocalBindingLabels(binding *v1beta1v8o.VerrazzanoBinding) map[string]string {
+func GetLocalBindingLabels(binding *types.ClusterBinding) map[string]string {
 	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoBinding: binding.Name}
 }
 
@@ -257,7 +256,7 @@ func IsClusterInBinding(clusterName string, allMbPairs map[string]*types.ModelBi
 }
 
 // GetComponentNamespace finds the namespace for the component from the given binding placements.
-func GetComponentNamespace(componentName string, binding *v1beta1v8o.VerrazzanoBinding) (string, error) {
+func GetComponentNamespace(componentName string, binding *types.ClusterBinding) (string, error) {
 	for _, placement := range binding.Spec.Placement {
 		for _, namespace := range placement.Namespaces {
 			for _, component := range namespace.Components {

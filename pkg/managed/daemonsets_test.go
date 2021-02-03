@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,30 +20,6 @@ import (
 const verrazzanoURI = "test"
 const clusterName1 = "cluster1"
 
-// TestCreateDaemonSets tests that the creation of daemon sets is skipped when the binding name
-// does not equal 'system'... CreateDaemonSets skips creating Daemon sets if binding is not System binding
-// GIVEN a cluster which does not have any daemon sets
-//  WHEN I call CreateDaemonSets with a binding named 'testBinding'
-//  THEN there should be no daemon sets created
-func TestCreateDaemonSets(t *testing.T) {
-	assert := assert.New(t)
-
-	modelBindingPair := testutil.GetModelBindingPair()
-	clusterConnections := testutil.GetManagedClusterConnections()
-	clusterConnection := clusterConnections[clusterName1]
-
-	err := CreateDaemonSets(modelBindingPair, clusterConnections, "test")
-	assert.Nil(err, "got an error from CreateDaemonSets: %v", err)
-	lister := clusterConnection.DaemonSetLister
-
-	selector := labels.Everything()
-	sets, err := lister.List(selector)
-	assert.Nil(err, "can't get daemon sets: %v", err)
-
-	// assert creating Daemon sets was skipped
-	assert.Empty(sets, "expected no deamon sets")
-}
-
 // TestCreateDaemonSetsVmiSystem tests the creation of daemon sets when the binding name is 'system'
 // GIVEN a cluster which does not have any daemon sets
 //  WHEN I call CreateDaemonSets with a binding named 'system'
@@ -50,13 +27,13 @@ func TestCreateDaemonSets(t *testing.T) {
 func TestCreateDaemonSetsVmiSystem(t *testing.T) {
 	assert := assert.New(t)
 
-	modelBindingPair := testutil.GetModelBindingPair()
+	VzSystemInfo := types.NewModelBindingPair()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections[clusterName1]
 
-	modelBindingPair.Binding.Name = constants.VmiSystemBindingName
+	VzSystemInfo.Binding.Name = constants.VmiSystemBindingName
 
-	err := CreateDaemonSets(modelBindingPair, clusterConnections, verrazzanoURI)
+	err := CreateDaemonSets(&VzSystemInfo, clusterConnections, verrazzanoURI)
 	assert.Nil(err, "got an error from CreateDaemonSets: %v", err)
 
 	// assert that the daemon sets in the given cluster match the expected daemon sets
@@ -71,11 +48,11 @@ func TestCreateDaemonSetsVmiSystem(t *testing.T) {
 func TestCreateDaemonSetsUpdateExistingSet(t *testing.T) {
 	assert := assert.New(t)
 
-	modelBindingPair := testutil.GetModelBindingPair()
+	VzSystemInfo := types.NewModelBindingPair()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections[clusterName1]
 
-	modelBindingPair.Binding.Name = constants.VmiSystemBindingName
+	VzSystemInfo.Binding.Name = constants.VmiSystemBindingName
 
 	ds := appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -86,7 +63,7 @@ func TestCreateDaemonSetsUpdateExistingSet(t *testing.T) {
 	_, err := clusterConnection.KubeClient.AppsV1().DaemonSets("logging").Create(context.TODO(), &ds, metav1.CreateOptions{})
 	assert.Nil(err, "can't create daemon sets: %v", err)
 
-	err = CreateDaemonSets(modelBindingPair, clusterConnections, verrazzanoURI)
+	err = CreateDaemonSets(&VzSystemInfo, clusterConnections, verrazzanoURI)
 	assert.Nil(err, "got an error from CreateDaemonSets: %v", err)
 
 	// assert that the daemon sets in the given cluster match the expected daemon sets

@@ -247,11 +247,11 @@ func CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClust
 				if crd1 && crd2 && crd3 {
 					cohInformerFactory := cohcluinformers.NewSharedInformerFactory(managedClusterConnection.CohClusterClientSet, constants.ResyncPeriod)
 					cohInformer := cohInformerFactory.Coherence().V1().CoherenceClusters()
-					managedClusterConnection.CohClusterInformer = cohInformer.Informer()
+					managedClusterConnection.CohClusterBindingrmer = cohInformer.Informer()
 					managedClusterConnection.CohClusterLister = cohInformer.Lister()
 					go cohInformerFactory.Start(stopCh)
 					// We need to sync the cache to discover existing resources if we were restarted
-					if ok := cache.WaitForCacheSync(stopCh, managedClusterConnection.CohClusterInformer.HasSynced); !ok {
+					if ok := cache.WaitForCacheSync(stopCh, managedClusterConnection.CohClusterBindingrmer.HasSynced); !ok {
 						zap.S().Infow("Failed to wait for caches to sync")
 					}
 				}

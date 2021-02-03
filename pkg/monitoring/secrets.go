@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/pbkdf2"
 	corev1 "k8s.io/api/core/v1"
@@ -34,7 +34,7 @@ type Secrets interface {
 }
 
 // NewVmiSecret creates the necessary Secrets for the given VerrazzanoBinding.
-func NewVmiSecret(binding *v1beta1v8o.VerrazzanoBinding) *corev1.Secret {
+func NewVmiSecret(binding *types.ClusterBinding) *corev1.Secret {
 	bindingLabels := util.GetLocalBindingLabels(binding)
 	sec := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -87,7 +87,7 @@ func saltedHash(sec *corev1.Secret) *corev1.Secret {
 }
 
 // CreateVmiSecrets creates/updates a VMI secret.
-func CreateVmiSecrets(binding *v1beta1v8o.VerrazzanoBinding, secrets Secrets) error {
+func CreateVmiSecrets(binding *types.ClusterBinding, secrets Secrets) error {
 	vmiSecret, _ := secrets.Get(constants.VmiSecretName)
 
 	if vmiSecret == nil {

@@ -5,6 +5,7 @@ package managed
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,13 +24,13 @@ import (
 func TestCreateServicesVMIBinding(t *testing.T) {
 	assert := assert.New(t)
 
-	mbPairSystemBinding := testutil.GetModelBindingPair()
+	mbPairSystemBinding := types.NewModelBindingPair()
 	mbPairSystemBinding.Model.Name = constants.VmiSystemBindingName
 	mbPairSystemBinding.Binding.Name = constants.VmiSystemBindingName
 
 	// Model/binding for VMI system binding - Node Exporter service is created.
 	managedConnections := testutil.GetManagedClusterConnections()
-	err := CreateServices(mbPairSystemBinding, managedConnections)
+	err := CreateServices(&mbPairSystemBinding, managedConnections)
 	assert.Nil(err, "got an error from CreateServices: %v", err)
 
 	for clusterName := range mbPairSystemBinding.ManagedClusters {
@@ -45,7 +46,7 @@ func TestCreateServicesVMIBinding(t *testing.T) {
 	}
 
 	// Model/binding for VMI system binding - service already exist
-	err = CreateServices(mbPairSystemBinding, managedConnections)
+	err = CreateServices(&mbPairSystemBinding, managedConnections)
 	assert.Nil(err, "got an error from CreateServices: %v", err)
 
 	for clusterName := range mbPairSystemBinding.ManagedClusters {
@@ -54,30 +55,6 @@ func TestCreateServicesVMIBinding(t *testing.T) {
 		assert.Nil(err, "got an error listing services: %v", err)
 		assertCreateServiceVMI(t, existingService, clusterName)
 	}
-}
-
-// TestDeleteServices tests that an existing service is properly deleted.
-// GIVEN a cluster which has an existing generic component service (test-generic)
-//  WHEN I call DeleteServices
-//  THEN we delete only the service (test-generic) for the generic component
-func TestDeleteServices(t *testing.T) {
-	assert := assert.New(t)
-
-	modelBindingPair := testutil.GetModelBindingPair()
-	clusterConnections := testutil.GetManagedClusterConnections()
-	clusterConnection := clusterConnections["cluster1"]
-
-	err := CreateServices(modelBindingPair, clusterConnections)
-	assert.Nil(err, "got an error from CreateServices: %v", err)
-
-	services, err := clusterConnection.KubeClient.CoreV1().Services("test").List(context.TODO(), metav1.ListOptions{})
-	assert.Nil(err, "got an error listing services: %v", err)
-
-	err = DeleteServices(modelBindingPair, clusterConnections)
-	assert.Nil(err, "got an error from DeleteServices: %v", err)
-	services, err = clusterConnection.KubeClient.CoreV1().Services("test").List(context.TODO(), metav1.ListOptions{})
-	assert.Nil(err, "got an error listing services: %v", err)
-	assert.Equal(0, len(services.Items), "expected exactly 0 service in the test namespace")
 }
 
 func assertCreateServiceVMI(t *testing.T, existingService *corev1.ServiceList, clusterName string) {

@@ -6,7 +6,6 @@ package managed
 import (
 	"context"
 
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
@@ -217,7 +216,7 @@ func DeleteClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterC
 }
 
 // Constructs the necessary ClusterRoles for the specified ManagedCluster in the given VerrazzanoBinding
-func newClusterRoles(binding *v1beta1v8o.VerrazzanoBinding, clusterName string) []*rbacv1.ClusterRole {
+func newClusterRoles(binding *types.ClusterBinding, clusterName string) []*rbacv1.ClusterRole {
 	roleLabels := util.GetManagedLabelsNoBinding(clusterName)
 	var clusterRoles []*rbacv1.ClusterRole
 

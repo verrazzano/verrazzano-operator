@@ -9,11 +9,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmoclientset "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
 	vmolisters "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/listers/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
 	"go.uber.org/zap"
@@ -25,7 +25,7 @@ import (
 var createInstanceFunc = createInstance
 
 // CreateUpdateVmi creates/updates Verrazzano Monitoring Instances for a given binding.
-func CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
+func CreateUpdateVmi(binding *types.ClusterBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 	zap.S().Debugf("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
 
 	if util.SharedVMIDefault() && !util.IsSystemProfileBindingName(binding.Name) {
@@ -63,7 +63,7 @@ func CreateUpdateVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclie
 }
 
 // DeleteVmi deletes Verrazzano Monitoring Instances for a given binding.
-func DeleteVmi(binding *v1beta1v8o.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
+func DeleteVmi(binding *types.ClusterBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
 	zap.S().Infof("Deleting Local (Management Cluster) VMIs for VerrazzanoBinding %s", binding.Name)
 
 	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
@@ -99,7 +99,7 @@ func createStorageOption(envSetting string, enableMonitoringStorageEnvFlag strin
 }
 
 // Constructs the necessary VerrazzanoMonitoringInstance for the given VerrazzanoBinding
-func createInstance(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string, enableMonitoringStorage string) (*vmov1.VerrazzanoMonitoringInstance, error) {
+func createInstance(binding *types.ClusterBinding, verrazzanoURI string, enableMonitoringStorage string) (*vmov1.VerrazzanoMonitoringInstance, error) {
 	if verrazzanoURI == "" {
 		return nil, errors.New("verrazzanoURI must not be empty")
 	}

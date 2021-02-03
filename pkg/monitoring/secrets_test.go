@@ -10,7 +10,8 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 
 	"github.com/stretchr/testify/assert"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
+
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -48,7 +49,7 @@ func (ms *MockSecrets) GetVmiPassword() (string, error) {
 }
 
 func TestExistingVmiSecrets(t *testing.T) {
-	binding := v1beta1v8o.VerrazzanoBinding{}
+	binding := types.ClusterBinding{}
 	binding.Name = "TestExistingVmiSecrets"
 	existing := NewVmiSecret(&binding)
 	secrets := MockSecrets{secrets: map[string]*corev1.Secret{
@@ -70,7 +71,7 @@ func assertSaltedHash(t *testing.T, secrets Secrets) {
 }
 
 func TestNewVmiRandomPassword(t *testing.T) {
-	binding := v1beta1v8o.VerrazzanoBinding{}
+	binding := types.ClusterBinding{}
 	binding.Name = "TestNewVmiRandomPassword"
 	secrets := &MockSecrets{secrets: map[string]*corev1.Secret{}}
 	CreateVmiSecrets(&binding, secrets)

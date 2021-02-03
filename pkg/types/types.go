@@ -1,9 +1,10 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package types
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sync"
 
 	v1cohoperator "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/apis/verrazzano/v1beta1"
@@ -122,12 +123,35 @@ type ManagedCluster struct {
 	GenericComponents []*v1beta1v8o.VerrazzanoGenericComponent
 }
 
+type ClusterPlacement struct {
+	// The name of the placement
+	Name string `json:"name" yaml:"name"`
+
+	// Namespaces for this placement
+	Namespaces []struct {
+		Name       string
+		Components []struct {
+			Name string
+		}
+	}
+}
+
+type ClusterModel struct {
+	metav1.ObjectMeta
+}
+
+type ClusterBinding struct {
+	metav1.ObjectMeta
+	Spec struct {
+		Placement []ClusterPlacement
+	}
+}
+
 // ModelBindingPair represents an instance of a model/binding pair and
 // the objects for creating the model.
 type ModelBindingPair struct {
-	// A binding and the model it is associated with
-	Model   *v1beta1v8o.VerrazzanoModel
-	Binding *v1beta1v8o.VerrazzanoBinding
+	Binding *ClusterBinding
+	Model *ClusterModel
 
 	// The set of managed clusters
 	ManagedClusters map[string]*ManagedCluster
@@ -139,4 +163,11 @@ type ModelBindingPair struct {
 
 	// Optional list of image pull secrets to add to service accounts created by the operator
 	ImagePullSecrets []corev1.LocalObjectReference
+}
+
+func NewModelBindingPair() ModelBindingPair {
+	return ModelBindingPair{
+		Binding: &ClusterBinding{},
+		Model: &ClusterModel{},
+	}
 }

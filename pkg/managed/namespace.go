@@ -11,7 +11,6 @@ import (
 
 	"time"
 
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
@@ -44,7 +43,7 @@ func CreateNamespaces(mbPair *types.ModelBindingPair, filteredConnections map[st
 	return nil
 }
 
-func createNamespace(binding *v1beta1v8o.VerrazzanoBinding, managedClusterConnection *util.ManagedClusterConnection, newNamespaces []*corev1.Namespace, clusterName string) error {
+func createNamespace(binding *types.ClusterBinding, managedClusterConnection *util.ManagedClusterConnection, newNamespaces []*corev1.Namespace, clusterName string) error {
 	// Construct the set of expected namespaces
 	for _, newNamespace := range newNamespaces {
 		existingNamespace, err := managedClusterConnection.NamespaceLister.Get(newNamespace.Name)
@@ -218,7 +217,7 @@ func DeleteNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterCon
 }
 
 // Constructs the necessary Namespaces for the specified ManagedCluster in the given VerrazzanoBinding
-func newNamespaces(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.ManagedCluster) []*corev1.Namespace {
+func newNamespaces(binding *types.ClusterBinding, managedCluster *types.ManagedCluster) []*corev1.Namespace {
 	var namespaces []*corev1.Namespace
 
 	for _, namespace := range managedCluster.Namespaces {

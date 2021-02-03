@@ -4,6 +4,7 @@ package managed
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"reflect"
 	"testing"
 
@@ -20,68 +21,6 @@ import (
 
 var origGetEnvFunc = util.GetEnvFunc
 
-// TestCreateDeployments tests the creation of deployments.
-// GIVEN a cluster which does not have any deployments
-//  WHEN I call CreateDeployments
-//  THEN there should be an expected set of deployments created
-func TestCreateDeployments(t *testing.T) {
-	assert := assert.New(t)
-
-	modelBindingPair := testutil.GetModelBindingPair()
-	clusterConnections := testutil.GetManagedClusterConnections()
-	clusterConnection := clusterConnections["cluster1"]
-	manifest := testutil.GetManifest()
-	vmiSecret := monitoring.NewVmiSecret(modelBindingPair.Binding)
-	secrets := &testutil.FakeSecrets{Secrets: map[string]*corev1.Secret{
-		constants.VmiSecretName: vmiSecret,
-	}}
-
-	// temporarily set util.GetEnvFunc to mock response
-	util.GetEnvFunc = getenv
-	defer func() { util.GetEnvFunc = origGetEnvFunc }()
-
-	err := CreateDeployments(modelBindingPair, clusterConnections, &manifest, "testURI", secrets)
-	assert.Nil(err, "got an error from CreateDeployments: %v", err)
-
-	assertDeployments(err, clusterConnection, assert, true)
-}
-
-// TestCreateDeploymentsUpdateExisting tests that an existing deployment is properly updated.
-// GIVEN a cluster which has an existing expected deployment (verrazzano-wko-operator)
-//  WHEN I call CreateDeployments
-//  THEN there should be an expected set of deployments created
-//    AND the existing deployment (verrazzano-wko-operator) should be updated as expected
-func TestCreateDeploymentsUpdateExisting(t *testing.T) {
-	assert := assert.New(t)
-
-	modelBindingPair := testutil.GetModelBindingPair()
-	clusterConnections := testutil.GetManagedClusterConnections()
-	clusterConnection := clusterConnections["cluster1"]
-	manifest := testutil.GetManifest()
-	vmiSecret := monitoring.NewVmiSecret(modelBindingPair.Binding)
-	secrets := &testutil.FakeSecrets{Secrets: map[string]*corev1.Secret{
-		constants.VmiSecretName: vmiSecret,
-	}}
-
-	// temporarily set util.GetEnvFunc to mock response
-	util.GetEnvFunc = getenv
-	defer func() { util.GetEnvFunc = origGetEnvFunc }()
-
-	deployment := appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "verrazzano-wko-operator",
-			Namespace: "verrazzano-system",
-		},
-	}
-	_, err := clusterConnection.KubeClient.AppsV1().Deployments("verrazzano-system").Create(context.TODO(), &deployment, metav1.CreateOptions{})
-	assert.Nil(err, "got an error creating deployment: %v", err)
-
-	err = CreateDeployments(modelBindingPair, clusterConnections, &manifest, "testURI", secrets)
-	assert.Nil(err, "got an error from CreateDeployments: %v", err)
-
-	assertDeployments(err, clusterConnection, assert, true)
-}
-
 // TestCreateDeploymentsVmiSystem tests the creation of deployments when the binding name is 'system'.
 // GIVEN a cluster which does not have any deployments
 //  WHEN I call CreateDeployments with a binding named 'system'
@@ -89,7 +28,7 @@ func TestCreateDeploymentsUpdateExisting(t *testing.T) {
 func TestCreateDeploymentsVmiSystem(t *testing.T) {
 	assert := assert.New(t)
 
-	modelBindingPair := testutil.GetModelBindingPair()
+	modelBindingPair := types.NewModelBindingPair()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 	manifest := testutil.GetManifest()
@@ -103,78 +42,13 @@ func TestCreateDeploymentsVmiSystem(t *testing.T) {
 	defer func() { util.GetEnvFunc = origGetEnvFunc }()
 
 	modelBindingPair.Binding.Name = constants.VmiSystemBindingName
-	err := CreateDeployments(modelBindingPair, clusterConnections, &manifest, "testURI", secrets)
+	err := CreateDeployments(&modelBindingPair, clusterConnections, &manifest, "testURI", secrets)
 	assert.Nil(err, "got an error from CreateDeployments: %v", err)
 
 	// validate that the created deployments match the expected deployments
 	expectedDeployments, err := monitoring.GetSystemDeployments("cluster1", verrazzanoURI, util.GetManagedLabelsNoBinding("cluster1"), secrets)
 	assert.Nil(err, "got error trying to get deployments: %v", err)
 	assertExpectedDeployments(t, clusterConnection, expectedDeployments)
-}
-
-// TestDeleteDeployments tests that an existing deployment is properly deleted.
-// GIVEN a cluster which has an existing generic component deployment (test-generic)
-//  WHEN I call DeleteDeployments
-//  THEN we delete only the deployment (test-generic) for the generic component
-func TestDeleteDeployments(t *testing.T) {
-	assert := assert.New(t)
-
-	modelBindingPair := testutil.GetModelBindingPair()
-	clusterConnections := testutil.GetManagedClusterConnections()
-	clusterConnection := clusterConnections["cluster1"]
-	manifest := testutil.GetManifest()
-	vmiSecret := monitoring.NewVmiSecret(modelBindingPair.Binding)
-	secrets := &testutil.FakeSecrets{Secrets: map[string]*corev1.Secret{
-		constants.VmiSecretName: vmiSecret,
-	}}
-
-	// temporarily set util.GetEnvFunc to mock response
-	util.GetEnvFunc = getenv
-	defer func() { util.GetEnvFunc = origGetEnvFunc }()
-
-	err := CreateDeployments(modelBindingPair, clusterConnections, &manifest, "testURI", secrets)
-	assert.Nil(err, "got an error from CreateDeployments: %v", err)
-	assertDeployments(err, clusterConnection, assert, true)
-
-	err = DeleteDeployments(modelBindingPair, clusterConnections)
-	assert.Nil(err, "got an error from DeleteDeployments: %v", err)
-	assertDeployments(err, clusterConnection, assert, false)
-}
-
-// TestCleanupOrphanedDeploymentsValidBinding tests that an deployment that has been orphaned is deleted.
-// GIVEN a valid binding for a cluster that has an unexpected generic component deployment (test-generic)
-//  WHEN I call CleanupOrphanedDeployments
-//  THEN the unexpected generic component deployment (test-generic) should be deleted from the cluster
-func TestCleanupOrphanedDeploymentsValidBinding(t *testing.T) {
-	assert := assert.New(t)
-
-	modelBindingPair := testutil.GetModelBindingPair()
-	clusterConnections := testutil.GetManagedClusterConnections()
-	clusterConnection := clusterConnections["cluster1"]
-	manifest := testutil.GetManifest()
-	vmiSecret := monitoring.NewVmiSecret(modelBindingPair.Binding)
-	secrets := &testutil.FakeSecrets{Secrets: map[string]*corev1.Secret{
-		constants.VmiSecretName: vmiSecret,
-	}}
-
-	// temporarily set util.GetEnvFunc to mock response
-	util.GetEnvFunc = getenv
-	defer func() { util.GetEnvFunc = origGetEnvFunc }()
-
-	err := CreateDeployments(modelBindingPair, clusterConnections, &manifest, "testURI", secrets)
-	assert.Nil(err, "got an error from CreateDeployments: %v", err)
-	assertDeployments(err, clusterConnection, assert, true)
-
-	// First attempt will not cleanup any deployments.
-	err = CleanupOrphanedDeployments(modelBindingPair, clusterConnections)
-	assert.Nil(err, "got an error from CleanupOrphanedDeployments: %v", err)
-	assertDeployments(err, clusterConnection, assert, true)
-
-	// Second attempt will cleanup the orphaned generic component deployment (test-generic)
-	modelBindingPair.ManagedClusters["cluster1"].Deployments = []*appsv1.Deployment{}
-	err = CleanupOrphanedDeployments(modelBindingPair, clusterConnections)
-	assert.Nil(err, "got an error from CleanupOrphanedDeployments: %v", err)
-	assertDeployments(err, clusterConnection, assert, false)
 }
 
 // getenv returns a mocked response for keys used by these tests
