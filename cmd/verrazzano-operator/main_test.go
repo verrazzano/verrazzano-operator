@@ -60,36 +60,6 @@ var unexpectedRequestPaths = map[string][]string{
 	"/jobs/someJobId": allHTTPMethods,
 }
 
-// Test_registerPathHandlers tests that registerPathHandlers registers the expected routes
-// and none of the routes that we don't expect
-func Test_registerPathHandlers(t *testing.T) {
-
-	// GIVEN a path prefix of /somePrefix
-	rootRouter := mux.NewRouter().StrictSlash(true)
-
-	// WHEN path handlers are registered
-	apiRouter := registerPathHandlers(rootRouter)
-
-	// THEN assert that the expected methods for each path were registered
-	for path, expectedMethods := range expectedRequestPaths {
-		for _, expectedMethod := range expectedMethods {
-			assertExpected(t, apiRouter, expectedMethod, path)
-		}
-		// AND assert that no unexpected methods were registered
-		unexpectedMethods := getComplementaryMethods(expectedMethods)
-		for _, unexpectedMethod := range unexpectedMethods {
-			assertNotExpected(t, apiRouter, unexpectedMethod, path)
-		}
-	}
-
-	// AND assert that no unexpected paths were registered
-	for unexpectedPath, methods := range unexpectedRequestPaths {
-		for _, method := range methods {
-			assertNotExpected(t, apiRouter, method, unexpectedPath)
-		}
-	}
-}
-
 func Test_initFlags(t *testing.T) {
 	// GIVEN a set of expected string and boolean flags
 	var expectedStringFlags = map[string]string{
