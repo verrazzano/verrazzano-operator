@@ -100,7 +100,6 @@ func main() {
 	<-apiServerExited
 }
 
-
 func init() {
 	initFlags(flag.StringVar, flag.BoolVar, zapOptions.BindFlags)
 }

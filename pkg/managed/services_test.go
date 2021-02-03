@@ -80,7 +80,6 @@ func TestDeleteServices(t *testing.T) {
 	assert.Equal(0, len(services.Items), "expected exactly 0 service in the test namespace")
 }
 
-
 func assertCreateServiceVMI(t *testing.T, existingService *corev1.ServiceList, clusterName string) {
 	labels := map[string]string{
 		constants.ServiceAppLabel: constants.NodeExporterName,

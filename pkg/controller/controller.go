@@ -415,7 +415,6 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	}
 }
 
-
 // Create managed resources on clusters depending upon the binding
 func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.ModelBindingPair) {
 	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)

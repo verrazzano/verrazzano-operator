@@ -176,7 +176,6 @@ func newSystemDeployments(binding *v1beta1v8o.VerrazzanoBinding, managedCluster 
 	depLabels := util.GetManagedLabelsNoBinding(managedCluster.Name)
 	var deployments []*appsv1.Deployment
 
-
 	// Does a Prometheus pusher need to be deployed to this cluster?
 	if deployPromPusher == true {
 		if verrazzanoURI == "" {
