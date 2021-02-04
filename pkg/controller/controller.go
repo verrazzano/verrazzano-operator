@@ -451,15 +451,6 @@ func (c *Controller) startManagedClusterWatchers(managedClusterName string, mbPa
 
 // update the Istio destination rules and authorization policies for the given model/binding whenever a pod is added or deleted
 func (c *Controller) updateIstioPolicies(mbPair *types.ModelBindingPair, pod *corev1.Pod, action string) {
-	zap.S().Infof("Pod %s : %s %s.", pod.Name, pod.Status.PodIP, action)
-	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Binding.Name, err)
-	}
-	err = c.managed.CreateAuthorizationPolicies(mbPair, filteredConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to update authorization policies for binding %s after pod %s: %v", mbPair.Binding.Name, action, err)
-	}
 }
 
 // Create managed resources on clusters depending upon the binding
@@ -505,18 +496,6 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 		zap.S().Errorf("Failed to create cluster role bindings for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
-	// Create Ingresses
-	err = c.managed.CreateIngresses(mbPair, filteredConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to create ingresses for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
-	// Create istio ServiceEntries for each remote rest connection
-	err = c.managed.CreateServiceEntries(mbPair, filteredConnections, c.managedClusterConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to create service entries for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
 	// Create Deployments
 	err = c.managed.CreateDeployments(mbPair, filteredConnections, c.verrazzanoURI, c.secrets)
 	if err != nil {
@@ -529,35 +508,11 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 		zap.S().Errorf("Failed to create service for binding %s: %v", mbPair.Binding.Name, err)
 	}
 
-	// Create Custom Resources
-	err = c.managed.CreateCustomResources(mbPair, c.managedClusterConnections, c.stopCh, c.VerrazzanoBindingLister)
-	if err != nil {
-		zap.S().Errorf("Failed to create custom resources for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
-	// Update Istio Prometheus ConfigMaps for a given ModelBindingPair on all managed clusters
-	err = c.managed.UpdateIstioPrometheusConfigMaps(mbPair, c.secretLister, c.managedClusterConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to update Istio Config Map for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
 	// Create DaemonSets
 	err = c.managed.CreateDaemonSets(mbPair, filteredConnections, c.verrazzanoURI)
 
 	if err != nil {
 		zap.S().Errorf("Failed to create DaemonSets for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
-	// Create DestinationRules
-	err = c.managed.CreateDestinationRules(mbPair, filteredConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to create destination rules for binding %s: %v", mbPair.Binding.Name, err)
-	}
-
-	// Create AuthorizationPolicies
-	err = c.managed.CreateAuthorizationPolicies(mbPair, filteredConnections)
-	if err != nil {
-		zap.S().Errorf("Failed to create authorization policies for binding %s: %v", mbPair.Binding.Name, err)
 	}
 }
 
