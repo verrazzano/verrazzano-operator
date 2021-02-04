@@ -16,14 +16,14 @@ import (
 )
 
 var (
-	masterURL                    string
-	kubeconfig                   string
-	watchNamespace               string
-	verrazzanoURI                string
-	enableMonitoringStorage      string
-	apiServerRealm               string
-	startController              bool
-	zapOptions                   = kzap.Options{}
+	masterURL               string
+	kubeconfig              string
+	watchNamespace          string
+	verrazzanoURI           string
+	enableMonitoringStorage string
+	apiServerRealm          string
+	startController         bool
+	zapOptions              = kzap.Options{}
 )
 
 const apiVersionPrefix = "/20210501"

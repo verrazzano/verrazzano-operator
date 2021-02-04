@@ -63,12 +63,12 @@ var unexpectedRequestPaths = map[string][]string{
 func Test_initFlags(t *testing.T) {
 	// GIVEN a set of expected string and boolean flags
 	var expectedStringFlags = map[string]string{
-		"master":                       "",
-		"kubeconfig":                   "",
-		"watchNamespace":               "",
-		"verrazzanoUri":                "",
-		"enableMonitoringStorage":      "true",
-		"apiServerRealm":               "",
+		"master":                  "",
+		"kubeconfig":              "",
+		"watchNamespace":          "",
+		"verrazzanoUri":           "",
+		"enableMonitoringStorage": "true",
+		"apiServerRealm":          "",
 	}
 	var expectedBoolFlags = map[string]bool{
 		"startController": true,
