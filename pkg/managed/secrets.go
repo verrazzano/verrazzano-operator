@@ -22,11 +22,11 @@ import (
 
 const wlsRuntimeEncryptionSecret = "wlsRuntimeEncryptionSecret"
 
-// CreateSecrets will go through a ModelBindingPair and find all of the secrets that are needed by
+// CreateSecrets will go through a VerrazzanoLocation and find all of the secrets that are needed by
 // components, and it will then check if those secrets exist in the correct namespaces and clusters,
 // and then update or create them as needed
-func CreateSecrets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets) error {
-	zap.S().Debugf("Creating/updating Secrets for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CreateSecrets(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets) error {
+	zap.S().Debugf("Creating/updating Secrets for VerrazzanoBinding %s", mbPair.Location.Name)
 
 	filteredConnections, err := GetFilteredConnections(mbPair, availableManagedClusterConnections)
 	if err != nil {
@@ -40,14 +40,14 @@ func CreateSecrets(mbPair *types.ModelBindingPair, availableManagedClusterConnec
 		defer managedClusterConnection.Lock.RUnlock()
 
 		var secrets []*corev1.Secret
-		if mbPair.Binding.Name == constants.VmiSystemBindingName {
+		if mbPair.Location.Name == constants.VmiSystemBindingName {
 			secrets = monitoring.GetSystemSecrets(sec)
 		} else {
 			secrets = newSecrets(mbPair, managedClusterObj, kubeClientSet)
 		}
 
 		// Create/Update Namespace
-		err := createSecrets(mbPair.Binding, managedClusterConnection, secrets, clusterName)
+		err := createSecrets(mbPair.Location, managedClusterConnection, secrets, clusterName)
 		if err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func CreateSecrets(mbPair *types.ModelBindingPair, availableManagedClusterConnec
 	return nil
 }
 
-func createSecrets(binding *types.LocationInfo, managedClusterConnection *util.ManagedClusterConnection, newSecrets []*corev1.Secret, clusterName string) error {
+func createSecrets(binding *types.ResourceLocation, managedClusterConnection *util.ManagedClusterConnection, newSecrets []*corev1.Secret, clusterName string) error {
 	// Create or update secrets
 	var secretNames = []string{}
 	for _, newSecret := range newSecrets {
@@ -83,9 +83,8 @@ func createSecrets(binding *types.LocationInfo, managedClusterConnection *util.M
 
 // Constructs the necessary Secrets for the specified ManagedCluster in the given VerrazzanoBinding
 // note that the actual secret data is kept in a secret in the management cluster
-func newSecrets(mbPair *types.ModelBindingPair, managedCluster *types.ManagedCluster, kubeClientSet kubernetes.Interface) []*corev1.Secret {
+func newSecrets(mbPair *types.VerrazzanoLocation, managedCluster *types.ManagedCluster, kubeClientSet kubernetes.Interface) []*corev1.Secret {
 	var secrets []*corev1.Secret
-
 
 	for namespace, secretNames := range managedCluster.Secrets {
 		for _, secretName := range secretNames {

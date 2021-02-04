@@ -59,8 +59,6 @@ const (
 	NodeExporterKeepSourceLabels = "__meta_kubernetes_pod_label_app"
 	// NodeExporterKeepSourceLabelsRegex keep source labels regex for Node Exporter
 	NodeExporterKeepSourceLabelsRegex = "node-exporter"
-
-
 )
 
 // PrometheusScrapeConfigTemplate configuration for general prometheus scrape target template.

@@ -60,7 +60,7 @@ type DeploymentHelper interface {
 }
 
 // GetManagedBindingLabels returns binding labels for managed cluster.
-func GetManagedBindingLabels(binding *types.LocationInfo, managedClusterName string) map[string]string {
+func GetManagedBindingLabels(binding *types.ResourceLocation, managedClusterName string) map[string]string {
 	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoBinding: binding.Name, constants.VerrazzanoCluster: managedClusterName}
 }
 
@@ -70,12 +70,12 @@ func GetManagedLabelsNoBinding(managedClusterName string) map[string]string {
 }
 
 // GetManagedNamespaceForBinding return the namespace for a given binding.
-func GetManagedNamespaceForBinding(binding *types.LocationInfo) string {
+func GetManagedNamespaceForBinding(binding *types.ResourceLocation) string {
 	return fmt.Sprintf("%s-%s", constants.VerrazzanoPrefix, binding.Name)
 }
 
 // GetLocalBindingLabels returns binding labels for local cluster.
-func GetLocalBindingLabels(binding *types.LocationInfo) map[string]string {
+func GetLocalBindingLabels(binding *types.ResourceLocation) map[string]string {
 	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoBinding: binding.Name}
 }
 
@@ -123,12 +123,12 @@ func Contains(s []string, e string) bool {
 
 // GetManagedClustersForVerrazzanoBinding returns a filtered set of only those applicable to a given
 // VerrazzanoBinding given a map of available ManagedClusterConnections.
-func GetManagedClustersForVerrazzanoBinding(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*ManagedClusterConnection) (
+func GetManagedClustersForVerrazzanoBinding(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*ManagedClusterConnection) (
 	map[string]*ManagedClusterConnection, error) {
 	filteredManagedClusters := map[string]*ManagedClusterConnection{}
 	for _, managedCluster := range mbPair.ManagedClusters {
 		if _, ok := availableManagedClusterConnections[managedCluster.Name]; !ok {
-			return nil, fmt.Errorf("Managed cluster %s referenced in binding %s not found", managedCluster.Name, mbPair.Binding.Name)
+			return nil, fmt.Errorf("Managed cluster %s referenced in binding %s not found", managedCluster.Name, mbPair.Location.Name)
 		}
 		filteredManagedClusters[managedCluster.Name] = availableManagedClusterConnections[managedCluster.Name]
 
@@ -138,7 +138,7 @@ func GetManagedClustersForVerrazzanoBinding(mbPair *types.ModelBindingPair, avai
 
 // GetManagedClustersNotForVerrazzanoBinding returns a filtered set of those NOT applicable to a given
 // VerrazzanoBinding given a map of available ManagedClusterConnections.
-func GetManagedClustersNotForVerrazzanoBinding(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*ManagedClusterConnection) map[string]*ManagedClusterConnection {
+func GetManagedClustersNotForVerrazzanoBinding(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*ManagedClusterConnection) map[string]*ManagedClusterConnection {
 	filteredManagedClusters := map[string]*ManagedClusterConnection{}
 	for clusterName := range availableManagedClusterConnections {
 		found := false
@@ -156,9 +156,9 @@ func GetManagedClustersNotForVerrazzanoBinding(mbPair *types.ModelBindingPair, a
 }
 
 // IsClusterInBinding checks if a cluster was found in a binding.
-func IsClusterInBinding(clusterName string, allMbPairs map[string]*types.ModelBindingPair) bool {
+func IsClusterInBinding(clusterName string, allMbPairs map[string]*types.VerrazzanoLocation) bool {
 	for _, mb := range allMbPairs {
-		for _, placement := range mb.Binding.Spec.Placement {
+		for _, placement := range mb.Location.Spec.Placement {
 			if placement.Name == clusterName {
 				return true
 			}

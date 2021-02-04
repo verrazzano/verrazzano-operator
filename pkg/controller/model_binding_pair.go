@@ -12,11 +12,11 @@ import (
 )
 
 // CreateModelBindingPair creates a unique pairing of a model and binding.
-func CreateModelBindingPair(model *types.ClusterModel, binding *types.LocationInfo, VerrazzanoURI string, imagePullSecrets []corev1.LocalObjectReference) *types.ModelBindingPair {
+func CreateModelBindingPair(model *types.ClusterInfo, binding *types.ResourceLocation, VerrazzanoURI string, imagePullSecrets []corev1.LocalObjectReference) *types.VerrazzanoLocation {
 
-	mbPair := &types.ModelBindingPair{
-		Model:            model,
-		Binding:          binding,
+	mbPair := &types.VerrazzanoLocation{
+		Cluster:          model,
+		Location:         binding,
 		ManagedClusters:  map[string]*types.ManagedCluster{},
 		Lock:             &sync.RWMutex{},
 		VerrazzanoURI:    VerrazzanoURI,
@@ -25,16 +25,16 @@ func CreateModelBindingPair(model *types.ClusterModel, binding *types.LocationIn
 	return buildModelBindingPair(mbPair)
 }
 
-func acquireLock(mbPair *types.ModelBindingPair) {
+func acquireLock(mbPair *types.VerrazzanoLocation) {
 	mbPair.Lock.Lock()
 }
 
-func releaseLock(mbPair *types.ModelBindingPair) {
+func releaseLock(mbPair *types.VerrazzanoLocation) {
 	mbPair.Lock.Unlock()
 }
 
 // UpdateModelBindingPair updates a model/binding pair by rebuilding it.
-func UpdateModelBindingPair(mbPair *types.ModelBindingPair, model *types.ClusterModel, binding *types.LocationInfo, VerrazzanoURI string, imagePullSecrets []corev1.LocalObjectReference) {
+func UpdateModelBindingPair(mbPair *types.VerrazzanoLocation, model *types.ClusterInfo, binding *types.ResourceLocation, VerrazzanoURI string, imagePullSecrets []corev1.LocalObjectReference) {
 	newMBPair := CreateModelBindingPair(model, binding, VerrazzanoURI, imagePullSecrets)
 	lock := mbPair.Lock
 	lock.Lock()
@@ -43,13 +43,13 @@ func UpdateModelBindingPair(mbPair *types.ModelBindingPair, model *types.Cluster
 }
 
 // Common function for building a model/binding pair
-func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPair {
+func buildModelBindingPair(mbPair *types.VerrazzanoLocation) *types.VerrazzanoLocation {
 	// Acquire write lock
 	acquireLock(mbPair)
 	defer releaseLock(mbPair)
 
 	// Obtain the placement objects
-	placements := getPlacements(mbPair.Binding)
+	placements := getPlacements(mbPair.Location)
 
 	for _, placement := range placements {
 		var mc *types.ManagedCluster
@@ -74,7 +74,7 @@ func buildModelBindingPair(mbPair *types.ModelBindingPair) *types.ModelBindingPa
 	return mbPair
 }
 
-func getPlacements(binding *types.LocationInfo) []types.ClusterPlacement {
+func getPlacements(binding *types.ResourceLocation) []types.ClusterPlacement {
 	placements := binding.Spec.Placement
 	return placements
 }

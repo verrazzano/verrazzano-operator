@@ -29,7 +29,7 @@ var (
 
 const apiVersionPrefix = "/20210501"
 
-func prepare() (error) {
+func prepare() error {
 	flag.Parse()
 	fmt.Println(" _    _                                                                    _____")
 	fmt.Println("| |  | |                                                                  / ___ \\                              _")

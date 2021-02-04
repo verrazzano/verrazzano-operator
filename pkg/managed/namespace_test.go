@@ -25,4 +25,3 @@ func assertNamespace(t *testing.T, clusterConnection *util.ManagedClusterConnect
 		}
 	}
 }
-

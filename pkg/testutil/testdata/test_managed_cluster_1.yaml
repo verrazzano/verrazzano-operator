@@ -65,7 +65,7 @@ Deployments:
           initContainers:
             - image: generic-image:2.0
               name: test-generic-image2
-    status: {}
+    status: { }
 Services:
   - metadata:
       creationTimestamp: null
@@ -83,4 +83,4 @@ Services:
       selector:
         app: test-generic
       type: ClusterIP
-    status: {}
+    status: { }

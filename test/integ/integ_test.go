@@ -39,7 +39,6 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 })
 
-
 var _ = Describe("Verrazzano cluster roles for verrazzano operator", func() {
 	It("is deployed", func() {
 		Expect(K8sClient.DoesClusterRoleExist(verrazzanoOperator)).To(BeTrue(),

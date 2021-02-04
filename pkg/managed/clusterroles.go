@@ -38,9 +38,9 @@ var policyRules = []rbacv1.PolicyRule{
 		Verbs:     []string{"*"},
 	},
 	{
-		APIGroups:     []string{"apps"},
-		Resources:     []string{"deployments/finalizers"},
-		Verbs:         []string{"update"},
+		APIGroups: []string{"apps"},
+		Resources: []string{"deployments/finalizers"},
+		Verbs:     []string{"update"},
 	},
 	{
 		APIGroups: []string{"extensions"},
@@ -95,8 +95,8 @@ var policyRules = []rbacv1.PolicyRule{
 }
 
 // CreateClusterRoles creates/updates cluster roles needed for each managed cluster.
-func CreateClusterRoles(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Debugf("Creating/updating ClusterRoles for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CreateClusterRoles(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Debugf("Creating/updating ClusterRoles for VerrazzanoBinding %s", mbPair.Location.Name)
 
 	// Construct ClusterRoles for each ManagedCluster
 	for clusterName := range mbPair.ManagedClusters {
@@ -105,7 +105,7 @@ func CreateClusterRoles(mbPair *types.ModelBindingPair, filteredConnections map[
 		defer managedClusterConnection.Lock.RUnlock()
 
 		// Construct the set of expected ClusterRoles
-		newClusterRoles := newClusterRoles(mbPair.Binding, clusterName)
+		newClusterRoles := newClusterRoles(mbPair.Location, clusterName)
 
 		// Create or update ClusterRoles
 		for _, newClusterRole := range newClusterRoles {
@@ -130,8 +130,8 @@ func CreateClusterRoles(mbPair *types.ModelBindingPair, filteredConnections map[
 }
 
 // CleanupOrphanedClusterRoles deletes cluster roles that have been orphaned.
-func CleanupOrphanedClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Debugf("Cleaning up orphaned ClusterRoles for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CleanupOrphanedClusterRoles(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Debugf("Cleaning up orphaned ClusterRoles for VerrazzanoBinding %s", mbPair.Location.Name)
 
 	// Get the managed clusters that this binding does NOT apply to
 	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
@@ -141,7 +141,7 @@ func CleanupOrphanedClusterRoles(mbPair *types.ModelBindingPair, availableManage
 		defer managedClusterConnection.Lock.RUnlock()
 
 		// Get rid of any ClusterRoles with the specified binding
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Location.Name, constants.VerrazzanoCluster: clusterName})
 
 		// Get list of ClusterRoles for this cluster and given binding
 		existingClusterRolesList, err := managedClusterConnection.ClusterRoleLister.List(selector)
@@ -162,8 +162,8 @@ func CleanupOrphanedClusterRoles(mbPair *types.ModelBindingPair, availableManage
 }
 
 // DeleteClusterRoles deletes cluster roles for a given binding.
-func DeleteClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
-	zap.S().Debugf("Deleting ClusterRole for VerrazzanoBinding %s", mbPair.Binding.Name)
+func DeleteClusterRoles(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
+	zap.S().Debugf("Deleting ClusterRole for VerrazzanoBinding %s", mbPair.Location.Name)
 
 	// Parse out the managed clusters that this binding applies to
 	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
@@ -178,7 +178,7 @@ func DeleteClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterC
 
 		var selector labels.Selector
 		if bindingLabel {
-			selector = labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name})
+			selector = labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Location.Name})
 		} else {
 			selector = labels.SelectorFromSet(util.GetManagedLabelsNoBinding(clusterName))
 		}
@@ -200,7 +200,7 @@ func DeleteClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterC
 }
 
 // Constructs the necessary ClusterRoles for the specified ManagedCluster in the given VerrazzanoBinding
-func newClusterRoles(binding *types.LocationInfo, clusterName string) []*rbacv1.ClusterRole {
+func newClusterRoles(binding *types.ResourceLocation, clusterName string) []*rbacv1.ClusterRole {
 	roleLabels := util.GetManagedLabelsNoBinding(clusterName)
 	var clusterRoles []*rbacv1.ClusterRole
 

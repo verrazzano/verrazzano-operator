@@ -25,7 +25,7 @@ import (
 var createInstanceFunc = createInstance
 
 // CreateUpdateVmi creates/updates Verrazzano Monitoring Instances for a given binding.
-func CreateUpdateVmi(binding *types.LocationInfo, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
+func CreateUpdateVmi(binding *types.ResourceLocation, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 	zap.S().Debugf("Creating/updating Local (Management Cluster) VMI for VerrazzanoBinding %s", binding.Name)
 
 	if util.SharedVMIDefault() && !util.IsSystemProfileBindingName(binding.Name) {
@@ -63,7 +63,7 @@ func CreateUpdateVmi(binding *types.LocationInfo, vmoClientSet vmoclientset.Inte
 }
 
 // DeleteVmi deletes Verrazzano Monitoring Instances for a given binding.
-func DeleteVmi(binding *types.LocationInfo, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
+func DeleteVmi(binding *types.ResourceLocation, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
 	zap.S().Infof("Deleting Local (Management Cluster) VMIs for VerrazzanoBinding %s", binding.Name)
 
 	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
@@ -99,7 +99,7 @@ func createStorageOption(envSetting string, enableMonitoringStorageEnvFlag strin
 }
 
 // Constructs the necessary VerrazzanoMonitoringInstance for the given VerrazzanoBinding
-func createInstance(binding *types.LocationInfo, verrazzanoURI string, enableMonitoringStorage string) (*vmov1.VerrazzanoMonitoringInstance, error) {
+func createInstance(binding *types.ResourceLocation, verrazzanoURI string, enableMonitoringStorage string) (*vmov1.VerrazzanoMonitoringInstance, error) {
 	if verrazzanoURI == "" {
 		return nil, errors.New("verrazzanoURI must not be empty")
 	}

@@ -14,13 +14,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
+	"github.com/verrazzano/verrazzano-operator/pkg/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
-	v1 "k8s.io/client-go/listers/core/v1"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
@@ -28,7 +26,7 @@ import (
 
 func TestNewConfigMap(t *testing.T) {
 	type args struct {
-		binding *types.LocationInfo
+		binding *types.ResourceLocation
 	}
 	tests := []struct {
 		name         string
@@ -39,7 +37,7 @@ func TestNewConfigMap(t *testing.T) {
 		{
 			name: "system",
 			args: args{
-				&types.LocationInfo{
+				&types.ResourceLocation{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "system",
 					}},
@@ -48,7 +46,7 @@ func TestNewConfigMap(t *testing.T) {
 		}, {
 			name: "bookstore",
 			args: args{
-				&types.LocationInfo{
+				&types.ResourceLocation{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "bookstore",
 					}},
@@ -176,7 +174,7 @@ func configMap(name string, labels map[string]string) *corev1.ConfigMap {
 }
 
 func TestUpdateConfigMaps(t *testing.T) {
-	var binding types.LocationInfo
+	var binding types.ResourceLocation
 	binding.Name = "system"
 	ns := constants.VerrazzanoNamespace
 	labels := util.GetLocalBindingLabels(&binding)
@@ -192,7 +190,7 @@ func TestUpdateConfigMaps(t *testing.T) {
 }
 
 func TestUpdateWithExistingConfigMaps(t *testing.T) {
-	var binding types.LocationInfo
+	var binding types.ResourceLocation
 	binding.Name = "system"
 	labels := util.GetLocalBindingLabels(&binding)
 	cm1 := configMap("system", labels)
@@ -212,7 +210,7 @@ func TestUpdateWithExistingConfigMaps(t *testing.T) {
 }
 
 func TestUpdateConfigMapsWithUpdateError(t *testing.T) {
-	var binding types.LocationInfo
+	var binding types.ResourceLocation
 	binding.Name = "system"
 	//ns := constants.VerrazzanoNamespace
 	labels := util.GetLocalBindingLabels(&binding)
@@ -226,7 +224,7 @@ func TestUpdateConfigMapsWithUpdateError(t *testing.T) {
 }
 
 func TestUpdateConfigMapsWithDeleteError(t *testing.T) {
-	var binding types.LocationInfo
+	var binding types.ResourceLocation
 	binding.Name = "system"
 	//ns := constants.VerrazzanoNamespace
 	labels := util.GetLocalBindingLabels(&binding)
@@ -239,13 +237,13 @@ func TestUpdateConfigMapsWithDeleteError(t *testing.T) {
 }
 
 func TestDeleteConfigMap(t *testing.T) {
-	var binding types.LocationInfo
+	var binding types.ResourceLocation
 	binding.Name = "system"
 	labels := util.GetLocalBindingLabels(&binding)
 	cm1 := configMap("system", labels)
 
 	var kubeCli kubernetes.Interface = fakek8s.NewSimpleClientset(cm1)
-	var cLister v1.ConfigMapLister = testutil.NewConfigMapLister(kubeCli)
+	var cLister = testutil.NewConfigMapLister(kubeCli)
 	err := DeleteConfigMaps(&binding, kubeCli, cLister)
 	assert.Nil(t, err, "DeleteConfigMaps error")
 	cm, _ := kubeCli.CoreV1().ConfigMaps(constants.VerrazzanoNamespace).Get(context.TODO(), cm1.Name, metav1.GetOptions{})
@@ -253,19 +251,19 @@ func TestDeleteConfigMap(t *testing.T) {
 }
 
 func TestDeleteConfigMapWithListError(t *testing.T) {
-	var binding types.LocationInfo
+	var binding types.ResourceLocation
 	binding.Name = "system"
 	labels := util.GetLocalBindingLabels(&binding)
 	cm1 := configMap("system", labels)
 	var kubeCli kubernetes.Interface = fakek8s.NewSimpleClientset(cm1)
 	kubeCli = testutil.MockError(kubeCli, "list", "configmaps", &corev1.ConfigMapList{})
-	var cLister v1.ConfigMapLister = testutil.NewConfigMapLister(kubeCli)
+	var cLister = testutil.NewConfigMapLister(kubeCli)
 	err := DeleteConfigMaps(&binding, kubeCli, cLister)
 	assert.NotNil(t, err, "Expected DeleteConfigMaps error")
 }
 
 func TestDeleteConfigMapWithDeleteError(t *testing.T) {
-	var binding types.LocationInfo
+	var binding types.ResourceLocation
 	binding.Name = "system"
 	labels := util.GetLocalBindingLabels(&binding)
 	cm1 := configMap("system", labels)

@@ -30,7 +30,7 @@ func TestCreateDaemonSetsVmiSystem(t *testing.T) {
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections[clusterName1]
 
-	VzSystemInfo.Binding.Name = constants.VmiSystemBindingName
+	VzSystemInfo.Location.Name = constants.VmiSystemBindingName
 
 	err := CreateDaemonSets(VzSystemInfo, clusterConnections, verrazzanoURI)
 	assert.Nil(err, "got an error from CreateDaemonSets: %v", err)
@@ -51,7 +51,7 @@ func TestCreateDaemonSetsUpdateExistingSet(t *testing.T) {
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections[clusterName1]
 
-	VzSystemInfo.Binding.Name = constants.VmiSystemBindingName
+	VzSystemInfo.Location.Name = constants.VmiSystemBindingName
 
 	ds := appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{

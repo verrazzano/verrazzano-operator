@@ -11,7 +11,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-
 // ReadManagedCluster reads/unmarshal's ManagedCluster yaml file into a ManagedCluster.
 func ReadManagedCluster(path string) (*types.ManagedCluster, error) {
 	filename, _ := filepath.Abs(path)

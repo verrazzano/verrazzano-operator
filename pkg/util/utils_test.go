@@ -18,7 +18,7 @@ import (
 func TestGetManagedBindingLabels(t *testing.T) {
 	assert := assert.New(t)
 	const bindingName = "testbinding"
-	binding := types.LocationInfo{
+	binding := types.ResourceLocation{
 		ObjectMeta: v1.ObjectMeta{
 			Name: bindingName,
 		},
@@ -56,7 +56,7 @@ func TestGetManagedLabelsNoBinding(t *testing.T) {
 func TestGetManagedNamespaceForBinding(t *testing.T) {
 	assert := assert.New(t)
 	const bindingName = "testbinding"
-	binding := types.LocationInfo{
+	binding := types.ResourceLocation{
 		ObjectMeta: v1.ObjectMeta{
 			Name: bindingName,
 		},
@@ -68,7 +68,7 @@ func TestGetManagedNamespaceForBinding(t *testing.T) {
 func TestGetLocalBindingLabels(t *testing.T) {
 	assert := assert.New(t)
 	const bindingName = "testbinding"
-	binding := types.LocationInfo{
+	binding := types.ResourceLocation{
 		ObjectMeta: v1.ObjectMeta{
 			Name: bindingName,
 		},
@@ -144,8 +144,8 @@ func TestGetManagedClustersForVerrazzanoBinding(t *testing.T) {
 	const cname1 = "cluster1"
 	const cname2 = "cluster2"
 
-	mbPair := types.ModelBindingPair{
-		Binding: &types.LocationInfo{},
+	mbPair := types.VerrazzanoLocation{
+		Location: &types.ResourceLocation{},
 		ManagedClusters: map[string]*types.ManagedCluster{
 			cname1: {Name: cname1},
 		},
@@ -171,8 +171,8 @@ func TestGetManagedClustersNotForVerrazzanoBinding(t *testing.T) {
 	const cname1 = "cluster1"
 	const cname2 = "cluster2"
 
-	mbPair := types.ModelBindingPair{
-		Binding: &types.LocationInfo{},
+	mbPair := types.VerrazzanoLocation{
+		Location: &types.ResourceLocation{},
 		ManagedClusters: map[string]*types.ManagedCluster{
 			cname2: {Name: cname1},
 		},

@@ -1,6 +1,7 @@
 module github.com/verrazzano/verrazzano-operator
 
 require (
+	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f // indirect
 	github.com/gorilla/mux v1.7.3
 	github.com/kylelemons/godebug v1.1.0
 	github.com/onsi/ginkgo v1.12.0

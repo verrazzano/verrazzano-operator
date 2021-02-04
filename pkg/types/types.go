@@ -91,11 +91,10 @@ type ManagedCluster struct {
 	RemoteRests map[string][]*RemoteRestConnection
 }
 
-// ModelBindingPair represents an instance of a model/binding pair and
-// the objects for creating the model.
-type ModelBindingPair struct {
-	Binding *LocationInfo
-	Model   *ClusterModel
+// VerrazzanoLocation represents the verrazzano location for resources
+type VerrazzanoLocation struct {
+	Location *ResourceLocation
+	Cluster  *ClusterInfo
 
 	// The set of managed clusters
 	ManagedClusters map[string]*ManagedCluster
@@ -109,14 +108,16 @@ type ModelBindingPair struct {
 	ImagePullSecrets []corev1.LocalObjectReference
 }
 
-type LocationInfo struct {
+// ResourceLocation describes the Verrazzano resources location
+type ResourceLocation struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 
-	Spec LocationInfoSpec
+	Spec ResourceLocationSpec
 }
 
-type LocationInfoSpec struct {
+// ResourceLocationSpec describes Verrazzano resources location
+type ResourceLocationSpec struct {
 	// Description of the location
 	Description string
 
@@ -127,6 +128,7 @@ type LocationInfoSpec struct {
 	Placement []ClusterPlacement
 }
 
+// ClusterPlacement describe the cluster containing Verrazzano resources
 type ClusterPlacement struct {
 	// The name of the placement
 	Name string
@@ -135,11 +137,13 @@ type ClusterPlacement struct {
 	Namespaces []KubernetesNamespace
 }
 
+// KubernetesNamespace has the namespace
 type KubernetesNamespace struct {
 	// Name of the namespace
 	Name string `json:"name" yaml:"name"`
 }
 
-type ClusterModel struct {
+// ClusterInfo has the info about the cluster
+type ClusterInfo struct {
 	metav1.ObjectMeta
 }

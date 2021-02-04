@@ -594,4 +594,3 @@ func (s *FakeSecrets) Delete(_, name string) error {
 func (s *FakeSecrets) GetVmiPassword() (string, error) {
 	return monitoring.GetVmiPassword(s)
 }
-

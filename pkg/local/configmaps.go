@@ -22,7 +22,7 @@ import (
 )
 
 // UpdateConfigMaps updates config maps for a given binding in the management cluster.
-func UpdateConfigMaps(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func UpdateConfigMaps(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	zap.S().Infof("Updating Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the set of expected configMap - this currently consists of the ConfigMap that contains the default Grafana dashboard definitions
@@ -65,7 +65,7 @@ func UpdateConfigMaps(binding *types.LocationInfo, kubeClientSet kubernetes.Inte
 }
 
 // DeleteConfigMaps deletes config maps for a given binding in the management cluster.
-func DeleteConfigMaps(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func DeleteConfigMaps(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	zap.S().Debugf("Deleting Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
 
 	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
@@ -84,7 +84,7 @@ func DeleteConfigMaps(binding *types.LocationInfo, kubeClientSet kubernetes.Inte
 }
 
 // Constructs the necessary ConfigMaps for the given VerrazzanoBinding
-func newConfigMap(binding *types.LocationInfo) (*corev1.ConfigMap, error) {
+func newConfigMap(binding *types.ResourceLocation) (*corev1.ConfigMap, error) {
 	bindingLabels := util.GetLocalBindingLabels(binding)
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

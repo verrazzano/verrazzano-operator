@@ -20,8 +20,8 @@ import (
 )
 
 // CreateServices creates/updates services needed for each managed cluster.
-func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Debugf("Creating/updating Service for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CreateServices(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Debugf("Creating/updating Service for VerrazzanoBinding %s", mbPair.Location.Name)
 
 	// Construct services for each ManagedCluster
 	for clusterName, mc := range mbPair.ManagedClusters {
@@ -31,7 +31,7 @@ func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 
 		var services []*corev1.Service
 		// Construct the set of expected Services
-		if mbPair.Binding.Name == constants.VmiSystemBindingName {
+		if mbPair.Location.Name == constants.VmiSystemBindingName {
 			services = newServices(clusterName)
 		} else {
 			// Add services from genericComponents
@@ -63,15 +63,15 @@ func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 }
 
 // DeleteServices deletes services for a given binding.
-func DeleteServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Infof("Deleting Services for VerrazzanoBinding %s", mbPair.Binding.Name)
+func DeleteServices(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Infof("Deleting Services for VerrazzanoBinding %s", mbPair.Location.Name)
 
 	// Delete Services associated with the given VerrazzanoBinding (based on labels selectors)
 	for clusterName, managedClusterConnection := range filteredConnections {
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(util.GetManagedBindingLabels(mbPair.Binding, clusterName))
+		selector := labels.SelectorFromSet(util.GetManagedBindingLabels(mbPair.Location, clusterName))
 
 		existingServiceList, err := managedClusterConnection.ServiceLister.List(selector)
 		if err != nil {
@@ -90,8 +90,8 @@ func DeleteServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 
 // CleanupOrphanedServices deletes services that have been orphaned.  Services can be orphaned when a binding
 // has been changed to not require a service or the service was moved to a different cluster.
-func CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Infof("Cleaning up orphaned Services for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CleanupOrphanedServices(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Infof("Cleaning up orphaned Services for VerrazzanoBinding %s", mbPair.Location.Name)
 
 	// Get the managed clusters that this binding applies to
 	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
@@ -103,7 +103,7 @@ func CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClu
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Location.Name, constants.VerrazzanoCluster: clusterName})
 
 		// Get the set of expected Service names
 		var serviceNames []string
@@ -137,7 +137,7 @@ func CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClu
 		defer managedClusterConnection.Lock.RUnlock()
 
 		// Get rid of any Services with the specified binding
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Location.Name, constants.VerrazzanoCluster: clusterName})
 
 		// Get list of Services for this cluster and given binding
 		existingServiceList, err := managedClusterConnection.ServiceLister.List(selector)

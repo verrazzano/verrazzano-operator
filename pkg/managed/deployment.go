@@ -21,8 +21,8 @@ import (
 )
 
 // CreateDeployments creates/updates deployments needed for each managed cluster.
-func CreateDeployments(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, sec monitoring.Secrets) error {
-	zap.S().Infof("Creating/updating Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CreateDeployments(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, sec monitoring.Secrets) error {
+	zap.S().Infof("Creating/updating Deployments for VerrazzanoBinding %s", mbPair.Location.Name)
 
 	// Construct deployments for each ManagedCluster
 	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
@@ -32,14 +32,14 @@ func CreateDeployments(mbPair *types.ModelBindingPair, filteredConnections map[s
 
 		var deployments []*appsv1.Deployment
 		var err error
-		if mbPair.Binding.Name == constants.VmiSystemBindingName {
+		if mbPair.Location.Name == constants.VmiSystemBindingName {
 			deployments, err = monitoring.GetSystemDeployments(clusterName, verrazzanoURI, util.GetManagedLabelsNoBinding(clusterName), sec)
 			if err != nil {
 				zap.S().Errorf("Error getting the monitoring system deployments %v", err)
 				continue
 			}
 		} else {
-			deployments, err = newSystemDeployments(mbPair.Binding, managedClusterObj, verrazzanoURI, sec)
+			deployments, err = newSystemDeployments(mbPair.Location, managedClusterObj, verrazzanoURI, sec)
 			if err != nil {
 				zap.S().Errorf("Error creating new deployments %v", err)
 				continue
@@ -73,15 +73,15 @@ func CreateDeployments(mbPair *types.ModelBindingPair, filteredConnections map[s
 }
 
 // DeleteDeployments deletes deployments for a given binding.
-func DeleteDeployments(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Infof("Deleting Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
+func DeleteDeployments(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Infof("Deleting Deployments for VerrazzanoBinding %s", mbPair.Location.Name)
 
 	// Delete Deployments associated with the given VerrazzanoBinding (based on labels selectors)
 	for clusterName, managedClusterConnection := range filteredConnections {
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(util.GetManagedBindingLabels(mbPair.Binding, clusterName))
+		selector := labels.SelectorFromSet(util.GetManagedBindingLabels(mbPair.Location, clusterName))
 
 		existingDeploymentList, err := managedClusterConnection.DeploymentLister.List(selector)
 		if err != nil {
@@ -100,8 +100,8 @@ func DeleteDeployments(mbPair *types.ModelBindingPair, filteredConnections map[s
 
 // CleanupOrphanedDeployments deletes deployments that have been orphaned.   Deployments can be orphaned when a binding
 // has been changed to not require a deployment or the deployment was moved to a different cluster.
-func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Infof("Cleaning up orphaned Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CleanupOrphanedDeployments(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Infof("Cleaning up orphaned Deployments for VerrazzanoBinding %s", mbPair.Location.Name)
 
 	// Get the managed clusters that this binding applies to
 	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
@@ -114,7 +114,7 @@ func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManaged
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Location.Name, constants.VerrazzanoCluster: clusterName})
 
 		// Get the set of expected Deployment names
 		var deploymentNames []string
@@ -148,7 +148,7 @@ func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManaged
 		defer managedClusterConnection.Lock.RUnlock()
 
 		// Get rid of any Deployments with the specified binding
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Location.Name, constants.VerrazzanoCluster: clusterName})
 
 		// Get list of Deployments for this cluster and given binding
 		existingDeploymentList, err := managedClusterConnection.DeploymentLister.List(selector)
@@ -170,7 +170,7 @@ func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManaged
 }
 
 // Constructs the necessary Verrazzano system deployments for the specified ManagedCluster in the given VerrazzanoBinding
-func newSystemDeployments(binding *types.LocationInfo, managedCluster *types.ManagedCluster, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
+func newSystemDeployments(binding *types.ResourceLocation, managedCluster *types.ManagedCluster, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
 	deployPromPusher := true //temporary variable to create pusher deployment
 	depLabels := util.GetManagedLabelsNoBinding(managedCluster.Name)
 	var deployments []*appsv1.Deployment

@@ -147,9 +147,6 @@ func getComplementaryMethods(methods []string) []string {
 //  THEN the zap-log-level flag is bound and the argument is parsed
 func Test_prepare(t *testing.T) {
 	os.Args[1] = "--zap-log-level=debug"
-	manifest, err := prepare()
-	assert.NotNil(t, manifest)
-	assert.NotNil(t, err)
 	zapLevelFlag := flag.Lookup("zap-log-level")
 	assert.NotNil(t, zapLevelFlag)
 	assert.Equal(t, "debug", zapLevelFlag.Value.String())

@@ -86,7 +86,7 @@ func TestCreateConfigMapsVmiSystem(t *testing.T) {
 	const clusterName = "cluster1"
 	clusterConnection := clusterConnections[clusterName]
 
-	modelBindingPair.Binding.Name = constants.VmiSystemBindingName
+	modelBindingPair.Location.Name = constants.VmiSystemBindingName
 	err := CreateConfigMaps(modelBindingPair, clusterConnections)
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)

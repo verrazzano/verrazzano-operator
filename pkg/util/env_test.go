@@ -84,7 +84,7 @@ func TestGetEnvReplicaCount(t *testing.T) {
 				os.Setenv(envVarName, tt.value)
 			}
 			var defaultVal int32 = 100
-			var expected int32 = defaultVal
+			var expected = defaultVal
 			if !tt.expectDefault {
 				val, _ := strconv.ParseInt(tt.value, 10, 32)
 				expected = int32(val)

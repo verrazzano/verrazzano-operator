@@ -784,7 +784,6 @@ func createConfigMap(t *testing.T, name string, clusterConnection *util.ManagedC
 	}
 }
 
-
 //findByName returns the secret with the given name
 func findByName(secrets []*corev1.Secret, name string) *corev1.Secret {
 	for _, secret := range secrets {

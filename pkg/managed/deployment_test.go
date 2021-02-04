@@ -30,7 +30,7 @@ func TestCreateDeploymentsVmiSystem(t *testing.T) {
 	modelBindingPair := testutil.GetModelBindingPair()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
-	vmiSecret := monitoring.NewVmiSecret(modelBindingPair.Binding)
+	vmiSecret := monitoring.NewVmiSecret(modelBindingPair.Location)
 	secrets := &testutil.FakeSecrets{Secrets: map[string]*corev1.Secret{
 		constants.VmiSecretName: vmiSecret,
 	}}
@@ -39,8 +39,8 @@ func TestCreateDeploymentsVmiSystem(t *testing.T) {
 	util.GetEnvFunc = getenv
 	defer func() { util.GetEnvFunc = origGetEnvFunc }()
 
-	modelBindingPair.Binding.Name = constants.VmiSystemBindingName
-	err := CreateDeployments(modelBindingPair, clusterConnections,"testURI", secrets)
+	modelBindingPair.Location.Name = constants.VmiSystemBindingName
+	err := CreateDeployments(modelBindingPair, clusterConnections, "testURI", secrets)
 	assert.Nil(err, "got an error from CreateDeployments: %v", err)
 
 	// validate that the created deployments match the expected deployments

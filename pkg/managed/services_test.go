@@ -24,10 +24,10 @@ func TestCreateServicesVMIBinding(t *testing.T) {
 	assert := assert.New(t)
 
 	mbPairSystemBinding := testutil.GetModelBindingPair()
-	mbPairSystemBinding.Model.Name = constants.VmiSystemBindingName
-	mbPairSystemBinding.Binding.Name = constants.VmiSystemBindingName
+	mbPairSystemBinding.Cluster.Name = constants.VmiSystemBindingName
+	mbPairSystemBinding.Location.Name = constants.VmiSystemBindingName
 
-	// Model/binding for VMI system binding - Node Exporter service is created.
+	// Cluster/binding for VMI system binding - Node Exporter service is created.
 	managedConnections := testutil.GetManagedClusterConnections()
 	err := CreateServices(mbPairSystemBinding, managedConnections)
 	assert.Nil(err, "got an error from CreateServices: %v", err)
@@ -44,7 +44,7 @@ func TestCreateServicesVMIBinding(t *testing.T) {
 		assert.Nil(err, "got an error updating services: %v", err)
 	}
 
-	// Model/binding for VMI system binding - service already exist
+	// Cluster/binding for VMI system binding - service already exist
 	err = CreateServices(mbPairSystemBinding, managedConnections)
 	assert.Nil(err, "got an error from CreateServices: %v", err)
 
