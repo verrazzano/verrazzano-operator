@@ -7,15 +7,9 @@ import (
 	"flag"
 	"fmt"
 
-	"net/http"
-	"strings"
-
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/gorilla/mux"
-
 	pkgverrazzanooperator "github.com/verrazzano/verrazzano-operator/pkg/controller"
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/logs"
 	"go.uber.org/zap"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -35,22 +29,7 @@ var (
 
 const apiVersionPrefix = "/20210501"
 
-// homePage provides a default handler for unmatched patterns
-func homePage(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "verrazzano-operator apiserver")
-	fmt.Println("GET /")
-}
-
-// handleRequests registers the routes and handlers
-func handleRequests(apiServerFinished chan bool, rootRouter *mux.Router) {
-	zap.S().Info("Starting API server...")
-	if apiServerRealm == "" {
-		zap.S().Warn("Bearer token verification is disabled as apiServerRealm is not specified")
-	}
-	apiServerFinished <- true
-}
-
-func prepare() (*util.Manifest, error) {
+func prepare() (error) {
 	flag.Parse()
 	fmt.Println(" _    _                                                                    _____")
 	fmt.Println("| |  | |                                                                  / ___ \\                              _")
@@ -64,25 +43,22 @@ func prepare() (*util.Manifest, error) {
 	fmt.Println("")
 	logs.InitLogs(zapOptions)
 	// Load Verrazzano Operator Manifest
-	return util.LoadManifest()
+	return nil
 }
 
 func main() {
-	manifest, err := prepare()
+
+	err := prepare()
 	if err != nil {
 		zap.S().Fatalf("Error loading manifest: %s", err.Error())
 	}
 	zap.S().Infof("Creating new controller watching namespace %s.", watchNamespace)
-	if strings.EqualFold(helidonAppOperatorDeployment, "false") {
-		zap.S().Debugf("helidonAppOperatorDeployment Disabled")
-		manifest.HelidonAppOperatorImage = ""
-	}
 
 	config, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
 		zap.S().Fatalf("Error creating the controller configuration: %s", err.Error())
 	}
-	controller, err := pkgverrazzanooperator.NewController(config, manifest, watchNamespace, verrazzanoURI, enableMonitoringStorage)
+	controller, err := pkgverrazzanooperator.NewController(config, watchNamespace, verrazzanoURI, enableMonitoringStorage)
 	if err != nil {
 		zap.S().Fatalf("Error creating the controller: %s", err.Error())
 	}
@@ -114,7 +90,6 @@ func initFlags(
 	stringVarFunc(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	stringVarFunc(&watchNamespace, "watchNamespace", "", "Optionally, a namespace to watch exclusively.  If not set, all namespaces will be watched.")
 	stringVarFunc(&verrazzanoURI, "verrazzanoUri", "", "Verrazzano URI, for example my-verrazzano-1.verrazzano.example.com")
-	stringVarFunc(&helidonAppOperatorDeployment, "helidonAppOperatorDeployment", "", "--helidonAppOperatorDeployment=false disables helidonAppOperatorDeployment")
 	stringVarFunc(&enableMonitoringStorage, "enableMonitoringStorage", "true", "Enable storage for monitoring.  The default is true. 'false' means monitoring storage is disabled.")
 	stringVarFunc(&apiServerRealm, "apiServerRealm", "", "API Server Realm on Keycloak")
 	boolVarFunc(&startController, "startController", true, "Whether to start the Kubernetes controller (true by default)")
