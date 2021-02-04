@@ -36,9 +36,6 @@ EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-operator
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
-WKO_PATH = github.com/verrazzano/verrazzano-wko-operator
-HELIDON_PATH = github.com/verrazzano/verrazzano-helidon-app-operator
-COH_PATH = github.com/verrazzano/verrazzano-coh-cluster-operator
 CRDGEN_PATH = github.com/verrazzano/verrazzano-crd-generator
 VMO_PATH = github.com/verrazzano/verrazzano-monitoring-operator
 VMO_CRD_PATH = k8s/crds
@@ -105,18 +102,6 @@ go-mod:
 	# to populate the vendor folder with the .yaml files
 	# that are required to define custom resources.
 
-	# Obtain verrazzano-wko-operator version
-	mkdir -p vendor/${WKO_PATH}/${CRD_PATH}
-	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-wko-operator`/${CRD_PATH}/*.yaml vendor/${WKO_PATH}/${CRD_PATH}
-
-	# Obtain verrazzano-helidon-app-operator version
-	mkdir -p vendor/${HELIDON_PATH}/${CRD_PATH}
-	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-helidon-app-operator`/${CRD_PATH}/*.yaml vendor/${HELIDON_PATH}/${CRD_PATH}
-
-	# Obtain verrazzano-coh-cluster-operator version
-	mkdir -p vendor/${COH_PATH}/${CRD_PATH}
-	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-coh-cluster-operator`/${CRD_PATH}/*.yaml vendor/${COH_PATH}/${CRD_PATH}
-
 	# Obtain verrazzano-crd-generator version
 	mkdir -p vendor/${CRDGEN_PATH}/${CRD_PATH}
 	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-crd-generator`/${CRD_PATH}/*.yaml vendor/${CRDGEN_PATH}/${CRD_PATH}
@@ -175,11 +160,6 @@ integ-test: build create-cluster
 
 	echo 'Create CRDs needed by the verrazzano-operator...'
 	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml
-	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomodels_crd.yaml
-	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanobindings_crd.yaml
-	kubectl create -f vendor/${COH_PATH}/${CRD_PATH}/verrazzano.io_cohclusters_crd.yaml
-	kubectl create -f vendor/${HELIDON_PATH}/${CRD_PATH}/verrazzano.io_helidonapps_crd.yaml
-	kubectl create -f vendor/${WKO_PATH}/${CRD_PATH}/verrazzano.io_wlsoperators_crd.yaml
 	kubectl create -f vendor/${VMO_PATH}/${VMO_CRD_PATH}/verrazzano-monitoring-operator-crds.yaml
 
 	echo 'Deploy local cluster and required secret ...'

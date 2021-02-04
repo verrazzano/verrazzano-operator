@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
-	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
 	vmoclientset "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
 	vmolisters "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/listers/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
@@ -82,15 +81,9 @@ func TestNewController(t *testing.T) {
 	// createController invokes NewController which is the function that is being tested
 	controller := createController(t, localMockSetupFunc, monitoringMockSetupFunc)
 
-	assert.NotNil(t, controller.VerrazzanoBindingInformer)
-	assert.NotNil(t, controller.VerrazzanoBindingLister)
-	assert.NotNil(t, controller.VerrazzanoModelInformer)
-	assert.NotNil(t, controller.VerrazzanoBindingLister)
 
 	// assert initial lister state
 	listers := controller.ListerSet()
-	assert.Equal(t, controller.VerrazzanoBindingLister, *listers.BindingLister)
-	assert.Equal(t, controller.VerrazzanoModelLister, *listers.ModelLister)
 	assert.Equal(t, controller.verrazzanoManagedClusterLister, *listers.ManagedClusterLister)
 	assert.Equal(t, 0, len(*listers.ModelBindingPairs))
 	assert.NotNil(t, listers.KubeClientSet)
@@ -289,12 +282,11 @@ func (t *testManagedPackage) CreateDeployments(mbPair *types.ModelBindingPair, a
 	return nil
 }
 
-func (t *testManagedPackage) CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}, vbLister listers.VerrazzanoBindingLister) error {
+func (t *testManagedPackage) CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}) error {
 	t.Record("CreateCustomResources", map[string]interface{}{
 		"mbPair":                             mbPair,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
-		"stopCh":                             stopCh,
-		"vbLister":                           vbLister})
+		"stopCh":                             stopCh})
 	return nil
 }
 

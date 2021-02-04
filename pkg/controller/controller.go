@@ -103,21 +103,11 @@ type Controller struct {
 	configMapInformer                k8scache.SharedIndexInformer
 	verrazzanoManagedClusterLister   listers.VerrazzanoManagedClusterLister
 	verrazzanoManagedClusterBindingrmer k8scache.SharedIndexInformer
-	VerrazzanoModelLister            listers.VerrazzanoModelLister
-	VerrazzanoModelInformer          k8scache.SharedIndexInformer
-	VerrazzanoBindingLister          listers.VerrazzanoBindingLister
-	VerrazzanoBindingInformer        k8scache.SharedIndexInformer
 	vmiLister                        vmolisters.VerrazzanoMonitoringInstanceLister
 	vmiInformer                      k8scache.SharedIndexInformer
 	secrets                          v8omonitoring.Secrets
 	// The current set of known managed clusters
 	managedClusterConnections map[string]*v8outil.ManagedClusterConnection
-
-	// The current set of known models
-	applicationModels map[string]*v1beta1v8o.VerrazzanoModel
-
-	// The current set of known bindings
-	applicationBindings map[string]*types.ClusterBinding
 
 	// The current set of known model/binding pairs
 	modelBindingPairs map[string]*types.ModelBindingPair
@@ -138,8 +128,6 @@ type Controller struct {
 // Listers represents listers used by the controller.
 type Listers struct {
 	ManagedClusterLister *listers.VerrazzanoManagedClusterLister
-	ModelLister          *listers.VerrazzanoModelLister
-	BindingLister        *listers.VerrazzanoBindingLister
 	ModelBindingPairs    *map[string]*types.ModelBindingPair
 	KubeClientSet        *kubernetes.Interface
 }
@@ -148,8 +136,6 @@ type Listers struct {
 func (c *Controller) ListerSet() Listers {
 	return Listers{
 		ManagedClusterLister: &c.verrazzanoManagedClusterLister,
-		ModelLister:          &c.VerrazzanoModelLister,
-		BindingLister:        &c.VerrazzanoBindingLister,
 		ModelBindingPairs:    &c.modelBindingPairs,
 		KubeClientSet:        &c.kubeClientSet,
 	}
@@ -201,8 +187,6 @@ func NewController(config *rest.Config,  watchNamespace string, verrazzanoURI st
 	secretsInformer := kubeInformerFactory.Core().V1().Secrets()
 	configMapInformer := kubeInformerFactory.Core().V1().ConfigMaps()
 	verrazzanoManagedClusterBindingrmer := verrazzanoOperatorInformerFactory.Verrazzano().V1beta1().VerrazzanoManagedClusters()
-	VerrazzanoBindingInformer := verrazzanoOperatorInformerFactory.Verrazzano().V1beta1().VerrazzanoBindings()
-	VerrazzanoModelInformer := verrazzanoOperatorInformerFactory.Verrazzano().V1beta1().VerrazzanoModels()
 	vmiInformer := vmoInformerFactory.Verrazzano().V1().VerrazzanoMonitoringInstances()
 	vmiInformer.Informer().AddEventHandler(k8scache.ResourceEventHandlerFuncs{})
 
@@ -233,16 +217,10 @@ func NewController(config *rest.Config,  watchNamespace string, verrazzanoURI st
 		configMapInformer:                configMapInformer.Informer(),
 		verrazzanoManagedClusterLister:   verrazzanoManagedClusterBindingrmer.Lister(),
 		verrazzanoManagedClusterBindingrmer: verrazzanoManagedClusterBindingrmer.Informer(),
-		VerrazzanoModelLister:            VerrazzanoModelInformer.Lister(),
-		VerrazzanoModelInformer:          VerrazzanoModelInformer.Informer(),
-		VerrazzanoBindingLister:          VerrazzanoBindingInformer.Lister(),
-		VerrazzanoBindingInformer:        VerrazzanoBindingInformer.Informer(),
 		vmiInformer:                      vmiInformer.Informer(),
 		vmiLister:                        vmiInformer.Lister(),
 		recorder:                         recorder,
 		managedClusterConnections:        map[string]*v8outil.ManagedClusterConnection{},
-		applicationModels:                map[string]*v1beta1v8o.VerrazzanoModel{},
-		applicationBindings:              map[string]*types.ClusterBinding{},
 		modelBindingPairs:                map[string]*types.ModelBindingPair{},
 		bindingSyncThreshold:             map[string]int{},
 		secrets:                          kubeSecrets,
@@ -259,8 +237,7 @@ func NewController(config *rest.Config,  watchNamespace string, verrazzanoURI st
 	// Wait for the caches to be synced before starting watchers
 	zap.S().Infow("Waiting for informer caches to sync")
 	if ok := controller.cache.WaitForCacheSync(controller.stopCh, controller.secretInformer.HasSynced,
-		controller.verrazzanoManagedClusterBindingrmer.HasSynced, controller.VerrazzanoBindingInformer.HasSynced,
-		controller.VerrazzanoModelInformer.HasSynced, controller.vmiInformer.HasSynced); !ok {
+		controller.verrazzanoManagedClusterBindingrmer.HasSynced, controller.vmiInformer.HasSynced); !ok {
 		return controller, errors.New("failed to wait for caches to sync")
 	}
 
@@ -464,7 +441,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 
 	// Create Custom Resources
-	err = c.managed.CreateCustomResources(mbPair, c.managedClusterConnections, c.stopCh, c.VerrazzanoBindingLister)
+	err = c.managed.CreateCustomResources(mbPair, c.managedClusterConnections, c.stopCh)
 	if err != nil {
 		zap.S().Errorf("Failed to create custom resources for binding %s: %v", mbPair.Binding.Name, err)
 	}
@@ -495,55 +472,10 @@ func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.Model
 	}
 }
 
-// Process a change to a VerrazzanoModel
-func (c *Controller) processApplicationModelAdded(verrazzanoModel interface{}) {
-	model := verrazzanoModel.(*v1beta1v8o.VerrazzanoModel)
-
-	if existingModel, ok := c.applicationModels[model.Name]; ok {
-		if existingModel.GetResourceVersion() == model.GetResourceVersion() {
-			zap.S().Debugf("No changes to the model %s", model.Name)
-			return
-		}
-
-		zap.S().Infof("Updating the model %s", model.Name)
-	} else {
-		zap.S().Infof("Adding the model %s", model.Name)
-	}
-
-}
-
-// Process a removal of a VerrazzanoModel
-func (c *Controller) processApplicationModelDeleted(verrazzanoModel interface{}) {
-	model := verrazzanoModel.(*v1beta1v8o.VerrazzanoModel)
-
-	if _, ok := c.applicationModels[model.Name]; ok {
-		zap.S().Infof("Deleting the model %s", model.Name)
-		delete(c.applicationModels, model.Name)
-	}
-}
 
 func getModelBindingPair(c *Controller, binding *types.ClusterBinding) (*types.ModelBindingPair, bool) {
 	mbPair, mbPairExists := c.modelBindingPairs[binding.Name]
 	return mbPair, mbPairExists
-}
-
-// Check for a duplicate namespaces being used across two differrent bindings
-func checkForDuplicateNamespaces(placement *v1beta1v8o.VerrazzanoPlacement, binding *types.ClusterBinding, currPlacement *v1beta1v8o.VerrazzanoPlacement, currBinding *types.ClusterBinding) bool {
-	dupFound := false
-	for _, namespace := range placement.Namespaces {
-		for _, currNamespace := range currPlacement.Namespaces {
-			if currNamespace.Name == namespace.Name {
-				if !dupFound {
-					zap.S().Errorf("Binding %s has a conflicting namespace with binding %s.  Namespaces must be unique across bindings.", binding.Name, currBinding.Name)
-				}
-				zap.S().Errorf("Duplicate namespace %s found in placement %s", namespace.Name, placement.Name)
-				dupFound = true
-				break
-			}
-		}
-	}
-
-	return dupFound
 }
 
 type kubeDeployment struct {
@@ -742,7 +674,7 @@ type managedInterface interface {
 	CreateServiceEntries(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, sec v8omonitoring.Secrets) error
-	CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}, vbLister listers.VerrazzanoBindingLister) error
+	CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error
 	UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string) error
 	CreateDestinationRules(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error

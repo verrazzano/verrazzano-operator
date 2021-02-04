@@ -25,10 +25,6 @@ func testIndexFunc(obj interface{}) ([]string, error) {
 		return []string{obj.(*metav1.ObjectMeta).Namespace}, nil
 	case *v1beta1.VerrazzanoManagedCluster:
 		return []string{obj.(*v1beta1.VerrazzanoManagedCluster).Namespace}, nil
-	case *v1beta1.VerrazzanoModel:
-		return []string{obj.(*v1beta1.VerrazzanoModel).Namespace}, nil
-	case *types.ClusterBinding:
-		return []string{obj.(*types.ClusterBinding).Namespace}, nil
 	default:
 		msg := fmt.Sprintf("Unknown Type %T", t)
 		fmt.Printf(msg)
@@ -43,8 +39,6 @@ func testKeyFunc(obj interface{}) (string, error) {
 	switch t := obj.(type) {
 	case *v1beta1.VerrazzanoManagedCluster:
 		return string(obj.(*v1beta1.VerrazzanoManagedCluster).UID), nil
-	case *v1beta1.VerrazzanoModel:
-		return string(obj.(*v1beta1.VerrazzanoModel).UID), nil
 	case *types.ClusterBinding:
 		return string(obj.(*types.ClusterBinding).UID), nil
 	default:
