@@ -20,7 +20,6 @@ var (
 	kubeconfig                   string
 	watchNamespace               string
 	verrazzanoURI                string
-	helidonAppOperatorDeployment string
 	enableMonitoringStorage      string
 	apiServerRealm               string
 	startController              bool
@@ -42,7 +41,6 @@ func prepare() error {
 	fmt.Println("          Verrazzano Operator")
 	fmt.Println("")
 	logs.InitLogs(zapOptions)
-	// Load Verrazzano Operator Manifest
 	return nil
 }
 

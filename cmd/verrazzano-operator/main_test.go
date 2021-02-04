@@ -67,7 +67,6 @@ func Test_initFlags(t *testing.T) {
 		"kubeconfig":                   "",
 		"watchNamespace":               "",
 		"verrazzanoUri":                "",
-		"helidonAppOperatorDeployment": "",
 		"enableMonitoringStorage":      "true",
 		"apiServerRealm":               "",
 	}
