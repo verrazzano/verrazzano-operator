@@ -652,7 +652,7 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 }
 
 // Check for a duplicate namespaces being used across two differrent bindings
-func checkForDuplicateNamespaces(placement *v1beta1v8o.VerrazzanoPlacement, binding *types.ResourceLocation, currPlacement *v1beta1v8o.VerrazzanoPlacement, currBinding *types.ResourceLocation) bool {
+func checkForDuplicateNamespaces(placement *types.ClusterPlacement, binding *types.ResourceLocation, currPlacement *types.ClusterPlacement, currBinding *types.ResourceLocation) bool {
 	dupFound := false
 	for _, namespace := range placement.Namespaces {
 		for _, currNamespace := range currPlacement.Namespaces {
