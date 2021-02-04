@@ -60,7 +60,7 @@ type DeploymentHelper interface {
 }
 
 // GetManagedBindingLabels returns binding labels for managed cluster.
-func GetManagedBindingLabels(binding *types.ClusterBinding, managedClusterName string) map[string]string {
+func GetManagedBindingLabels(binding *types.LocationInfo, managedClusterName string) map[string]string {
 	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoBinding: binding.Name, constants.VerrazzanoCluster: managedClusterName}
 }
 
@@ -70,12 +70,12 @@ func GetManagedLabelsNoBinding(managedClusterName string) map[string]string {
 }
 
 // GetManagedNamespaceForBinding return the namespace for a given binding.
-func GetManagedNamespaceForBinding(binding *types.ClusterBinding) string {
+func GetManagedNamespaceForBinding(binding *types.LocationInfo) string {
 	return fmt.Sprintf("%s-%s", constants.VerrazzanoPrefix, binding.Name)
 }
 
 // GetLocalBindingLabels returns binding labels for local cluster.
-func GetLocalBindingLabels(binding *types.ClusterBinding) map[string]string {
+func GetLocalBindingLabels(binding *types.LocationInfo) map[string]string {
 	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoBinding: binding.Name}
 }
 

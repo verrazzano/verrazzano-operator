@@ -49,7 +49,7 @@ func (ms *MockSecrets) GetVmiPassword() (string, error) {
 }
 
 func TestExistingVmiSecrets(t *testing.T) {
-	binding := types.ClusterBinding{}
+	binding := types.LocationInfo{}
 	binding.Name = "TestExistingVmiSecrets"
 	existing := NewVmiSecret(&binding)
 	secrets := MockSecrets{secrets: map[string]*corev1.Secret{
@@ -71,7 +71,7 @@ func assertSaltedHash(t *testing.T, secrets Secrets) {
 }
 
 func TestNewVmiRandomPassword(t *testing.T) {
-	binding := types.ClusterBinding{}
+	binding := types.LocationInfo{}
 	binding.Name = "TestNewVmiRandomPassword"
 	secrets := &MockSecrets{secrets: map[string]*corev1.Secret{}}
 	CreateVmiSecrets(&binding, secrets)

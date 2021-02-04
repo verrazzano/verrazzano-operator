@@ -43,7 +43,7 @@ func CreateNamespaces(mbPair *types.ModelBindingPair, filteredConnections map[st
 	return nil
 }
 
-func createNamespace(binding *types.ClusterBinding, managedClusterConnection *util.ManagedClusterConnection, newNamespaces []*corev1.Namespace, clusterName string) error {
+func createNamespace(binding *types.LocationInfo, managedClusterConnection *util.ManagedClusterConnection, newNamespaces []*corev1.Namespace, clusterName string) error {
 	// Construct the set of expected namespaces
 	for _, newNamespace := range newNamespaces {
 		existingNamespace, err := managedClusterConnection.NamespaceLister.Get(newNamespace.Name)
@@ -217,7 +217,7 @@ func DeleteNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterCon
 }
 
 // Constructs the necessary Namespaces for the specified ManagedCluster in the given VerrazzanoBinding
-func newNamespaces(binding *types.ClusterBinding, managedCluster *types.ManagedCluster) []*corev1.Namespace {
+func newNamespaces(binding *types.LocationInfo, managedCluster *types.ManagedCluster) []*corev1.Namespace {
 	var namespaces []*corev1.Namespace
 
 	for _, namespace := range managedCluster.Namespaces {

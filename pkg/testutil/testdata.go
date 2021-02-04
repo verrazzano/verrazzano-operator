@@ -216,7 +216,7 @@ func ReadModelBindingPair(managedClusterPaths ...string) *types.ModelBindingPair
 	}
 	var pair = &types.ModelBindingPair{
 		Model: &types.ClusterModel{},
-		Binding: &types.ClusterBinding{},
+		Binding: &types.LocationInfo{},
 		ManagedClusters: managedClusters,
 		ImagePullSecrets: []corev1.LocalObjectReference{
 			{

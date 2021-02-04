@@ -103,10 +103,6 @@ type Controller struct {
 	configMapInformer                k8scache.SharedIndexInformer
 	verrazzanoManagedClusterLister   listers.VerrazzanoManagedClusterLister
 	verrazzanoManagedClusterInformer k8scache.SharedIndexInformer
-	VerrazzanoModelLister            listers.VerrazzanoModelLister
-	VerrazzanoModelInformer          k8scache.SharedIndexInformer
-	VerrazzanoBindingLister          listers.VerrazzanoBindingLister
-	VerrazzanoBindingInformer        k8scache.SharedIndexInformer
 	vmiLister                        vmolisters.VerrazzanoMonitoringInstanceLister
 	vmiInformer                      k8scache.SharedIndexInformer
 	secrets                          v8omonitoring.Secrets
@@ -117,7 +113,7 @@ type Controller struct {
 	applicationModels map[string]*types.ClusterModel
 
 	// The current set of known bindings
-	applicationBindings map[string]*types.ClusterBinding
+	applicationBindings map[string]*types.LocationInfo
 
 	// The current set of known model/binding pairs
 	modelBindingPairs map[string]*types.ModelBindingPair
@@ -137,8 +133,6 @@ type Controller struct {
 // Listers represents listers used by the controller.
 type Listers struct {
 	ManagedClusterLister *listers.VerrazzanoManagedClusterLister
-	ModelLister          *listers.VerrazzanoModelLister
-	BindingLister        *listers.VerrazzanoBindingLister
 	ModelBindingPairs    *map[string]*types.ModelBindingPair
 	KubeClientSet        *kubernetes.Interface
 }
@@ -147,8 +141,6 @@ type Listers struct {
 func (c *Controller) ListerSet() Listers {
 	return Listers{
 		ManagedClusterLister: &c.verrazzanoManagedClusterLister,
-		ModelLister:          &c.VerrazzanoModelLister,
-		BindingLister:        &c.VerrazzanoBindingLister,
 		ModelBindingPairs:    &c.modelBindingPairs,
 		KubeClientSet:        &c.kubeClientSet,
 	}
@@ -200,8 +192,6 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 	secretsInformer := kubeInformerFactory.Core().V1().Secrets()
 	configMapInformer := kubeInformerFactory.Core().V1().ConfigMaps()
 	verrazzanoManagedClusterInformer := verrazzanoOperatorInformerFactory.Verrazzano().V1beta1().VerrazzanoManagedClusters()
-	VerrazzanoBindingInformer := verrazzanoOperatorInformerFactory.Verrazzano().V1beta1().VerrazzanoBindings()
-	VerrazzanoModelInformer := verrazzanoOperatorInformerFactory.Verrazzano().V1beta1().VerrazzanoModels()
 	vmiInformer := vmoInformerFactory.Verrazzano().V1().VerrazzanoMonitoringInstances()
 	vmiInformer.Informer().AddEventHandler(k8scache.ResourceEventHandlerFuncs{})
 
@@ -232,16 +222,12 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 		configMapInformer:                configMapInformer.Informer(),
 		verrazzanoManagedClusterLister:   verrazzanoManagedClusterInformer.Lister(),
 		verrazzanoManagedClusterInformer: verrazzanoManagedClusterInformer.Informer(),
-		VerrazzanoModelLister:            VerrazzanoModelInformer.Lister(),
-		VerrazzanoModelInformer:          VerrazzanoModelInformer.Informer(),
-		VerrazzanoBindingLister:          VerrazzanoBindingInformer.Lister(),
-		VerrazzanoBindingInformer:        VerrazzanoBindingInformer.Informer(),
 		vmiInformer:                      vmiInformer.Informer(),
 		vmiLister:                        vmiInformer.Lister(),
 		recorder:                         recorder,
 		managedClusterConnections:        map[string]*v8outil.ManagedClusterConnection{},
 		applicationModels:                map[string]*types.ClusterModel{},
-		applicationBindings:              map[string]*types.ClusterBinding{},
+		applicationBindings:              map[string]*types.LocationInfo{},
 		modelBindingPairs:                map[string]*types.ModelBindingPair{},
 		bindingSyncThreshold:             map[string]int{},
 		secrets:                          kubeSecrets,
@@ -258,13 +244,12 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 	// Wait for the caches to be synced before starting watchers
 	zap.S().Infow("Waiting for informer caches to sync")
 	if ok := controller.cache.WaitForCacheSync(controller.stopCh, controller.secretInformer.HasSynced,
-		controller.verrazzanoManagedClusterInformer.HasSynced, controller.VerrazzanoBindingInformer.HasSynced,
-		controller.VerrazzanoModelInformer.HasSynced, controller.vmiInformer.HasSynced); !ok {
+		controller.verrazzanoManagedClusterInformer.HasSynced, controller.vmiInformer.HasSynced); !ok {
 		return controller, errors.New("failed to wait for caches to sync")
 	}
 
 	// Install Global Entities
-	executeCreateUpdateGlobalEntities(&types.ClusterBinding{
+	executeCreateUpdateGlobalEntities(&types.LocationInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
@@ -279,12 +264,12 @@ func buildKubeClientsetFromConfig(config *rest.Config) (kubernetes.Interface, er
 }
 
 // executeCreateUpdateGlobalEntitiesGoroutine executes createUpdateGlobalEntitiesGoroutine() in a goroutine
-func executeCreateUpdateGlobalEntitiesGoroutine(binding *types.ClusterBinding, c *Controller) {
+func executeCreateUpdateGlobalEntitiesGoroutine(binding *types.LocationInfo, c *Controller) {
 	go createUpdateGlobalEntitiesGoroutine(binding, c)
 }
 
 // CreateUpdateGlobalEntitiesGoroutine installs global entities and loops forever so it must be called in a goroutine
-func createUpdateGlobalEntitiesGoroutine(binding *types.ClusterBinding, c *Controller) {
+func createUpdateGlobalEntitiesGoroutine(binding *types.LocationInfo, c *Controller) {
 	zap.S().Infow("Configuring System VMI...")
 	for {
 		createUpdateGlobalEntities(binding, c)
@@ -292,7 +277,7 @@ func createUpdateGlobalEntitiesGoroutine(binding *types.ClusterBinding, c *Contr
 	}
 }
 
-func createUpdateGlobalEntities(binding *types.ClusterBinding, c *Controller) {
+func createUpdateGlobalEntities(binding *types.LocationInfo, c *Controller) {
 	err := c.local.CreateUpdateVmi(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
 	if err != nil {
 		zap.S().Errorf("Failed to create System VMI %s: %v", constants.VmiSystemBindingName, err)
@@ -338,24 +323,6 @@ func (c *Controller) startLocalWatchers() {
 		AddFunc:    func(new interface{}) { c.processManagedCluster(new) },
 		UpdateFunc: func(old, new interface{}) { c.processManagedCluster(new) },
 	})
-
-	//
-	// VerrazzanoBindings
-	//
-	c.VerrazzanoBindingInformer.AddEventHandler(k8scache.ResourceEventHandlerFuncs{
-		AddFunc:    func(new interface{}) { c.processApplicationBindingAdded(new) },
-		UpdateFunc: func(old, new interface{}) { c.processApplicationBindingAdded(new) },
-		DeleteFunc: func(new interface{}) { c.processApplicationBindingDeleted(new) },
-	})
-
-	//
-	// VerrazzanoModels
-	//
-	c.VerrazzanoModelInformer.AddEventHandler(k8scache.ResourceEventHandlerFuncs{
-		AddFunc:    func(new interface{}) { c.processApplicationModelAdded(new) },
-		UpdateFunc: func(old, new interface{}) { c.processApplicationModelAdded(new) },
-		DeleteFunc: func(new interface{}) { c.processApplicationModelDeleted(new) },
-	})
 }
 
 // Process a change to a VerrazzanoManagedCluster
@@ -369,7 +336,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	c.imagePullSecrets = sa.ImagePullSecrets
 
 	// A synthetic binding will be constructed and passed to the managed clusters
-	systemBinding := &types.ClusterBinding{
+	systemBinding := &types.LocationInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
@@ -558,14 +525,14 @@ func (c *Controller) processApplicationModelDeleted(verrazzanoModel interface{})
 	}
 }
 
-func getModelBindingPair(c *Controller, binding *types.ClusterBinding) (*types.ModelBindingPair, bool) {
+func getModelBindingPair(c *Controller, binding *types.LocationInfo) (*types.ModelBindingPair, bool) {
 	mbPair, mbPairExists := c.modelBindingPairs[binding.Name]
 	return mbPair, mbPairExists
 }
 
 // Process a change to a VerrazzanoBinding/Sync existing VerrazzanoBinding with cluster state
 func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{}) {
-	binding := verrazzanoBinding.(*types.ClusterBinding)
+	binding := verrazzanoBinding.(*types.LocationInfo)
 
 	if binding.GetDeletionTimestamp() != nil {
 		if contains(binding.GetFinalizers(), bindingFinalizer) {
@@ -685,7 +652,7 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 }
 
 // Check for a duplicate namespaces being used across two differrent bindings
-func checkForDuplicateNamespaces(placement *v1beta1v8o.VerrazzanoPlacement, binding *types.ClusterBinding, currPlacement *v1beta1v8o.VerrazzanoPlacement, currBinding *types.ClusterBinding) bool {
+func checkForDuplicateNamespaces(placement *v1beta1v8o.VerrazzanoPlacement, binding *types.LocationInfo, currPlacement *v1beta1v8o.VerrazzanoPlacement, currBinding *types.LocationInfo) bool {
 	dupFound := false
 	for _, namespace := range placement.Namespaces {
 		for _, currNamespace := range currPlacement.Namespaces {
@@ -773,7 +740,7 @@ func (me *kubeDeployment) DeleteDeployment(namespace, name string) error {
 
 // Process a removal of a VerrazzanoBinding
 func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interface{}) {
-	binding := verrazzanoBinding.(*types.ClusterBinding)
+	binding := verrazzanoBinding.(*types.LocationInfo)
 
 	if !contains(binding.GetFinalizers(), bindingFinalizer) {
 		zap.S().Infof("Resources for binding %s already deleted", binding.Name)
@@ -949,7 +916,6 @@ func remove(list []string, s string) []string {
 	return list
 }
 
-
 // managedInterface defines the functions in the 'managed' package that are used  by the Controller
 type managedInterface interface {
 	BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*v8outil.ManagedClusterConnection, error)
@@ -964,7 +930,7 @@ type managedInterface interface {
 	CreateServiceEntries(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, sec v8omonitoring.Secrets) error
-	CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}, vbLister listers.VerrazzanoBindingLister) error
+	CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error
 	UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string) error
 	CreateDestinationRules(mbPair *types.ModelBindingPair, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
@@ -1110,12 +1076,12 @@ func (u *utilPackage) GetManagedClustersForVerrazzanoBinding(mbPair *types.Model
 
 // localInterface defines the functions in the 'local' package that are used  by the Controller
 type localInterface interface {
-	DeleteVmi(binding *types.ClusterBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error
-	DeleteSecrets(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error
-	DeleteConfigMaps(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error
-	CreateUpdateVmi(binding *types.ClusterBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error
-	UpdateConfigMaps(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error
-	UpdateAcmeDNSSecret(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error
+	DeleteVmi(binding *types.LocationInfo, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error
+	DeleteSecrets(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error
+	DeleteConfigMaps(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error
+	CreateUpdateVmi(binding *types.LocationInfo, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error
+	UpdateConfigMaps(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error
+	UpdateAcmeDNSSecret(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error
 }
 
 // localPackage is the localInterface implementation through which all 'local' package functions are invoked
@@ -1125,33 +1091,33 @@ type localPackage struct {
 
 // All localPackage methods simply delegate to the corresponding function in the 'local' package
 
-func (l *localPackage) DeleteVmi(binding *types.ClusterBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
+func (l *localPackage) DeleteVmi(binding *types.LocationInfo, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
 	return v8olocal.DeleteVmi(binding, vmoClientSet, vmiLister)
 }
 
-func (l *localPackage) DeleteSecrets(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
+func (l *localPackage) DeleteSecrets(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
 	return v8olocal.DeleteSecrets(binding, kubeClientSet, secretLister)
 }
 
-func (l *localPackage) DeleteConfigMaps(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func (l *localPackage) DeleteConfigMaps(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	return v8olocal.DeleteConfigMaps(binding, kubeClientSet, configMapLister)
 }
 
-func (l *localPackage) CreateUpdateVmi(binding *types.ClusterBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
+func (l *localPackage) CreateUpdateVmi(binding *types.LocationInfo, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 	return v8olocal.CreateUpdateVmi(binding, vmoClientSet, vmiLister, verrazzanoURI, enableMonitoringStorage)
 }
 
-func (l *localPackage) UpdateConfigMaps(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func (l *localPackage) UpdateConfigMaps(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	return v8olocal.UpdateConfigMaps(binding, kubeClientSet, configMapLister)
 }
 
-func (l *localPackage) UpdateAcmeDNSSecret(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
+func (l *localPackage) UpdateAcmeDNSSecret(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
 	return v8olocal.UpdateAcmeDNSSecret(binding, kubeClientSet, secretLister, name, verrazzanoURI)
 }
 
 // monitoringInterface defines the functions in the 'monitoring' package that are used  by the Controller
 type monitoringInterface interface {
-	CreateVmiSecrets(binding *types.ClusterBinding, secrets v8omonitoring.Secrets) error
+	CreateVmiSecrets(binding *types.LocationInfo, secrets v8omonitoring.Secrets) error
 	DeletePomPusher(binding string, helper v8outil.DeploymentHelper) error
 }
 
@@ -1162,7 +1128,7 @@ type monitoringPackage struct {
 
 // All monitoringPackage methods simply delegate to the corresponding function in the 'monitoring' package
 
-func (m *monitoringPackage) CreateVmiSecrets(binding *types.ClusterBinding, secrets v8omonitoring.Secrets) error {
+func (m *monitoringPackage) CreateVmiSecrets(binding *types.LocationInfo, secrets v8omonitoring.Secrets) error {
 	return v8omonitoring.CreateVmiSecrets(binding, secrets)
 }
 

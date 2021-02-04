@@ -39,8 +39,8 @@ func testKeyFunc(obj interface{}) (string, error) {
 	switch t := obj.(type) {
 	case *v1beta1.VerrazzanoManagedCluster:
 		return string(obj.(*v1beta1.VerrazzanoManagedCluster).UID), nil
-	case *types.ClusterBinding:
-		return string(obj.(*types.ClusterBinding).UID), nil
+	case *types.LocationInfo:
+		return string(obj.(*types.LocationInfo).UID), nil
 	default:
 		msg := fmt.Sprintf("Unknown Type %T", t)
 		fmt.Printf(msg)

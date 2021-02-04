@@ -146,7 +146,7 @@ func TestDeletePomPusher(t *testing.T) {
 
 // Get secrets and labels used by the tests
 func getSecretsAndLabels() (secrets Secrets, labels map[string]string) {
-	binding := types.ClusterBinding{}
+	binding := types.LocationInfo{}
 	binding.Name = "vmiSecrets"
 	vmiSecret := NewVmiSecret(&binding)
 	secrets = &MockSecrets{secrets: map[string]*corev1.Secret{

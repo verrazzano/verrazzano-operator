@@ -28,7 +28,7 @@ import (
 
 func TestNewConfigMap(t *testing.T) {
 	type args struct {
-		binding *types.ClusterBinding
+		binding *types.LocationInfo
 	}
 	tests := []struct {
 		name         string
@@ -39,7 +39,7 @@ func TestNewConfigMap(t *testing.T) {
 		{
 			name: "system",
 			args: args{
-				&types.ClusterBinding{
+				&types.LocationInfo{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "system",
 					}},
@@ -48,7 +48,7 @@ func TestNewConfigMap(t *testing.T) {
 		}, {
 			name: "bookstore",
 			args: args{
-				&types.ClusterBinding{
+				&types.LocationInfo{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "bookstore",
 					}},
@@ -176,7 +176,7 @@ func configMap(name string, labels map[string]string) *corev1.ConfigMap {
 }
 
 func TestUpdateConfigMaps(t *testing.T) {
-	var binding types.ClusterBinding
+	var binding types.LocationInfo
 	binding.Name = "system"
 	ns := constants.VerrazzanoNamespace
 	labels := util.GetLocalBindingLabels(&binding)
@@ -192,7 +192,7 @@ func TestUpdateConfigMaps(t *testing.T) {
 }
 
 func TestUpdateWithExistingConfigMaps(t *testing.T) {
-	var binding types.ClusterBinding
+	var binding types.LocationInfo
 	binding.Name = "system"
 	labels := util.GetLocalBindingLabels(&binding)
 	cm1 := configMap("system", labels)
@@ -212,7 +212,7 @@ func TestUpdateWithExistingConfigMaps(t *testing.T) {
 }
 
 func TestUpdateConfigMapsWithUpdateError(t *testing.T) {
-	var binding types.ClusterBinding
+	var binding types.LocationInfo
 	binding.Name = "system"
 	//ns := constants.VerrazzanoNamespace
 	labels := util.GetLocalBindingLabels(&binding)
@@ -226,7 +226,7 @@ func TestUpdateConfigMapsWithUpdateError(t *testing.T) {
 }
 
 func TestUpdateConfigMapsWithDeleteError(t *testing.T) {
-	var binding types.ClusterBinding
+	var binding types.LocationInfo
 	binding.Name = "system"
 	//ns := constants.VerrazzanoNamespace
 	labels := util.GetLocalBindingLabels(&binding)
@@ -239,7 +239,7 @@ func TestUpdateConfigMapsWithDeleteError(t *testing.T) {
 }
 
 func TestDeleteConfigMap(t *testing.T) {
-	var binding types.ClusterBinding
+	var binding types.LocationInfo
 	binding.Name = "system"
 	labels := util.GetLocalBindingLabels(&binding)
 	cm1 := configMap("system", labels)
@@ -253,7 +253,7 @@ func TestDeleteConfigMap(t *testing.T) {
 }
 
 func TestDeleteConfigMapWithListError(t *testing.T) {
-	var binding types.ClusterBinding
+	var binding types.LocationInfo
 	binding.Name = "system"
 	labels := util.GetLocalBindingLabels(&binding)
 	cm1 := configMap("system", labels)
@@ -265,7 +265,7 @@ func TestDeleteConfigMapWithListError(t *testing.T) {
 }
 
 func TestDeleteConfigMapWithDeleteError(t *testing.T) {
-	var binding types.ClusterBinding
+	var binding types.LocationInfo
 	binding.Name = "system"
 	labels := util.GetLocalBindingLabels(&binding)
 	cm1 := configMap("system", labels)

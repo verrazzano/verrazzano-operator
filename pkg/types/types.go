@@ -89,18 +89,13 @@ type ManagedCluster struct {
 
 	// Remote rest connections (istio ServicEntries) to generate within each namespace for this cluster
 	RemoteRests map[string][]*RemoteRestConnection
-
-}
-
-type ClusterModel struct {
-	metav1.ObjectMeta
 }
 
 // ModelBindingPair represents an instance of a model/binding pair and
 // the objects for creating the model.
 type ModelBindingPair struct {
-	Binding *ClusterBinding
-	Model *ClusterModel
+	Binding *LocationInfo
+	Model   *ClusterModel
 
 	// The set of managed clusters
 	ManagedClusters map[string]*ManagedCluster
@@ -114,35 +109,37 @@ type ModelBindingPair struct {
 	ImagePullSecrets []corev1.LocalObjectReference
 }
 
-type ClusterBinding struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+type LocationInfo struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
-	Spec   VerrazzanoBindingSpec   `json:"spec"`
+	Spec LocationInfoSpec
 }
 
-type VerrazzanoBindingSpec struct {
-	// A description of the binding
-	Description string `json:"description" yaml:"description"`
+type LocationInfoSpec struct {
+	// Description of the location
+	Description string
 
 	// The model name to associate the bindings
-	ModelName string `json:"modelName" yaml:"modelName"`
+	ModelName string
 
 	// The set of Placement definitions
-	// +x-kubernetes-list-type=set
-	Placement []VerrazzanoPlacement `json:"placement" yaml:"placement"`
+	Placement []ClusterPlacement
 }
 
-type VerrazzanoPlacement struct {
+type ClusterPlacement struct {
 	// The name of the placement
-	Name string `json:"name" yaml:"name"`
+	Name string
 
 	// Namespaces for this placement
-	// +x-kubernetes-list-type=set
-	Namespaces []KubernetesNamespace `json:"namespaces" yaml:"namespaces"`
+	Namespaces []KubernetesNamespace
 }
 
 type KubernetesNamespace struct {
 	// Name of the namespace
 	Name string `json:"name" yaml:"name"`
+}
+
+type ClusterModel struct {
+	metav1.ObjectMeta
 }

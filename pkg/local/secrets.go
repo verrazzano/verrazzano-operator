@@ -28,7 +28,7 @@ type acmeDNS struct {
 }
 
 // DeleteSecrets deletes secrets for a given binding in the management cluster.
-func DeleteSecrets(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
+func DeleteSecrets(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
 	zap.S().Debugf("Deleting Management Cluster secrets for VerrazzanoBinding %s", binding.Name)
 
 	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
@@ -95,7 +95,7 @@ func GetSecretByUID(kubeClientSet kubernetes.Interface, ns string, uid string) (
 
 // UpdateAcmeDNSSecret updates the AcmeDnsSecret, which is used for "bring your own dns" installs, to contain the DNS
 // entries for the model/binding.  This is one of the required steps for the monitoring endpoints to work.
-func UpdateAcmeDNSSecret(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
+func UpdateAcmeDNSSecret(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
 	zap.S().Debugf("Updating Management Cluster secret %s for VerrazzanoBinding %s", name, binding.Name)
 	namespace := constants.VerrazzanoNamespace
 	acmeDNSKey := constants.AcmeDNSSecretKey

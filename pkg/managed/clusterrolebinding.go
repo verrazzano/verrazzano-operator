@@ -123,7 +123,7 @@ func DeleteClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedC
 }
 
 // Constructs the necessary Roles for the specified ManagedCluster in the given VerrazzanoBinding
-func newClusterRoleBindings(binding *types.ClusterBinding, managedClusterName string) []*rbacv1.ClusterRoleBinding {
+func newClusterRoleBindings(binding *types.LocationInfo, managedClusterName string) []*rbacv1.ClusterRoleBinding {
 	var clusterRoleBindings []*rbacv1.ClusterRoleBinding
 
 	// Append Cluster role bindings from system monitoring

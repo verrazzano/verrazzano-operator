@@ -55,7 +55,7 @@ func CreateSecrets(mbPair *types.ModelBindingPair, availableManagedClusterConnec
 	return nil
 }
 
-func createSecrets(binding *types.ClusterBinding, managedClusterConnection *util.ManagedClusterConnection, newSecrets []*corev1.Secret, clusterName string) error {
+func createSecrets(binding *types.LocationInfo, managedClusterConnection *util.ManagedClusterConnection, newSecrets []*corev1.Secret, clusterName string) error {
 	// Create or update secrets
 	var secretNames = []string{}
 	for _, newSecret := range newSecrets {

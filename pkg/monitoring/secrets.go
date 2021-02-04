@@ -34,7 +34,7 @@ type Secrets interface {
 }
 
 // NewVmiSecret creates the necessary Secrets for the given VerrazzanoBinding.
-func NewVmiSecret(binding *types.ClusterBinding) *corev1.Secret {
+func NewVmiSecret(binding *types.LocationInfo) *corev1.Secret {
 	bindingLabels := util.GetLocalBindingLabels(binding)
 	sec := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -87,7 +87,7 @@ func saltedHash(sec *corev1.Secret) *corev1.Secret {
 }
 
 // CreateVmiSecrets creates/updates a VMI secret.
-func CreateVmiSecrets(binding *types.ClusterBinding, secrets Secrets) error {
+func CreateVmiSecrets(binding *types.LocationInfo, secrets Secrets) error {
 	vmiSecret, _ := secrets.Get(constants.VmiSecretName)
 
 	if vmiSecret == nil {

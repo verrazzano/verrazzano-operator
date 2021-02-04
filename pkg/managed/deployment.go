@@ -170,7 +170,7 @@ func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManaged
 }
 
 // Constructs the necessary Verrazzano system deployments for the specified ManagedCluster in the given VerrazzanoBinding
-func newSystemDeployments(binding *types.ClusterBinding, managedCluster *types.ManagedCluster, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
+func newSystemDeployments(binding *types.LocationInfo, managedCluster *types.ManagedCluster, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
 	deployPromPusher := true //temporary variable to create pusher deployment
 	depLabels := util.GetManagedLabelsNoBinding(managedCluster.Name)
 	var deployments []*appsv1.Deployment

@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
-	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
 	vmoclientset "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
 	vmolisters "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/listers/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
@@ -64,7 +63,7 @@ var testClientset = testclient.NewSimpleClientset(&v1.ServiceAccount{
 // WHEN I create a controller
 // THEN the PUBLIC state of the controller is in the expected state for a non-running controller
 func TestNewController(t *testing.T) {
-	binding := &types.ClusterBinding{
+	binding := &types.LocationInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
@@ -82,15 +81,8 @@ func TestNewController(t *testing.T) {
 	// createController invokes NewController which is the function that is being tested
 	controller := createController(t,localMockSetupFunc, monitoringMockSetupFunc)
 
-	assert.NotNil(t, controller.VerrazzanoBindingInformer)
-	assert.NotNil(t, controller.VerrazzanoBindingLister)
-	assert.NotNil(t, controller.VerrazzanoModelInformer)
-	assert.NotNil(t, controller.VerrazzanoBindingLister)
-
 	// assert initial lister state
 	listers := controller.ListerSet()
-	assert.Equal(t, controller.VerrazzanoBindingLister, *listers.BindingLister)
-	assert.Equal(t, controller.VerrazzanoModelLister, *listers.ModelLister)
 	assert.Equal(t, controller.verrazzanoManagedClusterLister, *listers.ManagedClusterLister)
 	assert.Equal(t, 0, len(*listers.ModelBindingPairs))
 	assert.NotNil(t, listers.KubeClientSet)
@@ -110,7 +102,7 @@ func TestProcessManagedCluster(t *testing.T) {
 		},
 	}
 
-	binding := &types.ClusterBinding{
+	binding := &types.LocationInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
@@ -136,15 +128,9 @@ func TestProcessManagedCluster(t *testing.T) {
 	managedMock.CreateConfigMaps(mbPair, testFilteredConnections)
 	managedMock.CreateClusterRoles(mbPair, testFilteredConnections)
 	managedMock.CreateClusterRoleBindings(mbPair, testFilteredConnections)
-	managedMock.CreateIngresses(mbPair, testFilteredConnections)
-	managedMock.CreateServiceEntries(mbPair, testFilteredConnections, controller.managedClusterConnections)
 	managedMock.CreateServices(mbPair, testFilteredConnections)
 	managedMock.CreateDeployments(mbPair, controller.managedClusterConnections,  controller.verrazzanoURI, controller.secrets)
-	managedMock.CreateCustomResources(mbPair, controller.managedClusterConnections, controller.stopCh, controller.VerrazzanoBindingLister)
-	managedMock.UpdateIstioPrometheusConfigMaps(mbPair, controller.secretLister, controller.managedClusterConnections)
 	managedMock.CreateDaemonSets(mbPair, controller.managedClusterConnections, controller.verrazzanoURI)
-	managedMock.CreateDestinationRules(mbPair, testFilteredConnections)
-	managedMock.CreateAuthorizationPolicies(mbPair, testFilteredConnections)
 	managedMock.SetupComplete()
 
 	// record expected 'util' interactions
@@ -168,7 +154,7 @@ func TestProcessManagedCluster(t *testing.T) {
 func TestProcessApplicationModelAdded(t *testing.T) {
 	controller := createController(t, nil, nil)
 
-	binding := &types.ClusterBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding"}, Spec: types.VerrazzanoBindingSpec{ModelName: "test-model"}}
+	binding := &types.LocationInfo{ObjectMeta: metav1.ObjectMeta{Name: "test-binding"}, Spec: types.LocationInfoSpec{ModelName: "test-model"}}
 	controller.applicationBindings["test-binding"] = binding
 	controller.imagePullSecrets = testImagePullSecrets
 
@@ -228,10 +214,10 @@ func TestProcessApplicationBindingAdded(t *testing.T) {
 	// get controller
 	controller := createController(t, nil, nil)
 
-	binding := &types.ClusterBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
-		Spec: types.VerrazzanoBindingSpec{
+	binding := &types.LocationInfo{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
+		Spec: types.LocationInfoSpec{
 			ModelName: "test-model",
-			Placement: []types.VerrazzanoPlacement{{Name: "test-placement", Namespaces: []types.KubernetesNamespace{{Name: "test-namespace"}}}}}}
+			Placement: []types.ClusterPlacement{{Name: "test-placement", Namespaces: []types.KubernetesNamespace{{Name: "test-namespace"}}}}}}
 
 	// add the corresponding model
 	model := &types.ClusterModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
@@ -252,24 +238,9 @@ func TestProcessApplicationBindingAdded(t *testing.T) {
 	managedMock.CreateConfigMaps(modelBindingPair, testFilteredConnections)
 	managedMock.CreateClusterRoles(modelBindingPair, testFilteredConnections)
 	managedMock.CreateClusterRoleBindings(modelBindingPair, testFilteredConnections)
-	managedMock.CreateIngresses(modelBindingPair, testFilteredConnections)
-	managedMock.CreateServiceEntries(modelBindingPair, testFilteredConnections, controller.managedClusterConnections)
 	managedMock.CreateServices(modelBindingPair, testFilteredConnections)
 	managedMock.CreateDeployments(modelBindingPair, testFilteredConnections, controller.verrazzanoURI, controller.secrets)
-	managedMock.CreateCustomResources(modelBindingPair, controller.managedClusterConnections, controller.stopCh, controller.VerrazzanoBindingLister)
-	managedMock.UpdateIstioPrometheusConfigMaps(modelBindingPair, controller.secretLister, controller.managedClusterConnections)
 	managedMock.CreateDaemonSets(modelBindingPair, testFilteredConnections, controller.verrazzanoURI)
-	managedMock.CreateDestinationRules(modelBindingPair, testFilteredConnections)
-	managedMock.CreateAuthorizationPolicies(modelBindingPair, testFilteredConnections)
-	managedMock.CleanupOrphanedClusterRoleBindings(modelBindingPair, controller.managedClusterConnections)
-	managedMock.CleanupOrphanedConfigMaps(modelBindingPair, controller.managedClusterConnections)
-	managedMock.CleanupOrphanedNamespaces(modelBindingPair, controller.managedClusterConnections, controller.modelBindingPairs)
-	managedMock.CleanupOrphanedServices(modelBindingPair, controller.managedClusterConnections)
-	managedMock.CleanupOrphanedDeployments(modelBindingPair, controller.managedClusterConnections)
-	managedMock.CleanupOrphanedServiceEntries(modelBindingPair, controller.managedClusterConnections)
-	managedMock.CleanupOrphanedIngresses(modelBindingPair, controller.managedClusterConnections)
-	managedMock.CleanupOrphanedCustomResources(modelBindingPair, controller.managedClusterConnections, controller.stopCh)
-	managedMock.CleanupOrphanedClusterRoles(modelBindingPair, controller.managedClusterConnections)
 	managedMock.SetupComplete()
 
 	localMock := controller.local.(*testLocalPackage)
@@ -307,8 +278,8 @@ func TestProcessApplicationBindingAdded(t *testing.T) {
 func TestProcessApplicationBindingDeleted(t *testing.T) {
 	controller := createController(t,nil, nil)
 
-	binding := &types.ClusterBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
-		Spec: types.VerrazzanoBindingSpec{
+	binding := &types.LocationInfo{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
+		Spec: types.LocationInfoSpec{
 			ModelName: "test-model"}}
 
 	model := &types.ClusterModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
@@ -552,12 +523,11 @@ func (t *testManagedPackage) CreateDeployments(mbPair *types.ModelBindingPair, a
 	return nil
 }
 
-func (t *testManagedPackage) CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}, vbLister listers.VerrazzanoBindingLister) error {
+func (t *testManagedPackage) CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}) error {
 	t.Record("CreateCustomResources", map[string]interface{}{
 		"mbPair":                             mbPair,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
-		"stopCh":                             stopCh,
-		"vbLister":                           vbLister})
+		"stopCh":                             stopCh})
 	return nil
 }
 
@@ -774,7 +744,7 @@ func newTestLocal(expectations func(*testLocalPackage)) *testLocalPackage {
 	return t
 }
 
-func (l *testLocalPackage) DeleteVmi(binding *types.ClusterBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
+func (l *testLocalPackage) DeleteVmi(binding *types.LocationInfo, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
 	l.Record("DeleteVmi", map[string]interface{}{
 		"binding":      binding,
 		"vmoClientSet": vmoClientSet,
@@ -783,7 +753,7 @@ func (l *testLocalPackage) DeleteVmi(binding *types.ClusterBinding, vmoClientSet
 	return nil
 }
 
-func (l *testLocalPackage) DeleteSecrets(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
+func (l *testLocalPackage) DeleteSecrets(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
 	l.Record("DeleteSecrets", map[string]interface{}{
 		"binding":       binding,
 		"kubeClientSet": kubeClientSet,
@@ -792,7 +762,7 @@ func (l *testLocalPackage) DeleteSecrets(binding *types.ClusterBinding, kubeClie
 	return nil
 }
 
-func (l *testLocalPackage) DeleteConfigMaps(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func (l *testLocalPackage) DeleteConfigMaps(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	l.Record("DeleteConfigMaps", map[string]interface{}{
 		"binding":         binding,
 		"kubeClientSet":   kubeClientSet,
@@ -801,7 +771,7 @@ func (l *testLocalPackage) DeleteConfigMaps(binding *types.ClusterBinding, kubeC
 	return nil
 }
 
-func (l *testLocalPackage) CreateUpdateVmi(binding *types.ClusterBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
+func (l *testLocalPackage) CreateUpdateVmi(binding *types.LocationInfo, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 	l.Record("CreateUpdateVmi", map[string]interface{}{
 		"binding":                 binding,
 		"vmoClientSet":            vmoClientSet,
@@ -811,7 +781,7 @@ func (l *testLocalPackage) CreateUpdateVmi(binding *types.ClusterBinding, vmoCli
 	return nil
 }
 
-func (l *testLocalPackage) UpdateConfigMaps(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func (l *testLocalPackage) UpdateConfigMaps(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	l.Record("UpdateConfigMaps", map[string]interface{}{
 		"binding":         binding,
 		"kubeClientSet":   kubeClientSet,
@@ -819,7 +789,7 @@ func (l *testLocalPackage) UpdateConfigMaps(binding *types.ClusterBinding, kubeC
 	return nil
 }
 
-func (l *testLocalPackage) UpdateAcmeDNSSecret(binding *types.ClusterBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
+func (l *testLocalPackage) UpdateAcmeDNSSecret(binding *types.LocationInfo, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
 	l.Record("UpdateAcmeDNSSecret", map[string]interface{}{
 		"binding":       binding,
 		"kubeClientSet": kubeClientSet,
@@ -849,7 +819,7 @@ func newTestMonitoring(expectations func(*testMonitoringPackage)) *testMonitorin
 	return t
 }
 
-func (m *testMonitoringPackage) CreateVmiSecrets(binding *types.ClusterBinding, secrets monitoring.Secrets) error {
+func (m *testMonitoringPackage) CreateVmiSecrets(binding *types.LocationInfo, secrets monitoring.Secrets) error {
 	m.Record("CreateVmiSecrets", map[string]interface{}{
 		"binding": binding,
 		"secrets": secrets})
@@ -864,7 +834,7 @@ func (m *testMonitoringPackage) DeletePomPusher(binding string, helper util.Depl
 	return nil
 }
 
-func testExecuteCreateUpdateGlobaEntitiesGoroutine(binding *types.ClusterBinding, c *Controller) {
+func testExecuteCreateUpdateGlobaEntitiesGoroutine(binding *types.LocationInfo, c *Controller) {
 	createUpdateGlobalEntities(binding, c)
 }
 
