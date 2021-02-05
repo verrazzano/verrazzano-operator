@@ -104,7 +104,7 @@ go-mod:
 
 	# Obtain verrazzano-crd-generator version
 	mkdir -p vendor/${CRDGEN_PATH}/${CRD_PATH}
-	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-crd-generator`/${CRD_PATH}/*.yaml vendor/${CRDGEN_PATH}/${CRD_PATH}
+	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-crd-generator`/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml vendor/${CRDGEN_PATH}/${CRD_PATH}
 
 	# Obtain verrazzano-monitoring-operator version
 	mkdir -p vendor/${VMO_PATH}/${VMO_CRD_PATH}
