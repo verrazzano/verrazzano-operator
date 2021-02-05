@@ -199,7 +199,7 @@ func TestCreateInstanceError(t *testing.T) {
 
 			originalCreateInstance := createInstanceFunc
 			defer func() { createInstanceFunc = originalCreateInstance }()
-			createInstanceFunc = func(binding *vztypes.ResourceLocation, verrazzanoURI string, enableMonitoringStorage string) (*vmov1.VerrazzanoMonitoringInstance, error) {
+			createInstanceFunc = func(binding *vztypes.SyntheticBinding, verrazzanoURI string, enableMonitoringStorage string) (*vmov1.VerrazzanoMonitoringInstance, error) {
 				return nil, errors.New("Test Error")
 			}
 			defer func() { createInstanceFunc = originalCreateInstance }()
@@ -209,8 +209,8 @@ func TestCreateInstanceError(t *testing.T) {
 	}
 }
 
-func createTestBinding(bindingName string) *vztypes.ResourceLocation {
-	binding := vztypes.ResourceLocation{}
+func createTestBinding(bindingName string) *vztypes.SyntheticBinding {
+	binding := vztypes.SyntheticBinding{}
 	binding.Name = bindingName
 	return &binding
 }

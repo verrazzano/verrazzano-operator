@@ -23,7 +23,7 @@ import (
 
 // CreateNamespaces creates/updates namespaces needed for each managed cluster.
 func CreateNamespaces(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Debugf("Creating/updating Namespaces for VerrazzanoBinding %s", vzSynMB.Location.Name)
+	zap.S().Debugf("Creating/updating Namespaces for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// Construct namespaces for each ManagedCluster
 	for clusterName, managedClusterObj := range vzSynMB.ManagedClusters {
@@ -32,10 +32,10 @@ func CreateNamespaces(vzSynMB *types.SyntheticModelBinding, filteredConnections 
 		defer managedClusterConnection.Lock.RUnlock()
 
 		var namespaces []*corev1.Namespace
-		namespaces = newNamespaces(vzSynMB.Location, managedClusterObj)
+		namespaces = newNamespaces(vzSynMB.SynBinding, managedClusterObj)
 
 		// Create/Update Namespace
-		err := createNamespace(vzSynMB.Location, managedClusterConnection, namespaces, clusterName)
+		err := createNamespace(vzSynMB.SynBinding, managedClusterConnection, namespaces, clusterName)
 		if err != nil {
 			return err
 		}
@@ -43,7 +43,7 @@ func CreateNamespaces(vzSynMB *types.SyntheticModelBinding, filteredConnections 
 	return nil
 }
 
-func createNamespace(binding *types.ResourceLocation, managedClusterConnection *util.ManagedClusterConnection, newNamespaces []*corev1.Namespace, clusterName string) error {
+func createNamespace(binding *types.SyntheticBinding, managedClusterConnection *util.ManagedClusterConnection, newNamespaces []*corev1.Namespace, clusterName string) error {
 	// Construct the set of expected namespaces
 	for _, newNamespace := range newNamespaces {
 		existingNamespace, err := managedClusterConnection.NamespaceLister.Get(newNamespace.Name)
@@ -63,7 +63,7 @@ func createNamespace(binding *types.ResourceLocation, managedClusterConnection *
 
 // CleanupOrphanedNamespaces deletes namespaces that have been orphaned.
 func CleanupOrphanedNamespaces(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allvzSynMBs map[string]*types.SyntheticModelBinding) error {
-	zap.S().Debugf("Cleaning up orphaned Namespace for VerrazzanoBinding %s", vzSynMB.Location.Name)
+	zap.S().Debugf("Cleaning up orphaned Namespace for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// Get the managed clusters that this binding applies to
 	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(vzSynMB, availableManagedClusterConnections)
@@ -76,7 +76,7 @@ func CleanupOrphanedNamespaces(vzSynMB *types.SyntheticModelBinding, availableMa
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.Location.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.SynBinding.Name, constants.VerrazzanoCluster: clusterName})
 
 		if mc.Namespaces != nil {
 			// Create list of Namespaces expected on this cluster
@@ -111,7 +111,7 @@ func CleanupOrphanedNamespaces(vzSynMB *types.SyntheticModelBinding, availableMa
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.Location.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.SynBinding.Name, constants.VerrazzanoCluster: clusterName})
 
 		// First, get rid of any Namespace with the specified binding
 		existingNamespaceList, err := managedClusterConnection.NamespaceLister.List(selector)
@@ -172,7 +172,7 @@ func CleanupOrphanedNamespaces(vzSynMB *types.SyntheticModelBinding, availableMa
 
 // DeleteNamespaces deletes namespaces for a given binding.
 func DeleteNamespaces(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
-	zap.S().Debugf("Deleting Namespaces for VerrazzanoBinding %s", vzSynMB.Location.Name)
+	zap.S().Debugf("Deleting Namespaces for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// Parse out the managed clusters that this binding applies to
 	managedClusters, err := util.GetManagedClustersForVerrazzanoBinding(vzSynMB, availableManagedClusterConnections)
@@ -187,7 +187,7 @@ func DeleteNamespaces(vzSynMB *types.SyntheticModelBinding, availableManagedClus
 
 		var selector labels.Selector
 		if bindingLabel {
-			selector = labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.Location.Name})
+			selector = labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.SynBinding.Name})
 		} else {
 			selector = labels.SelectorFromSet(util.GetManagedLabelsNoBinding(clusterName))
 		}
@@ -217,7 +217,7 @@ func DeleteNamespaces(vzSynMB *types.SyntheticModelBinding, availableManagedClus
 }
 
 // Constructs the necessary Namespaces for the specified ManagedCluster in the given VerrazzanoBinding
-func newNamespaces(binding *types.ResourceLocation, managedCluster *types.ManagedCluster) []*corev1.Namespace {
+func newNamespaces(binding *types.SyntheticBinding, managedCluster *types.ManagedCluster) []*corev1.Namespace {
 	var namespaces []*corev1.Namespace
 
 	for _, namespace := range managedCluster.Namespaces {

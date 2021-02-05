@@ -74,7 +74,7 @@ func TestUpdateAcmeDNSSecret(t *testing.T) {
 	sec.Data = map[string][]byte{acmeDNSKey: b}
 	kubecli := fakek8s.NewSimpleClientset(sec)
 	var secretLister = testutil.NewSecretLister(kubecli)
-	var binding types.ResourceLocation
+	var binding types.SyntheticBinding
 	binding.Name = "system"
 	err := UpdateAcmeDNSSecret(&binding, kubecli, secretLister, name, verrazzanoURI)
 	bindingDNSName := fmt.Sprintf("vmi.%s.%s", binding.Name, verrazzanoURI)
@@ -97,7 +97,7 @@ func TestUpdateAcmeDNSSecretWithUpdateError(t *testing.T) {
 	kubecli := testutil.MockError(fakek8s.NewSimpleClientset(sec),
 		"update", "secrets", &corev1.Secret{})
 	var secretLister = testutil.NewSecretLister(kubecli)
-	var binding types.ResourceLocation
+	var binding types.SyntheticBinding
 	binding.Name = "system"
 	err := UpdateAcmeDNSSecret(&binding, kubecli, secretLister, name, verrazzanoURI)
 	assert.NotNil(t, err, "Expected error in UpdateAcmeDNSSecret")
@@ -129,7 +129,7 @@ func TestDeleteSecret(t *testing.T) {
 func TestDeleteSecrets(t *testing.T) {
 	sec := newSecret("v8o-test", "TestDeleteSecret", "TestDeleteSecret")
 	kubecli := fakek8s.NewSimpleClientset(sec)
-	var binding types.ResourceLocation
+	var binding types.SyntheticBinding
 	binding.Name = "system"
 	secretLister := testutil.NewSecretLister(kubecli)
 	err := DeleteSecrets(&binding, kubecli, secretLister)
@@ -141,14 +141,14 @@ func TestDeleteSecrets(t *testing.T) {
 func TestUpdateSecret(t *testing.T) {
 	sec := newSecret("v8o-test", "TestUpdateSecret", "TestUpdateSecret")
 	kubecli := fakek8s.NewSimpleClientset(sec)
-	var binding types.ResourceLocation
+	var binding types.SyntheticBinding
 	binding.Name = "system"
 	err := UpdateSecret(kubecli, sec)
 	assert.Nil(t, err, "Expected nil error")
 }
 
 func TestUpdateAcmeDNSSecretWithErrors(t *testing.T) {
-	var binding types.ResourceLocation
+	var binding types.SyntheticBinding
 	binding.Name = "system"
 	verrazzanoURI := "VerrazzanoURI"
 	ns := constants.VerrazzanoNamespace
@@ -215,7 +215,7 @@ func TestUpdateAcmeDNSSecretWithErrors(t *testing.T) {
 
 func TestDeleteSecretsWithErrors(t *testing.T) {
 	sec := newSecret("v8o-test-TestDeleteSecretsWithErrors", "TestDeleteSecretsWithErrors", "TestDeleteSecretsWithErrors")
-	var binding types.ResourceLocation
+	var binding types.SyntheticBinding
 	binding.Name = "system"
 	tests := []struct {
 		name    string

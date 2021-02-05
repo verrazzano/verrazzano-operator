@@ -39,8 +39,8 @@ func testKeyFunc(obj interface{}) (string, error) {
 	switch t := obj.(type) {
 	case *v1beta1.VerrazzanoManagedCluster:
 		return string(obj.(*v1beta1.VerrazzanoManagedCluster).UID), nil
-	case *types.ResourceLocation:
-		return string(obj.(*types.ResourceLocation).UID), nil
+	case *types.SyntheticBinding:
+		return string(obj.(*types.SyntheticBinding).UID), nil
 	default:
 		msg := fmt.Sprintf("Unknown Type %T", t)
 		fmt.Printf(msg)
@@ -49,7 +49,7 @@ func testKeyFunc(obj interface{}) (string, error) {
 }
 
 // NewControllerListers creates a fake set of listers to be used for unit tests
-func NewControllerListers(clients *kubernetes.Interface, clusters []v1beta1.VerrazzanoManagedCluster, VerrazzanoLocations *map[string]*types.SyntheticModelBinding) controller.Listers {
+func NewControllerListers(clients *kubernetes.Interface, clusters []v1beta1.VerrazzanoManagedCluster, SyntheticModelBindings *map[string]*types.SyntheticModelBinding) controller.Listers {
 	testIndexers := map[string]cache.IndexFunc{
 		"namespace": testIndexFunc,
 	}

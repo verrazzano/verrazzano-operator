@@ -63,7 +63,7 @@ var testClientset = testclient.NewSimpleClientset(&v1.ServiceAccount{
 // WHEN I create a controller
 // THEN the PUBLIC state of the controller is in the expected state for a non-running controller
 func TestNewController(t *testing.T) {
-	binding := &types.ResourceLocation{
+	binding := &types.SyntheticBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
@@ -84,7 +84,7 @@ func TestNewController(t *testing.T) {
 	// assert initial lister state
 	listers := controller.ListerSet()
 	assert.Equal(t, controller.verrazzanoManagedClusterLister, *listers.ManagedClusterLister)
-	assert.Equal(t, 0, len(*listers.VerrazzanoLocations))
+	assert.Equal(t, 0, len(*listers.SyntheticModelBindings))
 	assert.NotNil(t, listers.KubeClientSet)
 }
 
@@ -96,19 +96,19 @@ func TestNewController(t *testing.T) {
 func TestProcessManagedCluster(t *testing.T) {
 	controller := createController(t, nil, nil)
 
-	model := &types.ClusterInfo{
+	model := &types.SyntheticModel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
 	}
 
-	binding := &types.ResourceLocation{
+	binding := &types.SyntheticBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
 	}
 
-	vzSynMB := CreateVerrazzanoLocation(model, binding, controller.verrazzanoURI, testImagePullSecrets)
+	vzSynMB := CreateSyntheticModelBinding(model, binding, controller.verrazzanoURI, testImagePullSecrets)
 
 	mc := &types.ManagedCluster{
 		Name:        testManagedCluster.Name,
@@ -124,7 +124,7 @@ func TestProcessManagedCluster(t *testing.T) {
 	managedMock.BuildManagedClusterConnection(testSecretData, controller.stopCh)
 	managedMock.CreateNamespaces(vzSynMB, testFilteredConnections)
 	managedMock.CreateSecrets(vzSynMB, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
-	managedMock.CreateServiceAccounts(vzSynMB.Location.Name, vzSynMB.ImagePullSecrets, vzSynMB.ManagedClusters, testFilteredConnections)
+	managedMock.CreateServiceAccounts(vzSynMB.SynBinding.Name, vzSynMB.ImagePullSecrets, vzSynMB.ManagedClusters, testFilteredConnections)
 	managedMock.CreateConfigMaps(vzSynMB, testFilteredConnections)
 	managedMock.CreateClusterRoles(vzSynMB, testFilteredConnections)
 	managedMock.CreateClusterRoleBindings(vzSynMB, testFilteredConnections)
@@ -154,22 +154,22 @@ func TestProcessManagedCluster(t *testing.T) {
 func TestProcessApplicationModelAdded(t *testing.T) {
 	controller := createController(t, nil, nil)
 
-	binding := &types.ResourceLocation{ObjectMeta: metav1.ObjectMeta{Name: "test-binding"}, Spec: types.ResourceLocationSpec{ModelName: "test-model"}}
+	binding := &types.SyntheticBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding"}, Spec: types.ResourceLocationSpec{ModelName: "test-model"}}
 	controller.applicationBindings["test-binding"] = binding
 	controller.imagePullSecrets = testImagePullSecrets
 
-	model := &types.ClusterInfo{ObjectMeta: metav1.ObjectMeta{Name: "test-model"}}
+	model := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model"}}
 
 	// invoke the method being tested
 	controller.processApplicationModelAdded(model)
 
 	assert.Same(t, model, controller.applicationModels["test-model"])
-	assert.Len(t, controller.VerrazzanoLocations, 1)
-	assert.NotNil(t, controller.VerrazzanoLocations["test-binding"])
-	assert.Same(t, binding, controller.VerrazzanoLocations["test-binding"].Location)
-	assert.Equal(t, model, controller.VerrazzanoLocations["test-binding"].Cluster)
-	assert.Equal(t, testVerrazzanoURI, controller.VerrazzanoLocations["test-binding"].VerrazzanoURI)
-	assert.Equal(t, testImagePullSecrets, controller.VerrazzanoLocations["test-binding"].ImagePullSecrets)
+	assert.Len(t, controller.SyntheticModelBindings, 1)
+	assert.NotNil(t, controller.SyntheticModelBindings["test-binding"])
+	assert.Same(t, binding, controller.SyntheticModelBindings["test-binding"].SynBinding)
+	assert.Equal(t, model, controller.SyntheticModelBindings["test-binding"].SynModel)
+	assert.Equal(t, testVerrazzanoURI, controller.SyntheticModelBindings["test-binding"].VerrazzanoURI)
+	assert.Equal(t, testImagePullSecrets, controller.SyntheticModelBindings["test-binding"].ImagePullSecrets)
 }
 
 // TestProcessApplicationModelAddedVersionExists tests adding an application model that is already known to the Controller
@@ -179,13 +179,13 @@ func TestProcessApplicationModelAdded(t *testing.T) {
 func TestProcessApplicationModelAddedVersionExists(t *testing.T) {
 	controller := createController(t, nil, nil)
 
-	model := &types.ClusterInfo{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
-	model2 := &types.ClusterInfo{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
+	model := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
+	model2 := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
 	controller.applicationModels["test-model"] = model
 	controller.processApplicationModelAdded(model2)
 
 	assert.Same(t, model, controller.applicationModels["test-model"])
-	assert.Len(t, controller.VerrazzanoLocations, 0)
+	assert.Len(t, controller.SyntheticModelBindings, 0)
 }
 
 // TestProcessApplicationModelDeleted tests deleting of an application model
@@ -195,7 +195,7 @@ func TestProcessApplicationModelAddedVersionExists(t *testing.T) {
 func TestProcessApplicationModelDeleted(t *testing.T) {
 	controller := createController(t, nil, nil)
 
-	model := &types.ClusterInfo{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
+	model := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
 	controller.applicationModels[model.Name] = model
 
 	// sanity check
@@ -214,33 +214,33 @@ func TestProcessApplicationBindingAdded(t *testing.T) {
 	// get controller
 	controller := createController(t, nil, nil)
 
-	binding := &types.ResourceLocation{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
+	binding := &types.SyntheticBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
 		Spec: types.ResourceLocationSpec{
 			ModelName: "test-model",
 			Placement: []types.ClusterPlacement{{Name: "test-placement", Namespaces: []types.KubernetesNamespace{{Name: "test-namespace"}}}}}}
 
 	// add the corresponding model
-	model := &types.ClusterInfo{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
+	model := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
 	controller.applicationModels["test-model"] = model
 
-	VerrazzanoLocation := CreateVerrazzanoLocation(model, binding, testVerrazzanoURI, nil)
+	SyntheticModelBinding := CreateSyntheticModelBinding(model, binding, testVerrazzanoURI, nil)
 
 	// record expected 'util' interactions
 	utilMock := controller.util.(*testUtilPackage)
-	utilMock.GetManagedClustersForVerrazzanoBinding(VerrazzanoLocation, controller.managedClusterConnections)
+	utilMock.GetManagedClustersForVerrazzanoBinding(SyntheticModelBinding, controller.managedClusterConnections)
 	utilMock.SetupComplete()
 
 	// record expected 'managed' interactions
 	managedMock := controller.managed.(*testManagedPackage)
-	managedMock.CreateNamespaces(VerrazzanoLocation, testFilteredConnections)
-	managedMock.CreateSecrets(VerrazzanoLocation, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
-	managedMock.CreateServiceAccounts(VerrazzanoLocation.Location.Name, VerrazzanoLocation.ImagePullSecrets, VerrazzanoLocation.ManagedClusters, testFilteredConnections)
-	managedMock.CreateConfigMaps(VerrazzanoLocation, testFilteredConnections)
-	managedMock.CreateClusterRoles(VerrazzanoLocation, testFilteredConnections)
-	managedMock.CreateClusterRoleBindings(VerrazzanoLocation, testFilteredConnections)
-	managedMock.CreateServices(VerrazzanoLocation, testFilteredConnections)
-	managedMock.CreateDeployments(VerrazzanoLocation, testFilteredConnections, controller.verrazzanoURI, controller.secrets)
-	managedMock.CreateDaemonSets(VerrazzanoLocation, testFilteredConnections, controller.verrazzanoURI)
+	managedMock.CreateNamespaces(SyntheticModelBinding, testFilteredConnections)
+	managedMock.CreateSecrets(SyntheticModelBinding, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
+	managedMock.CreateServiceAccounts(SyntheticModelBinding.SynBinding.Name, SyntheticModelBinding.ImagePullSecrets, SyntheticModelBinding.ManagedClusters, testFilteredConnections)
+	managedMock.CreateConfigMaps(SyntheticModelBinding, testFilteredConnections)
+	managedMock.CreateClusterRoles(SyntheticModelBinding, testFilteredConnections)
+	managedMock.CreateClusterRoleBindings(SyntheticModelBinding, testFilteredConnections)
+	managedMock.CreateServices(SyntheticModelBinding, testFilteredConnections)
+	managedMock.CreateDeployments(SyntheticModelBinding, testFilteredConnections, controller.verrazzanoURI, controller.secrets)
+	managedMock.CreateDaemonSets(SyntheticModelBinding, testFilteredConnections, controller.verrazzanoURI)
 	managedMock.SetupComplete()
 
 	localMock := controller.local.(*testLocalPackage)
@@ -257,10 +257,10 @@ func TestProcessApplicationBindingAdded(t *testing.T) {
 	controller.processApplicationBindingAdded(binding)
 
 	assert.Same(t, binding, controller.applicationBindings["test-binding"])
-	mbp := controller.VerrazzanoLocations["test-binding"]
+	mbp := controller.SyntheticModelBindings["test-binding"]
 	assert.NotNil(t, mbp)
-	assert.Same(t, binding, mbp.Location)
-	assert.Same(t, model, mbp.Cluster)
+	assert.Same(t, binding, mbp.SynBinding)
+	assert.Same(t, model, mbp.SynModel)
 	assert.Equal(t, controller.verrazzanoURI, mbp.VerrazzanoURI)
 	assert.Equal(t, controller.imagePullSecrets, mbp.ImagePullSecrets)
 
@@ -278,17 +278,17 @@ func TestProcessApplicationBindingAdded(t *testing.T) {
 func TestProcessApplicationBindingDeleted(t *testing.T) {
 	controller := createController(t, nil, nil)
 
-	binding := &types.ResourceLocation{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
+	binding := &types.SyntheticBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
 		Spec: types.ResourceLocationSpec{
 			ModelName: "test-model"}}
 
-	model := &types.ClusterInfo{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
-	vzSynMB := CreateVerrazzanoLocation(model, binding, testVerrazzanoURI, nil)
+	model := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
+	vzSynMB := CreateSyntheticModelBinding(model, binding, testVerrazzanoURI, nil)
 
 	controller.applicationModels["test-model"] = model
 	controller.applicationBindings["test-binding"] = binding
 
-	controller.VerrazzanoLocations["test-binding"] = vzSynMB
+	controller.SyntheticModelBindings["test-binding"] = vzSynMB
 
 	// set expectations of local package interactions
 	localMock := controller.local.(*testLocalPackage)
@@ -322,7 +322,7 @@ func TestProcessApplicationBindingDeleted(t *testing.T) {
 	controller.processApplicationBindingDeleted(binding)
 
 	assert.Len(t, controller.applicationBindings, 0)
-	assert.Len(t, controller.VerrazzanoLocations, 0)
+	assert.Len(t, controller.SyntheticModelBindings, 0)
 
 	managedMock.Verify(t)
 	localMock.Verify(t)
@@ -744,7 +744,7 @@ func newTestLocal(expectations func(*testLocalPackage)) *testLocalPackage {
 	return t
 }
 
-func (l *testLocalPackage) DeleteVmi(binding *types.ResourceLocation, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
+func (l *testLocalPackage) DeleteVmi(binding *types.SyntheticBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
 	l.Record("DeleteVmi", map[string]interface{}{
 		"binding":      binding,
 		"vmoClientSet": vmoClientSet,
@@ -753,7 +753,7 @@ func (l *testLocalPackage) DeleteVmi(binding *types.ResourceLocation, vmoClientS
 	return nil
 }
 
-func (l *testLocalPackage) DeleteSecrets(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
+func (l *testLocalPackage) DeleteSecrets(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
 	l.Record("DeleteSecrets", map[string]interface{}{
 		"binding":       binding,
 		"kubeClientSet": kubeClientSet,
@@ -762,7 +762,7 @@ func (l *testLocalPackage) DeleteSecrets(binding *types.ResourceLocation, kubeCl
 	return nil
 }
 
-func (l *testLocalPackage) DeleteConfigMaps(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func (l *testLocalPackage) DeleteConfigMaps(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	l.Record("DeleteConfigMaps", map[string]interface{}{
 		"binding":         binding,
 		"kubeClientSet":   kubeClientSet,
@@ -771,7 +771,7 @@ func (l *testLocalPackage) DeleteConfigMaps(binding *types.ResourceLocation, kub
 	return nil
 }
 
-func (l *testLocalPackage) CreateUpdateVmi(binding *types.ResourceLocation, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
+func (l *testLocalPackage) CreateUpdateVmi(binding *types.SyntheticBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 	l.Record("CreateUpdateVmi", map[string]interface{}{
 		"binding":                 binding,
 		"vmoClientSet":            vmoClientSet,
@@ -781,7 +781,7 @@ func (l *testLocalPackage) CreateUpdateVmi(binding *types.ResourceLocation, vmoC
 	return nil
 }
 
-func (l *testLocalPackage) UpdateConfigMaps(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func (l *testLocalPackage) UpdateConfigMaps(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	l.Record("UpdateConfigMaps", map[string]interface{}{
 		"binding":         binding,
 		"kubeClientSet":   kubeClientSet,
@@ -789,7 +789,7 @@ func (l *testLocalPackage) UpdateConfigMaps(binding *types.ResourceLocation, kub
 	return nil
 }
 
-func (l *testLocalPackage) UpdateAcmeDNSSecret(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
+func (l *testLocalPackage) UpdateAcmeDNSSecret(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
 	l.Record("UpdateAcmeDNSSecret", map[string]interface{}{
 		"binding":       binding,
 		"kubeClientSet": kubeClientSet,
@@ -819,7 +819,7 @@ func newTestMonitoring(expectations func(*testMonitoringPackage)) *testMonitorin
 	return t
 }
 
-func (m *testMonitoringPackage) CreateVmiSecrets(binding *types.ResourceLocation, secrets monitoring.Secrets) error {
+func (m *testMonitoringPackage) CreateVmiSecrets(binding *types.SyntheticBinding, secrets monitoring.Secrets) error {
 	m.Record("CreateVmiSecrets", map[string]interface{}{
 		"binding": binding,
 		"secrets": secrets})
@@ -834,7 +834,7 @@ func (m *testMonitoringPackage) DeletePomPusher(binding string, helper util.Depl
 	return nil
 }
 
-func testExecuteCreateUpdateGlobaEntitiesGoroutine(binding *types.ResourceLocation, c *Controller) {
+func testExecuteCreateUpdateGlobaEntitiesGoroutine(binding *types.SyntheticBinding, c *Controller) {
 	createUpdateGlobalEntities(binding, c)
 }
 

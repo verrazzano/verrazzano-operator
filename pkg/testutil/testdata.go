@@ -200,14 +200,14 @@ func getPods() []*corev1.Pod {
 	}
 }
 
-// GetVerrazzanoLocation returns a test model binding pair.
-func GetVerrazzanoLocation() *types.SyntheticModelBinding {
-	return ReadVerrazzanoLocation(
+// GetSyntheticModelBinding returns a test model binding pair.
+func GetSyntheticModelBinding() *types.SyntheticModelBinding {
+	return ReadSyntheticModelBinding(
 		"../testutil/testdata/test_managed_cluster_1.yaml", "../testutil/testdata/test_managed_cluster_2.yaml")
 }
 
-// ReadVerrazzanoLocation returns a test model binding pair for the given model/binding/cluster descriptors.
-func ReadVerrazzanoLocation(managedClusterPaths ...string) *types.SyntheticModelBinding {
+// ReadSyntheticModelBinding returns a test model binding pair for the given model/binding/cluster descriptors.
+func ReadSyntheticModelBinding(managedClusterPaths ...string) *types.SyntheticModelBinding {
 	managedClusters := map[string]*types.ManagedCluster{}
 
 	for _, managedClusterPath := range managedClusterPaths {
@@ -215,8 +215,8 @@ func ReadVerrazzanoLocation(managedClusterPaths ...string) *types.SyntheticModel
 		managedClusters[managedCluster.Name] = managedCluster
 	}
 	var pair = &types.SyntheticModelBinding{
-		Cluster:         &types.ClusterInfo{},
-		Location:        &types.ResourceLocation{},
+		SynModel:        &types.SyntheticModel{},
+		SynBinding:      &types.SyntheticBinding{},
 		ManagedClusters: managedClusters,
 		ImagePullSecrets: []corev1.LocalObjectReference{
 			{
@@ -227,12 +227,12 @@ func ReadVerrazzanoLocation(managedClusterPaths ...string) *types.SyntheticModel
 	return pair
 }
 
-// GetTestClusters returns a list of Verrazzano Managed Cluster resources.
+// GetTestClusters returns a list of Verrazzano Managed SynModel resources.
 func GetTestClusters() []v1beta1.VerrazzanoManagedCluster {
 	return []v1beta1.VerrazzanoManagedCluster{
 		{
 			ObjectMeta: metav1.ObjectMeta{UID: "123-456-789", Name: "cluster1", Namespace: "default"},
-			Spec:       v1beta1.VerrazzanoManagedClusterSpec{Type: "testCluster", ServerAddress: "test.com", Description: "Test Cluster"},
+			Spec:       v1beta1.VerrazzanoManagedClusterSpec{Type: "testCluster", ServerAddress: "test.com", Description: "Test SynModel"},
 		},
 	}
 }

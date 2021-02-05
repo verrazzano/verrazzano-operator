@@ -177,7 +177,7 @@ func GetFilteredConnections(vzSynMB *types.SyntheticModelBinding, availableManag
 	var filteredConnections map[string]*util.ManagedClusterConnection
 	var err error
 	// Include the management cluster in case of System binding
-	if vzSynMB.Location.Name == constants.VmiSystemBindingName {
+	if vzSynMB.SynBinding.Name == constants.VmiSystemBindingName {
 		filteredConnections = availableManagedClusterConnections
 	} else {
 		// Parse out the managed clusters that this binding applies to

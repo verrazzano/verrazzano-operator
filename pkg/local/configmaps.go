@@ -22,8 +22,8 @@ import (
 )
 
 // UpdateConfigMaps updates config maps for a given binding in the management cluster.
-func UpdateConfigMaps(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
-	zap.S().Infof("Updating Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
+func UpdateConfigMaps(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+	zap.S().Infof("Updating Local (Management SynModel) configMaps for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the set of expected configMap - this currently consists of the ConfigMap that contains the default Grafana dashboard definitions
 	newConfigMap, err := newConfigMap(binding)
@@ -65,8 +65,8 @@ func UpdateConfigMaps(binding *types.ResourceLocation, kubeClientSet kubernetes.
 }
 
 // DeleteConfigMaps deletes config maps for a given binding in the management cluster.
-func DeleteConfigMaps(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
-	zap.S().Debugf("Deleting Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
+func DeleteConfigMaps(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+	zap.S().Debugf("Deleting Local (Management SynModel) configMaps for VerrazzanoBinding %s", binding.Name)
 
 	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
 	existingConfigMapsList, err := configMapLister.ConfigMaps("").List(selector)
@@ -84,7 +84,7 @@ func DeleteConfigMaps(binding *types.ResourceLocation, kubeClientSet kubernetes.
 }
 
 // Constructs the necessary ConfigMaps for the given VerrazzanoBinding
-func newConfigMap(binding *types.ResourceLocation) (*corev1.ConfigMap, error) {
+func newConfigMap(binding *types.SyntheticBinding) (*corev1.ConfigMap, error) {
 	bindingLabels := util.GetLocalBindingLabels(binding)
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

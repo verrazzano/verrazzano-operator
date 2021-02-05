@@ -110,13 +110,13 @@ type Controller struct {
 	managedClusterConnections map[string]*v8outil.ManagedClusterConnection
 
 	// The current set of known models
-	applicationModels map[string]*types.ClusterInfo
+	applicationModels map[string]*types.SyntheticModel
 
 	// The current set of known bindings
-	applicationBindings map[string]*types.ResourceLocation
+	applicationBindings map[string]*types.SyntheticBinding
 
 	// The current set of known model/binding pairs
-	VerrazzanoLocations map[string]*types.SyntheticModelBinding
+	SyntheticModelBindings map[string]*types.SyntheticModelBinding
 
 	// Misc
 	watchNamespace string
@@ -132,17 +132,17 @@ type Controller struct {
 
 // Listers represents listers used by the controller.
 type Listers struct {
-	ManagedClusterLister *listers.VerrazzanoManagedClusterLister
-	VerrazzanoLocations  *map[string]*types.SyntheticModelBinding
-	KubeClientSet        *kubernetes.Interface
+	ManagedClusterLister   *listers.VerrazzanoManagedClusterLister
+	SyntheticModelBindings *map[string]*types.SyntheticModelBinding
+	KubeClientSet          *kubernetes.Interface
 }
 
 // ListerSet returns a list of listers used by the controller.
 func (c *Controller) ListerSet() Listers {
 	return Listers{
-		ManagedClusterLister: &c.verrazzanoManagedClusterLister,
-		VerrazzanoLocations:  &c.VerrazzanoLocations,
-		KubeClientSet:        &c.kubeClientSet,
+		ManagedClusterLister:   &c.verrazzanoManagedClusterLister,
+		SyntheticModelBindings: &c.SyntheticModelBindings,
+		KubeClientSet:          &c.kubeClientSet,
 	}
 }
 
@@ -226,9 +226,9 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 		vmiLister:                        vmiInformer.Lister(),
 		recorder:                         recorder,
 		managedClusterConnections:        map[string]*v8outil.ManagedClusterConnection{},
-		applicationModels:                map[string]*types.ClusterInfo{},
-		applicationBindings:              map[string]*types.ResourceLocation{},
-		VerrazzanoLocations:              map[string]*types.SyntheticModelBinding{},
+		applicationModels:                map[string]*types.SyntheticModel{},
+		applicationBindings:              map[string]*types.SyntheticBinding{},
+		SyntheticModelBindings:           map[string]*types.SyntheticModelBinding{},
 		bindingSyncThreshold:             map[string]int{},
 		secrets:                          kubeSecrets,
 	}
@@ -249,7 +249,7 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 	}
 
 	// Install Global Entities
-	executeCreateUpdateGlobalEntities(&types.ResourceLocation{
+	executeCreateUpdateGlobalEntities(&types.SyntheticBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
@@ -264,12 +264,12 @@ func buildKubeClientsetFromConfig(config *rest.Config) (kubernetes.Interface, er
 }
 
 // executeCreateUpdateGlobalEntitiesGoroutine executes createUpdateGlobalEntitiesGoroutine() in a goroutine
-func executeCreateUpdateGlobalEntitiesGoroutine(binding *types.ResourceLocation, c *Controller) {
+func executeCreateUpdateGlobalEntitiesGoroutine(binding *types.SyntheticBinding, c *Controller) {
 	go createUpdateGlobalEntitiesGoroutine(binding, c)
 }
 
 // CreateUpdateGlobalEntitiesGoroutine installs global entities and loops forever so it must be called in a goroutine
-func createUpdateGlobalEntitiesGoroutine(binding *types.ResourceLocation, c *Controller) {
+func createUpdateGlobalEntitiesGoroutine(binding *types.SyntheticBinding, c *Controller) {
 	zap.S().Infow("Configuring System VMI...")
 	for {
 		createUpdateGlobalEntities(binding, c)
@@ -277,7 +277,7 @@ func createUpdateGlobalEntitiesGoroutine(binding *types.ResourceLocation, c *Con
 	}
 }
 
-func createUpdateGlobalEntities(binding *types.ResourceLocation, c *Controller) {
+func createUpdateGlobalEntities(binding *types.SyntheticBinding, c *Controller) {
 	err := c.local.CreateUpdateVmi(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
 	if err != nil {
 		zap.S().Errorf("Failed to create System VMI %s: %v", constants.VmiSystemBindingName, err)
@@ -336,21 +336,21 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	c.imagePullSecrets = sa.ImagePullSecrets
 
 	// A synthetic binding will be constructed and passed to the managed clusters
-	systemBinding := &types.ResourceLocation{
+	systemBinding := &types.SyntheticBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
 	}
 
 	// A synthetic model will be constructed and passed to the managed clusters
-	systemModel := &types.ClusterInfo{
+	systemModel := &types.SyntheticModel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
 	}
 
-	// A synthetic Cluster binding pair will be constructed and passed to the managed clusters
-	vzSynMB := CreateVerrazzanoLocation(systemModel, systemBinding, c.verrazzanoURI, c.imagePullSecrets)
+	// A synthetic SynModel binding pair will be constructed and passed to the managed clusters
+	vzSynMB := CreateSyntheticModelBinding(systemModel, systemBinding, c.verrazzanoURI, c.imagePullSecrets)
 
 	managedCluster := cluster.(*v1beta1v8o.VerrazzanoManagedCluster)
 	secret, err := c.secretLister.Secrets(managedCluster.Namespace).Get(managedCluster.Spec.KubeconfigSecret)
@@ -363,7 +363,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	kubeConfigContents := secret.Data["kubeconfig"]
 	_, clusterExists := c.managedClusterConnections[managedCluster.Name]
 	if !clusterExists || string(kubeConfigContents) != c.managedClusterConnections[managedCluster.Name].KubeConfig {
-		zap.S().Infof("(Re)creating k8s clients for Managed Cluster %s", managedCluster.Name)
+		zap.S().Infof("(Re)creating k8s clients for Managed SynModel %s", managedCluster.Name)
 
 		managedClusterConnection, err := c.managed.BuildManagedClusterConnection(kubeConfigContents, c.stopCh)
 		if err != nil {
@@ -385,7 +385,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		mc.Namespaces = append(mc.Namespaces, constants.MonitoringNamespace, constants.LoggingNamespace)
 
 		/*********************
-		 * Create Artifacts in the Managed Cluster
+		 * Create Artifacts in the Managed SynModel
 		 **********************/
 
 		zap.S().Infow("Starting watchers on " + managedCluster.Name)
@@ -424,68 +424,68 @@ func (c *Controller) updateIstioPolicies(vzSynMB *types.SyntheticModelBinding, p
 func (c *Controller) createManagedClusterResourcesForBinding(vzSynMB *types.SyntheticModelBinding) {
 	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(vzSynMB, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Create Namespaces
 	err = c.managed.CreateNamespaces(vzSynMB, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to create namespaces for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to create namespaces for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Create (copy) the Secrets needed from the management cluster to the managed clusters
 	err = c.managed.CreateSecrets(vzSynMB, c.managedClusterConnections, c.kubeClientSet, c.secrets)
 	if err != nil {
-		zap.S().Errorf("Failed to create secrets for binding %s: %v", vzSynMB.Location.Namespace, err)
+		zap.S().Errorf("Failed to create secrets for binding %s: %v", vzSynMB.SynBinding.Namespace, err)
 	}
 
 	// Create ServiceAccounts
-	err = c.managed.CreateServiceAccounts(vzSynMB.Location.Name, vzSynMB.ImagePullSecrets, vzSynMB.ManagedClusters, filteredConnections)
+	err = c.managed.CreateServiceAccounts(vzSynMB.SynBinding.Name, vzSynMB.ImagePullSecrets, vzSynMB.ManagedClusters, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to create service accounts for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to create service accounts for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Create ConfigMaps
 	err = c.managed.CreateConfigMaps(vzSynMB, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to create config maps for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to create config maps for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Create ClusterRoles
 	err = c.managed.CreateClusterRoles(vzSynMB, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to create cluster roles for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to create cluster roles for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Create ClusterRoleBindings
 	err = c.managed.CreateClusterRoleBindings(vzSynMB, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to create cluster role bindings for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to create cluster role bindings for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Create Deployments
 	err = c.managed.CreateDeployments(vzSynMB, filteredConnections, c.verrazzanoURI, c.secrets)
 	if err != nil {
-		zap.S().Errorf("Failed to create deployments for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to create deployments for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Create Services
 	err = c.managed.CreateServices(vzSynMB, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to create service for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to create service for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Create DaemonSets
 	err = c.managed.CreateDaemonSets(vzSynMB, filteredConnections, c.verrazzanoURI)
 
 	if err != nil {
-		zap.S().Errorf("Failed to create DaemonSets for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to create DaemonSets for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 }
 
 // Process a change to a VerrazzanoModel
 func (c *Controller) processApplicationModelAdded(verrazzanoModel interface{}) {
-	model := verrazzanoModel.(*types.ClusterInfo)
+	model := verrazzanoModel.(*types.SyntheticModel)
 
 	if existingModel, ok := c.applicationModels[model.Name]; ok {
 		if existingModel.GetResourceVersion() == model.GetResourceVersion() {
@@ -504,11 +504,11 @@ func (c *Controller) processApplicationModelAdded(verrazzanoModel interface{}) {
 	// During restart of the operator a binding can be added before a model so make sure we create
 	// model/binding pair now.
 	for _, binding := range c.applicationBindings {
-		if _, ok := c.VerrazzanoLocations[binding.Name]; !ok {
+		if _, ok := c.SyntheticModelBindings[binding.Name]; !ok {
 			if model.Name == binding.Spec.ModelName {
 				zap.S().Infof("Adding model/binding pair during add model for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-				vzSynMB := CreateVerrazzanoLocation(model, binding, c.verrazzanoURI, c.imagePullSecrets)
-				c.VerrazzanoLocations[binding.Name] = vzSynMB
+				vzSynMB := CreateSyntheticModelBinding(model, binding, c.verrazzanoURI, c.imagePullSecrets)
+				c.SyntheticModelBindings[binding.Name] = vzSynMB
 				break
 			}
 		}
@@ -517,7 +517,7 @@ func (c *Controller) processApplicationModelAdded(verrazzanoModel interface{}) {
 
 // Process a removal of a VerrazzanoModel
 func (c *Controller) processApplicationModelDeleted(verrazzanoModel interface{}) {
-	model := verrazzanoModel.(*types.ClusterInfo)
+	model := verrazzanoModel.(*types.SyntheticModel)
 
 	if _, ok := c.applicationModels[model.Name]; ok {
 		zap.S().Infof("Deleting the model %s", model.Name)
@@ -525,14 +525,14 @@ func (c *Controller) processApplicationModelDeleted(verrazzanoModel interface{})
 	}
 }
 
-func getVerrazzanoLocation(c *Controller, binding *types.ResourceLocation) (*types.SyntheticModelBinding, bool) {
-	vzSynMB, vzSynMBExists := c.VerrazzanoLocations[binding.Name]
+func getSyntheticModelBinding(c *Controller, binding *types.SyntheticBinding) (*types.SyntheticModelBinding, bool) {
+	vzSynMB, vzSynMBExists := c.SyntheticModelBindings[binding.Name]
 	return vzSynMB, vzSynMBExists
 }
 
 // Process a change to a VerrazzanoBinding/Sync existing VerrazzanoBinding with cluster state
 func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{}) {
-	binding := verrazzanoBinding.(*types.ResourceLocation)
+	binding := verrazzanoBinding.(*types.SyntheticBinding)
 
 	if binding.GetDeletionTimestamp() != nil {
 		if contains(binding.GetFinalizers(), bindingFinalizer) {
@@ -541,18 +541,18 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 				zap.S().Infof("Adding the binding %s", binding.Name)
 				c.applicationBindings[binding.Name] = binding
 			}
-			_, vzSynMBExists := getVerrazzanoLocation(c, binding)
+			_, vzSynMBExists := getSyntheticModelBinding(c, binding)
 			if !vzSynMBExists {
 				// During restart of the operator a delete can happen before a model/binding is created so create one now.
 				if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
 					zap.S().Infof("Adding model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-					vzSynMB := CreateVerrazzanoLocation(model, binding, c.verrazzanoURI, c.imagePullSecrets)
-					c.VerrazzanoLocations[binding.Name] = vzSynMB
+					vzSynMB := CreateSyntheticModelBinding(model, binding, c.verrazzanoURI, c.imagePullSecrets)
+					c.SyntheticModelBindings[binding.Name] = vzSynMB
 				}
 			}
 		}
 
-		zap.S().Debugf("Location %s is marked for deletion/already deleted", binding.Name)
+		zap.S().Debugf("SynBinding %s is marked for deletion/already deleted", binding.Name)
 		if contains(binding.GetFinalizers(), bindingFinalizer) {
 			c.processApplicationBindingDeleted(verrazzanoBinding)
 		}
@@ -587,19 +587,19 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 	}
 
 	// Does a model/binding pair already exist?
-	vzSynMB, vzSynMBExists := getVerrazzanoLocation(c, binding)
+	vzSynMB, vzSynMBExists := getSyntheticModelBinding(c, binding)
 	if !vzSynMBExists {
 		// If a model exists for this binding, then create the model/binding pair
 		if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
 			zap.S().Infof("Adding new model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-			vzSynMB = CreateVerrazzanoLocation(model, binding, c.verrazzanoURI, c.imagePullSecrets)
-			c.VerrazzanoLocations[binding.Name] = vzSynMB
+			vzSynMB = CreateSyntheticModelBinding(model, binding, c.verrazzanoURI, c.imagePullSecrets)
+			c.SyntheticModelBindings[binding.Name] = vzSynMB
 			vzSynMBExists = true
 		}
 	} else {
 		// Rebuild the existing model/binding pair
 		if existingModel, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-			UpdateVerrazzanoLocation(vzSynMB, existingModel, binding, c.verrazzanoURI, c.imagePullSecrets)
+			UpdateSyntheticModelBinding(vzSynMB, existingModel, binding, c.verrazzanoURI, c.imagePullSecrets)
 		}
 
 	}
@@ -616,7 +616,7 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 	}
 
 	/*********************
-	 * Create Artifacts in the Local Cluster
+	 * Create Artifacts in the Local SynModel
 	 **********************/
 	// Create VMIs
 	err = c.local.CreateUpdateVmi(binding, c.vmoClientSet, c.vmiLister, c.verrazzanoURI, c.enableMonitoringStorage)
@@ -643,7 +643,7 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 	}
 
 	/*********************
-	 * Create Artifacts in the Managed Cluster
+	 * Create Artifacts in the Managed SynModel
 	 **********************/
 	c.createManagedClusterResourcesForBinding(vzSynMB)
 
@@ -652,13 +652,13 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 }
 
 // Check for a duplicate namespaces being used across two differrent bindings
-func checkForDuplicateNamespaces(placement *types.ClusterPlacement, binding *types.ResourceLocation, currPlacement *types.ClusterPlacement, currBinding *types.ResourceLocation) bool {
+func checkForDuplicateNamespaces(placement *types.ClusterPlacement, binding *types.SyntheticBinding, currPlacement *types.ClusterPlacement, currBinding *types.SyntheticBinding) bool {
 	dupFound := false
 	for _, namespace := range placement.Namespaces {
 		for _, currNamespace := range currPlacement.Namespaces {
 			if currNamespace.Name == namespace.Name {
 				if !dupFound {
-					zap.S().Errorf("Location %s has a conflicting namespace with binding %s.  Namespaces must be unique across bindings.", binding.Name, currBinding.Name)
+					zap.S().Errorf("SynBinding %s has a conflicting namespace with binding %s.  Namespaces must be unique across bindings.", binding.Name, currBinding.Name)
 				}
 				zap.S().Errorf("Duplicate namespace %s found in placement %s", namespace.Name, placement.Name)
 				dupFound = true
@@ -674,55 +674,55 @@ func (c *Controller) cleanupOrphanedResources(vzSynMB *types.SyntheticModelBindi
 	// Cleanup Custom Resources
 	err := c.managed.CleanupOrphanedCustomResources(vzSynMB, c.managedClusterConnections, c.stopCh)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup custom resources for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup custom resources for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Cleanup Services for generic components
 	err = c.managed.CleanupOrphanedServices(vzSynMB, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup services for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup services for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Cleanup Deployments for generic components
 	err = c.managed.CleanupOrphanedDeployments(vzSynMB, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup deployments for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup deployments for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Cleanup ServiceEntries
 	err = c.managed.CleanupOrphanedServiceEntries(vzSynMB, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup ServiceEntries for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup ServiceEntries for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Cleanup Ingresses
 	err = c.managed.CleanupOrphanedIngresses(vzSynMB, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup Ingresses for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup Ingresses for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Cleanup ClusterRoleBindings
 	err = c.managed.CleanupOrphanedClusterRoleBindings(vzSynMB, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup ClusterRoleBindings for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup ClusterRoleBindings for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Cleanup ClusterRoles
 	err = c.managed.CleanupOrphanedClusterRoles(vzSynMB, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup ClusterRoles for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup ClusterRoles for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Cleanup ConfigMaps
 	err = c.managed.CleanupOrphanedConfigMaps(vzSynMB, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup ConfigMaps for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup ConfigMaps for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Cleanup Namespaces - this will also cleanup any ServiceAccounts and Secrets within the namespace
-	err = c.managed.CleanupOrphanedNamespaces(vzSynMB, c.managedClusterConnections, c.VerrazzanoLocations)
+	err = c.managed.CleanupOrphanedNamespaces(vzSynMB, c.managedClusterConnections, c.SyntheticModelBindings)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup Namespaces for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup Namespaces for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 }
 
@@ -740,14 +740,14 @@ func (me *kubeDeployment) DeleteDeployment(namespace, name string) error {
 
 // Process a removal of a VerrazzanoBinding
 func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interface{}) {
-	binding := verrazzanoBinding.(*types.ResourceLocation)
+	binding := verrazzanoBinding.(*types.SyntheticBinding)
 
 	if !contains(binding.GetFinalizers(), bindingFinalizer) {
 		zap.S().Infof("Resources for binding %s already deleted", binding.Name)
 		return
 	}
 
-	vzSynMB, vzSynMBExists := getVerrazzanoLocation(c, binding)
+	vzSynMB, vzSynMBExists := getSyntheticModelBinding(c, binding)
 	if !vzSynMBExists {
 		return
 	}
@@ -755,7 +755,7 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 	zap.S().Infof("Deleting resources for binding %s", binding.Name)
 
 	/*********************
-	 * Delete Artifacts in the Local Cluster
+	 * Delete Artifacts in the Local SynModel
 	 **********************/
 	// Delete VMIs
 	err := c.local.DeleteVmi(binding, c.vmoClientSet, c.vmiLister)
@@ -778,52 +778,52 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 	}
 
 	/*********************
-	 * Delete Artifacts in the Managed Cluster
+	 * Delete Artifacts in the Managed SynModel
 	 **********************/
 
 	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(vzSynMB, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Delete Custom Resources
 	err = c.managed.DeleteCustomResources(vzSynMB, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to delete custom resources for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to delete custom resources for binding %s: %v", vzSynMB.SynBinding.Name, err)
 		return
 	}
 
 	// Delete Services for generic components
 	err = c.managed.DeleteServices(vzSynMB, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to delete services for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to delete services for binding %s: %v", vzSynMB.SynBinding.Name, err)
 		return
 	}
 
 	// Delete Deployments for generic components
 	err = c.managed.DeleteDeployments(vzSynMB, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to delete deployments for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to delete deployments for binding %s: %v", vzSynMB.SynBinding.Name, err)
 		return
 	}
 
 	// Delete ClusterRoleBindings
 	err = c.managed.DeleteClusterRoleBindings(vzSynMB, c.managedClusterConnections, true)
 	if err != nil {
-		zap.S().Errorf("Failed to delete cluster role bindings for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to delete cluster role bindings for binding %s: %v", vzSynMB.SynBinding.Name, err)
 		return
 	}
 
 	// Delete ClusterRoles
 	err = c.managed.DeleteClusterRoles(vzSynMB, c.managedClusterConnections, true)
 	if err != nil {
-		zap.S().Errorf("Failed to delete cluster roles for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to delete cluster roles for binding %s: %v", vzSynMB.SynBinding.Name, err)
 		return
 	}
 
 	err = c.monitoring.DeletePomPusher(binding.Name, &kubeDeployment{kubeClientSet: c.kubeClientSet})
 	if err != nil {
-		zap.S().Errorf("Failed to delete prometheus-pusher for binding %s: %v", vzSynMB.Location.Name, err)
+		zap.S().Errorf("Failed to delete prometheus-pusher for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
 
 	// Delete Namespaces - this will also cleanup any Ingresses,
@@ -836,7 +836,7 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 
 	// If this is the last model binding to be deleted then we need to cleanup additional resources that are shared
 	// among model/binding pairs.
-	if len(c.VerrazzanoLocations) == 1 {
+	if len(c.SyntheticModelBindings) == 1 {
 		// Delete ClusterRoleBindings
 		err = c.managed.DeleteClusterRoleBindings(vzSynMB, c.managedClusterConnections, false)
 		if err != nil {
@@ -866,7 +866,7 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 	}
 
 	if vzSynMBExists {
-		delete(c.VerrazzanoLocations, binding.Name)
+		delete(c.SyntheticModelBindings, binding.Name)
 	}
 
 	if _, ok := c.bindingSyncThreshold[binding.Name]; ok {
@@ -1076,12 +1076,12 @@ func (u *utilPackage) GetManagedClustersForVerrazzanoBinding(vzSynMB *types.Synt
 
 // localInterface defines the functions in the 'local' package that are used  by the Controller
 type localInterface interface {
-	DeleteVmi(binding *types.ResourceLocation, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error
-	DeleteSecrets(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error
-	DeleteConfigMaps(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error
-	CreateUpdateVmi(binding *types.ResourceLocation, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error
-	UpdateConfigMaps(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error
-	UpdateAcmeDNSSecret(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error
+	DeleteVmi(binding *types.SyntheticBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error
+	DeleteSecrets(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error
+	DeleteConfigMaps(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error
+	CreateUpdateVmi(binding *types.SyntheticBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error
+	UpdateConfigMaps(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error
+	UpdateAcmeDNSSecret(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error
 }
 
 // localPackage is the localInterface implementation through which all 'local' package functions are invoked
@@ -1091,33 +1091,33 @@ type localPackage struct {
 
 // All localPackage methods simply delegate to the corresponding function in the 'local' package
 
-func (l *localPackage) DeleteVmi(binding *types.ResourceLocation, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
+func (l *localPackage) DeleteVmi(binding *types.SyntheticBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
 	return v8olocal.DeleteVmi(binding, vmoClientSet, vmiLister)
 }
 
-func (l *localPackage) DeleteSecrets(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
+func (l *localPackage) DeleteSecrets(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
 	return v8olocal.DeleteSecrets(binding, kubeClientSet, secretLister)
 }
 
-func (l *localPackage) DeleteConfigMaps(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func (l *localPackage) DeleteConfigMaps(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	return v8olocal.DeleteConfigMaps(binding, kubeClientSet, configMapLister)
 }
 
-func (l *localPackage) CreateUpdateVmi(binding *types.ResourceLocation, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
+func (l *localPackage) CreateUpdateVmi(binding *types.SyntheticBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 	return v8olocal.CreateUpdateVmi(binding, vmoClientSet, vmiLister, verrazzanoURI, enableMonitoringStorage)
 }
 
-func (l *localPackage) UpdateConfigMaps(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func (l *localPackage) UpdateConfigMaps(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	return v8olocal.UpdateConfigMaps(binding, kubeClientSet, configMapLister)
 }
 
-func (l *localPackage) UpdateAcmeDNSSecret(binding *types.ResourceLocation, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
+func (l *localPackage) UpdateAcmeDNSSecret(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
 	return v8olocal.UpdateAcmeDNSSecret(binding, kubeClientSet, secretLister, name, verrazzanoURI)
 }
 
 // monitoringInterface defines the functions in the 'monitoring' package that are used  by the Controller
 type monitoringInterface interface {
-	CreateVmiSecrets(binding *types.ResourceLocation, secrets v8omonitoring.Secrets) error
+	CreateVmiSecrets(binding *types.SyntheticBinding, secrets v8omonitoring.Secrets) error
 	DeletePomPusher(binding string, helper v8outil.DeploymentHelper) error
 }
 
@@ -1128,7 +1128,7 @@ type monitoringPackage struct {
 
 // All monitoringPackage methods simply delegate to the corresponding function in the 'monitoring' package
 
-func (m *monitoringPackage) CreateVmiSecrets(binding *types.ResourceLocation, secrets v8omonitoring.Secrets) error {
+func (m *monitoringPackage) CreateVmiSecrets(binding *types.SyntheticBinding, secrets v8omonitoring.Secrets) error {
 	return v8omonitoring.CreateVmiSecrets(binding, secrets)
 }
 

@@ -18,11 +18,11 @@ import (
 
 // CreateDaemonSets creates/updates daemon sets needed for each managed cluster.
 func CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string) error {
-	zap.S().Debugf("Creating/updating daemonset for VerrazzanoBinding %s", vzSynMB.Location.Name)
+	zap.S().Debugf("Creating/updating daemonset for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// If binding is not System binding, skip creating Daemon sets
-	if vzSynMB.Location.Name != constants.VmiSystemBindingName {
-		zap.S().Debugf("Skip creating Daemon sets for VerrazzanoApplicationBinding %s", vzSynMB.Location.Name)
+	if vzSynMB.SynBinding.Name != constants.VmiSystemBindingName {
+		zap.S().Debugf("Skip creating Daemon sets for VerrazzanoApplicationBinding %s", vzSynMB.SynBinding.Name)
 		return nil
 	}
 

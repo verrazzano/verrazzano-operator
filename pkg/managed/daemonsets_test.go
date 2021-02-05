@@ -26,11 +26,11 @@ const clusterName1 = "cluster1"
 func TestCreateDaemonSetsVmiSystem(t *testing.T) {
 	assert := assert.New(t)
 
-	VzSystemInfo := testutil.GetVerrazzanoLocation()
+	VzSystemInfo := testutil.GetSyntheticModelBinding()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections[clusterName1]
 
-	VzSystemInfo.Location.Name = constants.VmiSystemBindingName
+	VzSystemInfo.SynBinding.Name = constants.VmiSystemBindingName
 
 	err := CreateDaemonSets(VzSystemInfo, clusterConnections, verrazzanoURI)
 	assert.Nil(err, "got an error from CreateDaemonSets: %v", err)
@@ -47,11 +47,11 @@ func TestCreateDaemonSetsVmiSystem(t *testing.T) {
 func TestCreateDaemonSetsUpdateExistingSet(t *testing.T) {
 	assert := assert.New(t)
 
-	VzSystemInfo := testutil.GetVerrazzanoLocation()
+	VzSystemInfo := testutil.GetSyntheticModelBinding()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections[clusterName1]
 
-	VzSystemInfo.Location.Name = constants.VmiSystemBindingName
+	VzSystemInfo.SynBinding.Name = constants.VmiSystemBindingName
 
 	ds := appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{

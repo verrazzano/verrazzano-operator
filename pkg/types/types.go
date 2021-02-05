@@ -53,7 +53,7 @@ type RemoteRestConnection struct {
 	// Namespace for remote service
 	RemoteNamespace string
 
-	// Cluster name for remote service
+	// SynModel name for remote service
 	RemoteClusterName string
 
 	// Namespace for local service
@@ -93,8 +93,8 @@ type ManagedCluster struct {
 
 // SyntheticModelBinding represents the verrazzano location for resources
 type SyntheticModelBinding struct {
-	Location *ResourceLocation
-	Cluster  *ClusterInfo
+	SynBinding *SyntheticBinding
+	SynModel   *SyntheticModel
 
 	// The set of managed clusters
 	ManagedClusters map[string]*ManagedCluster
@@ -108,8 +108,8 @@ type SyntheticModelBinding struct {
 	ImagePullSecrets []corev1.LocalObjectReference
 }
 
-// ResourceLocation describes the Verrazzano resources location
-type ResourceLocation struct {
+// SyntheticBinding describes the Verrazzano resources location
+type SyntheticBinding struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 
@@ -143,7 +143,7 @@ type KubernetesNamespace struct {
 	Name string `json:"name" yaml:"name"`
 }
 
-// ClusterInfo has the info about the cluster
-type ClusterInfo struct {
+// SyntheticModel has the info about the cluster
+type SyntheticModel struct {
 	metav1.ObjectMeta
 }

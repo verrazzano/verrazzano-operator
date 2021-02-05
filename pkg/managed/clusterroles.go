@@ -96,7 +96,7 @@ var policyRules = []rbacv1.PolicyRule{
 
 // CreateClusterRoles creates/updates cluster roles needed for each managed cluster.
 func CreateClusterRoles(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Debugf("Creating/updating ClusterRoles for VerrazzanoBinding %s", vzSynMB.Location.Name)
+	zap.S().Debugf("Creating/updating ClusterRoles for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// Construct ClusterRoles for each ManagedCluster
 	for clusterName := range vzSynMB.ManagedClusters {
@@ -105,7 +105,7 @@ func CreateClusterRoles(vzSynMB *types.SyntheticModelBinding, filteredConnection
 		defer managedClusterConnection.Lock.RUnlock()
 
 		// Construct the set of expected ClusterRoles
-		newClusterRoles := newClusterRoles(vzSynMB.Location, clusterName)
+		newClusterRoles := newClusterRoles(vzSynMB.SynBinding, clusterName)
 
 		// Create or update ClusterRoles
 		for _, newClusterRole := range newClusterRoles {
@@ -131,7 +131,7 @@ func CreateClusterRoles(vzSynMB *types.SyntheticModelBinding, filteredConnection
 
 // CleanupOrphanedClusterRoles deletes cluster roles that have been orphaned.
 func CleanupOrphanedClusterRoles(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Debugf("Cleaning up orphaned ClusterRoles for VerrazzanoBinding %s", vzSynMB.Location.Name)
+	zap.S().Debugf("Cleaning up orphaned ClusterRoles for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// Get the managed clusters that this binding does NOT apply to
 	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(vzSynMB, availableManagedClusterConnections)
@@ -141,7 +141,7 @@ func CleanupOrphanedClusterRoles(vzSynMB *types.SyntheticModelBinding, available
 		defer managedClusterConnection.Lock.RUnlock()
 
 		// Get rid of any ClusterRoles with the specified binding
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.Location.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.SynBinding.Name, constants.VerrazzanoCluster: clusterName})
 
 		// Get list of ClusterRoles for this cluster and given binding
 		existingClusterRolesList, err := managedClusterConnection.ClusterRoleLister.List(selector)
@@ -163,7 +163,7 @@ func CleanupOrphanedClusterRoles(vzSynMB *types.SyntheticModelBinding, available
 
 // DeleteClusterRoles deletes cluster roles for a given binding.
 func DeleteClusterRoles(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
-	zap.S().Debugf("Deleting ClusterRole for VerrazzanoBinding %s", vzSynMB.Location.Name)
+	zap.S().Debugf("Deleting ClusterRole for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// Parse out the managed clusters that this binding applies to
 	filteredConnections, err := util.GetManagedClustersForVerrazzanoBinding(vzSynMB, availableManagedClusterConnections)
@@ -178,7 +178,7 @@ func DeleteClusterRoles(vzSynMB *types.SyntheticModelBinding, availableManagedCl
 
 		var selector labels.Selector
 		if bindingLabel {
-			selector = labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.Location.Name})
+			selector = labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.SynBinding.Name})
 		} else {
 			selector = labels.SelectorFromSet(util.GetManagedLabelsNoBinding(clusterName))
 		}
@@ -200,11 +200,11 @@ func DeleteClusterRoles(vzSynMB *types.SyntheticModelBinding, availableManagedCl
 }
 
 // Constructs the necessary ClusterRoles for the specified ManagedCluster in the given VerrazzanoBinding
-func newClusterRoles(binding *types.ResourceLocation, clusterName string) []*rbacv1.ClusterRole {
+func newClusterRoles(binding *types.SyntheticBinding, clusterName string) []*rbacv1.ClusterRole {
 	roleLabels := util.GetManagedLabelsNoBinding(clusterName)
 	var clusterRoles []*rbacv1.ClusterRole
 
-	// Append Cluster roles from system monitoring
+	// Append SynModel roles from system monitoring
 	if binding.Name == constants.VmiSystemBindingName {
 		clusterRoles = append(clusterRoles, monitoring.GetSystemClusterRoles(clusterName)...)
 		return clusterRoles

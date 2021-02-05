@@ -60,7 +60,7 @@ type DeploymentHelper interface {
 }
 
 // GetManagedBindingLabels returns binding labels for managed cluster.
-func GetManagedBindingLabels(binding *types.ResourceLocation, managedClusterName string) map[string]string {
+func GetManagedBindingLabels(binding *types.SyntheticBinding, managedClusterName string) map[string]string {
 	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoBinding: binding.Name, constants.VerrazzanoCluster: managedClusterName}
 }
 
@@ -70,12 +70,12 @@ func GetManagedLabelsNoBinding(managedClusterName string) map[string]string {
 }
 
 // GetManagedNamespaceForBinding return the namespace for a given binding.
-func GetManagedNamespaceForBinding(binding *types.ResourceLocation) string {
+func GetManagedNamespaceForBinding(binding *types.SyntheticBinding) string {
 	return fmt.Sprintf("%s-%s", constants.VerrazzanoPrefix, binding.Name)
 }
 
 // GetLocalBindingLabels returns binding labels for local cluster.
-func GetLocalBindingLabels(binding *types.ResourceLocation) map[string]string {
+func GetLocalBindingLabels(binding *types.SyntheticBinding) map[string]string {
 	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoBinding: binding.Name}
 }
 
@@ -128,7 +128,7 @@ func GetManagedClustersForVerrazzanoBinding(vzSynMB *types.SyntheticModelBinding
 	filteredManagedClusters := map[string]*ManagedClusterConnection{}
 	for _, managedCluster := range vzSynMB.ManagedClusters {
 		if _, ok := availableManagedClusterConnections[managedCluster.Name]; !ok {
-			return nil, fmt.Errorf("Managed cluster %s referenced in binding %s not found", managedCluster.Name, vzSynMB.Location.Name)
+			return nil, fmt.Errorf("Managed cluster %s referenced in binding %s not found", managedCluster.Name, vzSynMB.SynBinding.Name)
 		}
 		filteredManagedClusters[managedCluster.Name] = availableManagedClusterConnections[managedCluster.Name]
 
@@ -158,7 +158,7 @@ func GetManagedClustersNotForVerrazzanoBinding(vzSynMB *types.SyntheticModelBind
 // IsClusterInBinding checks if a cluster was found in a binding.
 func IsClusterInBinding(clusterName string, allvzSynMBs map[string]*types.SyntheticModelBinding) bool {
 	for _, mb := range allvzSynMBs {
-		for _, placement := range mb.Location.Spec.Placement {
+		for _, placement := range mb.SynBinding.Spec.Placement {
 			if placement.Name == clusterName {
 				return true
 			}
