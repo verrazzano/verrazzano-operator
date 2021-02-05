@@ -17,7 +17,10 @@ func Test_initFlags(t *testing.T) {
 		"master":                  "",
 		"kubeconfig":              "",
 		"watchNamespace":          "",
+		"verrazzanoUri":           "",
+		"obsoleteFlag":            "",
 		"enableMonitoringStorage": "true",
+		"apiServerRealm":          "",
 	}
 	var expectedBoolFlags = map[string]bool{
 		"startController": true,

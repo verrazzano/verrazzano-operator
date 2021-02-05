@@ -20,6 +20,7 @@ var (
 	kubeconfig              string
 	watchNamespace          string
 	verrazzanoURI           string
+	obsoleteFlag            string
 	enableMonitoringStorage string
 	apiServerRealm          string
 	startController         bool
@@ -88,7 +89,9 @@ func initFlags(
 	stringVarFunc(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	stringVarFunc(&watchNamespace, "watchNamespace", "", "Optionally, a namespace to watch exclusively.  If not set, all namespaces will be watched.")
 	stringVarFunc(&verrazzanoURI, "verrazzanoUri", "", "Verrazzano URI, for example my-verrazzano-1.verrazzano.example.com")
+	stringVarFunc(&obsoleteFlag, "helidonAppOperatorDeployment", "", "--helidonAppOperatorDeployment=false disables helidonAppOperatorDeployment")
 	stringVarFunc(&enableMonitoringStorage, "enableMonitoringStorage", "true", "Enable storage for monitoring.  The default is true. 'false' means monitoring storage is disabled.")
+	stringVarFunc(&apiServerRealm, "apiServerRealm", "", "API Server Realm on Keycloak")
 	boolVarFunc(&startController, "startController", true, "Whether to start the Kubernetes controller (true by default)")
 	flagSetFunc(flag.CommandLine)
 }
