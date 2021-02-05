@@ -390,8 +390,6 @@ github.com/gophercloud/gophercloud v0.3.0/go.mod h1:vxM41WHh5uqHVBMZHzuwNOHh8XEo
 github.com/gophercloud/gophercloud v0.6.0/go.mod h1:GICNByuaEBibcjmjvI7QvYJSZEbGkcYwAR7EZK2WMqM=
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherjs v0.0.0-20191106031601-ce3c9ade29de/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
-github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f h1:wHGrcNkjqm/QJeljJ9bkFWtND9I0ASarwpBlRcwRymk=
-github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f/go.mod h1:cuNKsD1zp2v6XfE/orVX2QE1LC+i254ceGcVeDT3pTU=
 github.com/gorilla/context v1.1.1/go.mod h1:kBGZzfjB9CEq2AlWe17Uuf7NDRt0dE0s8S51q0aT7Yg=
 github.com/gorilla/handlers v0.0.0-20150720190736-60c7bfde3e33/go.mod h1:Qkdc/uu4tH4g6mTK6auzZ766c4CA0Ng8+o/OAirnOIQ=
 github.com/gorilla/mux v1.6.2/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
@@ -779,8 +777,8 @@ github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljT
 github.com/urfave/cli v0.0.0-20171014202726-7bc6a0acffa5/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
 github.com/vektah/gqlparser v1.1.2/go.mod h1:1ycwN7Ij5njmMkPPAOaRFY4rET2Enx7IkVv3vaXspKw=
-github.com/verrazzano/verrazzano-crd-generator v0.3.37 h1:R2Wb90o/Gl/aXKniIgtvX8qhDyPbA83KhZ+F9PwC4no=
-github.com/verrazzano/verrazzano-crd-generator v0.3.37/go.mod h1:XIe88VsR1697WKiW1dVXkjjTylNM0LSjn9D3biqBUaI=
+github.com/verrazzano/verrazzano-crd-generator v0.3.38 h1:t591STiDjSl6J6XdYnKaRbfzMl6NnZrVOa3vnNvpMN0=
+github.com/verrazzano/verrazzano-crd-generator v0.3.38/go.mod h1:XIe88VsR1697WKiW1dVXkjjTylNM0LSjn9D3biqBUaI=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20201110193547-32e100ccdb72 h1:G5buINf5YA7Z5xbUp67ZPwSB7z/8abiNtWrUrI8z1n0=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20201110193547-32e100ccdb72/go.mod h1:kylCNdrWsJJbUCac/ON4x8+2wUB8K0a+DDNXaiyWExA=
 github.com/xanzy/go-gitlab v0.15.0/go.mod h1:8zdQa/ri1dfn8eS3Ir1SyfvOKlw7WBJ8DVThkpGiXrs=

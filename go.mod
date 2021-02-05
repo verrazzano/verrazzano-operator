@@ -1,14 +1,13 @@
 module github.com/verrazzano/verrazzano-operator
 
 require (
-	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f // indirect
 	github.com/gorilla/mux v1.7.3
 	github.com/kylelemons/godebug v1.1.0
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
-	github.com/verrazzano/verrazzano-crd-generator v0.3.37
+	github.com/verrazzano/verrazzano-crd-generator v0.3.38
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20201110193547-32e100ccdb72
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
