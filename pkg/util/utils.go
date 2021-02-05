@@ -123,12 +123,12 @@ func Contains(s []string, e string) bool {
 
 // GetManagedClustersForVerrazzanoBinding returns a filtered set of only those applicable to a given
 // VerrazzanoBinding given a map of available ManagedClusterConnections.
-func GetManagedClustersForVerrazzanoBinding(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*ManagedClusterConnection) (
+func GetManagedClustersForVerrazzanoBinding(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*ManagedClusterConnection) (
 	map[string]*ManagedClusterConnection, error) {
 	filteredManagedClusters := map[string]*ManagedClusterConnection{}
-	for _, managedCluster := range vzLocation.ManagedClusters {
+	for _, managedCluster := range vzSynMB.ManagedClusters {
 		if _, ok := availableManagedClusterConnections[managedCluster.Name]; !ok {
-			return nil, fmt.Errorf("Managed cluster %s referenced in binding %s not found", managedCluster.Name, vzLocation.Location.Name)
+			return nil, fmt.Errorf("Managed cluster %s referenced in binding %s not found", managedCluster.Name, vzSynMB.Location.Name)
 		}
 		filteredManagedClusters[managedCluster.Name] = availableManagedClusterConnections[managedCluster.Name]
 
@@ -138,11 +138,11 @@ func GetManagedClustersForVerrazzanoBinding(vzLocation *types.VerrazzanoLocation
 
 // GetManagedClustersNotForVerrazzanoBinding returns a filtered set of those NOT applicable to a given
 // VerrazzanoBinding given a map of available ManagedClusterConnections.
-func GetManagedClustersNotForVerrazzanoBinding(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*ManagedClusterConnection) map[string]*ManagedClusterConnection {
+func GetManagedClustersNotForVerrazzanoBinding(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*ManagedClusterConnection) map[string]*ManagedClusterConnection {
 	filteredManagedClusters := map[string]*ManagedClusterConnection{}
 	for clusterName := range availableManagedClusterConnections {
 		found := false
-		for _, managedCluster := range vzLocation.ManagedClusters {
+		for _, managedCluster := range vzSynMB.ManagedClusters {
 			if clusterName == managedCluster.Name {
 				found = true
 				break
@@ -156,8 +156,8 @@ func GetManagedClustersNotForVerrazzanoBinding(vzLocation *types.VerrazzanoLocat
 }
 
 // IsClusterInBinding checks if a cluster was found in a binding.
-func IsClusterInBinding(clusterName string, allvzLocations map[string]*types.VerrazzanoLocation) bool {
-	for _, mb := range allvzLocations {
+func IsClusterInBinding(clusterName string, allvzSynMBs map[string]*types.SyntheticModelBinding) bool {
+	for _, mb := range allvzSynMBs {
 		for _, placement := range mb.Location.Spec.Placement {
 			if placement.Name == clusterName {
 				return true

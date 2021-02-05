@@ -144,7 +144,7 @@ func TestGetManagedClustersForVerrazzanoBinding(t *testing.T) {
 	const cname1 = "cluster1"
 	const cname2 = "cluster2"
 
-	vzLocation := types.VerrazzanoLocation{
+	vzSynMB := types.SyntheticModelBinding{
 		Location: &types.ResourceLocation{},
 		ManagedClusters: map[string]*types.ManagedCluster{
 			cname1: {Name: cname1},
@@ -155,7 +155,7 @@ func TestGetManagedClustersForVerrazzanoBinding(t *testing.T) {
 		cname2: &mcc2,
 	}
 
-	results, err := GetManagedClustersForVerrazzanoBinding(&vzLocation, mcMap)
+	results, err := GetManagedClustersForVerrazzanoBinding(&vzSynMB, mcMap)
 	assert.NoError(err, "Error calling GetManagedClustersForVerrazzanoBinding")
 	v, ok := results[cname1]
 	assert.True(ok, "Missing map entry returned by GetManagedClustersForVerrazzanoBinding")
@@ -171,7 +171,7 @@ func TestGetManagedClustersNotForVerrazzanoBinding(t *testing.T) {
 	const cname1 = "cluster1"
 	const cname2 = "cluster2"
 
-	vzLocation := types.VerrazzanoLocation{
+	vzSynMB := types.SyntheticModelBinding{
 		Location: &types.ResourceLocation{},
 		ManagedClusters: map[string]*types.ManagedCluster{
 			cname2: {Name: cname1},
@@ -181,7 +181,7 @@ func TestGetManagedClustersNotForVerrazzanoBinding(t *testing.T) {
 		cname1: &mcc1,
 		cname2: &mcc2,
 	}
-	results := GetManagedClustersNotForVerrazzanoBinding(&vzLocation, mcMap)
+	results := GetManagedClustersNotForVerrazzanoBinding(&vzSynMB, mcMap)
 	v, ok := results[cname2]
 	assert.True(ok, "Missing map entry returned by GetManagedClustersForVerrazzanoBinding")
 	assert.Equal(&mcc2, v)

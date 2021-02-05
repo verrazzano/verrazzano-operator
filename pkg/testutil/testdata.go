@@ -201,20 +201,20 @@ func getPods() []*corev1.Pod {
 }
 
 // GetVerrazzanoLocation returns a test model binding pair.
-func GetVerrazzanoLocation() *types.VerrazzanoLocation {
+func GetVerrazzanoLocation() *types.SyntheticModelBinding {
 	return ReadVerrazzanoLocation(
 		"../testutil/testdata/test_managed_cluster_1.yaml", "../testutil/testdata/test_managed_cluster_2.yaml")
 }
 
 // ReadVerrazzanoLocation returns a test model binding pair for the given model/binding/cluster descriptors.
-func ReadVerrazzanoLocation(managedClusterPaths ...string) *types.VerrazzanoLocation {
+func ReadVerrazzanoLocation(managedClusterPaths ...string) *types.SyntheticModelBinding {
 	managedClusters := map[string]*types.ManagedCluster{}
 
 	for _, managedClusterPath := range managedClusterPaths {
 		managedCluster, _ := testutil.ReadManagedCluster(managedClusterPath)
 		managedClusters[managedCluster.Name] = managedCluster
 	}
-	var pair = &types.VerrazzanoLocation{
+	var pair = &types.SyntheticModelBinding{
 		Cluster:         &types.ClusterInfo{},
 		Location:        &types.ResourceLocation{},
 		ManagedClusters: managedClusters,

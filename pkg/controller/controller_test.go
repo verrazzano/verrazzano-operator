@@ -108,7 +108,7 @@ func TestProcessManagedCluster(t *testing.T) {
 		},
 	}
 
-	vzLocation := CreateVerrazzanoLocation(model, binding, controller.verrazzanoURI, testImagePullSecrets)
+	vzSynMB := CreateVerrazzanoLocation(model, binding, controller.verrazzanoURI, testImagePullSecrets)
 
 	mc := &types.ManagedCluster{
 		Name:        testManagedCluster.Name,
@@ -116,26 +116,26 @@ func TestProcessManagedCluster(t *testing.T) {
 		Ingresses:   map[string][]*types.Ingress{},
 		RemoteRests: map[string][]*types.RemoteRestConnection{},
 	}
-	vzLocation.ManagedClusters[testManagedCluster.Name] = mc
+	vzSynMB.ManagedClusters[testManagedCluster.Name] = mc
 	mc.Namespaces = append(mc.Namespaces, constants.MonitoringNamespace, constants.LoggingNamespace)
 
 	// set expectations for 'managed' package interactions
 	managedMock := controller.managed.(*testManagedPackage)
 	managedMock.BuildManagedClusterConnection(testSecretData, controller.stopCh)
-	managedMock.CreateNamespaces(vzLocation, testFilteredConnections)
-	managedMock.CreateSecrets(vzLocation, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
-	managedMock.CreateServiceAccounts(vzLocation.Location.Name, vzLocation.ImagePullSecrets, vzLocation.ManagedClusters, testFilteredConnections)
-	managedMock.CreateConfigMaps(vzLocation, testFilteredConnections)
-	managedMock.CreateClusterRoles(vzLocation, testFilteredConnections)
-	managedMock.CreateClusterRoleBindings(vzLocation, testFilteredConnections)
-	managedMock.CreateServices(vzLocation, testFilteredConnections)
-	managedMock.CreateDeployments(vzLocation, controller.managedClusterConnections, controller.verrazzanoURI, controller.secrets)
-	managedMock.CreateDaemonSets(vzLocation, controller.managedClusterConnections, controller.verrazzanoURI)
+	managedMock.CreateNamespaces(vzSynMB, testFilteredConnections)
+	managedMock.CreateSecrets(vzSynMB, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
+	managedMock.CreateServiceAccounts(vzSynMB.Location.Name, vzSynMB.ImagePullSecrets, vzSynMB.ManagedClusters, testFilteredConnections)
+	managedMock.CreateConfigMaps(vzSynMB, testFilteredConnections)
+	managedMock.CreateClusterRoles(vzSynMB, testFilteredConnections)
+	managedMock.CreateClusterRoleBindings(vzSynMB, testFilteredConnections)
+	managedMock.CreateServices(vzSynMB, testFilteredConnections)
+	managedMock.CreateDeployments(vzSynMB, controller.managedClusterConnections, controller.verrazzanoURI, controller.secrets)
+	managedMock.CreateDaemonSets(vzSynMB, controller.managedClusterConnections, controller.verrazzanoURI)
 	managedMock.SetupComplete()
 
 	// record expected 'util' interactions
 	utilMock := controller.util.(*testUtilPackage)
-	utilMock.GetManagedClustersForVerrazzanoBinding(vzLocation, controller.managedClusterConnections)
+	utilMock.GetManagedClustersForVerrazzanoBinding(vzSynMB, controller.managedClusterConnections)
 	utilMock.SetupComplete()
 
 	// invoke method that is being tested
@@ -283,12 +283,12 @@ func TestProcessApplicationBindingDeleted(t *testing.T) {
 			ModelName: "test-model"}}
 
 	model := &types.ClusterInfo{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
-	vzLocation := CreateVerrazzanoLocation(model, binding, testVerrazzanoURI, nil)
+	vzSynMB := CreateVerrazzanoLocation(model, binding, testVerrazzanoURI, nil)
 
 	controller.applicationModels["test-model"] = model
 	controller.applicationBindings["test-binding"] = binding
 
-	controller.VerrazzanoLocations["test-binding"] = vzLocation
+	controller.VerrazzanoLocations["test-binding"] = vzSynMB
 
 	// set expectations of local package interactions
 	localMock := controller.local.(*testLocalPackage)
@@ -299,15 +299,15 @@ func TestProcessApplicationBindingDeleted(t *testing.T) {
 
 	// set expectations of managed package interaction
 	managedMock := controller.managed.(*testManagedPackage)
-	managedMock.DeleteCustomResources(vzLocation, controller.managedClusterConnections)
-	managedMock.DeleteClusterRoleBindings(vzLocation, controller.managedClusterConnections, true)
-	managedMock.DeleteClusterRoles(vzLocation, controller.managedClusterConnections, true)
-	managedMock.DeleteNamespaces(vzLocation, controller.managedClusterConnections, true)
-	managedMock.DeleteClusterRoleBindings(vzLocation, controller.managedClusterConnections, false)
-	managedMock.DeleteClusterRoles(vzLocation, controller.managedClusterConnections, false)
-	managedMock.DeleteNamespaces(vzLocation, controller.managedClusterConnections, false)
-	managedMock.DeleteServices(vzLocation, testFilteredConnections)
-	managedMock.DeleteDeployments(vzLocation, testFilteredConnections)
+	managedMock.DeleteCustomResources(vzSynMB, controller.managedClusterConnections)
+	managedMock.DeleteClusterRoleBindings(vzSynMB, controller.managedClusterConnections, true)
+	managedMock.DeleteClusterRoles(vzSynMB, controller.managedClusterConnections, true)
+	managedMock.DeleteNamespaces(vzSynMB, controller.managedClusterConnections, true)
+	managedMock.DeleteClusterRoleBindings(vzSynMB, controller.managedClusterConnections, false)
+	managedMock.DeleteClusterRoles(vzSynMB, controller.managedClusterConnections, false)
+	managedMock.DeleteNamespaces(vzSynMB, controller.managedClusterConnections, false)
+	managedMock.DeleteServices(vzSynMB, testFilteredConnections)
+	managedMock.DeleteDeployments(vzSynMB, testFilteredConnections)
 	managedMock.SetupComplete()
 
 	monitoringMock := controller.monitoring.(*testMonitoringPackage)
@@ -315,7 +315,7 @@ func TestProcessApplicationBindingDeleted(t *testing.T) {
 	monitoringMock.SetupComplete()
 
 	utilMock := controller.util.(*testUtilPackage)
-	utilMock.GetManagedClustersForVerrazzanoBinding(vzLocation, controller.managedClusterConnections)
+	utilMock.GetManagedClustersForVerrazzanoBinding(vzSynMB, controller.managedClusterConnections)
 	utilMock.SetupComplete()
 
 	// invoke method being tested
@@ -448,16 +448,16 @@ func (t *testManagedPackage) CreateCrdDefinitions(managedClusterConnection *util
 	return nil
 }
 
-func (t *testManagedPackage) CreateNamespaces(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateNamespaces(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateNamespaces", map[string]interface{}{
-		"vzLocation":          vzLocation,
+		"vzSynMB":          vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateSecrets(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets) error {
+func (t *testManagedPackage) CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets) error {
 	t.Record("CreateSecrets", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
 		"kubeClientSet":                      kubeClientSet,
 		"sec":                                sec})
@@ -473,200 +473,200 @@ func (t *testManagedPackage) CreateServiceAccounts(bindingName string, imagePull
 	return nil
 }
 
-func (t *testManagedPackage) CreateConfigMaps(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateConfigMaps", map[string]interface{}{
-		"vzLocation":          vzLocation,
+		"vzSynMB":          vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateClusterRoles(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateClusterRoles(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateClusterRoles", map[string]interface{}{
-		"vzLocation":          vzLocation,
+		"vzSynMB":          vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateClusterRoleBindings(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateClusterRoleBindings(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateClusterRoleBindings", map[string]interface{}{
-		"vzLocation":          vzLocation,
+		"vzSynMB":          vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
-func (t *testManagedPackage) CreateIngresses(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateIngresses(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateIngresses", map[string]interface{}{
-		"vzLocation":          vzLocation,
+		"vzSynMB":          vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateServiceEntries(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateServiceEntries(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateServiceEntries", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"filteredConnections":                filteredConnections,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateServices(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateServices(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateServices", map[string]interface{}{
-		"vzLocation":          vzLocation,
+		"vzSynMB":          vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateDeployments(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, sec monitoring.Secrets) error {
+func (t *testManagedPackage) CreateDeployments(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, sec monitoring.Secrets) error {
 	t.Record("CreateDeployments", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
 		"sec":                                sec})
 	return nil
 }
 
-func (t *testManagedPackage) CreateCustomResources(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}) error {
+func (t *testManagedPackage) CreateCustomResources(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}) error {
 	t.Record("CreateCustomResources", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
 		"stopCh":                             stopCh})
 	return nil
 }
 
-func (t *testManagedPackage) UpdateIstioPrometheusConfigMaps(vzLocation *types.VerrazzanoLocation, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) UpdateIstioPrometheusConfigMaps(vzSynMB *types.SyntheticModelBinding, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("UpdateIstioPrometheusConfigMaps", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"secretLister":                       secretLister,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateDaemonSets(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string) error {
+func (t *testManagedPackage) CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string) error {
 	t.Record("CreateDaemonSets", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
 		"verrazzanoURI":                      verrazzanoURI})
 	return nil
 }
 
-func (t *testManagedPackage) CreateDestinationRules(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateDestinationRules(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateDestinationRules", map[string]interface{}{
-		"vzLocation":          vzLocation,
+		"vzSynMB":          vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateAuthorizationPolicies(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateAuthorizationPolicies(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateAuthorizationPolicies", map[string]interface{}{
-		"vzLocation":          vzLocation,
+		"vzSynMB":          vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CleanupOrphanedCustomResources(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}) error {
+func (t *testManagedPackage) CleanupOrphanedCustomResources(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}) error {
 	t.Record("CleanupOrphanedCustomResources", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
 		"stopCh":                             stopCh})
 	return nil
 }
 
-func (t *testManagedPackage) CleanupOrphanedServiceEntries(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CleanupOrphanedServiceEntries(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CleanupOrphanedServiceEntries", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CleanupOrphanedIngresses(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CleanupOrphanedIngresses(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CleanupOrphanedIngresses", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CleanupOrphanedClusterRoleBindings(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CleanupOrphanedClusterRoleBindings(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CleanupOrphanedClusterRoleBindings", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CleanupOrphanedClusterRoles(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CleanupOrphanedClusterRoles(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CleanupOrphanedClusterRoles", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CleanupOrphanedConfigMaps(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CleanupOrphanedConfigMaps(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CleanupOrphanedConfigMaps", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CleanupOrphanedNamespaces(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allvzLocations map[string]*types.VerrazzanoLocation) error {
+func (t *testManagedPackage) CleanupOrphanedNamespaces(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allvzSynMBs map[string]*types.SyntheticModelBinding) error {
 	t.Record("CleanupOrphanedNamespaces", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
-		"allvzLocations":                     allvzLocations})
+		"allvzSynMBs":                     allvzSynMBs})
 	return nil
 }
 
-func (t *testManagedPackage) DeleteCustomResources(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) DeleteCustomResources(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("DeleteCustomResources", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return nil
 }
 
-func (t *testManagedPackage) DeleteClusterRoleBindings(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
+func (t *testManagedPackage) DeleteClusterRoleBindings(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
 	t.Record("DeleteClusterRoleBindings", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
 		"bindingLabel":                       bindingLabel})
 	return nil
 }
 
-func (t *testManagedPackage) DeleteClusterRoles(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
+func (t *testManagedPackage) DeleteClusterRoles(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
 	t.Record("DeleteClusterRoles", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
 		"bindingLabel":                       bindingLabel})
 	return nil
 }
 
-func (t *testManagedPackage) DeleteNamespaces(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
+func (t *testManagedPackage) DeleteNamespaces(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
 	t.Record("DeleteNamespaces", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
 		"bindingLabel":                       bindingLabel})
 	return nil
 }
 
-func (t *testManagedPackage) CleanupOrphanedServices(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CleanupOrphanedServices(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CleanupOrphanedServices", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CleanupOrphanedDeployments(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CleanupOrphanedDeployments(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CleanupOrphanedDeployments", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return nil
 }
 
-func (t *testManagedPackage) DeleteServices(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) DeleteServices(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("DeleteServices", map[string]interface{}{
-		"vzLocation":          vzLocation,
+		"vzSynMB":          vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) DeleteDeployments(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) DeleteDeployments(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("DeleteDeployments", map[string]interface{}{
-		"vzLocation":          vzLocation,
+		"vzSynMB":          vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
@@ -716,9 +716,9 @@ func newTestUtil(expectations func(*testUtilPackage)) *testUtilPackage {
 	return t
 }
 
-func (u *testUtilPackage) GetManagedClustersForVerrazzanoBinding(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) (map[string]*util.ManagedClusterConnection, error) {
+func (u *testUtilPackage) GetManagedClustersForVerrazzanoBinding(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) (map[string]*util.ManagedClusterConnection, error) {
 	u.Record("GetManagedClustersForVerrazzanoBinding", map[string]interface{}{
-		"vzLocation":                         vzLocation,
+		"vzSynMB":                         vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return map[string]*util.ManagedClusterConnection{testManagedCluster.Name: &testManagedClusterConnection}, nil
 }

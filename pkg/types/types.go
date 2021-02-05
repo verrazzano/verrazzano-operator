@@ -91,8 +91,8 @@ type ManagedCluster struct {
 	RemoteRests map[string][]*RemoteRestConnection
 }
 
-// VerrazzanoLocation represents the verrazzano location for resources
-type VerrazzanoLocation struct {
+// SyntheticModelBinding represents the verrazzano location for resources
+type SyntheticModelBinding struct {
 	Location *ResourceLocation
 	Cluster  *ClusterInfo
 

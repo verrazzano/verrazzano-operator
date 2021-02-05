@@ -23,16 +23,16 @@ import (
 func TestCreateServicesVMIBinding(t *testing.T) {
 	assert := assert.New(t)
 
-	vzLocationSystemBinding := testutil.GetVerrazzanoLocation()
-	vzLocationSystemBinding.Cluster.Name = constants.VmiSystemBindingName
-	vzLocationSystemBinding.Location.Name = constants.VmiSystemBindingName
+	vzSynMBSystemBinding := testutil.GetVerrazzanoLocation()
+	vzSynMBSystemBinding.Cluster.Name = constants.VmiSystemBindingName
+	vzSynMBSystemBinding.Location.Name = constants.VmiSystemBindingName
 
 	// Cluster/binding for VMI system binding - Node Exporter service is created.
 	managedConnections := testutil.GetManagedClusterConnections()
-	err := CreateServices(vzLocationSystemBinding, managedConnections)
+	err := CreateServices(vzSynMBSystemBinding, managedConnections)
 	assert.Nil(err, "got an error from CreateServices: %v", err)
 
-	for clusterName := range vzLocationSystemBinding.ManagedClusters {
+	for clusterName := range vzSynMBSystemBinding.ManagedClusters {
 		managedClusterConnection := managedConnections[clusterName]
 		existingService, err := managedClusterConnection.KubeClient.CoreV1().Services(constants.MonitoringNamespace).List(context.TODO(), metav1.ListOptions{})
 		assert.Nil(err, "got an error listing services: %v", err)
@@ -45,10 +45,10 @@ func TestCreateServicesVMIBinding(t *testing.T) {
 	}
 
 	// Cluster/binding for VMI system binding - service already exist
-	err = CreateServices(vzLocationSystemBinding, managedConnections)
+	err = CreateServices(vzSynMBSystemBinding, managedConnections)
 	assert.Nil(err, "got an error from CreateServices: %v", err)
 
-	for clusterName := range vzLocationSystemBinding.ManagedClusters {
+	for clusterName := range vzSynMBSystemBinding.ManagedClusters {
 		managedClusterConnection := managedConnections[clusterName]
 		existingService, err := managedClusterConnection.KubeClient.CoreV1().Services(constants.MonitoringNamespace).List(context.TODO(), metav1.ListOptions{})
 		assert.Nil(err, "got an error listing services: %v", err)

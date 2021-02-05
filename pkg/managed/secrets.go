@@ -22,32 +22,32 @@ import (
 
 const wlsRuntimeEncryptionSecret = "wlsRuntimeEncryptionSecret"
 
-// CreateSecrets will go through a VerrazzanoLocation and find all of the secrets that are needed by
+// CreateSecrets will go through a SyntheticModelBinding and find all of the secrets that are needed by
 // components, and it will then check if those secrets exist in the correct namespaces and clusters,
 // and then update or create them as needed
-func CreateSecrets(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets) error {
-	zap.S().Debugf("Creating/updating Secrets for VerrazzanoBinding %s", vzLocation.Location.Name)
+func CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets) error {
+	zap.S().Debugf("Creating/updating Secrets for VerrazzanoBinding %s", vzSynMB.Location.Name)
 
-	filteredConnections, err := GetFilteredConnections(vzLocation, availableManagedClusterConnections)
+	filteredConnections, err := GetFilteredConnections(vzSynMB, availableManagedClusterConnections)
 	if err != nil {
 		return err
 	}
 
 	// Construct secret for each ManagedCluster
-	for clusterName, managedClusterObj := range vzLocation.ManagedClusters {
+	for clusterName, managedClusterObj := range vzSynMB.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
 		var secrets []*corev1.Secret
-		if vzLocation.Location.Name == constants.VmiSystemBindingName {
+		if vzSynMB.Location.Name == constants.VmiSystemBindingName {
 			secrets = monitoring.GetSystemSecrets(sec)
 		} else {
-			secrets = newSecrets(vzLocation, managedClusterObj, kubeClientSet)
+			secrets = newSecrets(vzSynMB, managedClusterObj, kubeClientSet)
 		}
 
 		// Create/Update Namespace
-		err := createSecrets(vzLocation.Location, managedClusterConnection, secrets, clusterName)
+		err := createSecrets(vzSynMB.Location, managedClusterConnection, secrets, clusterName)
 		if err != nil {
 			return err
 		}
@@ -83,7 +83,7 @@ func createSecrets(binding *types.ResourceLocation, managedClusterConnection *ut
 
 // Constructs the necessary Secrets for the specified ManagedCluster in the given VerrazzanoBinding
 // note that the actual secret data is kept in a secret in the management cluster
-func newSecrets(vzLocation *types.VerrazzanoLocation, managedCluster *types.ManagedCluster, kubeClientSet kubernetes.Interface) []*corev1.Secret {
+func newSecrets(vzSynMB *types.SyntheticModelBinding, managedCluster *types.ManagedCluster, kubeClientSet kubernetes.Interface) []*corev1.Secret {
 	var secrets []*corev1.Secret
 
 	for namespace, secretNames := range managedCluster.Secrets {

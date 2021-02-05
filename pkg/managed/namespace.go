@@ -22,20 +22,20 @@ import (
 )
 
 // CreateNamespaces creates/updates namespaces needed for each managed cluster.
-func CreateNamespaces(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Debugf("Creating/updating Namespaces for VerrazzanoBinding %s", vzLocation.Location.Name)
+func CreateNamespaces(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Debugf("Creating/updating Namespaces for VerrazzanoBinding %s", vzSynMB.Location.Name)
 
 	// Construct namespaces for each ManagedCluster
-	for clusterName, managedClusterObj := range vzLocation.ManagedClusters {
+	for clusterName, managedClusterObj := range vzSynMB.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
 		var namespaces []*corev1.Namespace
-		namespaces = newNamespaces(vzLocation.Location, managedClusterObj)
+		namespaces = newNamespaces(vzSynMB.Location, managedClusterObj)
 
 		// Create/Update Namespace
-		err := createNamespace(vzLocation.Location, managedClusterConnection, namespaces, clusterName)
+		err := createNamespace(vzSynMB.Location, managedClusterConnection, namespaces, clusterName)
 		if err != nil {
 			return err
 		}
@@ -62,21 +62,21 @@ func createNamespace(binding *types.ResourceLocation, managedClusterConnection *
 }
 
 // CleanupOrphanedNamespaces deletes namespaces that have been orphaned.
-func CleanupOrphanedNamespaces(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allvzLocations map[string]*types.VerrazzanoLocation) error {
-	zap.S().Debugf("Cleaning up orphaned Namespace for VerrazzanoBinding %s", vzLocation.Location.Name)
+func CleanupOrphanedNamespaces(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allvzSynMBs map[string]*types.SyntheticModelBinding) error {
+	zap.S().Debugf("Cleaning up orphaned Namespace for VerrazzanoBinding %s", vzSynMB.Location.Name)
 
 	// Get the managed clusters that this binding applies to
-	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(vzLocation, availableManagedClusterConnections)
+	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(vzSynMB, availableManagedClusterConnections)
 	if err != nil {
 		return nil
 	}
 
-	for clusterName, mc := range vzLocation.ManagedClusters {
+	for clusterName, mc := range vzSynMB.ManagedClusters {
 		managedClusterConnection := matchedClusters[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzLocation.Location.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.Location.Name, constants.VerrazzanoCluster: clusterName})
 
 		if mc.Namespaces != nil {
 			// Create list of Namespaces expected on this cluster
@@ -105,13 +105,13 @@ func CleanupOrphanedNamespaces(vzLocation *types.VerrazzanoLocation, availableMa
 	}
 
 	// Get the managed clusters that this binding does NOT apply to
-	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(vzLocation, availableManagedClusterConnections)
+	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(vzSynMB, availableManagedClusterConnections)
 
 	for clusterName, managedClusterConnection := range unmatchedClusters {
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzLocation.Location.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.Location.Name, constants.VerrazzanoCluster: clusterName})
 
 		// First, get rid of any Namespace with the specified binding
 		existingNamespaceList, err := managedClusterConnection.NamespaceLister.List(selector)
@@ -138,7 +138,7 @@ func CleanupOrphanedNamespaces(vzLocation *types.VerrazzanoLocation, availableMa
 		}
 
 		// Second, get rid of any system-wide Namespaces if no bindings are using this cluster
-		if !util.IsClusterInBinding(clusterName, allvzLocations) {
+		if !util.IsClusterInBinding(clusterName, allvzSynMBs) {
 			selector = labels.SelectorFromSet(util.GetManagedLabelsNoBinding(clusterName))
 
 			// Get list of system-wide Namespaces for this cluster
@@ -171,11 +171,11 @@ func CleanupOrphanedNamespaces(vzLocation *types.VerrazzanoLocation, availableMa
 }
 
 // DeleteNamespaces deletes namespaces for a given binding.
-func DeleteNamespaces(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
-	zap.S().Debugf("Deleting Namespaces for VerrazzanoBinding %s", vzLocation.Location.Name)
+func DeleteNamespaces(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
+	zap.S().Debugf("Deleting Namespaces for VerrazzanoBinding %s", vzSynMB.Location.Name)
 
 	// Parse out the managed clusters that this binding applies to
-	managedClusters, err := util.GetManagedClustersForVerrazzanoBinding(vzLocation, availableManagedClusterConnections)
+	managedClusters, err := util.GetManagedClustersForVerrazzanoBinding(vzSynMB, availableManagedClusterConnections)
 	if err != nil {
 		return nil
 	}
@@ -187,7 +187,7 @@ func DeleteNamespaces(vzLocation *types.VerrazzanoLocation, availableManagedClus
 
 		var selector labels.Selector
 		if bindingLabel {
-			selector = labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzLocation.Location.Name})
+			selector = labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.Location.Name})
 		} else {
 			selector = labels.SelectorFromSet(util.GetManagedLabelsNoBinding(clusterName))
 		}

@@ -12,9 +12,9 @@ import (
 )
 
 // CreateVerrazzanoLocation creates a Verrazzano location.
-func CreateVerrazzanoLocation(model *types.ClusterInfo, binding *types.ResourceLocation, VerrazzanoURI string, imagePullSecrets []corev1.LocalObjectReference) *types.VerrazzanoLocation {
+func CreateVerrazzanoLocation(model *types.ClusterInfo, binding *types.ResourceLocation, VerrazzanoURI string, imagePullSecrets []corev1.LocalObjectReference) *types.SyntheticModelBinding {
 
-	vzLocation := &types.VerrazzanoLocation{
+	vzSynMB := &types.SyntheticModelBinding{
 		Cluster:          model,
 		Location:         binding,
 		ManagedClusters:  map[string]*types.ManagedCluster{},
@@ -22,38 +22,38 @@ func CreateVerrazzanoLocation(model *types.ClusterInfo, binding *types.ResourceL
 		VerrazzanoURI:    VerrazzanoURI,
 		ImagePullSecrets: imagePullSecrets,
 	}
-	return buildVerrazzanoLocation(vzLocation)
+	return buildVerrazzanoLocation(vzSynMB)
 }
 
-func acquireLock(vzLocation *types.VerrazzanoLocation) {
-	vzLocation.Lock.Lock()
+func acquireLock(vzSynMB *types.SyntheticModelBinding) {
+	vzSynMB.Lock.Lock()
 }
 
-func releaseLock(vzLocation *types.VerrazzanoLocation) {
-	vzLocation.Lock.Unlock()
+func releaseLock(vzSynMB *types.SyntheticModelBinding) {
+	vzSynMB.Lock.Unlock()
 }
 
 // UpdateVerrazzanoLocation updates a model/binding pair by rebuilding it.
-func UpdateVerrazzanoLocation(vzLocation *types.VerrazzanoLocation, model *types.ClusterInfo, binding *types.ResourceLocation, VerrazzanoURI string, imagePullSecrets []corev1.LocalObjectReference) {
-	newvzLocation := CreateVerrazzanoLocation(model, binding, VerrazzanoURI, imagePullSecrets)
-	lock := vzLocation.Lock
+func UpdateVerrazzanoLocation(vzSynMB *types.SyntheticModelBinding, model *types.ClusterInfo, binding *types.ResourceLocation, VerrazzanoURI string, imagePullSecrets []corev1.LocalObjectReference) {
+	newvzSynMB := CreateVerrazzanoLocation(model, binding, VerrazzanoURI, imagePullSecrets)
+	lock := vzSynMB.Lock
 	lock.Lock()
 	defer lock.Unlock()
-	*vzLocation = *newvzLocation
+	*vzSynMB = *newvzSynMB
 }
 
 // Common function for building a model/binding pair
-func buildVerrazzanoLocation(vzLocation *types.VerrazzanoLocation) *types.VerrazzanoLocation {
+func buildVerrazzanoLocation(vzSynMB *types.SyntheticModelBinding) *types.SyntheticModelBinding {
 	// Acquire write lock
-	acquireLock(vzLocation)
-	defer releaseLock(vzLocation)
+	acquireLock(vzSynMB)
+	defer releaseLock(vzSynMB)
 
 	// Obtain the placement objects
-	placements := getPlacements(vzLocation.Location)
+	placements := getPlacements(vzSynMB.Location)
 
 	for _, placement := range placements {
 		var mc *types.ManagedCluster
-		mc, clusterFound := vzLocation.ManagedClusters[placement.Name]
+		mc, clusterFound := vzSynMB.ManagedClusters[placement.Name]
 		// Create the ManagedCluster object and add it to the map if we don't have one
 		// for a given placement (cluster)
 		if !clusterFound {
@@ -63,7 +63,7 @@ func buildVerrazzanoLocation(vzLocation *types.VerrazzanoLocation) *types.Verraz
 				Ingresses:   map[string][]*types.Ingress{},
 				RemoteRests: map[string][]*types.RemoteRestConnection{},
 			}
-			vzLocation.ManagedClusters[placement.Name] = mc
+			vzSynMB.ManagedClusters[placement.Name] = mc
 		}
 
 		// Add in the Verrazzano system namespace if not already added
@@ -71,7 +71,7 @@ func buildVerrazzanoLocation(vzLocation *types.VerrazzanoLocation) *types.Verraz
 		appendNamespace(&mc.Namespaces, managedNamespace)
 	}
 
-	return vzLocation
+	return vzSynMB
 }
 
 func getPlacements(binding *types.ResourceLocation) []types.ClusterPlacement {
