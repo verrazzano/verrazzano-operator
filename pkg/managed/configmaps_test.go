@@ -16,11 +16,11 @@ import (
 func TestCreateConfigMaps(t *testing.T) {
 	assert := assert.New(t)
 
-	modelBindingPair := testutil.GetModelBindingPair()
+	VerrazzanoLocation := testutil.GetVerrazzanoLocation()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	err := CreateConfigMaps(modelBindingPair, clusterConnections)
+	err := CreateConfigMaps(VerrazzanoLocation, clusterConnections)
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -38,11 +38,11 @@ func TestCreateConfigMaps(t *testing.T) {
 func TestCreateConfigMapsUpdateMap(t *testing.T) {
 	assert := assert.New(t)
 
-	modelBindingPair := testutil.GetModelBindingPair()
+	VerrazzanoLocation := testutil.GetVerrazzanoLocation()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	err := CreateConfigMaps(modelBindingPair, clusterConnections)
+	err := CreateConfigMaps(VerrazzanoLocation, clusterConnections)
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -58,11 +58,11 @@ func TestCreateConfigMapsUpdateMap(t *testing.T) {
 	assert.Equal("", configmap.Data["biz"])
 
 	// update the config map in the binding
-	cm := modelBindingPair.ManagedClusters["cluster1"].ConfigMaps[0].Data
+	cm := VerrazzanoLocation.ManagedClusters["cluster1"].ConfigMaps[0].Data
 	cm["bar"] = "ddd"
 	cm["biz"] = "ccc"
 
-	err = CreateConfigMaps(modelBindingPair, clusterConnections)
+	err = CreateConfigMaps(VerrazzanoLocation, clusterConnections)
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -81,13 +81,13 @@ func TestCreateConfigMapsUpdateMap(t *testing.T) {
 func TestCreateConfigMapsVmiSystem(t *testing.T) {
 	assert := assert.New(t)
 
-	modelBindingPair := testutil.GetModelBindingPair()
+	VerrazzanoLocation := testutil.GetVerrazzanoLocation()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	const clusterName = "cluster1"
 	clusterConnection := clusterConnections[clusterName]
 
-	modelBindingPair.Location.Name = constants.VmiSystemBindingName
-	err := CreateConfigMaps(modelBindingPair, clusterConnections)
+	VerrazzanoLocation.Location.Name = constants.VmiSystemBindingName
+	err := CreateConfigMaps(VerrazzanoLocation, clusterConnections)
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}

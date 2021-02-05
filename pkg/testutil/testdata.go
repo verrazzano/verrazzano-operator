@@ -200,14 +200,14 @@ func getPods() []*corev1.Pod {
 	}
 }
 
-// GetModelBindingPair returns a test model binding pair.
-func GetModelBindingPair() *types.VerrazzanoLocation {
-	return ReadModelBindingPair(
+// GetVerrazzanoLocation returns a test model binding pair.
+func GetVerrazzanoLocation() *types.VerrazzanoLocation {
+	return ReadVerrazzanoLocation(
 		"../testutil/testdata/test_managed_cluster_1.yaml", "../testutil/testdata/test_managed_cluster_2.yaml")
 }
 
-// ReadModelBindingPair returns a test model binding pair for the given model/binding/cluster descriptors.
-func ReadModelBindingPair(managedClusterPaths ...string) *types.VerrazzanoLocation {
+// ReadVerrazzanoLocation returns a test model binding pair for the given model/binding/cluster descriptors.
+func ReadVerrazzanoLocation(managedClusterPaths ...string) *types.VerrazzanoLocation {
 	managedClusters := map[string]*types.ManagedCluster{}
 
 	for _, managedClusterPath := range managedClusterPaths {

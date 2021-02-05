@@ -173,15 +173,15 @@ func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan stru
 
 // GetFilteredConnections given a map of available ManagedClusterConnections, returns a filtered set of those NOT
 // applicable to the given VerrazzanoBinding.
-func GetFilteredConnections(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) (map[string]*util.ManagedClusterConnection, error) {
+func GetFilteredConnections(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) (map[string]*util.ManagedClusterConnection, error) {
 	var filteredConnections map[string]*util.ManagedClusterConnection
 	var err error
 	// Include the management cluster in case of System binding
-	if mbPair.Location.Name == constants.VmiSystemBindingName {
+	if vzLocation.Location.Name == constants.VmiSystemBindingName {
 		filteredConnections = availableManagedClusterConnections
 	} else {
 		// Parse out the managed clusters that this binding applies to
-		filteredConnections, err = util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+		filteredConnections, err = util.GetManagedClustersForVerrazzanoBinding(vzLocation, availableManagedClusterConnections)
 		if err != nil {
 			return nil, err
 		}

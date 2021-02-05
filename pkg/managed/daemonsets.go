@@ -17,17 +17,17 @@ import (
 )
 
 // CreateDaemonSets creates/updates daemon sets needed for each managed cluster.
-func CreateDaemonSets(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string) error {
-	zap.S().Debugf("Creating/updating daemonset for VerrazzanoBinding %s", mbPair.Location.Name)
+func CreateDaemonSets(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string) error {
+	zap.S().Debugf("Creating/updating daemonset for VerrazzanoBinding %s", vzLocation.Location.Name)
 
 	// If binding is not System binding, skip creating Daemon sets
-	if mbPair.Location.Name != constants.VmiSystemBindingName {
-		zap.S().Debugf("Skip creating Daemon sets for VerrazzanoApplicationBinding %s", mbPair.Location.Name)
+	if vzLocation.Location.Name != constants.VmiSystemBindingName {
+		zap.S().Debugf("Skip creating Daemon sets for VerrazzanoApplicationBinding %s", vzLocation.Location.Name)
 		return nil
 	}
 
 	// Construct deployments for each ManagedCluster
-	for clusterName := range mbPair.ManagedClusters {
+	for clusterName := range vzLocation.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()

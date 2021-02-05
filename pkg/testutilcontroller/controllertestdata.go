@@ -49,7 +49,7 @@ func testKeyFunc(obj interface{}) (string, error) {
 }
 
 // NewControllerListers creates a fake set of listers to be used for unit tests
-func NewControllerListers(clients *kubernetes.Interface, clusters []v1beta1.VerrazzanoManagedCluster, modelBindingPairs *map[string]*types.VerrazzanoLocation) controller.Listers {
+func NewControllerListers(clients *kubernetes.Interface, clusters []v1beta1.VerrazzanoManagedCluster, VerrazzanoLocations *map[string]*types.VerrazzanoLocation) controller.Listers {
 	testIndexers := map[string]cache.IndexFunc{
 		"namespace": testIndexFunc,
 	}

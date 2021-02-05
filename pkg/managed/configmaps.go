@@ -18,16 +18,16 @@ import (
 )
 
 // CreateConfigMaps creates/updates config maps needed for each managed cluster.
-func CreateConfigMaps(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Debugf("Creating/updating ConfigMap for VerrazzanoBinding %s", mbPair.Location.Name)
+func CreateConfigMaps(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Debugf("Creating/updating ConfigMap for VerrazzanoBinding %s", vzLocation.Location.Name)
 
-	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
+	for clusterName, managedClusterObj := range vzLocation.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		if mbPair.Location.Name == constants.VmiSystemBindingName {
-			newConfigMaps, err := newConfigMaps(mbPair.Location.Name, clusterName)
+		if vzLocation.Location.Name == constants.VmiSystemBindingName {
+			newConfigMaps, err := newConfigMaps(vzLocation.Location.Name, clusterName)
 			if err != nil {
 				return err
 			}
@@ -70,18 +70,18 @@ func createUpdateConfigMaps(managedClusterConnection *util.ManagedClusterConnect
 }
 
 // CleanupOrphanedConfigMaps deletes config maps that have been orphaned.
-func CleanupOrphanedConfigMaps(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Debugf("Cleaning up orphaned ConfigMaps for VerrazzanoBinding %s", mbPair.Location.Name)
+func CleanupOrphanedConfigMaps(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Debugf("Cleaning up orphaned ConfigMaps for VerrazzanoBinding %s", vzLocation.Location.Name)
 
 	// Get the managed clusters that this binding does NOT apply to
-	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(vzLocation, availableManagedClusterConnections)
 
 	for clusterName, managedClusterConnection := range unmatchedClusters {
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
 		// First, get rid of any ConfigMaps with the specified binding
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Location.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzLocation.Location.Name, constants.VerrazzanoCluster: clusterName})
 
 		// Get list of ConfigMaps for this cluster and given binding
 		existingConfigMapsList, err := managedClusterConnection.ConfigMapLister.List(selector)

@@ -116,7 +116,7 @@ type Controller struct {
 	applicationBindings map[string]*types.ResourceLocation
 
 	// The current set of known model/binding pairs
-	modelBindingPairs map[string]*types.VerrazzanoLocation
+	VerrazzanoLocations map[string]*types.VerrazzanoLocation
 
 	// Misc
 	watchNamespace string
@@ -133,7 +133,7 @@ type Controller struct {
 // Listers represents listers used by the controller.
 type Listers struct {
 	ManagedClusterLister *listers.VerrazzanoManagedClusterLister
-	ModelBindingPairs    *map[string]*types.VerrazzanoLocation
+	VerrazzanoLocations  *map[string]*types.VerrazzanoLocation
 	KubeClientSet        *kubernetes.Interface
 }
 
@@ -141,7 +141,7 @@ type Listers struct {
 func (c *Controller) ListerSet() Listers {
 	return Listers{
 		ManagedClusterLister: &c.verrazzanoManagedClusterLister,
-		ModelBindingPairs:    &c.modelBindingPairs,
+		VerrazzanoLocations:  &c.VerrazzanoLocations,
 		KubeClientSet:        &c.kubeClientSet,
 	}
 }
@@ -228,7 +228,7 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 		managedClusterConnections:        map[string]*v8outil.ManagedClusterConnection{},
 		applicationModels:                map[string]*types.ClusterInfo{},
 		applicationBindings:              map[string]*types.ResourceLocation{},
-		modelBindingPairs:                map[string]*types.VerrazzanoLocation{},
+		VerrazzanoLocations:              map[string]*types.VerrazzanoLocation{},
 		bindingSyncThreshold:             map[string]int{},
 		secrets:                          kubeSecrets,
 	}
@@ -350,7 +350,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	}
 
 	// A synthetic Cluster binding pair will be constructed and passed to the managed clusters
-	mbPair := CreateModelBindingPair(systemModel, systemBinding, c.verrazzanoURI, c.imagePullSecrets)
+	vzLocation := CreateVerrazzanoLocation(systemModel, systemBinding, c.verrazzanoURI, c.imagePullSecrets)
 
 	managedCluster := cluster.(*v1beta1v8o.VerrazzanoManagedCluster)
 	secret, err := c.secretLister.Secrets(managedCluster.Namespace).Get(managedCluster.Spec.KubeconfigSecret)
@@ -379,7 +379,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 			Ingresses:   map[string][]*types.Ingress{},
 			RemoteRests: map[string][]*types.RemoteRestConnection{},
 		}
-		mbPair.ManagedClusters[managedCluster.Name] = mc
+		vzLocation.ManagedClusters[managedCluster.Name] = mc
 
 		// Add in the monitoring and logging namespace if not already added
 		mc.Namespaces = append(mc.Namespaces, constants.MonitoringNamespace, constants.LoggingNamespace)
@@ -389,10 +389,10 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		 **********************/
 
 		zap.S().Infow("Starting watchers on " + managedCluster.Name)
-		c.startManagedClusterWatchers(managedCluster.Name, mbPair)
+		c.startManagedClusterWatchers(managedCluster.Name, vzLocation)
 
 		// Create all the components needed by logging and monitoring in managed clusters to push metrics and logs into System VMI in management cluster
-		c.createManagedClusterResourcesForBinding(mbPair)
+		c.createManagedClusterResourcesForBinding(vzLocation)
 
 		// Wait for the caches to be synced before starting workers
 		zap.S().Infow("Waiting for informer caches to sync")
@@ -404,82 +404,82 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 }
 
 // Start watchers on the given ManagedCluster
-func (c *Controller) startManagedClusterWatchers(managedClusterName string, mbPair *types.VerrazzanoLocation) {
+func (c *Controller) startManagedClusterWatchers(managedClusterName string, vzLocation *types.VerrazzanoLocation) {
 	// Pod event handlers
 	c.managedClusterConnections[managedClusterName].PodInformer.AddEventHandler(k8scache.ResourceEventHandlerFuncs{
 		AddFunc: func(new interface{}) {
-			c.updateIstioPolicies(mbPair, new.(*corev1.Pod), "added")
+			c.updateIstioPolicies(vzLocation, new.(*corev1.Pod), "added")
 		},
 		DeleteFunc: func(old interface{}) {
-			c.updateIstioPolicies(mbPair, old.(*corev1.Pod), "deleted")
+			c.updateIstioPolicies(vzLocation, old.(*corev1.Pod), "deleted")
 		},
 	})
 }
 
 // update the Istio destination rules and authorization policies for the given model/binding whenever a pod is added or deleted
-func (c *Controller) updateIstioPolicies(mbPair *types.VerrazzanoLocation, pod *corev1.Pod, action string) {
+func (c *Controller) updateIstioPolicies(vzLocation *types.VerrazzanoLocation, pod *corev1.Pod, action string) {
 }
 
 // Create managed resources on clusters depending upon the binding
-func (c *Controller) createManagedClusterResourcesForBinding(mbPair *types.VerrazzanoLocation) {
-	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
+func (c *Controller) createManagedClusterResourcesForBinding(vzLocation *types.VerrazzanoLocation) {
+	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(vzLocation, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Create Namespaces
-	err = c.managed.CreateNamespaces(mbPair, filteredConnections)
+	err = c.managed.CreateNamespaces(vzLocation, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to create namespaces for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to create namespaces for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Create (copy) the Secrets needed from the management cluster to the managed clusters
-	err = c.managed.CreateSecrets(mbPair, c.managedClusterConnections, c.kubeClientSet, c.secrets)
+	err = c.managed.CreateSecrets(vzLocation, c.managedClusterConnections, c.kubeClientSet, c.secrets)
 	if err != nil {
-		zap.S().Errorf("Failed to create secrets for binding %s: %v", mbPair.Location.Namespace, err)
+		zap.S().Errorf("Failed to create secrets for binding %s: %v", vzLocation.Location.Namespace, err)
 	}
 
 	// Create ServiceAccounts
-	err = c.managed.CreateServiceAccounts(mbPair.Location.Name, mbPair.ImagePullSecrets, mbPair.ManagedClusters, filteredConnections)
+	err = c.managed.CreateServiceAccounts(vzLocation.Location.Name, vzLocation.ImagePullSecrets, vzLocation.ManagedClusters, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to create service accounts for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to create service accounts for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Create ConfigMaps
-	err = c.managed.CreateConfigMaps(mbPair, filteredConnections)
+	err = c.managed.CreateConfigMaps(vzLocation, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to create config maps for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to create config maps for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Create ClusterRoles
-	err = c.managed.CreateClusterRoles(mbPair, filteredConnections)
+	err = c.managed.CreateClusterRoles(vzLocation, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to create cluster roles for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to create cluster roles for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Create ClusterRoleBindings
-	err = c.managed.CreateClusterRoleBindings(mbPair, filteredConnections)
+	err = c.managed.CreateClusterRoleBindings(vzLocation, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to create cluster role bindings for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to create cluster role bindings for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Create Deployments
-	err = c.managed.CreateDeployments(mbPair, filteredConnections, c.verrazzanoURI, c.secrets)
+	err = c.managed.CreateDeployments(vzLocation, filteredConnections, c.verrazzanoURI, c.secrets)
 	if err != nil {
-		zap.S().Errorf("Failed to create deployments for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to create deployments for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Create Services
-	err = c.managed.CreateServices(mbPair, filteredConnections)
+	err = c.managed.CreateServices(vzLocation, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to create service for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to create service for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Create DaemonSets
-	err = c.managed.CreateDaemonSets(mbPair, filteredConnections, c.verrazzanoURI)
+	err = c.managed.CreateDaemonSets(vzLocation, filteredConnections, c.verrazzanoURI)
 
 	if err != nil {
-		zap.S().Errorf("Failed to create DaemonSets for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to create DaemonSets for binding %s: %v", vzLocation.Location.Name, err)
 	}
 }
 
@@ -504,11 +504,11 @@ func (c *Controller) processApplicationModelAdded(verrazzanoModel interface{}) {
 	// During restart of the operator a binding can be added before a model so make sure we create
 	// model/binding pair now.
 	for _, binding := range c.applicationBindings {
-		if _, ok := c.modelBindingPairs[binding.Name]; !ok {
+		if _, ok := c.VerrazzanoLocations[binding.Name]; !ok {
 			if model.Name == binding.Spec.ModelName {
 				zap.S().Infof("Adding model/binding pair during add model for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-				mbPair := CreateModelBindingPair(model, binding, c.verrazzanoURI, c.imagePullSecrets)
-				c.modelBindingPairs[binding.Name] = mbPair
+				vzLocation := CreateVerrazzanoLocation(model, binding, c.verrazzanoURI, c.imagePullSecrets)
+				c.VerrazzanoLocations[binding.Name] = vzLocation
 				break
 			}
 		}
@@ -525,9 +525,9 @@ func (c *Controller) processApplicationModelDeleted(verrazzanoModel interface{})
 	}
 }
 
-func getModelBindingPair(c *Controller, binding *types.ResourceLocation) (*types.VerrazzanoLocation, bool) {
-	mbPair, mbPairExists := c.modelBindingPairs[binding.Name]
-	return mbPair, mbPairExists
+func getVerrazzanoLocation(c *Controller, binding *types.ResourceLocation) (*types.VerrazzanoLocation, bool) {
+	vzLocation, vzLocationExists := c.VerrazzanoLocations[binding.Name]
+	return vzLocation, vzLocationExists
 }
 
 // Process a change to a VerrazzanoBinding/Sync existing VerrazzanoBinding with cluster state
@@ -541,13 +541,13 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 				zap.S().Infof("Adding the binding %s", binding.Name)
 				c.applicationBindings[binding.Name] = binding
 			}
-			_, mbPairExists := getModelBindingPair(c, binding)
-			if !mbPairExists {
+			_, vzLocationExists := getVerrazzanoLocation(c, binding)
+			if !vzLocationExists {
 				// During restart of the operator a delete can happen before a model/binding is created so create one now.
 				if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
 					zap.S().Infof("Adding model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-					mbPair := CreateModelBindingPair(model, binding, c.verrazzanoURI, c.imagePullSecrets)
-					c.modelBindingPairs[binding.Name] = mbPair
+					vzLocation := CreateVerrazzanoLocation(model, binding, c.verrazzanoURI, c.imagePullSecrets)
+					c.VerrazzanoLocations[binding.Name] = vzLocation
 				}
 			}
 		}
@@ -587,29 +587,29 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 	}
 
 	// Does a model/binding pair already exist?
-	mbPair, mbPairExists := getModelBindingPair(c, binding)
-	if !mbPairExists {
+	vzLocation, vzLocationExists := getVerrazzanoLocation(c, binding)
+	if !vzLocationExists {
 		// If a model exists for this binding, then create the model/binding pair
 		if model, ok := c.applicationModels[binding.Spec.ModelName]; ok {
 			zap.S().Infof("Adding new model/binding pair during add binding for model %s and binding %s", binding.Spec.ModelName, binding.Name)
-			mbPair = CreateModelBindingPair(model, binding, c.verrazzanoURI, c.imagePullSecrets)
-			c.modelBindingPairs[binding.Name] = mbPair
-			mbPairExists = true
+			vzLocation = CreateVerrazzanoLocation(model, binding, c.verrazzanoURI, c.imagePullSecrets)
+			c.VerrazzanoLocations[binding.Name] = vzLocation
+			vzLocationExists = true
 		}
 	} else {
 		// Rebuild the existing model/binding pair
 		if existingModel, ok := c.applicationModels[binding.Spec.ModelName]; ok {
-			UpdateModelBindingPair(mbPair, existingModel, binding, c.verrazzanoURI, c.imagePullSecrets)
+			UpdateVerrazzanoLocation(vzLocation, existingModel, binding, c.verrazzanoURI, c.imagePullSecrets)
 		}
 
 	}
 
 	// Nothing further to do if the model/binding pair does not exist yet
-	if !mbPairExists {
+	if !vzLocationExists {
 		return
 	}
 
-	err = c.waitForManagedClusters(mbPair, binding.Name)
+	err = c.waitForManagedClusters(vzLocation, binding.Name)
 	if err != nil {
 		zap.S().Errorf("Skipping processing of VerrazzanoBinding %s until all referenced Managed Clusters are available, error %s", binding.Name, err.Error())
 		return
@@ -645,10 +645,10 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 	/*********************
 	 * Create Artifacts in the Managed Cluster
 	 **********************/
-	c.createManagedClusterResourcesForBinding(mbPair)
+	c.createManagedClusterResourcesForBinding(vzLocation)
 
 	// Cleanup any resources no longer needed
-	c.cleanupOrphanedResources(mbPair)
+	c.cleanupOrphanedResources(vzLocation)
 }
 
 // Check for a duplicate namespaces being used across two differrent bindings
@@ -670,59 +670,59 @@ func checkForDuplicateNamespaces(placement *types.ClusterPlacement, binding *typ
 	return dupFound
 }
 
-func (c *Controller) cleanupOrphanedResources(mbPair *types.VerrazzanoLocation) {
+func (c *Controller) cleanupOrphanedResources(vzLocation *types.VerrazzanoLocation) {
 	// Cleanup Custom Resources
-	err := c.managed.CleanupOrphanedCustomResources(mbPair, c.managedClusterConnections, c.stopCh)
+	err := c.managed.CleanupOrphanedCustomResources(vzLocation, c.managedClusterConnections, c.stopCh)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup custom resources for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup custom resources for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Cleanup Services for generic components
-	err = c.managed.CleanupOrphanedServices(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedServices(vzLocation, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup services for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup services for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Cleanup Deployments for generic components
-	err = c.managed.CleanupOrphanedDeployments(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedDeployments(vzLocation, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup deployments for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup deployments for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Cleanup ServiceEntries
-	err = c.managed.CleanupOrphanedServiceEntries(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedServiceEntries(vzLocation, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup ServiceEntries for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup ServiceEntries for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Cleanup Ingresses
-	err = c.managed.CleanupOrphanedIngresses(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedIngresses(vzLocation, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup Ingresses for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup Ingresses for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Cleanup ClusterRoleBindings
-	err = c.managed.CleanupOrphanedClusterRoleBindings(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedClusterRoleBindings(vzLocation, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup ClusterRoleBindings for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup ClusterRoleBindings for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Cleanup ClusterRoles
-	err = c.managed.CleanupOrphanedClusterRoles(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedClusterRoles(vzLocation, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup ClusterRoles for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup ClusterRoles for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Cleanup ConfigMaps
-	err = c.managed.CleanupOrphanedConfigMaps(mbPair, c.managedClusterConnections)
+	err = c.managed.CleanupOrphanedConfigMaps(vzLocation, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup ConfigMaps for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup ConfigMaps for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Cleanup Namespaces - this will also cleanup any ServiceAccounts and Secrets within the namespace
-	err = c.managed.CleanupOrphanedNamespaces(mbPair, c.managedClusterConnections, c.modelBindingPairs)
+	err = c.managed.CleanupOrphanedNamespaces(vzLocation, c.managedClusterConnections, c.VerrazzanoLocations)
 	if err != nil {
-		zap.S().Errorf("Failed to cleanup Namespaces for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to cleanup Namespaces for binding %s: %v", vzLocation.Location.Name, err)
 	}
 }
 
@@ -747,8 +747,8 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 		return
 	}
 
-	mbPair, mbPairExists := getModelBindingPair(c, binding)
-	if !mbPairExists {
+	vzLocation, vzLocationExists := getVerrazzanoLocation(c, binding)
+	if !vzLocationExists {
 		return
 	}
 
@@ -781,54 +781,54 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 	 * Delete Artifacts in the Managed Cluster
 	 **********************/
 
-	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
+	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(vzLocation, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Delete Custom Resources
-	err = c.managed.DeleteCustomResources(mbPair, c.managedClusterConnections)
+	err = c.managed.DeleteCustomResources(vzLocation, c.managedClusterConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to delete custom resources for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to delete custom resources for binding %s: %v", vzLocation.Location.Name, err)
 		return
 	}
 
 	// Delete Services for generic components
-	err = c.managed.DeleteServices(mbPair, filteredConnections)
+	err = c.managed.DeleteServices(vzLocation, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to delete services for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to delete services for binding %s: %v", vzLocation.Location.Name, err)
 		return
 	}
 
 	// Delete Deployments for generic components
-	err = c.managed.DeleteDeployments(mbPair, filteredConnections)
+	err = c.managed.DeleteDeployments(vzLocation, filteredConnections)
 	if err != nil {
-		zap.S().Errorf("Failed to delete deployments for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to delete deployments for binding %s: %v", vzLocation.Location.Name, err)
 		return
 	}
 
 	// Delete ClusterRoleBindings
-	err = c.managed.DeleteClusterRoleBindings(mbPair, c.managedClusterConnections, true)
+	err = c.managed.DeleteClusterRoleBindings(vzLocation, c.managedClusterConnections, true)
 	if err != nil {
-		zap.S().Errorf("Failed to delete cluster role bindings for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to delete cluster role bindings for binding %s: %v", vzLocation.Location.Name, err)
 		return
 	}
 
 	// Delete ClusterRoles
-	err = c.managed.DeleteClusterRoles(mbPair, c.managedClusterConnections, true)
+	err = c.managed.DeleteClusterRoles(vzLocation, c.managedClusterConnections, true)
 	if err != nil {
-		zap.S().Errorf("Failed to delete cluster roles for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to delete cluster roles for binding %s: %v", vzLocation.Location.Name, err)
 		return
 	}
 
 	err = c.monitoring.DeletePomPusher(binding.Name, &kubeDeployment{kubeClientSet: c.kubeClientSet})
 	if err != nil {
-		zap.S().Errorf("Failed to delete prometheus-pusher for binding %s: %v", mbPair.Location.Name, err)
+		zap.S().Errorf("Failed to delete prometheus-pusher for binding %s: %v", vzLocation.Location.Name, err)
 	}
 
 	// Delete Namespaces - this will also cleanup any Ingresses,
 	// ServiceEntries, ServiceAccounts, ConfigMaps and Secrets within the namespace
-	err = c.managed.DeleteNamespaces(mbPair, c.managedClusterConnections, true)
+	err = c.managed.DeleteNamespaces(vzLocation, c.managedClusterConnections, true)
 	if err != nil {
 		zap.S().Errorf("Failed delete namespaces for binding %s: %v", binding.Name, err)
 		return
@@ -836,16 +836,16 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 
 	// If this is the last model binding to be deleted then we need to cleanup additional resources that are shared
 	// among model/binding pairs.
-	if len(c.modelBindingPairs) == 1 {
+	if len(c.VerrazzanoLocations) == 1 {
 		// Delete ClusterRoleBindings
-		err = c.managed.DeleteClusterRoleBindings(mbPair, c.managedClusterConnections, false)
+		err = c.managed.DeleteClusterRoleBindings(vzLocation, c.managedClusterConnections, false)
 		if err != nil {
 			zap.S().Errorf("Failed to delete cluster role bindings: %v", err)
 			return
 		}
 
 		// Delete ClusterRoles
-		err = c.managed.DeleteClusterRoles(mbPair, c.managedClusterConnections, false)
+		err = c.managed.DeleteClusterRoles(vzLocation, c.managedClusterConnections, false)
 		if err != nil {
 			zap.S().Errorf("Failed to delete cluster roles: %v", err)
 			return
@@ -853,7 +853,7 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 
 		// Delete Namespaces - this will also cleanup any deployments, Ingresses,
 		// ServiceEntries, ServiceAccounts, and Secrets within the namespace
-		err = c.managed.DeleteNamespaces(mbPair, c.managedClusterConnections, false)
+		err = c.managed.DeleteNamespaces(vzLocation, c.managedClusterConnections, false)
 		if err != nil {
 			zap.S().Errorf("Failed to delete a common namespace for all bindings: %v", err)
 			return
@@ -865,8 +865,8 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 		delete(c.applicationBindings, binding.Name)
 	}
 
-	if mbPairExists {
-		delete(c.modelBindingPairs, binding.Name)
+	if vzLocationExists {
+		delete(c.VerrazzanoLocations, binding.Name)
 	}
 
 	if _, ok := c.bindingSyncThreshold[binding.Name]; ok {
@@ -874,7 +874,7 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 	}
 }
 
-func (c *Controller) waitForManagedClusters(mbPair *types.VerrazzanoLocation, bindingName string) error {
+func (c *Controller) waitForManagedClusters(vzLocation *types.VerrazzanoLocation, bindingName string) error {
 	timeout := time.After(1 * time.Minute)
 	tick := time.Tick(5 * time.Second)
 	var err error
@@ -884,7 +884,7 @@ func (c *Controller) waitForManagedClusters(mbPair *types.VerrazzanoLocation, bi
 			return fmt.Errorf("timed out waiting for Managed clusters referenced in binding %s, error %s", bindingName, err.Error())
 		case <-tick:
 			zap.S().Debugf("Waiting for all Managed Clusters referenced in binding %s to be available..", bindingName)
-			_, err = c.util.GetManagedClustersForVerrazzanoBinding(mbPair, c.managedClusterConnections)
+			_, err = c.util.GetManagedClustersForVerrazzanoBinding(vzLocation, c.managedClusterConnections)
 			if err == nil {
 				zap.S().Debugf("All Managed Clusters referenced in binding %s are available..", bindingName)
 				return nil
@@ -920,36 +920,36 @@ func remove(list []string, s string) []string {
 type managedInterface interface {
 	BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*v8outil.ManagedClusterConnection, error)
 	CreateCrdDefinitions(managedClusterConnection *v8outil.ManagedClusterConnection, managedCluster *v1beta1v8o.VerrazzanoManagedCluster) error
-	CreateNamespaces(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateSecrets(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets) error
+	CreateNamespaces(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateSecrets(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets) error
 	CreateServiceAccounts(bindingName string, imagePullSecrets []corev1.LocalObjectReference, managedClusters map[string]*types.ManagedCluster, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateConfigMaps(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateClusterRoles(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateClusterRoleBindings(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateIngresses(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateServiceEntries(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateServices(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateDeployments(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, sec v8omonitoring.Secrets) error
-	CreateCustomResources(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error
-	UpdateIstioPrometheusConfigMaps(mbPair *types.VerrazzanoLocation, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateDaemonSets(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string) error
-	CreateDestinationRules(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateAuthorizationPolicies(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedCustomResources(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error
-	CleanupOrphanedServiceEntries(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedIngresses(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedClusterRoleBindings(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedClusterRoles(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedConfigMaps(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedNamespaces(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, allMbPairs map[string]*types.VerrazzanoLocation) error
-	CleanupOrphanedServices(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CleanupOrphanedDeployments(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	DeleteCustomResources(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	DeleteClusterRoleBindings(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error
-	DeleteClusterRoles(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error
-	DeleteNamespaces(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error
-	DeleteServices(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	DeleteDeployments(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateConfigMaps(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateClusterRoles(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateClusterRoleBindings(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateIngresses(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateServiceEntries(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateServices(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateDeployments(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, sec v8omonitoring.Secrets) error
+	CreateCustomResources(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error
+	UpdateIstioPrometheusConfigMaps(vzLocation *types.VerrazzanoLocation, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateDaemonSets(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string) error
+	CreateDestinationRules(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateAuthorizationPolicies(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedCustomResources(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error
+	CleanupOrphanedServiceEntries(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedIngresses(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedClusterRoleBindings(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedClusterRoles(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedConfigMaps(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedNamespaces(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, allvzLocations map[string]*types.VerrazzanoLocation) error
+	CleanupOrphanedServices(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	CleanupOrphanedDeployments(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	DeleteCustomResources(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
+	DeleteClusterRoleBindings(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error
+	DeleteClusterRoles(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error
+	DeleteNamespaces(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error
+	DeleteServices(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	DeleteDeployments(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 }
 
 // managedPackage is the managedInterface implementation through which all 'managed' package functions are invoked
@@ -963,83 +963,83 @@ func (*managedPackage) BuildManagedClusterConnection(kubeConfigContents []byte, 
 	return v8omanaged.BuildManagedClusterConnection(kubeConfigContents, stopCh)
 }
 
-func (*managedPackage) CreateNamespaces(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.CreateNamespaces(mbPair, filteredConnections)
+func (*managedPackage) CreateNamespaces(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateNamespaces(vzLocation, filteredConnections)
 }
 
-func (*managedPackage) CreateSecrets(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets) error {
-	return v8omanaged.CreateSecrets(mbPair, availableManagedClusterConnections, kubeClientSet, sec)
+func (*managedPackage) CreateSecrets(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets) error {
+	return v8omanaged.CreateSecrets(vzLocation, availableManagedClusterConnections, kubeClientSet, sec)
 }
 
 func (*managedPackage) CreateServiceAccounts(bindingName string, imagePullSecrets []corev1.LocalObjectReference, managedClusters map[string]*types.ManagedCluster, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
 	return v8omanaged.CreateServiceAccounts(bindingName, imagePullSecrets, managedClusters, filteredConnections)
 }
 
-func (*managedPackage) CreateConfigMaps(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.CreateConfigMaps(mbPair, filteredConnections)
+func (*managedPackage) CreateConfigMaps(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateConfigMaps(vzLocation, filteredConnections)
 }
 
-func (*managedPackage) CreateClusterRoles(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.CreateClusterRoles(mbPair, filteredConnections)
+func (*managedPackage) CreateClusterRoles(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateClusterRoles(vzLocation, filteredConnections)
 }
 
-func (*managedPackage) CreateClusterRoleBindings(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.CreateClusterRoleBindings(mbPair, filteredConnections)
+func (*managedPackage) CreateClusterRoleBindings(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateClusterRoleBindings(vzLocation, filteredConnections)
 }
 
-func (*managedPackage) CreateServices(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.CreateServices(mbPair, filteredConnections)
+func (*managedPackage) CreateServices(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CreateServices(vzLocation, filteredConnections)
 }
 
-func (*managedPackage) CreateDeployments(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, sec v8omonitoring.Secrets) error {
-	return v8omanaged.CreateDeployments(mbPair, availableManagedClusterConnections, verrazzanoURI, sec)
+func (*managedPackage) CreateDeployments(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, sec v8omonitoring.Secrets) error {
+	return v8omanaged.CreateDeployments(vzLocation, availableManagedClusterConnections, verrazzanoURI, sec)
 }
 
-func (*managedPackage) CreateDaemonSets(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string) error {
-	return v8omanaged.CreateDaemonSets(mbPair, availableManagedClusterConnections, verrazzanoURI)
+func (*managedPackage) CreateDaemonSets(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string) error {
+	return v8omanaged.CreateDaemonSets(vzLocation, availableManagedClusterConnections, verrazzanoURI)
 }
 
-func (*managedPackage) CleanupOrphanedClusterRoleBindings(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.CleanupOrphanedClusterRoleBindings(mbPair, availableManagedClusterConnections)
+func (*managedPackage) CleanupOrphanedClusterRoleBindings(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CleanupOrphanedClusterRoleBindings(vzLocation, availableManagedClusterConnections)
 }
 
-func (*managedPackage) CleanupOrphanedClusterRoles(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.CleanupOrphanedClusterRoles(mbPair, availableManagedClusterConnections)
+func (*managedPackage) CleanupOrphanedClusterRoles(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CleanupOrphanedClusterRoles(vzLocation, availableManagedClusterConnections)
 }
-func (*managedPackage) CleanupOrphanedConfigMaps(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.CleanupOrphanedConfigMaps(mbPair, availableManagedClusterConnections)
-}
-
-func (*managedPackage) CleanupOrphanedNamespaces(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, allMbPairs map[string]*types.VerrazzanoLocation) error {
-	return v8omanaged.CleanupOrphanedNamespaces(mbPair, availableManagedClusterConnections, allMbPairs)
+func (*managedPackage) CleanupOrphanedConfigMaps(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CleanupOrphanedConfigMaps(vzLocation, availableManagedClusterConnections)
 }
 
-func (*managedPackage) CleanupOrphanedServices(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.CleanupOrphanedServices(mbPair, availableManagedClusterConnections)
+func (*managedPackage) CleanupOrphanedNamespaces(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, allvzLocations map[string]*types.VerrazzanoLocation) error {
+	return v8omanaged.CleanupOrphanedNamespaces(vzLocation, availableManagedClusterConnections, allvzLocations)
 }
 
-func (*managedPackage) CleanupOrphanedDeployments(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.CleanupOrphanedDeployments(mbPair, availableManagedClusterConnections)
+func (*managedPackage) CleanupOrphanedServices(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CleanupOrphanedServices(vzLocation, availableManagedClusterConnections)
 }
 
-func (*managedPackage) DeleteClusterRoleBindings(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error {
-	return v8omanaged.DeleteClusterRoleBindings(mbPair, availableManagedClusterConnections, bindingLabel)
+func (*managedPackage) CleanupOrphanedDeployments(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.CleanupOrphanedDeployments(vzLocation, availableManagedClusterConnections)
 }
 
-func (*managedPackage) DeleteClusterRoles(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error {
-	return v8omanaged.DeleteClusterRoles(mbPair, availableManagedClusterConnections, bindingLabel)
+func (*managedPackage) DeleteClusterRoleBindings(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error {
+	return v8omanaged.DeleteClusterRoleBindings(vzLocation, availableManagedClusterConnections, bindingLabel)
 }
 
-func (*managedPackage) DeleteNamespaces(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error {
-	return v8omanaged.DeleteNamespaces(mbPair, availableManagedClusterConnections, bindingLabel)
+func (*managedPackage) DeleteClusterRoles(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error {
+	return v8omanaged.DeleteClusterRoles(vzLocation, availableManagedClusterConnections, bindingLabel)
 }
 
-func (*managedPackage) DeleteServices(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.DeleteServices(mbPair, filteredConnections)
+func (*managedPackage) DeleteNamespaces(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, bindingLabel bool) error {
+	return v8omanaged.DeleteNamespaces(vzLocation, availableManagedClusterConnections, bindingLabel)
 }
 
-func (*managedPackage) DeleteDeployments(mbPair *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.DeleteDeployments(mbPair, filteredConnections)
+func (*managedPackage) DeleteServices(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.DeleteServices(vzLocation, filteredConnections)
+}
+
+func (*managedPackage) DeleteDeployments(vzLocation *types.VerrazzanoLocation, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
+	return v8omanaged.DeleteDeployments(vzLocation, filteredConnections)
 }
 
 // cacheInterface defines the functions in the 'cache' package that are used  by the Controller
@@ -1060,7 +1060,7 @@ func (c *cachePackage) WaitForCacheSync(stopCh <-chan struct{}, cacheSyncs ...k8
 
 // utilInterface defines the functions in the 'util' package that are used  by the Controller
 type utilInterface interface {
-	GetManagedClustersForVerrazzanoBinding(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) (map[string]*v8outil.ManagedClusterConnection, error)
+	GetManagedClustersForVerrazzanoBinding(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) (map[string]*v8outil.ManagedClusterConnection, error)
 }
 
 // utilPackage is the utilInterface implementation through which all 'util' package functions are invoked
@@ -1070,8 +1070,8 @@ type utilPackage struct {
 
 // All utilPackage methods simply delegate to the corresponding function in the 'util' package
 
-func (u *utilPackage) GetManagedClustersForVerrazzanoBinding(mbPair *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) (map[string]*v8outil.ManagedClusterConnection, error) {
-	return v8outil.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+func (u *utilPackage) GetManagedClustersForVerrazzanoBinding(vzLocation *types.VerrazzanoLocation, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) (map[string]*v8outil.ManagedClusterConnection, error) {
+	return v8outil.GetManagedClustersForVerrazzanoBinding(vzLocation, availableManagedClusterConnections)
 }
 
 // localInterface defines the functions in the 'local' package that are used  by the Controller

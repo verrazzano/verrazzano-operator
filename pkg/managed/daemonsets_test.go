@@ -26,7 +26,7 @@ const clusterName1 = "cluster1"
 func TestCreateDaemonSetsVmiSystem(t *testing.T) {
 	assert := assert.New(t)
 
-	VzSystemInfo := testutil.GetModelBindingPair()
+	VzSystemInfo := testutil.GetVerrazzanoLocation()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections[clusterName1]
 
@@ -47,7 +47,7 @@ func TestCreateDaemonSetsVmiSystem(t *testing.T) {
 func TestCreateDaemonSetsUpdateExistingSet(t *testing.T) {
 	assert := assert.New(t)
 
-	VzSystemInfo := testutil.GetModelBindingPair()
+	VzSystemInfo := testutil.GetVerrazzanoLocation()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections[clusterName1]
 
