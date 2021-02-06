@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def skipBuild = false 
+def skipBuild = false
 
 pipeline {
     options {
@@ -81,7 +81,7 @@ pipeline {
                     mkdir -p ${GO_REPO_PATH}/verrazzano-operator
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano-operator/ ; tar xf -)
                 """
-                
+
                 script {
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
@@ -193,15 +193,15 @@ pipeline {
                     archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
                     cobertura(coberturaReportFile: 'coverage.xml',
                       enableNewApi: true,
-                      autoUpdateHealth: true,
-                      autoUpdateStability: true,
+                      autoUpdateHealth: false,
+                      autoUpdateStability: false,
                       failUnstable: true,
                       failUnhealthy: true,
                       failNoReports: true,
                       onlyStable: false,
-                      conditionalCoverageTargets: '80, 0, 0',
-                      fileCoverageTargets: '80, 0, 0',
-                      lineCoverageTargets: '80, 0, 0',
+                      conditionalCoverageTargets: '50, 0, 0',
+                      fileCoverageTargets: '50, 0, 0',
+                      lineCoverageTargets: '50, 0, 0',
                       packageCoverageTargets: '80, 0, 0',
                     )
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
