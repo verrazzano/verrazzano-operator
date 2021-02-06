@@ -1,4 +1,4 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package local
@@ -8,10 +8,11 @@ import (
 	"reflect"
 	"strings"
 
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/assets"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
+
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,8 +22,8 @@ import (
 )
 
 // UpdateConfigMaps updates config maps for a given binding in the management cluster.
-func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
-	zap.S().Infof("Updating Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
+func UpdateConfigMaps(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+	zap.S().Infof("Updating Local (Management SynModel) configMaps for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the set of expected configMap - this currently consists of the ConfigMap that contains the default Grafana dashboard definitions
 	newConfigMap, err := newConfigMap(binding)
@@ -64,8 +65,8 @@ func UpdateConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 }
 
 // DeleteConfigMaps deletes config maps for a given binding in the management cluster.
-func DeleteConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
-	zap.S().Debugf("Deleting Local (Management Cluster) configMaps for VerrazzanoBinding %s", binding.Name)
+func DeleteConfigMaps(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+	zap.S().Debugf("Deleting Local (Management SynModel) configMaps for VerrazzanoBinding %s", binding.Name)
 
 	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
 	existingConfigMapsList, err := configMapLister.ConfigMaps("").List(selector)
@@ -83,7 +84,7 @@ func DeleteConfigMaps(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kuber
 }
 
 // Constructs the necessary ConfigMaps for the given VerrazzanoBinding
-func newConfigMap(binding *v1beta1v8o.VerrazzanoBinding) (*corev1.ConfigMap, error) {
+func newConfigMap(binding *types.SyntheticBinding) (*corev1.ConfigMap, error) {
 	bindingLabels := util.GetLocalBindingLabels(binding)
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

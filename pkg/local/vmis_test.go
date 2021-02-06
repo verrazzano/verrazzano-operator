@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package local
@@ -11,11 +11,11 @@ import (
 	"reflect"
 	"testing"
 
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	verrazzanov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned/typed/vmcontroller/v1"
 	vmolisters "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/listers/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	vztypes "github.com/verrazzano/verrazzano-operator/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -199,7 +199,7 @@ func TestCreateInstanceError(t *testing.T) {
 
 			originalCreateInstance := createInstanceFunc
 			defer func() { createInstanceFunc = originalCreateInstance }()
-			createInstanceFunc = func(binding *v1beta1v8o.VerrazzanoBinding, verrazzanoURI string, enableMonitoringStorage string) (*vmov1.VerrazzanoMonitoringInstance, error) {
+			createInstanceFunc = func(binding *vztypes.SyntheticBinding, verrazzanoURI string, enableMonitoringStorage string) (*vmov1.VerrazzanoMonitoringInstance, error) {
 				return nil, errors.New("Test Error")
 			}
 			defer func() { createInstanceFunc = originalCreateInstance }()
@@ -209,8 +209,8 @@ func TestCreateInstanceError(t *testing.T) {
 	}
 }
 
-func createTestBinding(bindingName string) *v1beta1v8o.VerrazzanoBinding {
-	binding := v1beta1v8o.VerrazzanoBinding{}
+func createTestBinding(bindingName string) *vztypes.SyntheticBinding {
+	binding := vztypes.SyntheticBinding{}
 	binding.Name = bindingName
 	return &binding
 }

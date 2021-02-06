@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package managed
@@ -17,17 +17,17 @@ import (
 )
 
 // CreateDaemonSets creates/updates daemon sets needed for each managed cluster.
-func CreateDaemonSets(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string) error {
-	zap.S().Debugf("Creating/updating daemonset for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string) error {
+	zap.S().Debugf("Creating/updating daemonset for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// If binding is not System binding, skip creating Daemon sets
-	if mbPair.Binding.Name != constants.VmiSystemBindingName {
-		zap.S().Debugf("Skip creating Daemon sets for VerrazzanoApplicationBinding %s", mbPair.Binding.Name)
+	if vzSynMB.SynBinding.Name != constants.VmiSystemBindingName {
+		zap.S().Debugf("Skip creating Daemon sets for VerrazzanoApplicationBinding %s", vzSynMB.SynBinding.Name)
 		return nil
 	}
 
 	// Construct deployments for each ManagedCluster
-	for clusterName := range mbPair.ManagedClusters {
+	for clusterName := range vzSynMB.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()

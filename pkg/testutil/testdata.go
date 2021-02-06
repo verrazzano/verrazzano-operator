@@ -1,4 +1,4 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Utilities
@@ -10,13 +10,9 @@ import (
 
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
-	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned/fake"
-	domclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned/fake"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	testutil "github.com/verrazzano/verrazzano-operator/test/integ/util"
-	istioAuthClientset "istio.io/client-go/pkg/clientset/versioned/fake"
-	istioClientsetFake "istio.io/client-go/pkg/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,13 +38,6 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		KubeClient:                  fake.NewSimpleClientset(),
 		KubeExtClientSet:            apiextensionsclient.NewSimpleClientset(),
 		VerrazzanoOperatorClientSet: clientset.NewSimpleClientset(),
-		WlsOprClientSet:             NewWlsOprClientset(),
-		DomainClientSet:             domclientset.NewSimpleClientset(),
-		HelidonClientSet:            NewHelidionClientset(),
-		CohOprClientSet:             NewCohOprClientset(),
-		CohClusterClientSet:         cohcluclientset.NewSimpleClientset(),
-		IstioClientSet:              istioClientsetFake.NewSimpleClientset(),
-		IstioAuthClientSet:          istioAuthClientset.NewSimpleClientset(),
 	}
 	// set a fake pod lister on the cluster connection
 	clusterConnection.PodLister = &simplePodLister{
@@ -81,46 +70,6 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 
 	clusterConnection.NamespaceLister = &simpleNamespaceLister{
 		kubeClient: clusterConnection.KubeClient,
-	}
-
-	clusterConnection.IstioGatewayLister = &simpleGatewayLister{
-		kubeClient:     clusterConnection.KubeClient,
-		istioClientSet: clusterConnection.IstioClientSet,
-	}
-
-	clusterConnection.IstioVirtualServiceLister = &simpleVirtualServiceLister{
-		kubeClient:     clusterConnection.KubeClient,
-		istioClientSet: clusterConnection.IstioClientSet,
-	}
-
-	clusterConnection.IstioServiceEntryLister = &simpleServiceEntryLister{
-		kubeClient:     clusterConnection.KubeClient,
-		istioClientSet: clusterConnection.IstioClientSet,
-	}
-
-	clusterConnection.CohOperatorLister = &simpleCohClusterLister{
-		kubeClient:      clusterConnection.KubeClient,
-		cohOprClientSet: clusterConnection.CohOprClientSet,
-	}
-
-	clusterConnection.CohClusterLister = &simpleCoherenceClusterLister{
-		kubeClient:          clusterConnection.KubeClient,
-		cohClusterClientSet: clusterConnection.CohClusterClientSet,
-	}
-
-	clusterConnection.HelidonLister = &simpleHelidonAppLister{
-		kubeClient:       clusterConnection.KubeClient,
-		helidonClientSet: clusterConnection.HelidonClientSet,
-	}
-
-	clusterConnection.WlsOperatorLister = &simpleWlsOperatorLister{
-		kubeClient:      clusterConnection.KubeClient,
-		wlsOprClientSet: clusterConnection.WlsOprClientSet,
-	}
-
-	clusterConnection.DomainLister = &simpleDomainLister{
-		kubeClient:      clusterConnection.KubeClient,
-		domainClientSet: clusterConnection.DomainClientSet,
 	}
 
 	for _, pod := range getPods() {
@@ -251,27 +200,23 @@ func getPods() []*corev1.Pod {
 	}
 }
 
-// GetModelBindingPair returns a test model binding pair.
-func GetModelBindingPair() *types.ModelBindingPair {
-	return ReadModelBindingPair(
-		"../testutil/testdata/test_model.yaml",
-		"../testutil/testdata/test_binding.yaml",
+// GetSyntheticModelBinding returns a test model binding pair.
+func GetSyntheticModelBinding() *types.SyntheticModelBinding {
+	return ReadSyntheticModelBinding(
 		"../testutil/testdata/test_managed_cluster_1.yaml", "../testutil/testdata/test_managed_cluster_2.yaml")
 }
 
-// ReadModelBindingPair returns a test model binding pair for the given model/binding/cluster descriptors.
-func ReadModelBindingPair(modelPath string, bindingPath string, managedClusterPaths ...string) *types.ModelBindingPair {
-	model, _ := testutil.ReadModel(modelPath)
-	binding, _ := testutil.ReadBinding(bindingPath)
+// ReadSyntheticModelBinding returns a test model binding pair for the given model/binding/cluster descriptors.
+func ReadSyntheticModelBinding(managedClusterPaths ...string) *types.SyntheticModelBinding {
 	managedClusters := map[string]*types.ManagedCluster{}
 
 	for _, managedClusterPath := range managedClusterPaths {
 		managedCluster, _ := testutil.ReadManagedCluster(managedClusterPath)
 		managedClusters[managedCluster.Name] = managedCluster
 	}
-	var pair = &types.ModelBindingPair{
-		Model:           model,
-		Binding:         binding,
+	var pair = &types.SyntheticModelBinding{
+		SynModel:        &types.SyntheticModel{},
+		SynBinding:      &types.SyntheticBinding{},
 		ManagedClusters: managedClusters,
 		ImagePullSecrets: []corev1.LocalObjectReference{
 			{
@@ -282,24 +227,12 @@ func ReadModelBindingPair(modelPath string, bindingPath string, managedClusterPa
 	return pair
 }
 
-// GetTestClusters returns a list of Verrazzano Managed Cluster resources.
+// GetTestClusters returns a list of Verrazzano Managed SynModel resources.
 func GetTestClusters() []v1beta1.VerrazzanoManagedCluster {
 	return []v1beta1.VerrazzanoManagedCluster{
 		{
 			ObjectMeta: metav1.ObjectMeta{UID: "123-456-789", Name: "cluster1", Namespace: "default"},
-			Spec:       v1beta1.VerrazzanoManagedClusterSpec{Type: "testCluster", ServerAddress: "test.com", Description: "Test Cluster"},
+			Spec:       v1beta1.VerrazzanoManagedClusterSpec{Type: "testCluster", ServerAddress: "test.com", Description: "Test SynModel"},
 		},
-	}
-}
-
-// GetManifest gets a test Manifest.
-func GetManifest() util.Manifest {
-	return util.Manifest{
-		WlsMicroOperatorImage:   "WlsOperator1:latest",
-		WlsMicroOperatorCrd:     "../testutil/testdata/test_wls_crd.yaml",
-		HelidonAppOperatorImage: "HelidonApp1:latest",
-		HelidonAppOperatorCrd:   "../testutil/testdata/test_helidon_crd.yaml",
-		CohClusterOperatorImage: "CohCluster1:latest",
-		CohClusterOperatorCrd:   "../testutil/testdata/test_coh_crd.yaml",
 	}
 }

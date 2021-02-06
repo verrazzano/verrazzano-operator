@@ -1,7 +1,5 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
-// Handles creation/deletion of WeblogicApplication CRs, based on a VerrazzanoBinding
 
 package local
 
@@ -10,8 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -30,8 +28,8 @@ type acmeDNS struct {
 }
 
 // DeleteSecrets deletes secrets for a given binding in the management cluster.
-func DeleteSecrets(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
-	zap.S().Debugf("Deleting Management Cluster secrets for VerrazzanoBinding %s", binding.Name)
+func DeleteSecrets(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
+	zap.S().Debugf("Deleting Management SynModel secrets for VerrazzanoBinding %s", binding.Name)
 
 	selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: binding.Name})
 	existingSecretsList, err := secretLister.Secrets("").List(selector)
@@ -97,8 +95,8 @@ func GetSecretByUID(kubeClientSet kubernetes.Interface, ns string, uid string) (
 
 // UpdateAcmeDNSSecret updates the AcmeDnsSecret, which is used for "bring your own dns" installs, to contain the DNS
 // entries for the model/binding.  This is one of the required steps for the monitoring endpoints to work.
-func UpdateAcmeDNSSecret(binding *v1beta1v8o.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
-	zap.S().Debugf("Updating Management Cluster secret %s for VerrazzanoBinding %s", name, binding.Name)
+func UpdateAcmeDNSSecret(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
+	zap.S().Debugf("Updating Management SynModel secret %s for VerrazzanoBinding %s", name, binding.Name)
 	namespace := constants.VerrazzanoNamespace
 	acmeDNSKey := constants.AcmeDNSSecretKey
 

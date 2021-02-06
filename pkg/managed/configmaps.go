@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package managed
@@ -18,16 +18,16 @@ import (
 )
 
 // CreateConfigMaps creates/updates config maps needed for each managed cluster.
-func CreateConfigMaps(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Debugf("Creating/updating ConfigMap for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Debugf("Creating/updating ConfigMap for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
-	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
+	for clusterName, managedClusterObj := range vzSynMB.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		if mbPair.Binding.Name == constants.VmiSystemBindingName {
-			newConfigMaps, err := newConfigMaps(mbPair.Binding.Name, clusterName)
+		if vzSynMB.SynBinding.Name == constants.VmiSystemBindingName {
+			newConfigMaps, err := newConfigMaps(vzSynMB.SynBinding.Name, clusterName)
 			if err != nil {
 				return err
 			}
@@ -70,18 +70,18 @@ func createUpdateConfigMaps(managedClusterConnection *util.ManagedClusterConnect
 }
 
 // CleanupOrphanedConfigMaps deletes config maps that have been orphaned.
-func CleanupOrphanedConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Debugf("Cleaning up orphaned ConfigMaps for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CleanupOrphanedConfigMaps(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Debugf("Cleaning up orphaned ConfigMaps for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// Get the managed clusters that this binding does NOT apply to
-	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(vzSynMB, availableManagedClusterConnections)
 
 	for clusterName, managedClusterConnection := range unmatchedClusters {
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
 		// First, get rid of any ConfigMaps with the specified binding
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.SynBinding.Name, constants.VerrazzanoCluster: clusterName})
 
 		// Get list of ConfigMaps for this cluster and given binding
 		existingConfigMapsList, err := managedClusterConnection.ConfigMapLister.List(selector)

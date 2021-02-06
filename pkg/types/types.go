@@ -1,17 +1,12 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package types
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sync"
 
-	v1cohoperator "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/apis/verrazzano/v1beta1"
-	v1cohcluster "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/coherence/v1"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	v8weblogic "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
-	v1helidonapp "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/apis/verrazzano/v1beta1"
-	v1wlsopr "github.com/verrazzano/verrazzano-wko-operator/pkg/apis/verrazzano/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -20,14 +15,6 @@ import (
 type ComponentType int
 
 const (
-	// WLS component type
-	WLS ComponentType = 0
-	// Helidon component type
-	Helidon ComponentType = 1
-	// Coherence component type
-	Coherence ComponentType = 2
-	// Generic component type
-	Generic ComponentType = 3
 	// Unknown component type
 	Unknown ComponentType = 4
 )
@@ -66,7 +53,7 @@ type RemoteRestConnection struct {
 	// Namespace for remote service
 	RemoteNamespace string
 
-	// Cluster name for remote service
+	// SynModel name for remote service
 	RemoteClusterName string
 
 	// Namespace for local service
@@ -102,32 +89,12 @@ type ManagedCluster struct {
 
 	// Remote rest connections (istio ServicEntries) to generate within each namespace for this cluster
 	RemoteRests map[string][]*RemoteRestConnection
-
-	// wls-operator deployment for this cluster
-	WlsOperator *v1wlsopr.WlsOperator
-
-	// WebLogic domain CRs for this cluster
-	WlsDomainCRs []*v8weblogic.Domain
-
-	// Helidon applications for this cluster
-	HelidonApps []*v1helidonapp.HelidonApp
-
-	// Coherence operator for this cluster
-	CohOperatorCRs []*v1cohoperator.CohCluster
-
-	// Coherence cluster CRs for this cluster
-	CohClusterCRs []*v1cohcluster.CoherenceCluster
-
-	// Generic components for this cluster
-	GenericComponents []*v1beta1v8o.VerrazzanoGenericComponent
 }
 
-// ModelBindingPair represents an instance of a model/binding pair and
-// the objects for creating the model.
-type ModelBindingPair struct {
-	// A binding and the model it is associated with
-	Model   *v1beta1v8o.VerrazzanoModel
-	Binding *v1beta1v8o.VerrazzanoBinding
+// SyntheticModelBinding represents the verrazzano location for resources
+type SyntheticModelBinding struct {
+	SynBinding *SyntheticBinding
+	SynModel   *SyntheticModel
 
 	// The set of managed clusters
 	ManagedClusters map[string]*ManagedCluster
@@ -139,4 +106,44 @@ type ModelBindingPair struct {
 
 	// Optional list of image pull secrets to add to service accounts created by the operator
 	ImagePullSecrets []corev1.LocalObjectReference
+}
+
+// SyntheticBinding describes the Verrazzano resources location
+type SyntheticBinding struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+
+	Spec ResourceLocationSpec
+}
+
+// ResourceLocationSpec describes Verrazzano resources location
+type ResourceLocationSpec struct {
+	// Description of the location
+	Description string
+
+	// The model name to associate the bindings
+	ModelName string
+
+	// The set of Placement definitions
+	Placement []ClusterPlacement
+}
+
+// ClusterPlacement describe the cluster containing Verrazzano resources
+type ClusterPlacement struct {
+	// The name of the placement
+	Name string
+
+	// Namespaces for this placement
+	Namespaces []KubernetesNamespace
+}
+
+// KubernetesNamespace has the namespace
+type KubernetesNamespace struct {
+	// Name of the namespace
+	Name string `json:"name" yaml:"name"`
+}
+
+// SyntheticModel has the info about the cluster
+type SyntheticModel struct {
+	metav1.ObjectMeta
 }

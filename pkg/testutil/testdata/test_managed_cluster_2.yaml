@@ -1,20 +1,8 @@
-# Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 Name: cluster2
 Namespaces:
   - default
   - test2
-HelidonApps:
-  - metadata:
-      creationTimestamp: null
-    spec:
-      description: HelidonApp Deployed to ManagedCluster2
-      image: HelidonApp2:latest
-      imagePullPolicy: IfNotPresent
-      name: HelidonApp2
-      namespace: defaultOnMC2
-      port: 9011
-      serviceAccountName: henry
-      targetPort: 9001
-    status: {}
+

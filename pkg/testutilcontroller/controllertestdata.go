@@ -1,4 +1,4 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package testutilcontroller
@@ -6,8 +6,6 @@ package testutilcontroller
 import (
 	"errors"
 	"fmt"
-	"reflect"
-
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
@@ -15,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+	"reflect"
 )
 
 func testIndexFunc(obj interface{}) ([]string, error) {
@@ -26,10 +25,6 @@ func testIndexFunc(obj interface{}) ([]string, error) {
 		return []string{obj.(*metav1.ObjectMeta).Namespace}, nil
 	case *v1beta1.VerrazzanoManagedCluster:
 		return []string{obj.(*v1beta1.VerrazzanoManagedCluster).Namespace}, nil
-	case *v1beta1.VerrazzanoModel:
-		return []string{obj.(*v1beta1.VerrazzanoModel).Namespace}, nil
-	case *v1beta1.VerrazzanoBinding:
-		return []string{obj.(*v1beta1.VerrazzanoBinding).Namespace}, nil
 	default:
 		msg := fmt.Sprintf("Unknown Type %T", t)
 		fmt.Printf(msg)
@@ -44,10 +39,8 @@ func testKeyFunc(obj interface{}) (string, error) {
 	switch t := obj.(type) {
 	case *v1beta1.VerrazzanoManagedCluster:
 		return string(obj.(*v1beta1.VerrazzanoManagedCluster).UID), nil
-	case *v1beta1.VerrazzanoModel:
-		return string(obj.(*v1beta1.VerrazzanoModel).UID), nil
-	case *v1beta1.VerrazzanoBinding:
-		return string(obj.(*v1beta1.VerrazzanoBinding).UID), nil
+	case *types.SyntheticBinding:
+		return string(obj.(*types.SyntheticBinding).UID), nil
 	default:
 		msg := fmt.Sprintf("Unknown Type %T", t)
 		fmt.Printf(msg)
@@ -56,7 +49,7 @@ func testKeyFunc(obj interface{}) (string, error) {
 }
 
 // NewControllerListers creates a fake set of listers to be used for unit tests
-func NewControllerListers(clients *kubernetes.Interface, clusters []v1beta1.VerrazzanoManagedCluster, modelBindingPairs *map[string]*types.ModelBindingPair) controller.Listers {
+func NewControllerListers(clients *kubernetes.Interface, clusters []v1beta1.VerrazzanoManagedCluster, SyntheticModelBindings *map[string]*types.SyntheticModelBinding) controller.Listers {
 	testIndexers := map[string]cache.IndexFunc{
 		"namespace": testIndexFunc,
 	}
@@ -65,24 +58,9 @@ func NewControllerListers(clients *kubernetes.Interface, clusters []v1beta1.Verr
 		clusterIndexer.Add(&clusters[i])
 	}
 
-	modelIndexer := cache.NewIndexer(testKeyFunc, testIndexers)
-	for _, mb := range *modelBindingPairs {
-		modelIndexer.Add(mb.Model)
-	}
-
-	bindingIndexer := cache.NewIndexer(testKeyFunc, testIndexers)
-	for _, mb := range *modelBindingPairs {
-		bindingIndexer.Add(mb.Binding)
-	}
-
 	clusterLister := listers.NewVerrazzanoManagedClusterLister(clusterIndexer)
-	modelLister := listers.NewVerrazzanoModelLister(modelIndexer)
-	bindingLister := listers.NewVerrazzanoBindingLister(bindingIndexer)
 	return controller.Listers{
 		ManagedClusterLister: &clusterLister,
-		ModelLister:          &modelLister,
-		BindingLister:        &bindingLister,
-		ModelBindingPairs:    modelBindingPairs,
 		KubeClientSet:        clients,
 	}
 }

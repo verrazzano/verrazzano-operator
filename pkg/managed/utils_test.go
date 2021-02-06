@@ -1,4 +1,4 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package managed
 
@@ -7,18 +7,8 @@ import (
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
-	cohoprclientset "github.com/verrazzano/verrazzano-coh-cluster-operator/pkg/client/clientset/versioned"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
 	clientsetfake "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
-	cohcluclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned"
-	cohcluclientsetfake "github.com/verrazzano/verrazzano-crd-generator/pkg/clientcoherence/clientset/versioned/fake"
-	domclientset "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned"
-	domclientsetfake "github.com/verrazzano/verrazzano-crd-generator/pkg/clientwks/clientset/versioned/fake"
-	helidionclientset "github.com/verrazzano/verrazzano-helidon-app-operator/pkg/client/clientset/versioned"
-	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
-	wlsoprclientset "github.com/verrazzano/verrazzano-wko-operator/pkg/client/clientset/versioned"
-	istioauthclientset "istio.io/client-go/pkg/clientset/versioned"
-	istioauthclientsetfake "istio.io/client-go/pkg/clientset/versioned/fake"
 	extclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	extclientsetfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	"k8s.io/client-go/kubernetes"
@@ -57,62 +47,6 @@ func TestBuildManagedClusterConnection(t *testing.T) {
 		return clientsetfake.NewSimpleClientset(), nil
 	}
 	defer func() { newVerrazzanoOperatorClientSet = origNewVerrazzanoOperatorClientSet }()
-
-	// mock wls operator client set creation to return fake
-	origNewWLSOperatorClientSet := newWLSOperatorClientSet
-	newWLSOperatorClientSet = func(c *rest.Config) (wlsoprclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return testutil.NewWlsOprClientset(), nil
-	}
-	defer func() { newWLSOperatorClientSet = origNewWLSOperatorClientSet }()
-
-	// mock domain client set creation to return fake
-	origNewDomainClientSet := newDomainClientSet
-	newDomainClientSet = func(c *rest.Config) (domclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return domclientsetfake.NewSimpleClientset(), nil
-	}
-	defer func() { newDomainClientSet = origNewDomainClientSet }()
-
-	// mock helidon client set creation to return fake
-	origNewHelidonClientSet := newHelidonClientSet
-	newHelidonClientSet = func(c *rest.Config) (helidionclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return testutil.NewHelidionClientset(), nil
-	}
-	defer func() { newHelidonClientSet = origNewHelidonClientSet }()
-
-	// mock Coherence operator client set creation to return fake
-	origNewCOHOperatorClientSet := newCOHOperatorClientSet
-	newCOHOperatorClientSet = func(c *rest.Config) (cohoprclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return testutil.NewCohOprClientset(), nil
-	}
-	defer func() { newCOHOperatorClientSet = origNewCOHOperatorClientSet }()
-
-	// mock Coherence cluster client set creation to return fake
-	origNewCOHClusterClientSet := newCOHClusterClientSet
-	newCOHClusterClientSet = func(c *rest.Config) (cohcluclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return cohcluclientsetfake.NewSimpleClientset(), nil
-	}
-	defer func() { newCOHClusterClientSet = origNewCOHClusterClientSet }()
-
-	// mock Istio client set creation to return fake
-	origNewIstioClientSet := newIstioClientSet
-	newIstioClientSet = func(c *rest.Config) (istioauthclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return istioauthclientsetfake.NewSimpleClientset(), nil
-	}
-	defer func() { newIstioClientSet = origNewIstioClientSet }()
-
-	// mock Istio auth client set creation to return fake
-	origNewIstioAuthClientSet := newIstioAuthClientSet
-	newIstioAuthClientSet = func(c *rest.Config) (istioauthclientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return istioauthclientsetfake.NewSimpleClientset(), nil
-	}
-	defer func() { newIstioAuthClientSet = origNewIstioAuthClientSet }()
 
 	// mock kubernetes ext client set creation to return fake
 	origNewExtClientSet := newExtClientSet
@@ -156,13 +90,6 @@ func TestBuildManagedClusterConnection(t *testing.T) {
 	assert.NotNil(clusterConnection.KubeClient, "expected client set to be initialized")
 	assert.NotNil(clusterConnection.KubeExtClientSet, "expected client set to be initialized")
 	assert.NotNil(clusterConnection.VerrazzanoOperatorClientSet, "expected client set to be initialized")
-	assert.NotNil(clusterConnection.WlsOprClientSet, "expected client set to be initialized")
-	assert.NotNil(clusterConnection.DomainClientSet, "expected client set to be initialized")
-	assert.NotNil(clusterConnection.HelidonClientSet, "expected client set to be initialized")
-	assert.NotNil(clusterConnection.CohOprClientSet, "expected client set to be initialized")
-	assert.NotNil(clusterConnection.CohClusterClientSet, "expected client set to be initialized")
-	assert.NotNil(clusterConnection.IstioClientSet, "expected client set to be initialized")
-	assert.NotNil(clusterConnection.IstioAuthClientSet, "expected client set to be initialized")
 
 	// assert that all listers and informers have been initialized
 	assert.NotNil(clusterConnection.DeploymentLister, "expected lister to be initialized")
@@ -179,43 +106,12 @@ func TestBuildManagedClusterConnection(t *testing.T) {
 	assert.NotNil(clusterConnection.ClusterRoleInformer, "expected informer to be initialized")
 	assert.NotNil(clusterConnection.ClusterRoleBindingLister, "expected lister to be initialized")
 	assert.NotNil(clusterConnection.ClusterRoleBindingInformer, "expected informer to be initialized")
-	assert.NotNil(clusterConnection.WlsOperatorLister, "expected lister to be initialized")
-	assert.NotNil(clusterConnection.WlsOperatorInformer, "expected informer to be initialized")
-	assert.NotNil(clusterConnection.HelidonLister, "expected lister to be initialized")
-	assert.NotNil(clusterConnection.HelidonInformer, "expected informer to be initialized")
-	assert.NotNil(clusterConnection.CohOperatorLister, "expected lister to be initialized")
-	assert.NotNil(clusterConnection.CohOperatorInformer, "expected informer to be initialized")
-	assert.NotNil(clusterConnection.IstioGatewayLister, "expected lister to be initialized")
-	assert.NotNil(clusterConnection.IstioGatewayInformer, "expected informer to be initialized")
-	assert.NotNil(clusterConnection.IstioVirtualServiceLister, "expected lister to be initialized")
-	assert.NotNil(clusterConnection.IstioVirtualServiceInformer, "expected informer to be initialized")
-	assert.NotNil(clusterConnection.IstioServiceEntryLister, "expected lister to be initialized")
-	assert.NotNil(clusterConnection.IstioServiceEntryInformer, "expected informer to be initialized")
 	assert.NotNil(clusterConnection.ConfigMapLister, "expected lister to be initialized")
 	assert.NotNil(clusterConnection.ConfigMapInformer, "expected informer to be initialized")
 	assert.NotNil(clusterConnection.DaemonSetLister, "expected lister to be initialized")
 	assert.NotNil(clusterConnection.DaemonSetInformer, "expected informer to be initialized")
 	assert.NotNil(clusterConnection.ServiceLister, "expected lister to be initialized")
 	assert.NotNil(clusterConnection.ServiceInformer, "expected informer to be initialized")
-}
-
-// TestGetFilteredConnections test getting a filtered set of connections based on a given VerrazzanoBinding.
-// GIVEN a VerrazzanoBinding and map of managed cluster connections
-//  WHEN I call GetFilteredConnections
-//  THEN a filtered map of connections (applicable to the given VerrazzanoBinding) should be returned
-func TestGetFilteredConnections(t *testing.T) {
-	assert := asserts.New(t)
-
-	modelBindingPair := testutil.GetModelBindingPair()
-	clusterConnections := testutil.GetManagedClusterConnections()
-
-	connections, err := GetFilteredConnections(modelBindingPair, clusterConnections)
-	assert.NoError(err, "got error from BuildManagedClusterConnection")
-	expectedClusterNames := map[string]struct{}{"cluster1": {}, "cluster2": {}}
-	assert.Len(connections, len(expectedClusterNames), "expected 2 connections")
-	for name := range connections {
-		assert.Contains(expectedClusterNames, name, "connection %s not expected", name)
-	}
 }
 
 // Test_setupHTTPResolve test setting up http resolve for a given restConfig.

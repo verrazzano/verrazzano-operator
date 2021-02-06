@@ -1,4 +1,4 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package managed
@@ -59,62 +59,6 @@ const (
 	NodeExporterKeepSourceLabels = "__meta_kubernetes_pod_label_app"
 	// NodeExporterKeepSourceLabelsRegex keep source labels regex for Node Exporter
 	NodeExporterKeepSourceLabelsRegex = "node-exporter"
-
-	//
-	// weblogic binding related
-	//
-
-	// WeblogicOperatorName name for WebLogic operator
-	WeblogicOperatorName = "weblogic-operator"
-	// WeblogicOperatorKeepSourceLabels keep source labels for WebLogic operator
-	WeblogicOperatorKeepSourceLabels = "__meta_kubernetes_pod_label_app"
-	// WeblogicOperatorKeepSourceLabelsRegex keep source labels regex for WebLogic operator
-	WeblogicOperatorKeepSourceLabelsRegex = "weblogic-operator"
-	// WeblogicName name for WebLogic
-	WeblogicName = "weblogic"
-	// WeblogicKeepSourceLabels keep source labels for WebLogic
-	WeblogicKeepSourceLabels = "__meta_kubernetes_pod_annotation_prometheus_io_scrape,__meta_kubernetes_pod_label_weblogic_domainName"
-	// WeblogicKeepSourceLabelsRegex keep source labels regex for WebLogic
-	WeblogicKeepSourceLabelsRegex = "true;##COMPONENT_BINDING_NAME##"
-
-	//
-	// coherence binding related
-	//
-
-	// CoherenceOperatorName name for Coherence operator
-	CoherenceOperatorName = "coherence-operator"
-	// CoherenceOperatorKeepSourceLabels keep source labels for Coherence operator
-	CoherenceOperatorKeepSourceLabels = "__meta_kubernetes_pod_label_app,__meta_kubernetes_pod_container_port_name"
-	// CoherenceOperatorKeepSourceLabelsRegex keep source labels regex for Coherence operator
-	CoherenceOperatorKeepSourceLabelsRegex = "coherence-operator;(metrics|oper-metrics)"
-	// CoherenceName name for Coherence
-	CoherenceName = "coherence"
-	// CoherenceKeepSourceLabels keep source labels for Coherence
-	CoherenceKeepSourceLabels = "__meta_kubernetes_pod_annotation_prometheus_io_scrape,__meta_kubernetes_pod_label_coherenceCluster"
-	// CoherenceKeepSourceLabelsRegex keep source labels regex for Coherence
-	CoherenceKeepSourceLabelsRegex = "true;##COMPONENT_BINDING_NAME##"
-
-	//
-	// helidon binding related
-	//
-
-	// HelidonName name for Helidon
-	HelidonName = "helidon"
-	// HelidonKeepSourceLabels keep source labels for Helidon
-	HelidonKeepSourceLabels = "__meta_kubernetes_pod_annotation_prometheus_io_scrape,__meta_kubernetes_pod_label_app"
-	// HelidonKeepSourceLabelsRegex keep source labels regex for Helidon
-	HelidonKeepSourceLabelsRegex = "true;##COMPONENT_BINDING_NAME##"
-
-	//
-	// Generic Component binding related
-	//
-
-	// GenericName for Generic Component
-	GenericName = "generic"
-	// GenericKeepSourceLabels keep source labels for Generic Components
-	GenericKeepSourceLabels = "__meta_kubernetes_pod_annotation_prometheus_io_scrape,__meta_kubernetes_pod_label_app"
-	// GenericKeepSourceLabelsRegex keep source labels regex for Generic Components
-	GenericKeepSourceLabelsRegex = "true;##COMPONENT_BINDING_NAME##"
 )
 
 // PrometheusScrapeConfigTemplate configuration for general prometheus scrape target template.

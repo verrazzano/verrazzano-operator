@@ -1,4 +1,4 @@
-# Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 FROM container-registry.oracle.com/os/oraclelinux:7-slim@sha256:fcc6f54bb01fc83319990bf5fa1b79f1dec93cbb87db3c5a8884a5a44148e7bb AS build_base
@@ -43,13 +43,6 @@ RUN yum update -y \
     && rm -rf /var/cache/yum
 
 COPY --from=build_base /usr/bin/verrazzano-operator /usr/local/bin/verrazzano-operator
-
-RUN mkdir -p vendor/github.com/verrazzano/verrazzano-wko-operator/deploy/crds
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano-operator/vendor/github.com/verrazzano/verrazzano-wko-operator/deploy/crds/verrazzano.io_wlsoperators_crd.yaml vendor/github.com/verrazzano/verrazzano-wko-operator/deploy/crds/verrazzano.io_wlsoperators_crd.yaml
-RUN mkdir -p vendor/github.com/verrazzano/verrazzano-helidon-app-operator/deploy/crds
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano-operator/vendor/github.com/verrazzano/verrazzano-helidon-app-operator/deploy/crds/verrazzano.io_helidonapps_crd.yaml vendor/github.com/verrazzano/verrazzano-helidon-app-operator/deploy/crds/verrazzano.io_helidonapps_crd.yaml
-RUN mkdir -p vendor/github.com/verrazzano/verrazzano-coh-cluster-operator/deploy/crds
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano-operator/vendor/github.com/verrazzano/verrazzano-coh-cluster-operator/deploy/crds/verrazzano.io_cohclusters_crd.yaml vendor/github.com/verrazzano/verrazzano-coh-cluster-operator/deploy/crds/verrazzano.io_cohclusters_crd.yaml
 
 # Copy source tree to image
 RUN mkdir -p go/src/github.com/verrazzano/verrazzano-operator

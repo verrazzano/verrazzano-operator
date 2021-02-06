@@ -1,4 +1,4 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package main
@@ -7,107 +7,29 @@ import (
 	"flag"
 	"fmt"
 
-	"net/http"
-	"strings"
-
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/gorilla/mux"
-
-	"github.com/verrazzano/verrazzano-operator/pkg/api/applications"
-	"github.com/verrazzano/verrazzano-operator/pkg/api/clusters"
-	"github.com/verrazzano/verrazzano-operator/pkg/api/domains"
-	"github.com/verrazzano/verrazzano-operator/pkg/api/grids"
-	"github.com/verrazzano/verrazzano-operator/pkg/api/images"
-	"github.com/verrazzano/verrazzano-operator/pkg/api/instance"
-	"github.com/verrazzano/verrazzano-operator/pkg/api/jobs"
-	"github.com/verrazzano/verrazzano-operator/pkg/api/microservices"
-	"github.com/verrazzano/verrazzano-operator/pkg/api/operators"
-	"github.com/verrazzano/verrazzano-operator/pkg/api/secrets"
 	pkgverrazzanooperator "github.com/verrazzano/verrazzano-operator/pkg/controller"
-	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	"github.com/verrazzano/verrazzano-operator/pkg/util/apiserver"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/logs"
 	"go.uber.org/zap"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 var (
-	masterURL                    string
-	kubeconfig                   string
-	watchNamespace               string
-	verrazzanoURI                string
-	helidonAppOperatorDeployment string
-	enableMonitoringStorage      string
-	apiServerRealm               string
-	startController              bool
-	zapOptions                   = kzap.Options{}
+	masterURL               string
+	kubeconfig              string
+	watchNamespace          string
+	verrazzanoURI           string
+	obsoleteFlag            string
+	enableMonitoringStorage string
+	apiServerRealm          string
+	startController         bool
+	zapOptions              = kzap.Options{}
 )
 
 const apiVersionPrefix = "/20210501"
 
-// homePage provides a default handler for unmatched patterns
-func homePage(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "verrazzano-operator apiserver")
-	fmt.Println("GET /")
-}
-
-// handleRequests registers the routes and handlers
-func handleRequests(apiServerFinished chan bool, rootRouter *mux.Router) {
-	apiRouter := registerPathHandlers(rootRouter)
-	zap.S().Info("Starting API server...")
-	if apiServerRealm == "" {
-		zap.S().Warn("Bearer token verification is disabled as apiServerRealm is not specified")
-	}
-	zap.S().Fatal(http.ListenAndServe(":3456", apiserver.CORSHandler(apiserver.AuthHandler(apiRouter))))
-	apiServerFinished <- true
-}
-
-func registerPathHandlers(rootRouter *mux.Router) *mux.Router {
-	apiRouter := rootRouter.PathPrefix(apiVersionPrefix).Subrouter()
-	// All paths registered below are after path prefix specified in the apiVersionPrefix variable
-	apiRouter.HandleFunc("/", homePage)
-
-	// There is only 1
-	apiRouter.Path("/instance").Methods("GET").HandlerFunc(instance.ReturnSingleInstance)
-
-	// Routes are tested in the order they were added to the router. If two routes match, the first one wins
-	apiRouter.Path("/applications").Methods("GET").HandlerFunc(applications.ReturnAllApplications)
-	apiRouter.Path("/applications").Methods("POST").HandlerFunc(applications.CreateNewApplication)
-	apiRouter.Path("/applications/{id}").Methods("GET").HandlerFunc(applications.ReturnSingleApplication)
-	apiRouter.Path("/applications/{id}").Methods("DELETE").HandlerFunc(applications.DeleteApplication)
-	apiRouter.Path("/applications/{id}").Methods("PUT").HandlerFunc(applications.UpdateApplication)
-
-	apiRouter.Path("/clusters").Methods("GET").HandlerFunc(clusters.ReturnAllClusters)
-	apiRouter.Path("/clusters/{id}").Methods("GET").HandlerFunc(clusters.ReturnSingleCluster)
-	apiRouter.Path("/domains").Methods("GET").HandlerFunc(domains.ReturnAllDomains)
-	apiRouter.Path("/domains/{id}").Methods("GET").HandlerFunc(domains.ReturnSingleDomain)
-
-	apiRouter.Path("/grids").Methods("GET").HandlerFunc(grids.ReturnAllGrids)
-	apiRouter.Path("/grids/{id}").Methods("GET").HandlerFunc(grids.ReturnSingleGrid)
-
-	apiRouter.Path("/images").Methods("GET").HandlerFunc(images.ReturnAllImages)
-	apiRouter.Path("/images/{id}").Methods("GET").HandlerFunc(images.ReturnSingleImage)
-
-	apiRouter.Path("/jobs").Methods("GET").HandlerFunc(jobs.ReturnAllJobs)
-	apiRouter.Path("/jobs/{id}").Methods("GET").HandlerFunc(jobs.ReturnSingleJob)
-
-	apiRouter.Path("/microservices").Methods("GET").HandlerFunc(microservices.ReturnAllMicroservices)
-	apiRouter.Path("/microservices/{id}").Methods("GET").HandlerFunc(microservices.ReturnSingleMicroservice)
-
-	apiRouter.Path("/operators").Methods("GET").HandlerFunc(operators.ReturnAllOperators)
-	apiRouter.Path("/operators/{id}").Methods("GET").HandlerFunc(operators.ReturnSingleOperator)
-
-	apiRouter.Path("/secrets").Methods("GET").HandlerFunc(secrets.ReturnAllSecrets)
-	apiRouter.Path("/secrets").Methods("POST").HandlerFunc(secrets.CreateSecret)
-	apiRouter.Path("/secrets/{id}").Methods("GET").HandlerFunc(secrets.ReturnSingleSecret)
-	apiRouter.Path("/secrets/{id}").Methods("DELETE").HandlerFunc(secrets.DeleteSecret)
-	apiRouter.Path("/secrets/{id}").Methods("PATCH").HandlerFunc(secrets.UpdateSecret)
-
-	return apiRouter
-}
-
-func prepare() (*util.Manifest, error) {
+func prepare() error {
 	flag.Parse()
 	fmt.Println(" _    _                                                                    _____")
 	fmt.Println("| |  | |                                                                  / ___ \\                              _")
@@ -120,34 +42,27 @@ func prepare() (*util.Manifest, error) {
 	fmt.Println("          Verrazzano Operator")
 	fmt.Println("")
 	logs.InitLogs(zapOptions)
-	// Load Verrazzano Operator Manifest
-	return util.LoadManifest()
+	return nil
 }
 
 func main() {
-	manifest, err := prepare()
+
+	err := prepare()
 	if err != nil {
 		zap.S().Fatalf("Error loading manifest: %s", err.Error())
 	}
 	zap.S().Infof("Creating new controller watching namespace %s.", watchNamespace)
-	if strings.EqualFold(helidonAppOperatorDeployment, "false") {
-		zap.S().Debugf("helidonAppOperatorDeployment Disabled")
-		manifest.HelidonAppOperatorImage = ""
-	}
 
 	config, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
 		zap.S().Fatalf("Error creating the controller configuration: %s", err.Error())
 	}
-	controller, err := pkgverrazzanooperator.NewController(config, manifest, watchNamespace, verrazzanoURI, enableMonitoringStorage)
+	controller, err := pkgverrazzanooperator.NewController(config, watchNamespace, verrazzanoURI, enableMonitoringStorage)
 	if err != nil {
 		zap.S().Fatalf("Error creating the controller: %s", err.Error())
 	}
 
 	apiServerExited := make(chan bool)
-
-	// start the REST API Server (for web ui)
-	startRestAPIServer(controller.ListerSet(), apiServerExited)
 
 	if startController {
 		// start the controller
@@ -158,25 +73,6 @@ func main() {
 
 	zap.S().Infow("Waiting for api server to exit")
 	<-apiServerExited
-}
-
-func startRestAPIServer(listerSet pkgverrazzanooperator.Listers, apiServerFinished chan bool) {
-	// give the handlers access to the informers
-	applications.Init(listerSet)
-	clusters.Init(listerSet)
-	domains.Init(listerSet)
-	grids.Init(listerSet)
-	images.Init()
-	jobs.Init()
-	microservices.Init(listerSet)
-	operators.Init(listerSet)
-	secrets.Init(listerSet)
-	apiserver.Init(listerSet)
-
-	instance.SetVerrazzanoURI(verrazzanoURI)
-	apiserver.SetRealm(apiServerRealm)
-	// start REST handlers
-	go handleRequests(apiServerFinished, mux.NewRouter().StrictSlash(true))
 }
 
 func init() {
@@ -193,7 +89,7 @@ func initFlags(
 	stringVarFunc(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	stringVarFunc(&watchNamespace, "watchNamespace", "", "Optionally, a namespace to watch exclusively.  If not set, all namespaces will be watched.")
 	stringVarFunc(&verrazzanoURI, "verrazzanoUri", "", "Verrazzano URI, for example my-verrazzano-1.verrazzano.example.com")
-	stringVarFunc(&helidonAppOperatorDeployment, "helidonAppOperatorDeployment", "", "--helidonAppOperatorDeployment=false disables helidonAppOperatorDeployment")
+	stringVarFunc(&obsoleteFlag, "helidonAppOperatorDeployment", "", "--helidonAppOperatorDeployment=false disables helidonAppOperatorDeployment")
 	stringVarFunc(&enableMonitoringStorage, "enableMonitoringStorage", "true", "Enable storage for monitoring.  The default is true. 'false' means monitoring storage is disabled.")
 	stringVarFunc(&apiServerRealm, "apiServerRealm", "", "API Server Realm on Keycloak")
 	boolVarFunc(&startController, "startController", true, "Whether to start the Kubernetes controller (true by default)")

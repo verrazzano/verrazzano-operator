@@ -1,4 +1,4 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package controller
@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
-	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
 	vmoclientset "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
 	vmolisters "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/listers/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
@@ -29,10 +28,6 @@ import (
 
 var testClusterName = "test-cluster"
 var testVerrazzanoURI = "/verrazzano/uri"
-
-var testManifest = util.Manifest{WlsMicroOperatorImage: "wlsMicroOperatorImage", WlsMicroOperatorCrd: "wlsMicroOperatorCrd",
-	HelidonAppOperatorImage: "helidonAppOperatorImage", HelidonAppOperatorCrd: "helidonAppOperatorCrd",
-	CohClusterOperatorImage: "cohClusterOperatorImage", CohClusterOperatorCrd: "cohClusterOperatorCrd"}
 
 var testPodInformer = &controllertest.FakeInformer{}
 var testDeploymentInformer = &controllertest.FakeInformer{}
@@ -68,7 +63,7 @@ var testClientset = testclient.NewSimpleClientset(&v1.ServiceAccount{
 // WHEN I create a controller
 // THEN the PUBLIC state of the controller is in the expected state for a non-running controller
 func TestNewController(t *testing.T) {
-	binding := &v1beta1.VerrazzanoBinding{
+	binding := &types.SyntheticBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
@@ -84,19 +79,12 @@ func TestNewController(t *testing.T) {
 	}
 
 	// createController invokes NewController which is the function that is being tested
-	controller := createController(t, testManifest, localMockSetupFunc, monitoringMockSetupFunc)
-
-	assert.NotNil(t, controller.VerrazzanoBindingInformer)
-	assert.NotNil(t, controller.VerrazzanoBindingLister)
-	assert.NotNil(t, controller.VerrazzanoModelInformer)
-	assert.NotNil(t, controller.VerrazzanoBindingLister)
+	controller := createController(t, localMockSetupFunc, monitoringMockSetupFunc)
 
 	// assert initial lister state
 	listers := controller.ListerSet()
-	assert.Equal(t, controller.VerrazzanoBindingLister, *listers.BindingLister)
-	assert.Equal(t, controller.VerrazzanoModelLister, *listers.ModelLister)
 	assert.Equal(t, controller.verrazzanoManagedClusterLister, *listers.ManagedClusterLister)
-	assert.Equal(t, 0, len(*listers.ModelBindingPairs))
+	assert.Equal(t, 0, len(*listers.SyntheticModelBindings))
 	assert.NotNil(t, listers.KubeClientSet)
 }
 
@@ -106,21 +94,21 @@ func TestNewController(t *testing.T) {
 // THEN the managed cluster is added to the controller
 // AND all expected external invocations are made for processing a managed cluster
 func TestProcessManagedCluster(t *testing.T) {
-	controller := createController(t, testManifest, nil, nil)
+	controller := createController(t, nil, nil)
 
-	model := &v1beta1.VerrazzanoModel{
+	model := &types.SyntheticModel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
 	}
 
-	binding := &v1beta1.VerrazzanoBinding{
+	binding := &types.SyntheticBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.VmiSystemBindingName,
 		},
 	}
 
-	mbPair := CreateModelBindingPair(model, binding, controller.verrazzanoURI, testImagePullSecrets)
+	vzSynMB := CreateSyntheticModelBinding(model, binding, controller.verrazzanoURI, testImagePullSecrets)
 
 	mc := &types.ManagedCluster{
 		Name:        testManagedCluster.Name,
@@ -128,33 +116,26 @@ func TestProcessManagedCluster(t *testing.T) {
 		Ingresses:   map[string][]*types.Ingress{},
 		RemoteRests: map[string][]*types.RemoteRestConnection{},
 	}
-	mbPair.ManagedClusters[testManagedCluster.Name] = mc
+	vzSynMB.ManagedClusters[testManagedCluster.Name] = mc
 	mc.Namespaces = append(mc.Namespaces, constants.MonitoringNamespace, constants.LoggingNamespace)
 
 	// set expectations for 'managed' package interactions
 	managedMock := controller.managed.(*testManagedPackage)
 	managedMock.BuildManagedClusterConnection(testSecretData, controller.stopCh)
-	managedMock.CreateCrdDefinitions(&testManagedClusterConnection, testManagedCluster, controller.Manifest)
-	managedMock.CreateNamespaces(mbPair, testFilteredConnections)
-	managedMock.CreateSecrets(mbPair, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
-	managedMock.CreateServiceAccounts(mbPair.Binding.Name, mbPair.ImagePullSecrets, mbPair.ManagedClusters, testFilteredConnections)
-	managedMock.CreateConfigMaps(mbPair, testFilteredConnections)
-	managedMock.CreateClusterRoles(mbPair, testFilteredConnections)
-	managedMock.CreateClusterRoleBindings(mbPair, testFilteredConnections)
-	managedMock.CreateIngresses(mbPair, testFilteredConnections)
-	managedMock.CreateServiceEntries(mbPair, testFilteredConnections, controller.managedClusterConnections)
-	managedMock.CreateServices(mbPair, testFilteredConnections)
-	managedMock.CreateDeployments(mbPair, controller.managedClusterConnections, controller.Manifest, controller.verrazzanoURI, controller.secrets)
-	managedMock.CreateCustomResources(mbPair, controller.managedClusterConnections, controller.stopCh, controller.VerrazzanoBindingLister)
-	managedMock.UpdateIstioPrometheusConfigMaps(mbPair, controller.secretLister, controller.managedClusterConnections)
-	managedMock.CreateDaemonSets(mbPair, controller.managedClusterConnections, controller.verrazzanoURI)
-	managedMock.CreateDestinationRules(mbPair, testFilteredConnections)
-	managedMock.CreateAuthorizationPolicies(mbPair, testFilteredConnections)
+	managedMock.CreateNamespaces(vzSynMB, testFilteredConnections)
+	managedMock.CreateSecrets(vzSynMB, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
+	managedMock.CreateServiceAccounts(vzSynMB.SynBinding.Name, vzSynMB.ImagePullSecrets, vzSynMB.ManagedClusters, testFilteredConnections)
+	managedMock.CreateConfigMaps(vzSynMB, testFilteredConnections)
+	managedMock.CreateClusterRoles(vzSynMB, testFilteredConnections)
+	managedMock.CreateClusterRoleBindings(vzSynMB, testFilteredConnections)
+	managedMock.CreateServices(vzSynMB, testFilteredConnections)
+	managedMock.CreateDeployments(vzSynMB, controller.managedClusterConnections, controller.verrazzanoURI, controller.secrets)
+	managedMock.CreateDaemonSets(vzSynMB, controller.managedClusterConnections, controller.verrazzanoURI)
 	managedMock.SetupComplete()
 
 	// record expected 'util' interactions
 	utilMock := controller.util.(*testUtilPackage)
-	utilMock.GetManagedClustersForVerrazzanoBinding(mbPair, controller.managedClusterConnections)
+	utilMock.GetManagedClustersForVerrazzanoBinding(vzSynMB, controller.managedClusterConnections)
 	utilMock.SetupComplete()
 
 	// invoke method that is being tested
@@ -171,24 +152,24 @@ func TestProcessManagedCluster(t *testing.T) {
 // WHEN I invoke processApplicationModelAdded
 // THEN the Controller is updated with the new application model and a new model binding pair
 func TestProcessApplicationModelAdded(t *testing.T) {
-	controller := createController(t, testManifest, nil, nil)
+	controller := createController(t, nil, nil)
 
-	binding := &v1beta1.VerrazzanoBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding"}, Spec: v1beta1.VerrazzanoBindingSpec{ModelName: "test-model"}}
+	binding := &types.SyntheticBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding"}, Spec: types.ResourceLocationSpec{ModelName: "test-model"}}
 	controller.applicationBindings["test-binding"] = binding
 	controller.imagePullSecrets = testImagePullSecrets
 
-	model := &v1beta1.VerrazzanoModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model"}}
+	model := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model"}}
 
 	// invoke the method being tested
 	controller.processApplicationModelAdded(model)
 
 	assert.Same(t, model, controller.applicationModels["test-model"])
-	assert.Len(t, controller.modelBindingPairs, 1)
-	assert.NotNil(t, controller.modelBindingPairs["test-binding"])
-	assert.Same(t, binding, controller.modelBindingPairs["test-binding"].Binding)
-	assert.Equal(t, model, controller.modelBindingPairs["test-binding"].Model)
-	assert.Equal(t, testVerrazzanoURI, controller.modelBindingPairs["test-binding"].VerrazzanoURI)
-	assert.Equal(t, testImagePullSecrets, controller.modelBindingPairs["test-binding"].ImagePullSecrets)
+	assert.Len(t, controller.SyntheticModelBindings, 1)
+	assert.NotNil(t, controller.SyntheticModelBindings["test-binding"])
+	assert.Same(t, binding, controller.SyntheticModelBindings["test-binding"].SynBinding)
+	assert.Equal(t, model, controller.SyntheticModelBindings["test-binding"].SynModel)
+	assert.Equal(t, testVerrazzanoURI, controller.SyntheticModelBindings["test-binding"].VerrazzanoURI)
+	assert.Equal(t, testImagePullSecrets, controller.SyntheticModelBindings["test-binding"].ImagePullSecrets)
 }
 
 // TestProcessApplicationModelAddedVersionExists tests adding an application model that is already known to the Controller
@@ -196,15 +177,15 @@ func TestProcessApplicationModelAdded(t *testing.T) {
 // WHEN I add the previously existing model to the Controller
 // THEN the invocation returns without error and no new model is added
 func TestProcessApplicationModelAddedVersionExists(t *testing.T) {
-	controller := createController(t, testManifest, nil, nil)
+	controller := createController(t, nil, nil)
 
-	model := &v1beta1.VerrazzanoModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
-	model2 := &v1beta1.VerrazzanoModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
+	model := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
+	model2 := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
 	controller.applicationModels["test-model"] = model
 	controller.processApplicationModelAdded(model2)
 
 	assert.Same(t, model, controller.applicationModels["test-model"])
-	assert.Len(t, controller.modelBindingPairs, 0)
+	assert.Len(t, controller.SyntheticModelBindings, 0)
 }
 
 // TestProcessApplicationModelDeleted tests deleting of an application model
@@ -212,9 +193,9 @@ func TestProcessApplicationModelAddedVersionExists(t *testing.T) {
 // WHEN the existing model is deleted by invoking processApplicationModelDeleted on the Controller
 // THEN the deleted model is deleted from the Controller
 func TestProcessApplicationModelDeleted(t *testing.T) {
-	controller := createController(t, testManifest, nil, nil)
+	controller := createController(t, nil, nil)
 
-	model := &v1beta1.VerrazzanoModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
+	model := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
 	controller.applicationModels[model.Name] = model
 
 	// sanity check
@@ -231,50 +212,35 @@ func TestProcessApplicationModelDeleted(t *testing.T) {
 // AND all expected external invocations are made for processing a new application binding
 func TestProcessApplicationBindingAdded(t *testing.T) {
 	// get controller
-	controller := createController(t, testManifest, nil, nil)
+	controller := createController(t, nil, nil)
 
-	binding := &v1beta1.VerrazzanoBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
-		Spec: v1beta1.VerrazzanoBindingSpec{
+	binding := &types.SyntheticBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
+		Spec: types.ResourceLocationSpec{
 			ModelName: "test-model",
-			Placement: []v1beta1.VerrazzanoPlacement{{Name: "test-placement", Namespaces: []v1beta1.KubernetesNamespace{{Name: "test-namespace"}}}}}}
+			Placement: []types.ClusterPlacement{{Name: "test-placement", Namespaces: []types.KubernetesNamespace{{Name: "test-namespace"}}}}}}
 
 	// add the corresponding model
-	model := &v1beta1.VerrazzanoModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
+	model := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
 	controller.applicationModels["test-model"] = model
 
-	modelBindingPair := CreateModelBindingPair(model, binding, testVerrazzanoURI, nil)
+	SyntheticModelBinding := CreateSyntheticModelBinding(model, binding, testVerrazzanoURI, nil)
 
 	// record expected 'util' interactions
 	utilMock := controller.util.(*testUtilPackage)
-	utilMock.GetManagedClustersForVerrazzanoBinding(modelBindingPair, controller.managedClusterConnections)
+	utilMock.GetManagedClustersForVerrazzanoBinding(SyntheticModelBinding, controller.managedClusterConnections)
 	utilMock.SetupComplete()
 
 	// record expected 'managed' interactions
 	managedMock := controller.managed.(*testManagedPackage)
-	managedMock.CreateNamespaces(modelBindingPair, testFilteredConnections)
-	managedMock.CreateSecrets(modelBindingPair, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
-	managedMock.CreateServiceAccounts(modelBindingPair.Binding.Name, modelBindingPair.ImagePullSecrets, modelBindingPair.ManagedClusters, testFilteredConnections)
-	managedMock.CreateConfigMaps(modelBindingPair, testFilteredConnections)
-	managedMock.CreateClusterRoles(modelBindingPair, testFilteredConnections)
-	managedMock.CreateClusterRoleBindings(modelBindingPair, testFilteredConnections)
-	managedMock.CreateIngresses(modelBindingPair, testFilteredConnections)
-	managedMock.CreateServiceEntries(modelBindingPair, testFilteredConnections, controller.managedClusterConnections)
-	managedMock.CreateServices(modelBindingPair, testFilteredConnections)
-	managedMock.CreateDeployments(modelBindingPair, testFilteredConnections, controller.Manifest, controller.verrazzanoURI, controller.secrets)
-	managedMock.CreateCustomResources(modelBindingPair, controller.managedClusterConnections, controller.stopCh, controller.VerrazzanoBindingLister)
-	managedMock.UpdateIstioPrometheusConfigMaps(modelBindingPair, controller.secretLister, controller.managedClusterConnections)
-	managedMock.CreateDaemonSets(modelBindingPair, testFilteredConnections, controller.verrazzanoURI)
-	managedMock.CreateDestinationRules(modelBindingPair, testFilteredConnections)
-	managedMock.CreateAuthorizationPolicies(modelBindingPair, testFilteredConnections)
-	managedMock.CleanupOrphanedClusterRoleBindings(modelBindingPair, controller.managedClusterConnections)
-	managedMock.CleanupOrphanedConfigMaps(modelBindingPair, controller.managedClusterConnections)
-	managedMock.CleanupOrphanedNamespaces(modelBindingPair, controller.managedClusterConnections, controller.modelBindingPairs)
-	managedMock.CleanupOrphanedServices(modelBindingPair, controller.managedClusterConnections)
-	managedMock.CleanupOrphanedDeployments(modelBindingPair, controller.managedClusterConnections)
-	managedMock.CleanupOrphanedServiceEntries(modelBindingPair, controller.managedClusterConnections)
-	managedMock.CleanupOrphanedIngresses(modelBindingPair, controller.managedClusterConnections)
-	managedMock.CleanupOrphanedCustomResources(modelBindingPair, controller.managedClusterConnections, controller.stopCh)
-	managedMock.CleanupOrphanedClusterRoles(modelBindingPair, controller.managedClusterConnections)
+	managedMock.CreateNamespaces(SyntheticModelBinding, testFilteredConnections)
+	managedMock.CreateSecrets(SyntheticModelBinding, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
+	managedMock.CreateServiceAccounts(SyntheticModelBinding.SynBinding.Name, SyntheticModelBinding.ImagePullSecrets, SyntheticModelBinding.ManagedClusters, testFilteredConnections)
+	managedMock.CreateConfigMaps(SyntheticModelBinding, testFilteredConnections)
+	managedMock.CreateClusterRoles(SyntheticModelBinding, testFilteredConnections)
+	managedMock.CreateClusterRoleBindings(SyntheticModelBinding, testFilteredConnections)
+	managedMock.CreateServices(SyntheticModelBinding, testFilteredConnections)
+	managedMock.CreateDeployments(SyntheticModelBinding, testFilteredConnections, controller.verrazzanoURI, controller.secrets)
+	managedMock.CreateDaemonSets(SyntheticModelBinding, testFilteredConnections, controller.verrazzanoURI)
 	managedMock.SetupComplete()
 
 	localMock := controller.local.(*testLocalPackage)
@@ -291,10 +257,10 @@ func TestProcessApplicationBindingAdded(t *testing.T) {
 	controller.processApplicationBindingAdded(binding)
 
 	assert.Same(t, binding, controller.applicationBindings["test-binding"])
-	mbp := controller.modelBindingPairs["test-binding"]
+	mbp := controller.SyntheticModelBindings["test-binding"]
 	assert.NotNil(t, mbp)
-	assert.Same(t, binding, mbp.Binding)
-	assert.Same(t, model, mbp.Model)
+	assert.Same(t, binding, mbp.SynBinding)
+	assert.Same(t, model, mbp.SynModel)
 	assert.Equal(t, controller.verrazzanoURI, mbp.VerrazzanoURI)
 	assert.Equal(t, controller.imagePullSecrets, mbp.ImagePullSecrets)
 
@@ -310,19 +276,19 @@ func TestProcessApplicationBindingAdded(t *testing.T) {
 // WHEN I delete the binding by invoking processApplicationBindingDeleted() on the Controller
 // THEN the binding and all associated state is deleted
 func TestProcessApplicationBindingDeleted(t *testing.T) {
-	controller := createController(t, testManifest, nil, nil)
+	controller := createController(t, nil, nil)
 
-	binding := &v1beta1.VerrazzanoBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
-		Spec: v1beta1.VerrazzanoBindingSpec{
+	binding := &types.SyntheticBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
+		Spec: types.ResourceLocationSpec{
 			ModelName: "test-model"}}
 
-	model := &v1beta1.VerrazzanoModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
-	mbPair := CreateModelBindingPair(model, binding, testVerrazzanoURI, nil)
+	model := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
+	vzSynMB := CreateSyntheticModelBinding(model, binding, testVerrazzanoURI, nil)
 
 	controller.applicationModels["test-model"] = model
 	controller.applicationBindings["test-binding"] = binding
 
-	controller.modelBindingPairs["test-binding"] = mbPair
+	controller.SyntheticModelBindings["test-binding"] = vzSynMB
 
 	// set expectations of local package interactions
 	localMock := controller.local.(*testLocalPackage)
@@ -333,15 +299,15 @@ func TestProcessApplicationBindingDeleted(t *testing.T) {
 
 	// set expectations of managed package interaction
 	managedMock := controller.managed.(*testManagedPackage)
-	managedMock.DeleteCustomResources(mbPair, controller.managedClusterConnections)
-	managedMock.DeleteClusterRoleBindings(mbPair, controller.managedClusterConnections, true)
-	managedMock.DeleteClusterRoles(mbPair, controller.managedClusterConnections, true)
-	managedMock.DeleteNamespaces(mbPair, controller.managedClusterConnections, true)
-	managedMock.DeleteClusterRoleBindings(mbPair, controller.managedClusterConnections, false)
-	managedMock.DeleteClusterRoles(mbPair, controller.managedClusterConnections, false)
-	managedMock.DeleteNamespaces(mbPair, controller.managedClusterConnections, false)
-	managedMock.DeleteServices(mbPair, testFilteredConnections)
-	managedMock.DeleteDeployments(mbPair, testFilteredConnections)
+	managedMock.DeleteCustomResources(vzSynMB, controller.managedClusterConnections)
+	managedMock.DeleteClusterRoleBindings(vzSynMB, controller.managedClusterConnections, true)
+	managedMock.DeleteClusterRoles(vzSynMB, controller.managedClusterConnections, true)
+	managedMock.DeleteNamespaces(vzSynMB, controller.managedClusterConnections, true)
+	managedMock.DeleteClusterRoleBindings(vzSynMB, controller.managedClusterConnections, false)
+	managedMock.DeleteClusterRoles(vzSynMB, controller.managedClusterConnections, false)
+	managedMock.DeleteNamespaces(vzSynMB, controller.managedClusterConnections, false)
+	managedMock.DeleteServices(vzSynMB, testFilteredConnections)
+	managedMock.DeleteDeployments(vzSynMB, testFilteredConnections)
 	managedMock.SetupComplete()
 
 	monitoringMock := controller.monitoring.(*testMonitoringPackage)
@@ -349,15 +315,14 @@ func TestProcessApplicationBindingDeleted(t *testing.T) {
 	monitoringMock.SetupComplete()
 
 	utilMock := controller.util.(*testUtilPackage)
-	utilMock.GetManagedClustersForVerrazzanoBinding(mbPair, controller.managedClusterConnections)
+	utilMock.GetManagedClustersForVerrazzanoBinding(vzSynMB, controller.managedClusterConnections)
 	utilMock.SetupComplete()
 
 	// invoke method being tested
 	controller.processApplicationBindingDeleted(binding)
 
 	assert.Len(t, controller.applicationBindings, 0)
-	assert.Len(t, controller.modelBindingPairs, 0)
-	assert.Len(t, binding.Finalizers, 0)
+	assert.Len(t, controller.SyntheticModelBindings, 0)
 
 	managedMock.Verify(t)
 	localMock.Verify(t)
@@ -365,63 +330,9 @@ func TestProcessApplicationBindingDeleted(t *testing.T) {
 	utilMock.Verify(t)
 }
 
-// TestAddFinalizer tests adding a finalizer to a binding
-// GIVEN an existing binding
-// WHEN I add a finalizer to the existing binding by invoking addFinalizer()
-// THEN the finalizer is added to the binding
-func TestAddFinalizer(t *testing.T) {
-	controller := createController(t, testManifest, nil, nil)
-	binding := &v1beta1.VerrazzanoBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace"},
-		Spec: v1beta1.VerrazzanoBindingSpec{
-			ModelName: "test-model",
-			Placement: []v1beta1.VerrazzanoPlacement{{Name: "test-placement", Namespaces: []v1beta1.KubernetesNamespace{{Name: "test-namespace"}}}}}}
-
-	controller.verrazzanoOperatorClientSet.VerrazzanoV1beta1().VerrazzanoBindings("test-namespace").
-		Create(context.TODO(), binding, metav1.CreateOptions{})
-
-	controller.addFinalizer(binding)
-
-	updatedBinding, err := controller.verrazzanoOperatorClientSet.VerrazzanoV1beta1().
-		VerrazzanoBindings("test-namespace").Get(context.TODO(), binding.Name, metav1.GetOptions{})
-
-	assert.Nil(t, err)
-	assert.Len(t, updatedBinding.Finalizers, 1)
-	assert.Equal(t, bindingFinalizer, updatedBinding.Finalizers[0])
-}
-
-// TestRemoveFinalizer tests removing a finalizer from an existing binding
-// GIVEN an existing binding
-// WHEN a finalizer is removed from the binding by calling removeFinalizer()
-// THEN the finalizer is removed from the binding
-func TestRemoveFinalizer(t *testing.T) {
-	controller := createController(t, testManifest, nil, nil)
-	binding := &v1beta1.VerrazzanoBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace",
-		Finalizers: []string{bindingFinalizer}},
-		Spec: v1beta1.VerrazzanoBindingSpec{
-			ModelName: "test-model",
-			Placement: []v1beta1.VerrazzanoPlacement{{Name: "test-placement", Namespaces: []v1beta1.KubernetesNamespace{{Name: "test-namespace"}}}}}}
-
-	// Add the binding
-	binding, _ = controller.verrazzanoOperatorClientSet.VerrazzanoV1beta1().VerrazzanoBindings("test-namespace").
-		Create(context.TODO(), binding, metav1.CreateOptions{})
-	// sanity check. Ensure that added binding has 1 finalizer
-	assert.Len(t, binding.Finalizers, 1)
-
-	// invoke method being tested
-	err := controller.removeFinalizer(binding)
-	assert.Nil(t, err)
-
-	// get the binding after remove finalizer
-	updatedBinding, err := controller.verrazzanoOperatorClientSet.VerrazzanoV1beta1().
-		VerrazzanoBindings("test-namespace").Get(context.TODO(), binding.Name, metav1.GetOptions{})
-
-	assert.Nil(t, err)
-	assert.Len(t, updatedBinding.Finalizers, 0)
-}
-
 // Create Controller instances for the tests.
 // Replaces several external functions used by the Controller to allow for unit testing
-func createController(t *testing.T, manifest util.Manifest, localMockSetup func(*testLocalPackage), monitoringMockSetup func(*testMonitoringPackage)) *Controller {
+func createController(t *testing.T, localMockSetup func(*testLocalPackage), monitoringMockSetup func(*testMonitoringPackage)) *Controller {
 
 	// rewrite the function that is used to get the managed package implementation during creation of a new controller
 	originalGetManagedFunc := newManagedPackage
@@ -481,7 +392,7 @@ func createController(t *testing.T, manifest util.Manifest, localMockSetup func(
 	config := &rest.Config{}
 
 	// Create a new Controller instance
-	controller, err := NewController(config, &manifest, "", testVerrazzanoURI, "false")
+	controller, err := NewController(config, "", testVerrazzanoURI, "false")
 
 	// set secretLister
 	controller.secretLister = testSecretLister
@@ -530,24 +441,23 @@ func (t *testManagedPackage) BuildManagedClusterConnection(kubeConfigContents []
 	return &testManagedClusterConnection, nil
 }
 
-func (t *testManagedPackage) CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnection, managedCluster *v1beta1.VerrazzanoManagedCluster, manifest *util.Manifest) error {
+func (t *testManagedPackage) CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnection, managedCluster *v1beta1.VerrazzanoManagedCluster) error {
 	t.Record("CreateCrdDefinitions", map[string]interface{}{
 		"managedClusterConnection": managedClusterConnection,
-		"managedCluster":           managedCluster,
-		"manifest":                 manifest})
+		"managedCluster":           managedCluster})
 	return nil
 }
 
-func (t *testManagedPackage) CreateNamespaces(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateNamespaces(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateNamespaces", map[string]interface{}{
-		"mbPair":              mbPair,
+		"vzSynMB":             vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateSecrets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets) error {
+func (t *testManagedPackage) CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets) error {
 	t.Record("CreateSecrets", map[string]interface{}{
-		"mbPair":                             mbPair,
+		"vzSynMB":                            vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
 		"kubeClientSet":                      kubeClientSet,
 		"sec":                                sec})
@@ -563,202 +473,200 @@ func (t *testManagedPackage) CreateServiceAccounts(bindingName string, imagePull
 	return nil
 }
 
-func (t *testManagedPackage) CreateConfigMaps(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateConfigMaps", map[string]interface{}{
-		"mbPair":              mbPair,
+		"vzSynMB":             vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateClusterRoles(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateClusterRoles(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateClusterRoles", map[string]interface{}{
-		"mbPair":              mbPair,
+		"vzSynMB":             vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateClusterRoleBindings(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateClusterRoleBindings(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateClusterRoleBindings", map[string]interface{}{
-		"mbPair":              mbPair,
+		"vzSynMB":             vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
-func (t *testManagedPackage) CreateIngresses(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateIngresses(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateIngresses", map[string]interface{}{
-		"mbPair":              mbPair,
+		"vzSynMB":             vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateServiceEntries(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateServiceEntries(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateServiceEntries", map[string]interface{}{
-		"mbPair":                             mbPair,
+		"vzSynMB":                            vzSynMB,
 		"filteredConnections":                filteredConnections,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateServices(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("CreateServices", map[string]interface{}{
-		"mbPair":              mbPair,
+		"vzSynMB":             vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CreateDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) error {
+func (t *testManagedPackage) CreateDeployments(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, sec monitoring.Secrets) error {
 	t.Record("CreateDeployments", map[string]interface{}{
-		"mbPair":                             mbPair,
+		"vzSynMB":                            vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
-		"manifest":                           manifest,
 		"sec":                                sec})
 	return nil
 }
 
-func (t *testManagedPackage) CreateCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}, vbLister listers.VerrazzanoBindingLister) error {
+func (t *testManagedPackage) CreateCustomResources(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}) error {
 	t.Record("CreateCustomResources", map[string]interface{}{
-		"mbPair":                             mbPair,
-		"availableManagedClusterConnections": availableManagedClusterConnections,
-		"stopCh":                             stopCh,
-		"vbLister":                           vbLister})
-	return nil
-}
-
-func (t *testManagedPackage) UpdateIstioPrometheusConfigMaps(mbPair *types.ModelBindingPair, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	t.Record("UpdateIstioPrometheusConfigMaps", map[string]interface{}{
-		"mbPair":                             mbPair,
-		"secretLister":                       secretLister,
-		"availableManagedClusterConnections": availableManagedClusterConnections})
-	return nil
-}
-
-func (t *testManagedPackage) CreateDaemonSets(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string) error {
-	t.Record("CreateDaemonSets", map[string]interface{}{
-		"mbPair":                             mbPair,
-		"availableManagedClusterConnections": availableManagedClusterConnections,
-		"verrazzanoURI":                      verrazzanoURI})
-	return nil
-}
-
-func (t *testManagedPackage) CreateDestinationRules(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	t.Record("CreateDestinationRules", map[string]interface{}{
-		"mbPair":              mbPair,
-		"filteredConnections": filteredConnections})
-	return nil
-}
-
-func (t *testManagedPackage) CreateAuthorizationPolicies(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	t.Record("CreateAuthorizationPolicies", map[string]interface{}{
-		"mbPair":              mbPair,
-		"filteredConnections": filteredConnections})
-	return nil
-}
-
-func (t *testManagedPackage) CleanupOrphanedCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}) error {
-	t.Record("CleanupOrphanedCustomResources", map[string]interface{}{
-		"mbPair":                             mbPair,
+		"vzSynMB":                            vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
 		"stopCh":                             stopCh})
 	return nil
 }
 
-func (t *testManagedPackage) CleanupOrphanedServiceEntries(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	t.Record("CleanupOrphanedServiceEntries", map[string]interface{}{
-		"mbPair":                             mbPair,
+func (t *testManagedPackage) UpdateIstioPrometheusConfigMaps(vzSynMB *types.SyntheticModelBinding, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	t.Record("UpdateIstioPrometheusConfigMaps", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"secretLister":                       secretLister,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return nil
 }
 
-func (t *testManagedPackage) CleanupOrphanedIngresses(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	t.Record("CleanupOrphanedIngresses", map[string]interface{}{
-		"mbPair":                             mbPair,
-		"availableManagedClusterConnections": availableManagedClusterConnections})
-	return nil
-}
-
-func (t *testManagedPackage) CleanupOrphanedClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	t.Record("CleanupOrphanedClusterRoleBindings", map[string]interface{}{
-		"mbPair":                             mbPair,
-		"availableManagedClusterConnections": availableManagedClusterConnections})
-	return nil
-}
-
-func (t *testManagedPackage) CleanupOrphanedClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	t.Record("CleanupOrphanedClusterRoles", map[string]interface{}{
-		"mbPair":                             mbPair,
-		"availableManagedClusterConnections": availableManagedClusterConnections})
-	return nil
-}
-
-func (t *testManagedPackage) CleanupOrphanedConfigMaps(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	t.Record("CleanupOrphanedConfigMaps", map[string]interface{}{
-		"mbPair":                             mbPair,
-		"availableManagedClusterConnections": availableManagedClusterConnections})
-	return nil
-}
-
-func (t *testManagedPackage) CleanupOrphanedNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allMbPairs map[string]*types.ModelBindingPair) error {
-	t.Record("CleanupOrphanedNamespaces", map[string]interface{}{
-		"mbPair":                             mbPair,
+func (t *testManagedPackage) CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string) error {
+	t.Record("CreateDaemonSets", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
-		"allMbPairs":                         allMbPairs})
+		"verrazzanoURI":                      verrazzanoURI})
 	return nil
 }
 
-func (t *testManagedPackage) DeleteCustomResources(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	t.Record("DeleteCustomResources", map[string]interface{}{
-		"mbPair":                             mbPair,
-		"availableManagedClusterConnections": availableManagedClusterConnections})
-	return nil
-}
-
-func (t *testManagedPackage) DeleteClusterRoleBindings(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
-	t.Record("DeleteClusterRoleBindings", map[string]interface{}{
-		"mbPair":                             mbPair,
-		"availableManagedClusterConnections": availableManagedClusterConnections,
-		"bindingLabel":                       bindingLabel})
-	return nil
-}
-
-func (t *testManagedPackage) DeleteClusterRoles(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
-	t.Record("DeleteClusterRoles", map[string]interface{}{
-		"mbPair":                             mbPair,
-		"availableManagedClusterConnections": availableManagedClusterConnections,
-		"bindingLabel":                       bindingLabel})
-	return nil
-}
-
-func (t *testManagedPackage) DeleteNamespaces(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
-	t.Record("DeleteNamespaces", map[string]interface{}{
-		"mbPair":                             mbPair,
-		"availableManagedClusterConnections": availableManagedClusterConnections,
-		"bindingLabel":                       bindingLabel})
-	return nil
-}
-
-func (t *testManagedPackage) CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	t.Record("CleanupOrphanedServices", map[string]interface{}{
-		"mbPair":                             mbPair,
-		"availableManagedClusterConnections": availableManagedClusterConnections})
-	return nil
-}
-
-func (t *testManagedPackage) CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	t.Record("CleanupOrphanedDeployments", map[string]interface{}{
-		"mbPair":                             mbPair,
-		"availableManagedClusterConnections": availableManagedClusterConnections})
-	return nil
-}
-
-func (t *testManagedPackage) DeleteServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	t.Record("DeleteServices", map[string]interface{}{
-		"mbPair":              mbPair,
+func (t *testManagedPackage) CreateDestinationRules(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	t.Record("CreateDestinationRules", map[string]interface{}{
+		"vzSynMB":             vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
 
-func (t *testManagedPackage) DeleteDeployments(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
+func (t *testManagedPackage) CreateAuthorizationPolicies(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	t.Record("CreateAuthorizationPolicies", map[string]interface{}{
+		"vzSynMB":             vzSynMB,
+		"filteredConnections": filteredConnections})
+	return nil
+}
+
+func (t *testManagedPackage) CleanupOrphanedCustomResources(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, stopCh <-chan struct{}) error {
+	t.Record("CleanupOrphanedCustomResources", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"availableManagedClusterConnections": availableManagedClusterConnections,
+		"stopCh":                             stopCh})
+	return nil
+}
+
+func (t *testManagedPackage) CleanupOrphanedServiceEntries(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	t.Record("CleanupOrphanedServiceEntries", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"availableManagedClusterConnections": availableManagedClusterConnections})
+	return nil
+}
+
+func (t *testManagedPackage) CleanupOrphanedIngresses(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	t.Record("CleanupOrphanedIngresses", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"availableManagedClusterConnections": availableManagedClusterConnections})
+	return nil
+}
+
+func (t *testManagedPackage) CleanupOrphanedClusterRoleBindings(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	t.Record("CleanupOrphanedClusterRoleBindings", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"availableManagedClusterConnections": availableManagedClusterConnections})
+	return nil
+}
+
+func (t *testManagedPackage) CleanupOrphanedClusterRoles(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	t.Record("CleanupOrphanedClusterRoles", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"availableManagedClusterConnections": availableManagedClusterConnections})
+	return nil
+}
+
+func (t *testManagedPackage) CleanupOrphanedConfigMaps(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	t.Record("CleanupOrphanedConfigMaps", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"availableManagedClusterConnections": availableManagedClusterConnections})
+	return nil
+}
+
+func (t *testManagedPackage) CleanupOrphanedNamespaces(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, allvzSynMBs map[string]*types.SyntheticModelBinding) error {
+	t.Record("CleanupOrphanedNamespaces", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"availableManagedClusterConnections": availableManagedClusterConnections,
+		"allvzSynMBs":                        allvzSynMBs})
+	return nil
+}
+
+func (t *testManagedPackage) DeleteCustomResources(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	t.Record("DeleteCustomResources", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"availableManagedClusterConnections": availableManagedClusterConnections})
+	return nil
+}
+
+func (t *testManagedPackage) DeleteClusterRoleBindings(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
+	t.Record("DeleteClusterRoleBindings", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"availableManagedClusterConnections": availableManagedClusterConnections,
+		"bindingLabel":                       bindingLabel})
+	return nil
+}
+
+func (t *testManagedPackage) DeleteClusterRoles(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
+	t.Record("DeleteClusterRoles", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"availableManagedClusterConnections": availableManagedClusterConnections,
+		"bindingLabel":                       bindingLabel})
+	return nil
+}
+
+func (t *testManagedPackage) DeleteNamespaces(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, bindingLabel bool) error {
+	t.Record("DeleteNamespaces", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"availableManagedClusterConnections": availableManagedClusterConnections,
+		"bindingLabel":                       bindingLabel})
+	return nil
+}
+
+func (t *testManagedPackage) CleanupOrphanedServices(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	t.Record("CleanupOrphanedServices", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"availableManagedClusterConnections": availableManagedClusterConnections})
+	return nil
+}
+
+func (t *testManagedPackage) CleanupOrphanedDeployments(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	t.Record("CleanupOrphanedDeployments", map[string]interface{}{
+		"vzSynMB":                            vzSynMB,
+		"availableManagedClusterConnections": availableManagedClusterConnections})
+	return nil
+}
+
+func (t *testManagedPackage) DeleteServices(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	t.Record("DeleteServices", map[string]interface{}{
+		"vzSynMB":             vzSynMB,
+		"filteredConnections": filteredConnections})
+	return nil
+}
+
+func (t *testManagedPackage) DeleteDeployments(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
 	t.Record("DeleteDeployments", map[string]interface{}{
-		"mbPair":              mbPair,
+		"vzSynMB":             vzSynMB,
 		"filteredConnections": filteredConnections})
 	return nil
 }
@@ -808,9 +716,9 @@ func newTestUtil(expectations func(*testUtilPackage)) *testUtilPackage {
 	return t
 }
 
-func (u *testUtilPackage) GetManagedClustersForVerrazzanoBinding(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) (map[string]*util.ManagedClusterConnection, error) {
+func (u *testUtilPackage) GetManagedClustersForVerrazzanoBinding(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) (map[string]*util.ManagedClusterConnection, error) {
 	u.Record("GetManagedClustersForVerrazzanoBinding", map[string]interface{}{
-		"mbPair":                             mbPair,
+		"vzSynMB":                            vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections})
 	return map[string]*util.ManagedClusterConnection{testManagedCluster.Name: &testManagedClusterConnection}, nil
 }
@@ -836,7 +744,7 @@ func newTestLocal(expectations func(*testLocalPackage)) *testLocalPackage {
 	return t
 }
 
-func (l *testLocalPackage) DeleteVmi(binding *v1beta1.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
+func (l *testLocalPackage) DeleteVmi(binding *types.SyntheticBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister) error {
 	l.Record("DeleteVmi", map[string]interface{}{
 		"binding":      binding,
 		"vmoClientSet": vmoClientSet,
@@ -845,7 +753,7 @@ func (l *testLocalPackage) DeleteVmi(binding *v1beta1.VerrazzanoBinding, vmoClie
 	return nil
 }
 
-func (l *testLocalPackage) DeleteSecrets(binding *v1beta1.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
+func (l *testLocalPackage) DeleteSecrets(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister) error {
 	l.Record("DeleteSecrets", map[string]interface{}{
 		"binding":       binding,
 		"kubeClientSet": kubeClientSet,
@@ -854,7 +762,7 @@ func (l *testLocalPackage) DeleteSecrets(binding *v1beta1.VerrazzanoBinding, kub
 	return nil
 }
 
-func (l *testLocalPackage) DeleteConfigMaps(binding *v1beta1.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func (l *testLocalPackage) DeleteConfigMaps(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	l.Record("DeleteConfigMaps", map[string]interface{}{
 		"binding":         binding,
 		"kubeClientSet":   kubeClientSet,
@@ -863,7 +771,7 @@ func (l *testLocalPackage) DeleteConfigMaps(binding *v1beta1.VerrazzanoBinding, 
 	return nil
 }
 
-func (l *testLocalPackage) CreateUpdateVmi(binding *v1beta1.VerrazzanoBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
+func (l *testLocalPackage) CreateUpdateVmi(binding *types.SyntheticBinding, vmoClientSet vmoclientset.Interface, vmiLister vmolisters.VerrazzanoMonitoringInstanceLister, verrazzanoURI string, enableMonitoringStorage string) error {
 	l.Record("CreateUpdateVmi", map[string]interface{}{
 		"binding":                 binding,
 		"vmoClientSet":            vmoClientSet,
@@ -873,7 +781,7 @@ func (l *testLocalPackage) CreateUpdateVmi(binding *v1beta1.VerrazzanoBinding, v
 	return nil
 }
 
-func (l *testLocalPackage) UpdateConfigMaps(binding *v1beta1.VerrazzanoBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
+func (l *testLocalPackage) UpdateConfigMaps(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
 	l.Record("UpdateConfigMaps", map[string]interface{}{
 		"binding":         binding,
 		"kubeClientSet":   kubeClientSet,
@@ -881,7 +789,7 @@ func (l *testLocalPackage) UpdateConfigMaps(binding *v1beta1.VerrazzanoBinding, 
 	return nil
 }
 
-func (l *testLocalPackage) UpdateAcmeDNSSecret(binding *v1beta1.VerrazzanoBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
+func (l *testLocalPackage) UpdateAcmeDNSSecret(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, secretLister corev1listers.SecretLister, name string, verrazzanoURI string) error {
 	l.Record("UpdateAcmeDNSSecret", map[string]interface{}{
 		"binding":       binding,
 		"kubeClientSet": kubeClientSet,
@@ -911,7 +819,7 @@ func newTestMonitoring(expectations func(*testMonitoringPackage)) *testMonitorin
 	return t
 }
 
-func (m *testMonitoringPackage) CreateVmiSecrets(binding *v1beta1.VerrazzanoBinding, secrets monitoring.Secrets) error {
+func (m *testMonitoringPackage) CreateVmiSecrets(binding *types.SyntheticBinding, secrets monitoring.Secrets) error {
 	m.Record("CreateVmiSecrets", map[string]interface{}{
 		"binding": binding,
 		"secrets": secrets})
@@ -926,7 +834,7 @@ func (m *testMonitoringPackage) DeletePomPusher(binding string, helper util.Depl
 	return nil
 }
 
-func testExecuteCreateUpdateGlobaEntitiesGoroutine(binding *v1beta1.VerrazzanoBinding, c *Controller) {
+func testExecuteCreateUpdateGlobaEntitiesGoroutine(binding *types.SyntheticBinding, c *Controller) {
 	createUpdateGlobalEntities(binding, c)
 }
 

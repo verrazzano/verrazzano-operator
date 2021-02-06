@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package managed
@@ -20,18 +20,18 @@ import (
 )
 
 // CreateServices creates/updates services needed for each managed cluster.
-func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Debugf("Creating/updating Service for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CreateServices(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Debugf("Creating/updating Service for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// Construct services for each ManagedCluster
-	for clusterName, mc := range mbPair.ManagedClusters {
+	for clusterName, mc := range vzSynMB.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
 		var services []*corev1.Service
 		// Construct the set of expected Services
-		if mbPair.Binding.Name == constants.VmiSystemBindingName {
+		if vzSynMB.SynBinding.Name == constants.VmiSystemBindingName {
 			services = newServices(clusterName)
 		} else {
 			// Add services from genericComponents
@@ -63,15 +63,15 @@ func CreateServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 }
 
 // DeleteServices deletes services for a given binding.
-func DeleteServices(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Infof("Deleting Services for VerrazzanoBinding %s", mbPair.Binding.Name)
+func DeleteServices(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Infof("Deleting Services for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// Delete Services associated with the given VerrazzanoBinding (based on labels selectors)
 	for clusterName, managedClusterConnection := range filteredConnections {
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(util.GetManagedBindingLabels(mbPair.Binding, clusterName))
+		selector := labels.SelectorFromSet(util.GetManagedBindingLabels(vzSynMB.SynBinding, clusterName))
 
 		existingServiceList, err := managedClusterConnection.ServiceLister.List(selector)
 		if err != nil {
@@ -90,20 +90,20 @@ func DeleteServices(mbPair *types.ModelBindingPair, filteredConnections map[stri
 
 // CleanupOrphanedServices deletes services that have been orphaned.  Services can be orphaned when a binding
 // has been changed to not require a service or the service was moved to a different cluster.
-func CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Infof("Cleaning up orphaned Services for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CleanupOrphanedServices(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Infof("Cleaning up orphaned Services for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// Get the managed clusters that this binding applies to
-	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(vzSynMB, availableManagedClusterConnections)
 	if err != nil {
 		return nil
 	}
-	for clusterName, mc := range mbPair.ManagedClusters {
+	for clusterName, mc := range vzSynMB.ManagedClusters {
 		managedClusterConnection := matchedClusters[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.SynBinding.Name, constants.VerrazzanoCluster: clusterName})
 
 		// Get the set of expected Service names
 		var serviceNames []string
@@ -130,14 +130,14 @@ func CleanupOrphanedServices(mbPair *types.ModelBindingPair, availableManagedClu
 	}
 
 	// Get the managed clusters that this binding does NOT apply to
-	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(vzSynMB, availableManagedClusterConnections)
 
 	for clusterName, managedClusterConnection := range unmatchedClusters {
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
 		// Get rid of any Services with the specified binding
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.SynBinding.Name, constants.VerrazzanoCluster: clusterName})
 
 		// Get list of Services for this cluster and given binding
 		existingServiceList, err := managedClusterConnection.ServiceLister.List(selector)

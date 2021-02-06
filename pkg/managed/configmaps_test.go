@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package managed
 
@@ -10,18 +10,17 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestCreateConfigMaps(t *testing.T) {
 	assert := assert.New(t)
 
-	modelBindingPair := testutil.GetModelBindingPair()
+	SyntheticModelBinding := testutil.GetSyntheticModelBinding()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	err := CreateConfigMaps(modelBindingPair, clusterConnections)
+	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections)
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -39,11 +38,11 @@ func TestCreateConfigMaps(t *testing.T) {
 func TestCreateConfigMapsUpdateMap(t *testing.T) {
 	assert := assert.New(t)
 
-	modelBindingPair := testutil.GetModelBindingPair()
+	SyntheticModelBinding := testutil.GetSyntheticModelBinding()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	err := CreateConfigMaps(modelBindingPair, clusterConnections)
+	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections)
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -59,11 +58,11 @@ func TestCreateConfigMapsUpdateMap(t *testing.T) {
 	assert.Equal("", configmap.Data["biz"])
 
 	// update the config map in the binding
-	cm := modelBindingPair.ManagedClusters["cluster1"].ConfigMaps[0].Data
+	cm := SyntheticModelBinding.ManagedClusters["cluster1"].ConfigMaps[0].Data
 	cm["bar"] = "ddd"
 	cm["biz"] = "ccc"
 
-	err = CreateConfigMaps(modelBindingPair, clusterConnections)
+	err = CreateConfigMaps(SyntheticModelBinding, clusterConnections)
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -82,13 +81,13 @@ func TestCreateConfigMapsUpdateMap(t *testing.T) {
 func TestCreateConfigMapsVmiSystem(t *testing.T) {
 	assert := assert.New(t)
 
-	modelBindingPair := testutil.GetModelBindingPair()
+	SyntheticModelBinding := testutil.GetSyntheticModelBinding()
 	clusterConnections := testutil.GetManagedClusterConnections()
 	const clusterName = "cluster1"
 	clusterConnection := clusterConnections[clusterName]
 
-	modelBindingPair.Binding.Name = constants.VmiSystemBindingName
-	err := CreateConfigMaps(modelBindingPair, clusterConnections)
+	SyntheticModelBinding.SynBinding.Name = constants.VmiSystemBindingName
+	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections)
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -141,33 +140,4 @@ func TestCreateConfigMapsVmiSystem(t *testing.T) {
 	}
 	assert.Equal(monitoring.JournalbeatConfigData, cm.Data["journalbeat.yml"])
 	assert.Equal(journalbeatLabels, cm.Labels)
-}
-
-func TestCleanupOrphanedConfigMaps(t *testing.T) {
-	modelBindingPair := testutil.GetModelBindingPair()
-	clusterConnections := testutil.GetManagedClusterConnections()
-	clusterConnection := clusterConnections["cluster3"]
-
-	cm := v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "orphaned",
-			Namespace: "test",
-			Labels: map[string]string{
-				"verrazzano.binding": "testBinding",
-				"verrazzano.cluster": "cluster3",
-			},
-		},
-	}
-	_, err := clusterConnection.KubeClient.CoreV1().ConfigMaps("test").Create(context.TODO(), &cm, metav1.CreateOptions{})
-	if err != nil {
-		t.Fatalf("can't create config map: %v", err)
-	}
-	err = CleanupOrphanedConfigMaps(modelBindingPair, clusterConnections)
-	if err != nil {
-		t.Fatalf("can't cleanup config maps: %v", err)
-	}
-	_, err = clusterConnection.KubeClient.CoreV1().ConfigMaps("test").Get(context.TODO(), "orphaned", metav1.GetOptions{})
-	if err == nil {
-		t.Error("expected orphaned configmap to be cleaned up")
-	}
 }

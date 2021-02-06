@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package util
@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,7 +18,7 @@ import (
 func TestGetManagedBindingLabels(t *testing.T) {
 	assert := assert.New(t)
 	const bindingName = "testbinding"
-	binding := v1beta1v8o.VerrazzanoBinding{
+	binding := types.SyntheticBinding{
 		ObjectMeta: v1.ObjectMeta{
 			Name: bindingName,
 		},
@@ -57,7 +56,7 @@ func TestGetManagedLabelsNoBinding(t *testing.T) {
 func TestGetManagedNamespaceForBinding(t *testing.T) {
 	assert := assert.New(t)
 	const bindingName = "testbinding"
-	binding := v1beta1v8o.VerrazzanoBinding{
+	binding := types.SyntheticBinding{
 		ObjectMeta: v1.ObjectMeta{
 			Name: bindingName,
 		},
@@ -69,7 +68,7 @@ func TestGetManagedNamespaceForBinding(t *testing.T) {
 func TestGetLocalBindingLabels(t *testing.T) {
 	assert := assert.New(t)
 	const bindingName = "testbinding"
-	binding := v1beta1v8o.VerrazzanoBinding{
+	binding := types.SyntheticBinding{
 		ObjectMeta: v1.ObjectMeta{
 			Name: bindingName,
 		},
@@ -145,9 +144,8 @@ func TestGetManagedClustersForVerrazzanoBinding(t *testing.T) {
 	const cname1 = "cluster1"
 	const cname2 = "cluster2"
 
-	mbPair := types.ModelBindingPair{
-		Model:   &v1beta1v8o.VerrazzanoModel{},
-		Binding: &v1beta1v8o.VerrazzanoBinding{},
+	vzSynMB := types.SyntheticModelBinding{
+		SynBinding: &types.SyntheticBinding{},
 		ManagedClusters: map[string]*types.ManagedCluster{
 			cname1: {Name: cname1},
 		},
@@ -157,7 +155,7 @@ func TestGetManagedClustersForVerrazzanoBinding(t *testing.T) {
 		cname2: &mcc2,
 	}
 
-	results, err := GetManagedClustersForVerrazzanoBinding(&mbPair, mcMap)
+	results, err := GetManagedClustersForVerrazzanoBinding(&vzSynMB, mcMap)
 	assert.NoError(err, "Error calling GetManagedClustersForVerrazzanoBinding")
 	v, ok := results[cname1]
 	assert.True(ok, "Missing map entry returned by GetManagedClustersForVerrazzanoBinding")
@@ -173,9 +171,8 @@ func TestGetManagedClustersNotForVerrazzanoBinding(t *testing.T) {
 	const cname1 = "cluster1"
 	const cname2 = "cluster2"
 
-	mbPair := types.ModelBindingPair{
-		Model:   &v1beta1v8o.VerrazzanoModel{},
-		Binding: &v1beta1v8o.VerrazzanoBinding{},
+	vzSynMB := types.SyntheticModelBinding{
+		SynBinding: &types.SyntheticBinding{},
 		ManagedClusters: map[string]*types.ManagedCluster{
 			cname2: {Name: cname1},
 		},
@@ -184,71 +181,12 @@ func TestGetManagedClustersNotForVerrazzanoBinding(t *testing.T) {
 		cname1: &mcc1,
 		cname2: &mcc2,
 	}
-	results := GetManagedClustersNotForVerrazzanoBinding(&mbPair, mcMap)
+	results := GetManagedClustersNotForVerrazzanoBinding(&vzSynMB, mcMap)
 	v, ok := results[cname2]
 	assert.True(ok, "Missing map entry returned by GetManagedClustersForVerrazzanoBinding")
 	assert.Equal(&mcc2, v)
 	_, ok = results[cname1]
 	assert.False(ok, "Map returned by GetManagedClustersForVerrazzanoBinding should not contain entry")
-}
-
-func TestIsClusterInBinding(t *testing.T) {
-	assert := assert.New(t)
-	const cname1 = "cluster1"
-	const cname2 = "cluster2"
-	mbMap := map[string]*types.ModelBindingPair{
-		cname1: {
-			Binding: &v1beta1v8o.VerrazzanoBinding{
-				Spec: v1beta1v8o.VerrazzanoBindingSpec{
-					Placement: []v1beta1v8o.VerrazzanoPlacement{{Name: cname1}},
-				},
-				Status: v1beta1v8o.VerrazzanoBindingStatus{},
-			},
-		},
-	}
-	assert.True(IsClusterInBinding(cname1, mbMap))
-	assert.False(IsClusterInBinding(cname2, mbMap))
-}
-
-func TestGetComponentNamespace(t *testing.T) {
-	assert := assert.New(t)
-	const ns1 = "ns1"
-	const ns2 = "ns2"
-	const compname1 = "comp1"
-	const compname2 = "comp2"
-	const compname3 = "comp3"
-	binding := &v1beta1v8o.VerrazzanoBinding{
-		Spec: v1beta1v8o.VerrazzanoBindingSpec{
-			Placement: []v1beta1v8o.VerrazzanoPlacement{
-				{Namespaces: []v1beta1v8o.KubernetesNamespace{
-					{Name: ns1,
-						Components: []v1beta1v8o.BindingComponent{{
-							Name: compname1}},
-					},
-					{Name: ns2,
-						Components: []v1beta1v8o.BindingComponent{{
-							Name: compname2}},
-					},
-				}},
-			},
-		},
-		Status: v1beta1v8o.VerrazzanoBindingStatus{},
-	}
-	ns, err := GetComponentNamespace(compname1, binding)
-	assert.NoError(err, "Error finding component in GetComponentNamespace")
-	assert.Equal(ns1, ns)
-	ns, err = GetComponentNamespace(compname2, binding)
-	assert.NoError(err, "Error finding component in GetComponentNamespace")
-	assert.Equal(ns2, ns)
-	_, err = GetComponentNamespace(compname3, binding)
-	assert.Error(err, "Error finding component in GetComponentNamespace. Component should not be found")
-}
-
-func TestLoadManifest(t *testing.T) {
-	assert := assert.New(t)
-	manifest, err := LoadManifest()
-	assert.NotNil(manifest, "LoadManifiest returned nil")
-	assert.Error(err, "Error loading manifest")
 }
 
 func TestSharedVMIDefault(t *testing.T) {

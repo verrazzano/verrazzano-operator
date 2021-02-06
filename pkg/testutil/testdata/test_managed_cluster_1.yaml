@@ -1,4 +1,4 @@
-# Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 Name: cluster1
@@ -9,13 +9,6 @@ ConfigMaps:
     metadata:
       name: test-configmap
       namespace: test
-Ingresses:
-  test:
-    - Destination:
-        - DomainName: test.com
-          Host: testhost
-          Port: 8888
-      Name: test-ingress
 Namespaces:
   - default
   - test
@@ -42,61 +35,6 @@ RemoteRests:
       Port: 8183
       RemoteClusterName: cluster2
       RemoteNamespace: test3
-HelidonApps:
-  - metadata:
-      creationTimestamp: null
-    spec:
-      description: HelidonApp Deployed to ManagedCluster1
-      image: HelidonApp1:latest
-      imagePullPolicy: Always
-      name: HelidonApp1
-      namespace: defaultOnMC1
-      port: 8011
-      serviceAccountName: george
-      targetPort: 8001
-    status: {}
-CohOperatorCRs:
-  - metadata:
-      creationTimestamp: null
-      name: CohCluster1
-      namespace: test
-    spec:
-      description: Test Coh Cluster1
-      name: CohCluster1
-      namespace: test
-    status: {}
-WlsOperator:
-  metadata:
-    creationTimestamp: null
-    name: WlsOperator1
-    namespace: test
-  spec:
-    description: Test WLS Operator
-    image: WlsOperator1:latest
-    name: WlsOperator1
-    namespace: test
-    serviceAccount: test
-  status: {}
-WlsDomainCRs:
-  - metadata:
-      creationTimestamp: null
-      name: test-weblogic
-      namespace: test
-    spec:
-      configuration:
-        Model:
-          runtimeEncryptionSecret: test-wls-secret
-        secrets:
-          - arbitrary-secret-1
-          - arbitrary-secret-2
-    status: {}
-GenericComponents:
-  - name: test-generic
-    deployment:
-      replicas: 2
-      containers:
-        - image: generic-image:1.0
-          name: test-generic-image
 Deployments:
   - metadata:
       creationTimestamp: null
@@ -127,7 +65,7 @@ Deployments:
           initContainers:
             - image: generic-image:2.0
               name: test-generic-image2
-    status: {}
+    status: { }
 Services:
   - metadata:
       creationTimestamp: null
@@ -145,4 +83,4 @@ Services:
       selector:
         app: test-generic
       type: ClusterIP
-    status: {}
+    status: { }

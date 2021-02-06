@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Handles creation/deletion of deployments based, on a VerrazzanoBinding
@@ -9,15 +9,11 @@ import (
 	"context"
 	"errors"
 
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano-operator/pkg/cohoperator"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
-	"github.com/verrazzano/verrazzano-operator/pkg/helidonapp"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
-	"github.com/verrazzano/verrazzano-operator/pkg/wlsopr"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,25 +21,25 @@ import (
 )
 
 // CreateDeployments creates/updates deployments needed for each managed cluster.
-func CreateDeployments(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) error {
-	zap.S().Infof("Creating/updating Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CreateDeployments(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, sec monitoring.Secrets) error {
+	zap.S().Infof("Creating/updating Deployments for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// Construct deployments for each ManagedCluster
-	for clusterName, managedClusterObj := range mbPair.ManagedClusters {
+	for clusterName, managedClusterObj := range vzSynMB.ManagedClusters {
 		managedClusterConnection := filteredConnections[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
 		var deployments []*appsv1.Deployment
 		var err error
-		if mbPair.Binding.Name == constants.VmiSystemBindingName {
+		if vzSynMB.SynBinding.Name == constants.VmiSystemBindingName {
 			deployments, err = monitoring.GetSystemDeployments(clusterName, verrazzanoURI, util.GetManagedLabelsNoBinding(clusterName), sec)
 			if err != nil {
 				zap.S().Errorf("Error getting the monitoring system deployments %v", err)
 				continue
 			}
 		} else {
-			deployments, err = newSystemDeployments(mbPair.Binding, managedClusterObj, manifest, verrazzanoURI, sec)
+			deployments, err = newSystemDeployments(vzSynMB.SynBinding, managedClusterObj, verrazzanoURI, sec)
 			if err != nil {
 				zap.S().Errorf("Error creating new deployments %v", err)
 				continue
@@ -77,15 +73,15 @@ func CreateDeployments(mbPair *types.ModelBindingPair, filteredConnections map[s
 }
 
 // DeleteDeployments deletes deployments for a given binding.
-func DeleteDeployments(mbPair *types.ModelBindingPair, filteredConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Infof("Deleting Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
+func DeleteDeployments(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Infof("Deleting Deployments for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// Delete Deployments associated with the given VerrazzanoBinding (based on labels selectors)
 	for clusterName, managedClusterConnection := range filteredConnections {
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(util.GetManagedBindingLabels(mbPair.Binding, clusterName))
+		selector := labels.SelectorFromSet(util.GetManagedBindingLabels(vzSynMB.SynBinding, clusterName))
 
 		existingDeploymentList, err := managedClusterConnection.DeploymentLister.List(selector)
 		if err != nil {
@@ -104,21 +100,21 @@ func DeleteDeployments(mbPair *types.ModelBindingPair, filteredConnections map[s
 
 // CleanupOrphanedDeployments deletes deployments that have been orphaned.   Deployments can be orphaned when a binding
 // has been changed to not require a deployment or the deployment was moved to a different cluster.
-func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
-	zap.S().Infof("Cleaning up orphaned Deployments for VerrazzanoBinding %s", mbPair.Binding.Name)
+func CleanupOrphanedDeployments(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection) error {
+	zap.S().Infof("Cleaning up orphaned Deployments for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// Get the managed clusters that this binding applies to
-	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+	matchedClusters, err := util.GetManagedClustersForVerrazzanoBinding(vzSynMB, availableManagedClusterConnections)
 	if err != nil {
 		return nil
 	}
 
-	for clusterName, mc := range mbPair.ManagedClusters {
+	for clusterName, mc := range vzSynMB.ManagedClusters {
 		managedClusterConnection := matchedClusters[clusterName]
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.SynBinding.Name, constants.VerrazzanoCluster: clusterName})
 
 		// Get the set of expected Deployment names
 		var deploymentNames []string
@@ -145,14 +141,14 @@ func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManaged
 	}
 
 	// Get the managed clusters that this binding does NOT apply to
-	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(mbPair, availableManagedClusterConnections)
+	unmatchedClusters := util.GetManagedClustersNotForVerrazzanoBinding(vzSynMB, availableManagedClusterConnections)
 
 	for clusterName, managedClusterConnection := range unmatchedClusters {
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
 		// Get rid of any Deployments with the specified binding
-		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: mbPair.Binding.Name, constants.VerrazzanoCluster: clusterName})
+		selector := labels.SelectorFromSet(map[string]string{constants.VerrazzanoBinding: vzSynMB.SynBinding.Name, constants.VerrazzanoCluster: clusterName})
 
 		// Get list of Deployments for this cluster and given binding
 		existingDeploymentList, err := managedClusterConnection.DeploymentLister.List(selector)
@@ -174,30 +170,10 @@ func CleanupOrphanedDeployments(mbPair *types.ModelBindingPair, availableManaged
 }
 
 // Constructs the necessary Verrazzano system deployments for the specified ManagedCluster in the given VerrazzanoBinding
-func newSystemDeployments(binding *v1beta1v8o.VerrazzanoBinding, managedCluster *types.ManagedCluster, manifest *util.Manifest, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
-	managedNamespace := util.GetManagedClusterNamespaceForSystem()
+func newSystemDeployments(binding *types.SyntheticBinding, managedCluster *types.ManagedCluster, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
 	deployPromPusher := true //temporary variable to create pusher deployment
 	depLabels := util.GetManagedLabelsNoBinding(managedCluster.Name)
 	var deployments []*appsv1.Deployment
-
-	// Does a WebLogic application need to be deployed to this cluster?  If so, deploy the micro-operator that will manage it.
-	if managedCluster.WlsOperator != nil {
-		deployment := wlsopr.CreateDeployment(managedNamespace, binding.Name, depLabels, manifest.WlsMicroOperatorImage)
-		deployments = append(deployments, deployment)
-	}
-
-	// Does a Coherence applications need to be deployed to this cluster?  If so, deploy the micro-operator that will manage it.
-	if managedCluster.CohOperatorCRs != nil {
-		deployment := cohoperator.CreateDeployment(managedNamespace, binding.Name, depLabels, manifest.CohClusterOperatorImage)
-		deployments = append(deployments, deployment)
-	}
-
-	// Does a Helidon Application need to be deployed to this cluster?  If so, deploy the micro-operator that will manage it.
-	if managedCluster.HelidonApps != nil && manifest.HelidonAppOperatorImage != "" {
-		deployment := helidonapp.CreateAppOperatorDeployment(managedNamespace, depLabels,
-			manifest.HelidonAppOperatorImage, util.GetHelidonMicroRequestMemory())
-		deployments = append(deployments, deployment)
-	}
 
 	// Does a Prometheus pusher need to be deployed to this cluster?
 	if deployPromPusher == true {
