@@ -1,10 +1,11 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package monitoring
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/resources"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
@@ -18,13 +19,13 @@ import (
 
 // SystemDaemonSets create all the Daemon sets needed by Filebeats, Journalbeats, and NodeExporters
 // in all the managed clusters.
-func SystemDaemonSets(managedClusterName string, verrazzanoURI string) []*appsv1.DaemonSet {
+func SystemDaemonSets(managedClusterName string, verrazzanoURI string, containerRuntime string) []*appsv1.DaemonSet {
 	filebeatLabels := GetFilebeatLabels(managedClusterName)
 	journalbeatLabels := GetJournalbeatLabels(managedClusterName)
 	nodeExporterLabels := GetNodeExporterLabels(managedClusterName)
 	var daemonSets []*appsv1.DaemonSet
 
-	fileabeatDS, err := createFilebeatDaemonSet(constants.LoggingNamespace, constants.FilebeatName, filebeatLabels)
+	fileabeatDS, err := createFilebeatDaemonSet(constants.LoggingNamespace, constants.FilebeatName, filebeatLabels, containerRuntime)
 	if err != nil {
 		zap.S().Debugf("New Daemonset %s is giving error %s", constants.FilebeatName, err)
 	}
@@ -41,8 +42,12 @@ func SystemDaemonSets(managedClusterName string, verrazzanoURI string) []*appsv1
 	return daemonSets
 }
 
-func createFilebeatDaemonSet(namespace string, name string, labels map[string]string) (*appsv1.DaemonSet, error) {
+func createFilebeatDaemonSet(namespace string, name string, labels map[string]string, containerRuntime string) (*appsv1.DaemonSet, error) {
 
+	filebeatVolume := FilebeatVolumeDocker
+	if strings.HasPrefix(containerRuntime, ContainerdContainerRuntimePrefix) {
+		filebeatVolume = FilebeatVolumeContainerd
+	}
 	loggingDaemonSet := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -77,7 +82,7 @@ func createFilebeatDaemonSet(namespace string, name string, labels map[string]st
 							Name: "varlibdockercontainers",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/lib/docker/containers",
+									Path: filebeatVolume,
 								},
 							},
 						},

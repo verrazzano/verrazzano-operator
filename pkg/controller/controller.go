@@ -384,6 +384,9 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		// Add in the monitoring and logging namespace if not already added
 		mc.Namespaces = append(mc.Namespaces, constants.MonitoringNamespace, constants.LoggingNamespace)
 
+		// determine container runtime
+		containerRuntime := c.getContainerRuntime()
+
 		/*********************
 		 * Create Artifacts in the Managed SynModel
 		 **********************/
@@ -392,7 +395,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		c.startManagedClusterWatchers(managedCluster.Name, vzSynMB)
 
 		// Create all the components needed by logging and monitoring in managed clusters to push metrics and logs into System VMI in management cluster
-		c.createManagedClusterResourcesForBinding(vzSynMB)
+		c.createManagedClusterResourcesForBinding(vzSynMB, containerRuntime)
 
 		// Wait for the caches to be synced before starting workers
 		zap.S().Infow("Waiting for informer caches to sync")
@@ -421,7 +424,7 @@ func (c *Controller) updateIstioPolicies(vzSynMB *types.SyntheticModelBinding, p
 }
 
 // Create managed resources on clusters depending upon the binding
-func (c *Controller) createManagedClusterResourcesForBinding(vzSynMB *types.SyntheticModelBinding) {
+func (c *Controller) createManagedClusterResourcesForBinding(vzSynMB *types.SyntheticModelBinding, containerRuntime string) {
 	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(vzSynMB, c.managedClusterConnections)
 	if err != nil {
 		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", vzSynMB.SynBinding.Name, err)
@@ -446,7 +449,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(vzSynMB *types.Synt
 	}
 
 	// Create ConfigMaps
-	err = c.managed.CreateConfigMaps(vzSynMB, filteredConnections)
+	err = c.managed.CreateConfigMaps(vzSynMB, filteredConnections, containerRuntime)
 	if err != nil {
 		zap.S().Errorf("Failed to create config maps for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
@@ -476,7 +479,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(vzSynMB *types.Synt
 	}
 
 	// Create DaemonSets
-	err = c.managed.CreateDaemonSets(vzSynMB, filteredConnections, c.verrazzanoURI)
+	err = c.managed.CreateDaemonSets(vzSynMB, filteredConnections, c.verrazzanoURI, containerRuntime)
 
 	if err != nil {
 		zap.S().Errorf("Failed to create DaemonSets for binding %s: %v", vzSynMB.SynBinding.Name, err)
@@ -615,6 +618,9 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 		return
 	}
 
+	// determine container runtime
+	containerRuntime := c.getContainerRuntime()
+
 	/*********************
 	 * Create Artifacts in the Local SynModel
 	 **********************/
@@ -645,7 +651,7 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 	/*********************
 	 * Create Artifacts in the Managed SynModel
 	 **********************/
-	c.createManagedClusterResourcesForBinding(vzSynMB)
+	c.createManagedClusterResourcesForBinding(vzSynMB, containerRuntime)
 
 	// Cleanup any resources no longer needed
 	c.cleanupOrphanedResources(vzSynMB)
@@ -896,6 +902,29 @@ func (c *Controller) waitForManagedClusters(vzSynMB *types.SyntheticModelBinding
 
 }
 
+// getContainerRuntime obtains the container runtime implementation used in the cluster.
+// The returned value will be a string in the form of 'TYPE://VERSION'. If unable to obtain the
+// container runtime then "unknown' is returned.
+// Docker example: 'docker://19.3.11'
+// Containerd example: 'containerd://1.4.0'
+func (c *Controller) getContainerRuntime() string {
+	nodes, err := c.kubeClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if nodes.Size() == 0 {
+		zap.S().Warnf("Unable to determine container runtime because no nodes were returned.")
+		return "unknown"
+	}
+
+	if err != nil {
+		zap.S().Warnf("Unable to determine container runtime due to an error getting nodes: %v", err)
+		return "unknown"
+	}
+
+	containerRuntime := nodes.Items[0].Status.NodeInfo.ContainerRuntimeVersion
+	zap.S().Infof("Container runtime determined to be: %s", containerRuntime)
+
+	return containerRuntime
+}
+
 // Check if string is found in list
 func contains(list []string, s string) bool {
 	for _, v := range list {
@@ -923,7 +952,7 @@ type managedInterface interface {
 	CreateNamespaces(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets) error
 	CreateServiceAccounts(bindingName string, imagePullSecrets []corev1.LocalObjectReference, managedClusters map[string]*types.ManagedCluster, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
+	CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection, containerRuntime string) error
 	CreateClusterRoles(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateClusterRoleBindings(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateIngresses(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
@@ -932,7 +961,7 @@ type managedInterface interface {
 	CreateDeployments(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, sec v8omonitoring.Secrets) error
 	CreateCustomResources(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error
 	UpdateIstioPrometheusConfigMaps(vzSynMB *types.SyntheticModelBinding, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string) error
+	CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, containerRuntime string) error
 	CreateDestinationRules(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateAuthorizationPolicies(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CleanupOrphanedCustomResources(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error
@@ -975,8 +1004,8 @@ func (*managedPackage) CreateServiceAccounts(bindingName string, imagePullSecret
 	return v8omanaged.CreateServiceAccounts(bindingName, imagePullSecrets, managedClusters, filteredConnections)
 }
 
-func (*managedPackage) CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
-	return v8omanaged.CreateConfigMaps(vzSynMB, filteredConnections)
+func (*managedPackage) CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection, containerRuntime string) error {
+	return v8omanaged.CreateConfigMaps(vzSynMB, filteredConnections, containerRuntime)
 }
 
 func (*managedPackage) CreateClusterRoles(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
@@ -995,8 +1024,8 @@ func (*managedPackage) CreateDeployments(vzSynMB *types.SyntheticModelBinding, a
 	return v8omanaged.CreateDeployments(vzSynMB, availableManagedClusterConnections, verrazzanoURI, sec)
 }
 
-func (*managedPackage) CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string) error {
-	return v8omanaged.CreateDaemonSets(vzSynMB, availableManagedClusterConnections, verrazzanoURI)
+func (*managedPackage) CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, containerRuntime string) error {
+	return v8omanaged.CreateDaemonSets(vzSynMB, availableManagedClusterConnections, verrazzanoURI, containerRuntime)
 }
 
 func (*managedPackage) CleanupOrphanedClusterRoleBindings(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {

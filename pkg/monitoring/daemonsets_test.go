@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package monitoring
@@ -23,7 +23,7 @@ func TestCreateFilebeatDaemonSet(t *testing.T) {
 		constants.FilebeatName:     true,
 		constants.JournalbeatName:  true,
 		constants.NodeExporterName: true}
-	dsets := SystemDaemonSets(clusterName, uri)
+	dsets := SystemDaemonSets(clusterName, uri, "docker://19.3.11")
 	for _, v := range dsets {
 		switch v.Name {
 		case constants.FilebeatName:

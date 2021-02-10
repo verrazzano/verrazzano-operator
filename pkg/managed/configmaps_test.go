@@ -20,7 +20,7 @@ func TestCreateConfigMaps(t *testing.T) {
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections)
+	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections, "docker://19.3.11")
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestCreateConfigMapsUpdateMap(t *testing.T) {
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections)
+	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections, "docker://19.3.11")
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestCreateConfigMapsUpdateMap(t *testing.T) {
 	cm["bar"] = "ddd"
 	cm["biz"] = "ccc"
 
-	err = CreateConfigMaps(SyntheticModelBinding, clusterConnections)
+	err = CreateConfigMaps(SyntheticModelBinding, clusterConnections, "docker://19.3.11")
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestCreateConfigMapsVmiSystem(t *testing.T) {
 	clusterConnection := clusterConnections[clusterName]
 
 	SyntheticModelBinding.SynBinding.Name = constants.VmiSystemBindingName
-	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections)
+	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections, "docker://19.3.11")
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -116,14 +116,14 @@ func TestCreateConfigMapsVmiSystem(t *testing.T) {
 	if err != nil {
 		t.Errorf("can't get configmap: %v", err)
 	}
-	assert.Equal(monitoring.FilebeatConfigData, cm.Data["filebeat.yml"])
+	assert.Equal(monitoring.FilebeatConfigDataDocker, cm.Data["filebeat.yml"])
 	assert.Equal(filebeatLabels, cm.Labels)
 
 	cm, err = clusterConnection.KubeClient.CoreV1().ConfigMaps("logging").Get(context.TODO(), "filebeat-inputs", metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("can't get configmap: %v", err)
 	}
-	assert.Equal(monitoring.FilebeatInputData, cm.Data["kubernetes.yml"])
+	assert.Equal(monitoring.FilebeatInputDataDocker, cm.Data["kubernetes.yml"])
 	assert.Equal(filebeatLabels, cm.Labels)
 
 	cm, err = clusterConnection.KubeClient.CoreV1().ConfigMaps("logging").Get(context.TODO(), "journalbeat-index-config", metav1.GetOptions{})
