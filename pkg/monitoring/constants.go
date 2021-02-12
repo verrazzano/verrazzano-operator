@@ -1,10 +1,22 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package monitoring
 
-// FilebeatConfigData contains configuration used by Filebeats.
-const FilebeatConfigData = `filebeat.config:
+// DockerContainerRuntimePrefix is the Docker prefix used in the container runtime string.
+const DockerContainerRuntimePrefix = "docker://"
+
+// ContainerdContainerRuntimePrefix is the Containerd prefix used in the container runtime string.
+const ContainerdContainerRuntimePrefix = "containerd://"
+
+// FilebeatVolumeDocker is the logging volume when using Docker
+const FilebeatVolumeDocker = "/var/lib/docker/containers"
+
+// FilebeatVolumeContainerd is the logging volume when using Containerd
+const FilebeatVolumeContainerd = "/var/log/pods"
+
+// FilebeatConfigDataDocker contains configuration used by Filebeats with a Docker container runtime.
+const FilebeatConfigDataDocker = `filebeat.config:
   inputs:
     # Mounted filebeat-inputs configmap:
     path: ${path.config}/inputs.d/*.yml
@@ -25,6 +37,55 @@ filebeat.inputs:
 - type: docker
   containers.ids:
   - "*"
+  processors:
+  - decode_json_fields:
+      fields: ["message"]
+      process_array: false
+      max_depth: 1
+      target: ""
+      overwrite_keys: true
+  - rename:
+      fields:
+       - from: "level"
+         to: "log.level"
+       - from: "caller"
+         to: "log.caller"
+       - from: "message"
+         to: "log.message"
+      ignore_missing: true
+      fail_on_error: false
+  - add_kubernetes_metadata:
+      in_cluster: true
+setup.template.name: "vmo-local-filebeat"
+setup.template.enabled: true
+setup.template.overwrite: true
+setup.template.json.enabled: true
+setup.template.json.path: "/etc/filebeat/es-index-template.json"
+setup.template.json.name: "vmo-local-filebeat"
+setup.template.pattern: "vmo-local-filebeat-*"
+output.elasticsearch:
+  hosts: ${ES_URL}
+  username: ${ES_USER}
+  password: ${ES_PASSWORD}
+  index: ${INDEX_NAME}
+`
+
+// FilebeatConfigDataContainerd contains configuration used by Filebeats with a Containerd container runtime.
+const FilebeatConfigDataContainerd = `filebeat.config:
+  inputs:
+    # Mounted filebeat-inputs configmap:
+    path: ${path.config}/inputs.d/*.yml
+    # Reload inputs configs as they change:
+    reload.enabled: false
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    # Reload module configs as they change:
+    reload.enabled: false
+name: ${NODENAME}
+filebeat.inputs:
+- type: log
+  paths:
+    - /var/log/pods/**/*.log
   processors:
   - decode_json_fields:
       fields: ["message"]
@@ -79,13 +140,19 @@ output.elasticsearch:
   index: ${INDEX_NAME}
 `
 
-// FilebeatInputData contains configuration used as inputs for Filebeats.
-const FilebeatInputData = `- type: docker
+// FilebeatInputDataDocker contains configuration used as inputs for Filebeats when using Docker.
+const FilebeatInputDataDocker = `- type: docker
   containers.ids:
   - "*"
   processors:
     - add_kubernetes_metadata:
         in_cluster: true
+`
+
+// FilebeatInputDataContainerd contains configuration used as inputs for Filebeats when using Containerd.
+const FilebeatInputDataContainerd = `- type: log
+  paths:
+    - /var/log/pods/**/*.log
 `
 
 // FilebeatIndexTemplate contains Elasticsearch index template for Filebeats.

@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package monitoring
@@ -8,10 +8,11 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
 )
 
 // LoggingConfigMaps gets all the config maps needed by Filebeats and Journalbeats in all the managed cluster.
-func LoggingConfigMaps(managedClusterName string) []*corev1.ConfigMap {
+func LoggingConfigMaps(managedClusterName string, containerRuntime string) []*corev1.ConfigMap {
 	filebeatLabels := GetFilebeatLabels(managedClusterName)
 	journalbeatLabels := GetJournalbeatLabels(managedClusterName)
 	var configMaps []*corev1.ConfigMap
@@ -24,12 +25,19 @@ func LoggingConfigMaps(managedClusterName string) []*corev1.ConfigMap {
 	if err != nil {
 		zap.S().Debugf("New logging config map %s is giving error %s", filebeatindexconfig.Name, err)
 	}
-	filebeatconfig, err := createLoggingConfigMap(constants.LoggingNamespace, "filebeat-config", "filebeat.yml", FilebeatConfigData, filebeatLabels)
+
+	filebeatConfigData := FilebeatConfigDataDocker
+	filebeatInputData := FilebeatInputDataDocker
+	if strings.HasPrefix(containerRuntime, ContainerdContainerRuntimePrefix) {
+		filebeatConfigData = FilebeatConfigDataContainerd
+		filebeatInputData = FilebeatInputDataContainerd
+	}
+	filebeatconfig, err := createLoggingConfigMap(constants.LoggingNamespace, "filebeat-config", "filebeat.yml", filebeatConfigData, filebeatLabels)
 	if err != nil {
 		zap.S().Debugf("New logging config map %s is giving error %s", filebeatconfig.Name, err)
 	}
 	filebeatconfig.Data["es-index-template.json"] = FilebeatIndexTemplate
-	filebeatinput, err := createLoggingConfigMap(constants.LoggingNamespace, "filebeat-inputs", "kubernetes.yml", FilebeatInputData, filebeatLabels)
+	filebeatinput, err := createLoggingConfigMap(constants.LoggingNamespace, "filebeat-inputs", "kubernetes.yml", filebeatInputData, filebeatLabels)
 	if err != nil {
 		zap.S().Debugf("New logging config map %s is giving error %s", filebeatinput.Name, err)
 	}
