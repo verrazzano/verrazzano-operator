@@ -353,7 +353,9 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	vzSynMB := CreateSyntheticModelBinding(systemModel, systemBinding, c.verrazzanoURI, c.imagePullSecrets)
 
 	managedCluster := cluster.(*v1beta1v8o.VerrazzanoManagedCluster)
-	secret, err := c.secretLister.Secrets(managedCluster.Namespace).Get(managedCluster.Spec.KubeconfigSecret)
+
+	// The cache is not synced yet so use the kubeClientSet to get the secret
+	secret, err := c.kubeClientSet.CoreV1().Secrets(managedCluster.Namespace).Get(context.TODO(), managedCluster.Spec.KubeconfigSecret, metav1.GetOptions{})
 	if err != nil {
 		zap.S().Errorf("Can't find secret %s for ManagedCluster %s", managedCluster.Spec.KubeconfigSecret, managedCluster.Name)
 		return
@@ -369,6 +371,13 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		if err != nil {
 			zap.S().Error(err)
 			return
+		}
+
+		// Sync the cache so that resources (like secrets) are in the cache
+		zap.S().Infow("Waiting for informer caches to sync")
+		if ok := c.cache.WaitForCacheSync(c.stopCh, managedClusterConnection.DeploymentInformer.HasSynced,
+			managedClusterConnection.NamespaceInformer.HasSynced, managedClusterConnection.SecretInformer.HasSynced); !ok {
+			zap.S().Error(errors.New("failed to wait for caches to sync"))
 		}
 
 		c.managedClusterConnections[managedCluster.Name] = managedClusterConnection
@@ -396,13 +405,6 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 
 		// Create all the components needed by logging and monitoring in managed clusters to push metrics and logs into System VMI in management cluster
 		c.createManagedClusterResourcesForBinding(vzSynMB, containerRuntime)
-
-		// Wait for the caches to be synced before starting workers
-		zap.S().Infow("Waiting for informer caches to sync")
-		if ok := c.cache.WaitForCacheSync(c.stopCh, managedClusterConnection.DeploymentInformer.HasSynced,
-			managedClusterConnection.NamespaceInformer.HasSynced, managedClusterConnection.SecretInformer.HasSynced); !ok {
-			zap.S().Error(errors.New("failed to wait for caches to sync"))
-		}
 	}
 }
 
@@ -480,7 +482,6 @@ func (c *Controller) createManagedClusterResourcesForBinding(vzSynMB *types.Synt
 
 	// Create DaemonSets
 	err = c.managed.CreateDaemonSets(vzSynMB, filteredConnections, c.verrazzanoURI, containerRuntime)
-
 	if err != nil {
 		zap.S().Errorf("Failed to create DaemonSets for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
