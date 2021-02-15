@@ -58,14 +58,16 @@ func setupHTTPResolve(cfg *restclient.Config) error {
 		}
 		parsedHost := urlObj.Host
 		host := util.GetRancherHost()
-		if host != "" && host != parsedHost {
+		port := util.GetRancherPort()
+		zap.S().Debugf("resolve address: %s:%s \n", host, port)
+		if host != "" && port != "" && host != parsedHost {
 			dialer := &net.Dialer{
 				Timeout:   30 * time.Second,
 				KeepAlive: 30 * time.Second,
 			}
 			cfg.Dial = func(ctx context.Context, network, addr string) (net.Conn, error) {
 				if addr == parsedHost+":443" {
-					addr = host + ":443"
+					addr = host + ":" + port
 					zap.S().Debugf("address modified from %s to %s \n", parsedHost+":443", addr)
 				}
 				return dialer.DialContext(ctx, network, addr)
