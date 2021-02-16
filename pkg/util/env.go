@@ -155,7 +155,12 @@ func GetRancherURL() string {
 	return GetEnvFunc("rancherURL")
 }
 
-// GetRancherHost returns optional host name to use in host headers when accessing Rancher
+// GetRancherHost returns optional host to access Rancher
 func GetRancherHost() string {
 	return GetEnvFunc("rancherHost")
+}
+
+// GetRancherPort returns optional port to access Rancher
+func GetRancherPort() string {
+	return GetEnvFunc("rancherPort")
 }
