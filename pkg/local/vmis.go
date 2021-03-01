@@ -120,7 +120,7 @@ func createInstance(binding *types.SyntheticBinding, verrazzanoURI string, enabl
 			SecretsName:     constants.VmiSecretName,
 			CascadingDelete: true,
 			Grafana: vmov1.Grafana{
-				Enabled:             true,
+				Enabled:             util.GetGrafanaEnabled(),
 				Storage:             createStorageOption(util.GetGrafanaDataStorageSize(), enableMonitoringStorage),
 				DashboardsConfigMap: util.GetVmiNameForBinding(binding.Name) + "-dashboards",
 				Resources: vmov1.Resources{
@@ -129,14 +129,14 @@ func createInstance(binding *types.SyntheticBinding, verrazzanoURI string, enabl
 			},
 			IngressTargetDNSName: fmt.Sprintf("verrazzano-ingress.%s", verrazzanoURI),
 			Prometheus: vmov1.Prometheus{
-				Enabled: true,
+				Enabled: util.GetPrometheusEnabled(),
 				Storage: createStorageOption(util.GetPrometheusDataStorageSize(), enableMonitoringStorage),
 				Resources: vmov1.Resources{
 					RequestMemory: util.GetPrometheusRequestMemory(),
 				},
 			},
 			Elasticsearch: vmov1.Elasticsearch{
-				Enabled: true,
+				Enabled: util.GetElasticsearchEnabled(),
 				Storage: createStorageOption(util.GetElasticsearchDataStorageSize(), enableMonitoringStorage),
 				IngestNode: vmov1.ElasticsearchNode{
 					Replicas: util.GetElasticsearchIngestNodeReplicas(),
@@ -158,7 +158,7 @@ func createInstance(binding *types.SyntheticBinding, verrazzanoURI string, enabl
 				},
 			},
 			Kibana: vmov1.Kibana{
-				Enabled: true,
+				Enabled: util.GetKibanaEnabled(),
 				Resources: vmov1.Resources{
 					RequestMemory: util.GetKibanaRequestMemory(),
 				},

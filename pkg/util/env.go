@@ -24,21 +24,30 @@ const fluentdImage = "FLUENTD_IMAGE"
 const esMasterNodeRequestMemory = "ES_MASTER_NODE_REQUEST_MEMORY"
 const esIngestNodeRequestMemory = "ES_INGEST_NODE_REQUEST_MEMORY"
 const esDataNodeRequestMemory = "ES_DATA_NODE_REQUEST_MEMORY"
+const grafanaEnabled = "GRAFANA_ENABLED"
 const grafanaRequestMemory = "GRAFANA_REQUEST_MEMORY"
 const grafanaDataStorageSize = "GRAFANA_DATA_STORAGE"
+const promEnabled = "PROMETHEUS_ENABLED"
 const prometheusRequestMemory = "PROMETHEUS_REQUEST_MEMORY"
 const prometheusDataStorageSize = "PROMETHEUS_DATA_STORAGE"
+const kibanaEnabled = "KIBANA_ENABLED"
 const kibanaRequestMemory = "KIBANA_REQUEST_MEMORY"
 const esDataNodeReplicas = "ES_DATA_NODE_REPLICAS"
 const esIngestNodeReplicas = "ES_INGEST_NODE_REPLICAS"
 const esIngestNodeReplicasDefault = 1
 const esMasterNodeReplicas = "ES_MASTER_NODE_REPLICAS"
+const esEnabled = "ES_ENABLED"
 const esMasterNodeReplicasDefault = 3
 const esDataStorageSize = "ES_DATA_STORAGE"
 const esDataNodeReplicasDefault = 2
 
 const accessControlAllowOrigin = "ACCESS_CONTROL_ALLOW_ORIGIN"
 const sharedVMIDefault = "USE_SYSTEM_VMI"
+
+// GetPrometheusEnabled returns true if Prometheus is enabled for the install
+func GetPrometheusEnabled() bool {
+	return getBoolean(promEnabled)
+}
 
 // GetPromtheusPusherImage returns the Prometheus Pusher image.
 func GetPromtheusPusherImage() string {
@@ -70,6 +79,11 @@ func GetFluentdImage() string {
 	return GetEnvFunc(fluentdImage)
 }
 
+// GetElasticsearchEnabled returns true if Elasticsearch is enabled for the install
+func GetElasticsearchEnabled() bool {
+	return getBoolean(esEnabled)
+}
+
 // GetElasticsearchMasterNodeRequestMemory returns the Elasticsearch master memory request resource.
 func GetElasticsearchMasterNodeRequestMemory() string {
 	return GetEnvFunc(esMasterNodeRequestMemory)
@@ -88,6 +102,11 @@ func GetElasticsearchDataNodeRequestMemory() string {
 // GetElasticsearchDataStorageSize returns the Elasticsearch storage size request
 func GetElasticsearchDataStorageSize() string {
 	return GetEnvFunc(esDataStorageSize)
+}
+
+// GetGrafanaEnabled returns true if Grafana is enabled for the install
+func GetGrafanaEnabled() bool {
+	return getBoolean(grafanaEnabled)
 }
 
 // GetGrafanaRequestMemory returns the Grafana memory request resource.
@@ -115,6 +134,11 @@ func GetKibanaRequestMemory() string {
 	return GetEnvFunc(kibanaRequestMemory)
 }
 
+// GetKibanaEnabled returns true if Kibana is enabled for the install
+func GetKibanaEnabled() bool {
+	return getBoolean(kibanaEnabled)
+}
+
 // getEnvReplicaCount gets a replica count from the named env var, returning the provided default if not present
 func getEnvReplicaCount(envVarName string, defaultValue int32) int32 {
 	value := GetEnvFunc(envVarName)
@@ -127,6 +151,20 @@ func getEnvReplicaCount(envVarName string, defaultValue int32) int32 {
 		}
 	}
 	return defaultValue
+}
+
+// getBoolean returns the boolean value for an env var; if not set, false is returned
+func getBoolean(varName string) bool {
+	svalue, ok := LookupEnvFunc(varName)
+	if ok {
+		boolValue, err := strconv.ParseBool(svalue)
+		if err != nil {
+			zap.S().Errorf("Invalid boolean value for %s: %s", varName, svalue)
+			return false
+		}
+		return boolValue
+	}
+	return false
 }
 
 // GetElasticsearchMasterNodeReplicas returns the Elasticsearch master node replicas.
