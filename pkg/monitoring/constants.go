@@ -85,7 +85,7 @@ name: ${NODENAME}
 filebeat.inputs:
 - type: log
   paths:
-    - /var/log/pods/**/*.log
+    - /var/lib/docker/containers/**/*.log
   processors:
   - decode_json_fields:
       fields: ["message"]
@@ -152,7 +152,7 @@ const FilebeatInputDataDocker = `- type: docker
 // FilebeatInputDataContainerd contains configuration used as inputs for Filebeats when using Containerd.
 const FilebeatInputDataContainerd = `- type: log
   paths:
-    - /var/log/pods/**/*.log
+    - /var/lib/docker/containers/**/*.log
 `
 
 // FilebeatIndexTemplate contains Elasticsearch index template for Filebeats.
