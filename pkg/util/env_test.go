@@ -77,8 +77,8 @@ func TestGetEnvValues(t *testing.T) {
 		{name: esEnabled, value: "true", boolval: true, method: GetElasticsearchEnabled},
 		{name: esEnabled, value: "T", boolval: true, method: GetElasticsearchEnabled},
 		{name: esEnabled, value: "false", boolval: false, method: GetElasticsearchEnabled},
-		{name: esEnabled, value: "", boolval: false, method: GetElasticsearchEnabled},
-		{name: esEnabled, value: "goo", boolval: false, method: GetElasticsearchEnabled},
+		{name: esEnabled, value: "", boolval: true, method: GetElasticsearchEnabled},
+		{name: esEnabled, value: "goo", boolval: true, method: GetElasticsearchEnabled},
 		{name: promEnabled, value: "true", boolval: true, method: GetPrometheusEnabled},
 		{name: promEnabled, value: "false", boolval: false, method: GetPrometheusEnabled},
 		{name: kibanaEnabled, value: "true", boolval: true, method: GetKibanaEnabled},
@@ -132,10 +132,10 @@ func TestGetEnvReplicaCount(t *testing.T) {
 	}
 }
 
-// TestGetBooleanVarNotSet  tests getBoolean method
+// TestGetBooleanVarNotSet  tests getBoolean method default if the value is not set; we should return true by default
 // GIVEN a request to getBoolean
 // WHEN with an env var name that's not set
-// THEN false is returned
+// THEN True is returned
 func TestGetBooleanVarNotSet(t *testing.T) {
-	assert.False(t, getBoolean("notset"))
+	assert.True(t, getBoolean("notset"))
 }

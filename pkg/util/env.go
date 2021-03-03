@@ -160,11 +160,11 @@ func getBoolean(varName string) bool {
 		boolValue, err := strconv.ParseBool(svalue)
 		if err != nil {
 			zap.S().Errorf("Invalid boolean value for %s: %s", varName, svalue)
-			return false
+			return true
 		}
 		return boolValue
 	}
-	return false
+	return true
 }
 
 // GetElasticsearchMasterNodeReplicas returns the Elasticsearch master node replicas.
