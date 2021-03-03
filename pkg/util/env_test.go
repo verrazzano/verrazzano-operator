@@ -10,6 +10,10 @@ import (
 	"testing"
 )
 
+// TestGetEnvValues  tests the various GetXXX env var methods
+// GIVEN a request to get the requested Env value
+// WHEN valid and invalid values
+// THEN The expected value is returned when properly set
 func TestGetEnvValues(t *testing.T) {
 
 	const sizeValue = "1Gi"
@@ -33,6 +37,9 @@ func TestGetEnvValues(t *testing.T) {
 		{name: "KIBANA_REQUEST_MEMORY", value: sizeValue, method: GetKibanaRequestMemory},
 		{name: "ES_DATA_STORAGE", value: sizeValue, method: GetElasticsearchDataStorageSize},
 		{name: "ACCESS_CONTROL_ALLOW_ORIGIN", value: "foo", method: GetAccessControlAllowOrigin},
+		{name: "rancherURL", value: "https://my.rancher.host", method: GetRancherURL},
+		{name: "rancherHost", value: "my.rancher.host", method: GetRancherHost},
+		{name: "rancherPort", value: "443", method: GetRancherPort},
 	}
 
 	for _, tt := range testVars {
@@ -61,9 +68,38 @@ func TestGetEnvValues(t *testing.T) {
 		})
 	}
 
+	testBoolVars := []struct {
+		name    string
+		value   string
+		boolval bool
+		method  func() bool
+	}{
+		{name: esEnabled, value: "true", boolval: true, method: GetElasticsearchEnabled},
+		{name: esEnabled, value: "T", boolval: true, method: GetElasticsearchEnabled},
+		{name: esEnabled, value: "false", boolval: false, method: GetElasticsearchEnabled},
+		{name: esEnabled, value: "", boolval: false, method: GetElasticsearchEnabled},
+		{name: esEnabled, value: "goo", boolval: false, method: GetElasticsearchEnabled},
+		{name: promEnabled, value: "true", boolval: true, method: GetPrometheusEnabled},
+		{name: promEnabled, value: "false", boolval: false, method: GetPrometheusEnabled},
+		{name: kibanaEnabled, value: "true", boolval: true, method: GetKibanaEnabled},
+		{name: kibanaEnabled, value: "false", boolval: false, method: GetKibanaEnabled},
+		{name: grafanaEnabled, value: "true", boolval: true, method: GetGrafanaEnabled},
+		{name: grafanaEnabled, value: "false", boolval: false, method: GetGrafanaEnabled},
+	}
+	for _, tt := range testBoolVars {
+		t.Run(tt.name, func(t *testing.T) {
+			os.Setenv(tt.name, tt.value)
+			assert.Equal(t, tt.boolval, tt.method())
+			os.Unsetenv(tt.name)
+		})
+	}
 	assert.Equal(t, "container-registry.oracle.com/verrazzano/wl-frontend:324813", GetTestWlsFrontendImage())
 }
 
+// TestGetEnvReplicaCount  tests getEnvReplicaCount method
+// GIVEN a request to getEnvReplicaCount
+// WHEN valid and invalid values
+// THEN The expected value is returned when properly set, otherwise the default is returned
 func TestGetEnvReplicaCount(t *testing.T) {
 	getEnvReplicaCount("foo", 0)
 	tests := []struct {
@@ -94,4 +130,12 @@ func TestGetEnvReplicaCount(t *testing.T) {
 			assert.Equal(t, int32(expected), actual)
 		})
 	}
+}
+
+// TestGetBooleanVarNotSet  tests getBoolean method
+// GIVEN a request to getBoolean
+// WHEN with an env var name that's not set
+// THEN false is returned
+func TestGetBooleanVarNotSet(t *testing.T) {
+	assert.False(t, getBoolean("notset"))
 }
