@@ -396,6 +396,9 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		// determine container runtime
 		containerRuntime := c.getContainerRuntime()
 
+		// get managed cluster name
+		managedClusterName := c.getManagedClusterName()
+
 		/*********************
 		 * Create Artifacts in the Managed SynModel
 		 **********************/
@@ -404,7 +407,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		c.startManagedClusterWatchers(managedCluster.Name, vzSynMB)
 
 		// Create all the components needed by logging and monitoring in managed clusters to push metrics and logs into System VMI in management cluster
-		c.createManagedClusterResourcesForBinding(vzSynMB, containerRuntime)
+		c.createManagedClusterResourcesForBinding(vzSynMB, v8omonitoring.ClusterInfo{ContainerRuntime: containerRuntime, ManagedClusterName: managedClusterName})
 	}
 }
 
@@ -426,7 +429,7 @@ func (c *Controller) updateIstioPolicies(vzSynMB *types.SyntheticModelBinding, p
 }
 
 // Create managed resources on clusters depending upon the binding
-func (c *Controller) createManagedClusterResourcesForBinding(vzSynMB *types.SyntheticModelBinding, containerRuntime string) {
+func (c *Controller) createManagedClusterResourcesForBinding(vzSynMB *types.SyntheticModelBinding, clusterInfo v8omonitoring.ClusterInfo) {
 	filteredConnections, err := c.util.GetManagedClustersForVerrazzanoBinding(vzSynMB, c.managedClusterConnections)
 	if err != nil {
 		zap.S().Errorf("Failed to get filtered connections for binding %s: %v", vzSynMB.SynBinding.Name, err)
@@ -451,7 +454,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(vzSynMB *types.Synt
 	}
 
 	// Create ConfigMaps
-	err = c.managed.CreateConfigMaps(vzSynMB, filteredConnections, containerRuntime)
+	err = c.managed.CreateConfigMaps(vzSynMB, filteredConnections, clusterInfo)
 	if err != nil {
 		zap.S().Errorf("Failed to create config maps for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
@@ -481,7 +484,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(vzSynMB *types.Synt
 	}
 
 	// Create DaemonSets
-	err = c.managed.CreateDaemonSets(vzSynMB, filteredConnections, c.verrazzanoURI, containerRuntime)
+	err = c.managed.CreateDaemonSets(vzSynMB, filteredConnections, c.verrazzanoURI, clusterInfo)
 	if err != nil {
 		zap.S().Errorf("Failed to create DaemonSets for binding %s: %v", vzSynMB.SynBinding.Name, err)
 	}
@@ -622,6 +625,9 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 	// determine container runtime
 	containerRuntime := c.getContainerRuntime()
 
+	// get managed cluster name
+	managedClusterName := c.getManagedClusterName()
+
 	/*********************
 	 * Create Artifacts in the Local SynModel
 	 **********************/
@@ -652,7 +658,7 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 	/*********************
 	 * Create Artifacts in the Managed SynModel
 	 **********************/
-	c.createManagedClusterResourcesForBinding(vzSynMB, containerRuntime)
+	c.createManagedClusterResourcesForBinding(vzSynMB, v8omonitoring.ClusterInfo{ContainerRuntime: containerRuntime, ManagedClusterName: managedClusterName})
 
 	// Cleanup any resources no longer needed
 	c.cleanupOrphanedResources(vzSynMB)
@@ -953,7 +959,7 @@ type managedInterface interface {
 	CreateNamespaces(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets) error
 	CreateServiceAccounts(bindingName string, imagePullSecrets []corev1.LocalObjectReference, managedClusters map[string]*types.ManagedCluster, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection, containerRuntime string) error
+	CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection, clusterInfo v8omonitoring.ClusterInfo) error
 	CreateClusterRoles(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateClusterRoleBindings(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateIngresses(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
@@ -962,7 +968,7 @@ type managedInterface interface {
 	CreateDeployments(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, sec v8omonitoring.Secrets) error
 	CreateCustomResources(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error
 	UpdateIstioPrometheusConfigMaps(vzSynMB *types.SyntheticModelBinding, secretLister corev1listers.SecretLister, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, containerRuntime string) error
+	CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, clusterInfo v8omonitoring.ClusterInfo) error
 	CreateDestinationRules(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateAuthorizationPolicies(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CleanupOrphanedCustomResources(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, stopCh <-chan struct{}) error
@@ -1005,8 +1011,8 @@ func (*managedPackage) CreateServiceAccounts(bindingName string, imagePullSecret
 	return v8omanaged.CreateServiceAccounts(bindingName, imagePullSecrets, managedClusters, filteredConnections)
 }
 
-func (*managedPackage) CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection, containerRuntime string) error {
-	return v8omanaged.CreateConfigMaps(vzSynMB, filteredConnections, containerRuntime)
+func (*managedPackage) CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection, clusterInfo v8omonitoring.ClusterInfo) error {
+	return v8omanaged.CreateConfigMaps(vzSynMB, filteredConnections, clusterInfo)
 }
 
 func (*managedPackage) CreateClusterRoles(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
@@ -1025,8 +1031,8 @@ func (*managedPackage) CreateDeployments(vzSynMB *types.SyntheticModelBinding, a
 	return v8omanaged.CreateDeployments(vzSynMB, availableManagedClusterConnections, verrazzanoURI, sec)
 }
 
-func (*managedPackage) CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, containerRuntime string) error {
-	return v8omanaged.CreateDaemonSets(vzSynMB, availableManagedClusterConnections, verrazzanoURI, containerRuntime)
+func (*managedPackage) CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, verrazzanoURI string, clusterInfo v8omonitoring.ClusterInfo) error {
+	return v8omanaged.CreateDaemonSets(vzSynMB, availableManagedClusterConnections, verrazzanoURI, clusterInfo)
 }
 
 func (*managedPackage) CleanupOrphanedClusterRoleBindings(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection) error {
@@ -1164,4 +1170,19 @@ func (m *monitoringPackage) CreateVmiSecrets(binding *types.SyntheticBinding, se
 
 func (m *monitoringPackage) DeletePomPusher(binding string, helper v8outil.DeploymentHelper) error {
 	return v8omonitoring.DeletePomPusher(binding, helper)
+}
+
+// MCRegistrationSecret - the name of the secret that contains the cluster registration information
+const MCRegistrationSecret = "verrazzano-cluster"
+
+// ClusterNameData - the field name in MCRegistrationSecret that contains this managed cluster's name
+const ClusterNameData = "managed-cluster-name"
+
+// getManagedClusterName returns the cluster name for a managed cluster, empty string otherwise
+func (c *Controller) getManagedClusterName() string {
+	clusterSecret, err := c.secrets.Get(MCRegistrationSecret)
+	if err != nil {
+		return ""
+	}
+	return string(clusterSecret.Data[ClusterNameData])
 }

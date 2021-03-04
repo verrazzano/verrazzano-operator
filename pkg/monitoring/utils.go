@@ -5,6 +5,7 @@ package monitoring
 
 import (
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
+	"strings"
 )
 
 // GetMonitoringComponentLabels returns labels for a given monitoring component.
@@ -52,4 +53,31 @@ func GetJournalbeatLabels(managedClusterName string) map[string]string {
 // GetNodeExporterLabels returns labels for Node Exporter.
 func GetNodeExporterLabels(managedClusterName string) map[string]string {
 	return map[string]string{constants.ServiceAppLabel: constants.NodeExporterName, constants.VerrazzanoBinding: constants.VmiSystemBindingName, constants.VerrazzanoCluster: managedClusterName}
+}
+
+// ClusterInfo has info like ContainerRuntime and managed cluster name
+type ClusterInfo struct {
+	ContainerRuntime   string
+	ManagedClusterName string
+}
+
+func getFilebeatConfig(clusterInfo ClusterInfo) string {
+	if strings.HasPrefix(clusterInfo.ContainerRuntime, ContainerdContainerRuntimePrefix) {
+		return FilebeatConfigDataContainerd
+	}
+	return FilebeatConfigDataDocker
+}
+
+func getFilebeatInput(clusterInfo ClusterInfo) string {
+	if strings.HasPrefix(clusterInfo.ContainerRuntime, ContainerdContainerRuntimePrefix) {
+		return FilebeatInputDataContainerd
+	}
+	return FilebeatInputDataDocker
+}
+
+func getFilebeatLogHostPath(clusterInfo ClusterInfo) string {
+	if strings.HasPrefix(clusterInfo.ContainerRuntime, ContainerdContainerRuntimePrefix) {
+		return FilebeatLogHostPathContainerd
+	}
+	return FilebeatLogHostPathDocker
 }

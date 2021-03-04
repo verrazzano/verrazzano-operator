@@ -19,6 +19,9 @@ import (
 const verrazzanoURI = "test"
 const clusterName1 = "cluster1"
 
+var clusterInfoDocker = monitoring.ClusterInfo{ContainerRuntime: "docker://19.3.11"}
+var clusterInfoContainerd = monitoring.ClusterInfo{ContainerRuntime: "containerd://1.4.0"}
+
 // TestCreateDaemonSetsVmiSystem tests the creation of daemon sets when the binding name is 'system' and the container
 // runtime is Docker.
 // GIVEN a cluster which does not have any daemon sets
@@ -33,11 +36,11 @@ func TestCreateDaemonSetsVmiSystem(t *testing.T) {
 
 	VzSystemInfo.SynBinding.Name = constants.VmiSystemBindingName
 
-	err := CreateDaemonSets(VzSystemInfo, clusterConnections, verrazzanoURI, "docker://19.3.11")
+	err := CreateDaemonSets(VzSystemInfo, clusterConnections, verrazzanoURI, clusterInfoDocker)
 	assert.Nil(err, "got an error from CreateDaemonSets: %v", err)
 
 	// assert that the daemon sets in the given cluster match the expected daemon sets
-	assertExpectedDaemonSets(t, clusterConnection, monitoring.SystemDaemonSets(clusterName1, verrazzanoURI, "docker://19.3.11"))
+	assertExpectedDaemonSets(t, clusterConnection, monitoring.SystemDaemonSets(clusterName1, verrazzanoURI, clusterInfoDocker))
 }
 
 // TestCreateDaemonSetsVmiSystem tests the creation of daemon sets when the binding name is 'system' and the container
@@ -54,11 +57,11 @@ func TestCreateDaemonSetsVmiSystemContainerd(t *testing.T) {
 
 	VzSystemInfo.SynBinding.Name = constants.VmiSystemBindingName
 
-	err := CreateDaemonSets(VzSystemInfo, clusterConnections, verrazzanoURI, "containerd://1.4.0")
+	err := CreateDaemonSets(VzSystemInfo, clusterConnections, verrazzanoURI, clusterInfoContainerd)
 	assert.Nil(err, "got an error from CreateDaemonSets: %v", err)
 
 	// assert that the daemon sets in the given cluster match the expected daemon sets
-	assertExpectedDaemonSets(t, clusterConnection, monitoring.SystemDaemonSets(clusterName1, verrazzanoURI, "containerd://1.4.0"))
+	assertExpectedDaemonSets(t, clusterConnection, monitoring.SystemDaemonSets(clusterName1, verrazzanoURI, clusterInfoContainerd))
 }
 
 // TestCreateDaemonSetsUpdateExistingSet tests that an existing daemon set will be properly updated
@@ -84,11 +87,11 @@ func TestCreateDaemonSetsUpdateExistingSet(t *testing.T) {
 	_, err := clusterConnection.KubeClient.AppsV1().DaemonSets("logging").Create(context.TODO(), &ds, metav1.CreateOptions{})
 	assert.Nil(err, "can't create daemon sets: %v", err)
 
-	err = CreateDaemonSets(VzSystemInfo, clusterConnections, verrazzanoURI, "docker://19.3.11")
+	err = CreateDaemonSets(VzSystemInfo, clusterConnections, verrazzanoURI, clusterInfoDocker)
 	assert.Nil(err, "got an error from CreateDaemonSets: %v", err)
 
 	// assert that the daemon sets in the given cluster match the expected daemon sets
-	assertExpectedDaemonSets(t, clusterConnection, monitoring.SystemDaemonSets(clusterName1, verrazzanoURI, "docker://19.3.11"))
+	assertExpectedDaemonSets(t, clusterConnection, monitoring.SystemDaemonSets(clusterName1, verrazzanoURI, clusterInfoDocker))
 }
 
 // assertExpectedDaemonSets asserts that the daemon sets in the given cluster match the expected daemon sets

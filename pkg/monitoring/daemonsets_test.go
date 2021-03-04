@@ -23,7 +23,7 @@ func TestCreateFilebeatDaemonSet(t *testing.T) {
 		constants.FilebeatName:     true,
 		constants.JournalbeatName:  true,
 		constants.NodeExporterName: true}
-	dsets := SystemDaemonSets(clusterName, uri, "docker://19.3.11")
+	dsets := SystemDaemonSets(clusterName, uri, clusterInfoContainerd)
 	for _, v := range dsets {
 		switch v.Name {
 		case constants.FilebeatName:
@@ -62,7 +62,7 @@ func validateFilebeatDaemonset(assert *assert.Assertions, v appsv1.DaemonSet, cl
 	assert.Equal(int32(0600), *v.Spec.Template.Spec.Volumes[0].VolumeSource.ConfigMap.DefaultMode)
 
 	assert.Equal("varlibdockercontainers", v.Spec.Template.Spec.Volumes[1].Name)
-	assert.Equal("/var/lib/docker/containers", v.Spec.Template.Spec.Volumes[1].VolumeSource.HostPath.Path)
+	assert.Equal(FilebeatLogHostPathContainerd, v.Spec.Template.Spec.Volumes[1].VolumeSource.HostPath.Path)
 
 	assert.Equal("data", v.Spec.Template.Spec.Volumes[2].Name)
 	assert.Equal("/var/lib/filebeat-data", v.Spec.Template.Spec.Volumes[2].VolumeSource.HostPath.Path)

@@ -62,6 +62,8 @@ var testNode = v1.Node{Status: v1.NodeStatus{NodeInfo: v1.NodeSystemInfo{Contain
 var testNodes = []v1.Node{testNode}
 var testNodeList = v1.NodeList{Items: testNodes}
 
+var clusterInfoDocker = monitoring.ClusterInfo{ContainerRuntime: "docker://19.3.11"}
+
 // TestNewController tests creation of a Controller from kubeconfig.
 // This test mocks reading of the kubeconfig file
 // GIVEN a kubeconfig
@@ -130,12 +132,12 @@ func TestProcessManagedCluster(t *testing.T) {
 	managedMock.CreateNamespaces(vzSynMB, testFilteredConnections)
 	managedMock.CreateSecrets(vzSynMB, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
 	managedMock.CreateServiceAccounts(vzSynMB.SynBinding.Name, vzSynMB.ImagePullSecrets, vzSynMB.ManagedClusters, testFilteredConnections)
-	managedMock.CreateConfigMaps(vzSynMB, testFilteredConnections, "docker://19.3.11")
+	managedMock.CreateConfigMaps(vzSynMB, testFilteredConnections, clusterInfoDocker)
 	managedMock.CreateClusterRoles(vzSynMB, testFilteredConnections)
 	managedMock.CreateClusterRoleBindings(vzSynMB, testFilteredConnections)
 	managedMock.CreateServices(vzSynMB, testFilteredConnections)
 	managedMock.CreateDeployments(vzSynMB, controller.managedClusterConnections, controller.verrazzanoURI, controller.secrets)
-	managedMock.CreateDaemonSets(vzSynMB, controller.managedClusterConnections, controller.verrazzanoURI, "docker://19.3.11")
+	managedMock.CreateDaemonSets(vzSynMB, controller.managedClusterConnections, controller.verrazzanoURI, clusterInfoDocker)
 	managedMock.SetupComplete()
 
 	// record expected 'util' interactions
@@ -240,12 +242,12 @@ func TestProcessApplicationBindingAdded(t *testing.T) {
 	managedMock.CreateNamespaces(SyntheticModelBinding, testFilteredConnections)
 	managedMock.CreateSecrets(SyntheticModelBinding, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
 	managedMock.CreateServiceAccounts(SyntheticModelBinding.SynBinding.Name, SyntheticModelBinding.ImagePullSecrets, SyntheticModelBinding.ManagedClusters, testFilteredConnections)
-	managedMock.CreateConfigMaps(SyntheticModelBinding, testFilteredConnections, "docker://19.3.11")
+	managedMock.CreateConfigMaps(SyntheticModelBinding, testFilteredConnections, clusterInfoDocker)
 	managedMock.CreateClusterRoles(SyntheticModelBinding, testFilteredConnections)
 	managedMock.CreateClusterRoleBindings(SyntheticModelBinding, testFilteredConnections)
 	managedMock.CreateServices(SyntheticModelBinding, testFilteredConnections)
 	managedMock.CreateDeployments(SyntheticModelBinding, testFilteredConnections, controller.verrazzanoURI, controller.secrets)
-	managedMock.CreateDaemonSets(SyntheticModelBinding, testFilteredConnections, controller.verrazzanoURI, "docker://19.3.11")
+	managedMock.CreateDaemonSets(SyntheticModelBinding, testFilteredConnections, controller.verrazzanoURI, clusterInfoDocker)
 	managedMock.SetupComplete()
 
 	localMock := controller.local.(*testLocalPackage)
@@ -478,11 +480,11 @@ func (t *testManagedPackage) CreateServiceAccounts(bindingName string, imagePull
 	return nil
 }
 
-func (t *testManagedPackage) CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection, containerRuntime string) error {
+func (t *testManagedPackage) CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection, clusterInfo monitoring.ClusterInfo) error {
 	t.Record("CreateConfigMaps", map[string]interface{}{
 		"vzSynMB":             vzSynMB,
 		"filteredConnections": filteredConnections,
-		"containerRuntime":    containerRuntime})
+		"containerRuntime":    clusterInfo})
 	return nil
 }
 
@@ -545,12 +547,12 @@ func (t *testManagedPackage) UpdateIstioPrometheusConfigMaps(vzSynMB *types.Synt
 	return nil
 }
 
-func (t *testManagedPackage) CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, containerRuntime string) error {
+func (t *testManagedPackage) CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, clusterInfo monitoring.ClusterInfo) error {
 	t.Record("CreateDaemonSets", map[string]interface{}{
 		"vzSynMB":                            vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
 		"verrazzanoURI":                      verrazzanoURI,
-		"containerRuntime":                   containerRuntime})
+		"containerRuntime":                   clusterInfo})
 	return nil
 }
 

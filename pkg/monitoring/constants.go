@@ -9,11 +9,11 @@ const DockerContainerRuntimePrefix = "docker://"
 // ContainerdContainerRuntimePrefix is the Containerd prefix used in the container runtime string.
 const ContainerdContainerRuntimePrefix = "containerd://"
 
-// FilebeatVolumeDocker is the logging volume when using Docker
-const FilebeatVolumeDocker = "/var/lib/docker/containers"
+// FilebeatLogHostPathDocker is the logging volume when using Docker
+const FilebeatLogHostPathDocker = "/var/lib/docker/containers"
 
-// FilebeatVolumeContainerd is the logging volume when using Containerd
-const FilebeatVolumeContainerd = "/var/log/pods"
+// FilebeatLogHostPathContainerd is the logging volume when using Containerd
+const FilebeatLogHostPathContainerd = "/var/log/pods"
 
 // FilebeatConfigDataDocker contains configuration used by Filebeats with a Docker container runtime.
 const FilebeatConfigDataDocker = `filebeat.config:

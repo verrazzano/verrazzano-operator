@@ -18,7 +18,7 @@ import (
 )
 
 // CreateConfigMaps creates/updates config maps needed for each managed cluster.
-func CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection, containerRuntime string) error {
+func CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection, clusterInfo monitoring.ClusterInfo) error {
 	zap.S().Debugf("Creating/updating ConfigMap for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	for clusterName, managedClusterObj := range vzSynMB.ManagedClusters {
@@ -27,7 +27,7 @@ func CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections 
 		defer managedClusterConnection.Lock.RUnlock()
 
 		if vzSynMB.SynBinding.Name == constants.VmiSystemBindingName {
-			newConfigMaps, err := newConfigMaps(vzSynMB.SynBinding.Name, clusterName, containerRuntime)
+			newConfigMaps, err := newConfigMaps(vzSynMB.SynBinding.Name, clusterName, clusterInfo)
 			if err != nil {
 				return err
 			}
@@ -102,9 +102,9 @@ func CleanupOrphanedConfigMaps(vzSynMB *types.SyntheticModelBinding, availableMa
 }
 
 // Constructs the necessary ConfigMaps for the specified ManagedCluster in the given VerrazzanoBinding
-func newConfigMaps(bindingName string, managedClusterName string, containerRuntime string) ([]*corev1.ConfigMap, error) {
+func newConfigMaps(bindingName string, managedClusterName string, clusterInfo monitoring.ClusterInfo) ([]*corev1.ConfigMap, error) {
 	var configMaps []*corev1.ConfigMap
-	configMapsLogging := monitoring.LoggingConfigMaps(managedClusterName, containerRuntime)
+	configMapsLogging := monitoring.LoggingConfigMaps(managedClusterName, clusterInfo)
 	for _, configMap := range configMapsLogging {
 		configMaps = append(configMaps, configMap)
 	}
