@@ -25,7 +25,7 @@ const wlsRuntimeEncryptionSecret = "wlsRuntimeEncryptionSecret"
 // CreateSecrets will go through a SyntheticModelBinding and find all of the secrets that are needed by
 // components, and it will then check if those secrets exist in the correct namespaces and clusters,
 // and then update or create them as needed
-func CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets) error {
+func CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets, clusterInfo monitoring.ClusterInfo) error {
 	zap.S().Debugf("Creating/updating Secrets for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	filteredConnections, err := GetFilteredConnections(vzSynMB, availableManagedClusterConnections)

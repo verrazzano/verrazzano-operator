@@ -5,6 +5,8 @@ package controller
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
@@ -23,7 +25,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllertest"
-	"testing"
 )
 
 var testClusterName = "test-cluster"
@@ -130,7 +131,7 @@ func TestProcessManagedCluster(t *testing.T) {
 	managedMock := controller.managed.(*testManagedPackage)
 	managedMock.BuildManagedClusterConnection(testSecretData, controller.stopCh)
 	managedMock.CreateNamespaces(vzSynMB, testFilteredConnections)
-	managedMock.CreateSecrets(vzSynMB, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
+	managedMock.CreateSecrets(vzSynMB, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets, clusterInfoDocker)
 	managedMock.CreateServiceAccounts(vzSynMB.SynBinding.Name, vzSynMB.ImagePullSecrets, vzSynMB.ManagedClusters, testFilteredConnections)
 	managedMock.CreateConfigMaps(vzSynMB, testFilteredConnections, clusterInfoDocker)
 	managedMock.CreateClusterRoles(vzSynMB, testFilteredConnections)
@@ -240,7 +241,7 @@ func TestProcessApplicationBindingAdded(t *testing.T) {
 	// record expected 'managed' interactions
 	managedMock := controller.managed.(*testManagedPackage)
 	managedMock.CreateNamespaces(SyntheticModelBinding, testFilteredConnections)
-	managedMock.CreateSecrets(SyntheticModelBinding, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
+	managedMock.CreateSecrets(SyntheticModelBinding, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets, clusterInfoDocker)
 	managedMock.CreateServiceAccounts(SyntheticModelBinding.SynBinding.Name, SyntheticModelBinding.ImagePullSecrets, SyntheticModelBinding.ManagedClusters, testFilteredConnections)
 	managedMock.CreateConfigMaps(SyntheticModelBinding, testFilteredConnections, clusterInfoDocker)
 	managedMock.CreateClusterRoles(SyntheticModelBinding, testFilteredConnections)
@@ -462,7 +463,7 @@ func (t *testManagedPackage) CreateNamespaces(vzSynMB *types.SyntheticModelBindi
 	return nil
 }
 
-func (t *testManagedPackage) CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets) error {
+func (t *testManagedPackage) CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets, clusterInfo monitoring.ClusterInfo) error {
 	t.Record("CreateSecrets", map[string]interface{}{
 		"vzSynMB":                            vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
@@ -484,7 +485,7 @@ func (t *testManagedPackage) CreateConfigMaps(vzSynMB *types.SyntheticModelBindi
 	t.Record("CreateConfigMaps", map[string]interface{}{
 		"vzSynMB":             vzSynMB,
 		"filteredConnections": filteredConnections,
-		"containerRuntime":    clusterInfo})
+		"clusterInfo":         clusterInfo})
 	return nil
 }
 
@@ -552,7 +553,7 @@ func (t *testManagedPackage) CreateDaemonSets(vzSynMB *types.SyntheticModelBindi
 		"vzSynMB":                            vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
 		"verrazzanoURI":                      verrazzanoURI,
-		"containerRuntime":                   clusterInfo})
+		"clusterInfo":                        clusterInfo})
 	return nil
 }
 

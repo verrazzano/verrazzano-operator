@@ -4,8 +4,9 @@
 package monitoring
 
 import (
-	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"strings"
+
+	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 )
 
 // GetMonitoringComponentLabels returns labels for a given monitoring component.
@@ -57,8 +58,12 @@ func GetNodeExporterLabels(managedClusterName string) map[string]string {
 
 // ClusterInfo has info like ContainerRuntime and managed cluster name
 type ClusterInfo struct {
-	ContainerRuntime   string
-	ManagedClusterName string
+	ContainerRuntime      string
+	ManagedClusterName    string
+	ElasticsearchURL      string
+	ElasticsearchUsername string
+	ElasticsearchPassword string
+	ElasticsearchCABundle []byte
 }
 
 func getFilebeatConfig(clusterInfo ClusterInfo) string {

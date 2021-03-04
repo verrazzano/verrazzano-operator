@@ -393,12 +393,6 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		// Add in the monitoring and logging namespace if not already added
 		mc.Namespaces = append(mc.Namespaces, constants.MonitoringNamespace, constants.LoggingNamespace)
 
-		// determine container runtime
-		containerRuntime := c.getContainerRuntime()
-
-		// get managed cluster name
-		managedClusterName := c.getManagedClusterName()
-
 		/*********************
 		 * Create Artifacts in the Managed SynModel
 		 **********************/
@@ -407,7 +401,7 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		c.startManagedClusterWatchers(managedCluster.Name, vzSynMB)
 
 		// Create all the components needed by logging and monitoring in managed clusters to push metrics and logs into System VMI in management cluster
-		c.createManagedClusterResourcesForBinding(vzSynMB, v8omonitoring.ClusterInfo{ContainerRuntime: containerRuntime, ManagedClusterName: managedClusterName})
+		c.createManagedClusterResourcesForBinding(vzSynMB, c.getClusterInfo())
 	}
 }
 
@@ -442,7 +436,7 @@ func (c *Controller) createManagedClusterResourcesForBinding(vzSynMB *types.Synt
 	}
 
 	// Create (copy) the Secrets needed from the management cluster to the managed clusters
-	err = c.managed.CreateSecrets(vzSynMB, c.managedClusterConnections, c.kubeClientSet, c.secrets)
+	err = c.managed.CreateSecrets(vzSynMB, c.managedClusterConnections, c.kubeClientSet, c.secrets, clusterInfo)
 	if err != nil {
 		zap.S().Errorf("Failed to create secrets for binding %s: %v", vzSynMB.SynBinding.Namespace, err)
 	}
@@ -622,12 +616,6 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 		return
 	}
 
-	// determine container runtime
-	containerRuntime := c.getContainerRuntime()
-
-	// get managed cluster name
-	managedClusterName := c.getManagedClusterName()
-
 	/*********************
 	 * Create Artifacts in the Local SynModel
 	 **********************/
@@ -658,7 +646,7 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 	/*********************
 	 * Create Artifacts in the Managed SynModel
 	 **********************/
-	c.createManagedClusterResourcesForBinding(vzSynMB, v8omonitoring.ClusterInfo{ContainerRuntime: containerRuntime, ManagedClusterName: managedClusterName})
+	c.createManagedClusterResourcesForBinding(vzSynMB, c.getClusterInfo())
 
 	// Cleanup any resources no longer needed
 	c.cleanupOrphanedResources(vzSynMB)
@@ -957,7 +945,7 @@ type managedInterface interface {
 	BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*v8outil.ManagedClusterConnection, error)
 	CreateCrdDefinitions(managedClusterConnection *v8outil.ManagedClusterConnection, managedCluster *v1beta1v8o.VerrazzanoManagedCluster) error
 	CreateNamespaces(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
-	CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets) error
+	CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets, clusterInfo v8omonitoring.ClusterInfo) error
 	CreateServiceAccounts(bindingName string, imagePullSecrets []corev1.LocalObjectReference, managedClusters map[string]*types.ManagedCluster, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection, clusterInfo v8omonitoring.ClusterInfo) error
 	CreateClusterRoles(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
@@ -1003,8 +991,8 @@ func (*managedPackage) CreateNamespaces(vzSynMB *types.SyntheticModelBinding, fi
 	return v8omanaged.CreateNamespaces(vzSynMB, filteredConnections)
 }
 
-func (*managedPackage) CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets) error {
-	return v8omanaged.CreateSecrets(vzSynMB, availableManagedClusterConnections, kubeClientSet, sec)
+func (*managedPackage) CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets, clusterInfo v8omonitoring.ClusterInfo) error {
+	return v8omanaged.CreateSecrets(vzSynMB, availableManagedClusterConnections, kubeClientSet, sec, clusterInfo)
 }
 
 func (*managedPackage) CreateServiceAccounts(bindingName string, imagePullSecrets []corev1.LocalObjectReference, managedClusters map[string]*types.ManagedCluster, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {
@@ -1178,11 +1166,43 @@ const MCRegistrationSecret = "verrazzano-cluster"
 // ClusterNameData - the field name in MCRegistrationSecret that contains this managed cluster's name
 const ClusterNameData = "managed-cluster-name"
 
+// ElasticsearchSecretName - the name of the secret in the Verrazzano System namespace,
+// that contains credentials and other details for for the admin cluster's Elasticsearch endpoint
+const ElasticsearchSecretName = "verrazzano-cluster-elasticsearch"
+
+// ElasticsearchURLData - the field name in ElasticsearchSecret that contains the admin cluster's
+// Elasticsearch endpoint's URL
+const ElasticsearchURLData = "url"
+
+// ElasticsearchUsernameData - the field name in ElasticsearchSecret that contains the admin
+// cluster's Elasticsearch username
+const ElasticsearchUsernameData = "username"
+
+// ElasticsearchPasswordData - the field name in ElasticsearchSecret that contains the admin
+// cluster's Elasticsearch password
+const ElasticsearchPasswordData = "password"
+
+// ElasticsearchCABundleData - the field name in ElasticsearchSecret that contains the admin
+// cluster's Elasticsearch ca-bundle
+const ElasticsearchCABundleData = "ca-bundle"
+
 // getManagedClusterName returns the cluster name for a managed cluster, empty string otherwise
-func (c *Controller) getManagedClusterName() string {
+func (c *Controller) getClusterInfo() v8omonitoring.ClusterInfo {
+	managedClusterName := ""
 	clusterSecret, err := c.secrets.Get(MCRegistrationSecret)
-	if err != nil {
-		return ""
+	if err == nil {
+		managedClusterName = string(clusterSecret.Data[ClusterNameData])
 	}
-	return string(clusterSecret.Data[ClusterNameData])
+	clusterInfo := v8omonitoring.ClusterInfo{
+		ContainerRuntime:   c.getContainerRuntime(),
+		ManagedClusterName: managedClusterName,
+	}
+	elasticsearchSecret, err := c.secrets.Get(ElasticsearchSecretName)
+	if err == nil {
+		clusterInfo.ElasticsearchURL = string(elasticsearchSecret.Data[ElasticsearchURLData])
+		clusterInfo.ElasticsearchUsername = string(elasticsearchSecret.Data[ElasticsearchUsernameData])
+		clusterInfo.ElasticsearchPassword = string(elasticsearchSecret.Data[ElasticsearchPasswordData])
+		clusterInfo.ElasticsearchCABundle = elasticsearchSecret.Data[ElasticsearchCABundleData]
+	}
+	return clusterInfo
 }
