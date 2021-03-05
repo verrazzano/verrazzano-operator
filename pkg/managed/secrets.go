@@ -41,7 +41,7 @@ func CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedCluster
 
 		var secrets []*corev1.Secret
 		if vzSynMB.SynBinding.Name == constants.VmiSystemBindingName {
-			secrets = monitoring.GetSystemSecrets(sec)
+			secrets = monitoring.GetSystemSecrets(sec, clusterInfo)
 		} else {
 			secrets = newSecrets(vzSynMB, managedClusterObj, kubeClientSet)
 		}

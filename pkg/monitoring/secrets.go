@@ -134,26 +134,25 @@ func CreateVmiSecrets(binding *types.SyntheticBinding, secrets Secrets) error {
 }
 
 // GetSystemSecrets the secrets to be created for Filebeats and Journalbeats.
-func GetSystemSecrets(sec Secrets) []*corev1.Secret {
+func GetSystemSecrets(sec Secrets, clusterInfo ClusterInfo) []*corev1.Secret {
 	var secrets []*corev1.Secret
-	password, err := sec.GetVmiPassword()
-	if err != nil {
-		zap.S().Errorf("Failed to retrieve secret %v", err)
+	if isManagedCluster(clusterInfo) {
+		fileabeatSecret := createAdminLoggingSecret(constants.LoggingNamespace, constants.FilebeatName, clusterInfo)
+		journalbeatSecret := createAdminLoggingSecret(constants.LoggingNamespace, constants.JournalbeatName, clusterInfo)
+		secrets = append(secrets, fileabeatSecret, journalbeatSecret)
+	} else {
+		password, err := sec.GetVmiPassword()
+		if err != nil {
+			zap.S().Errorf("Failed to retrieve secret %v", err)
+		}
+		fileabeatSecret := createLocalLoggingSecret(constants.LoggingNamespace, constants.FilebeatName, password)
+		journalbeatSecret := createLocalLoggingSecret(constants.LoggingNamespace, constants.JournalbeatName, password)
+		secrets = append(secrets, fileabeatSecret, journalbeatSecret)
 	}
-	fileabeatSecret, err := createLoggingSecret(constants.LoggingNamespace, constants.FilebeatName, password)
-	if err != nil {
-		zap.S().Debugf("New logging secret %s is giving error %s", constants.FilebeatName, err)
-	}
-	journalbeatSecret, err := createLoggingSecret(constants.LoggingNamespace, constants.JournalbeatName, password)
-	if err != nil {
-		zap.S().Debugf("New logging secret %s is giving error %s", constants.JournalbeatName, err)
-	}
-	secrets = append(secrets, fileabeatSecret, journalbeatSecret)
 	return secrets
 }
 
-// Constructs the necessary secrets for logging
-func createLoggingSecret(namespace, name, password string) (*corev1.Secret, error) {
+func createLocalLoggingSecret(namespace, name, password string) *corev1.Secret {
 	loggingSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-secret",
@@ -164,5 +163,21 @@ func createLoggingSecret(namespace, name, password string) (*corev1.Secret, erro
 			"password": []byte(password),
 		},
 	}
-	return loggingSecret, nil
+	return loggingSecret
+}
+
+func createAdminLoggingSecret(namespace, name string, clusterInfo ClusterInfo) *corev1.Secret {
+	loggingSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-secret",
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			"username":  []byte(clusterInfo.ElasticsearchUsername),
+			"password":  []byte(clusterInfo.ElasticsearchPassword),
+			"url":       []byte(clusterInfo.ElasticsearchURL),
+			"ca-bundle": clusterInfo.ElasticsearchCABundle,
+		},
+	}
+	return loggingSecret
 }

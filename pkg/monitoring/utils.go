@@ -4,6 +4,7 @@
 package monitoring
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
@@ -85,4 +86,18 @@ func getFilebeatLogHostPath(clusterInfo ClusterInfo) string {
 		return FilebeatLogHostPathContainerd
 	}
 	return FilebeatLogHostPathDocker
+}
+
+func isManagedCluster(clusterInfo ClusterInfo) bool {
+	if clusterInfo.ManagedClusterName != "" {
+		return true
+	}
+	return false
+}
+
+func getElasticsearchURL(clusterInfo ClusterInfo) string {
+	if isManagedCluster(clusterInfo) {
+		return clusterInfo.ElasticsearchURL
+	}
+	return fmt.Sprintf("http://vmi-system-es-ingest.%s.svc.cluster.local", constants.VerrazzanoNamespace)
 }
