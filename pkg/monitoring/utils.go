@@ -68,10 +68,22 @@ type ClusterInfo struct {
 }
 
 func getFilebeatConfig(clusterInfo ClusterInfo) string {
+	config := FilebeatConfigDataDocker
 	if strings.HasPrefix(clusterInfo.ContainerRuntime, ContainerdContainerRuntimePrefix) {
-		return FilebeatConfigDataContainerd
+		config = FilebeatConfigDataContainerd
 	}
-	return FilebeatConfigDataDocker
+	if isManagedCluster(clusterInfo) && len(clusterInfo.ElasticsearchCABundle) > 0 {
+		config = config + FileBeatCABundleSetting
+	}
+	return config
+}
+
+func getJournalbeatConfig(clusterInfo ClusterInfo) string {
+	config := JournalbeatConfigData
+	if isManagedCluster(clusterInfo) && len(clusterInfo.ElasticsearchCABundle) > 0 {
+		config = config + JournalBeatCABundleSetting
+	}
+	return config
 }
 
 func getFilebeatInput(clusterInfo ClusterInfo) string {

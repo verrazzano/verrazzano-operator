@@ -38,7 +38,7 @@ func LoggingConfigMaps(managedClusterName string, clusterInfo ClusterInfo) []*co
 	if err != nil {
 		zap.S().Debugf("New logging config map %s is giving error %s", journalbeatindexconfig.Name, err)
 	}
-	journalbeatconfig, err := createLoggingConfigMap(constants.LoggingNamespace, "journalbeat-config", "journalbeat.yml", JournalbeatConfigData, journalbeatLabels)
+	journalbeatconfig, err := createLoggingConfigMap(constants.LoggingNamespace, "journalbeat-config", "journalbeat.yml", getJournalbeatConfig(clusterInfo), journalbeatLabels)
 	if err != nil {
 		zap.S().Debugf("New logging config map %s is giving error %s", journalbeatconfig.Name, err)
 	}

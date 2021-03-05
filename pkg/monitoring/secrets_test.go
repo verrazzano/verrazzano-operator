@@ -7,6 +7,8 @@ import (
 	"encoding/base64"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"golang.org/x/crypto/pbkdf2"
 
 	"github.com/stretchr/testify/assert"
@@ -92,4 +94,58 @@ func TestNewVmiRandomPassword(t *testing.T) {
 	assert.NotEqual(t, sec1, sec2, "new random password")
 	assert.NotEqual(t, sec3, sec2, "new random password")
 	assert.NotEqual(t, sec3, sec1, "new random password")
+}
+
+func TestGetSystemSecretsNotManaged(t *testing.T) {
+	testPassword := "testPassword"
+
+	mockSecrets := &MockSecrets{secrets: map[string]*corev1.Secret{}}
+	mockSecrets.Create(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.VmiSecretName,
+			Namespace: constants.VerrazzanoNamespace,
+		},
+		Data: map[string][]byte{
+			"username": []byte(constants.VmiUsername),
+			"password": []byte(testPassword),
+		},
+	})
+
+	clusterInfo := ClusterInfo{}
+	systemSecrets := GetSystemSecrets(mockSecrets, clusterInfo)
+	assert.Equal(t, 2, len(systemSecrets), "expected number of system secrets")
+	assert.Equal(t, "filebeat-secret", systemSecrets[0].Name, "expected secret name")
+	assert.Equal(t, constants.VmiUsername, string(systemSecrets[0].Data["username"]), "expected username")
+	assert.Equal(t, testPassword, string(systemSecrets[0].Data["password"]), "expected password")
+	assert.Equal(t, "journalbeat-secret", systemSecrets[1].Name, "expected secret name")
+	assert.Equal(t, constants.VmiUsername, string(systemSecrets[1].Data["username"]), "expected username")
+	assert.Equal(t, testPassword, string(systemSecrets[1].Data["password"]), "expected password")
+}
+
+func TestGetSystemSecretsManaged(t *testing.T) {
+	testUsername := "testUsername"
+	testPassword := "testPassword"
+	testURL := "testURL"
+	testCABundle := "testCABundle"
+
+	mockSecrets := &MockSecrets{secrets: map[string]*corev1.Secret{}}
+
+	clusterInfo := ClusterInfo{ManagedClusterName: "cluster1",
+		ElasticsearchURL:      testURL,
+		ElasticsearchUsername: testUsername,
+		ElasticsearchPassword: testPassword,
+		ElasticsearchCABundle: []byte(testCABundle),
+	}
+	systemSecrets := GetSystemSecrets(mockSecrets, clusterInfo)
+	assert.Equal(t, 2, len(systemSecrets), "expected number of system secrets")
+	assert.Equal(t, "filebeat-secret", systemSecrets[0].Name, "expected secret name")
+	assert.Equal(t, testUsername, string(systemSecrets[0].Data["username"]), "expected username")
+	assert.Equal(t, testPassword, string(systemSecrets[0].Data["password"]), "expected password")
+	assert.Equal(t, testURL, string(systemSecrets[0].Data["url"]), "expected url")
+	assert.Equal(t, testCABundle, string(systemSecrets[0].Data["ca-bundle"]), "expected ca bundle")
+	assert.Equal(t, "journalbeat-secret", systemSecrets[1].Name, "expected secret name")
+	assert.Equal(t, testUsername, string(systemSecrets[1].Data["username"]), "expected username")
+	assert.Equal(t, testPassword, string(systemSecrets[1].Data["password"]), "expected password")
+	assert.Equal(t, testURL, string(systemSecrets[1].Data["url"]), "expected url")
+	assert.Equal(t, testCABundle, string(systemSecrets[1].Data["ca-bundle"]), "expected ca bundle")
 }

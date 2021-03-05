@@ -65,7 +65,6 @@ setup.template.json.name: "vmo-local-filebeat"
 setup.template.pattern: "vmo-local-filebeat-*"
 output.elasticsearch:
   hosts: ${ES_URL}
-  ssl.certificate_authorities: "/etc/filebeat/secret/ca-bundle"
   username: ${ES_USER}
   password: ${ES_PASSWORD}
   index: ${INDEX_NAME}
@@ -115,7 +114,6 @@ setup.template.json.name: "vmo-local-filebeat"
 setup.template.pattern: "vmo-local-filebeat-*"
 output.elasticsearch:
   hosts: ${ES_URL}
-  ssl.certificate_authorities: "/etc/filebeat/secret/ca-bundle"
   username: ${ES_USER}
   password: ${ES_PASSWORD}
   index: ${INDEX_NAME}
@@ -137,7 +135,6 @@ logging.to_files: false
 setup.template.enabled: false
 output.elasticsearch:
   hosts: ${ES_URL}
-  ssl.certificate_authorities: "/etc/journalbeat/secret/ca-bundle" 
   username: ${ES_USER}
   password: ${ES_PASSWORD}
   index: ${INDEX_NAME}
@@ -205,3 +202,9 @@ const FilebeatIndexTemplate = `{
   }
 }
 `
+
+// FileBeatCABundleSetting contains ssl ca setting for filebeat elasticsearch output
+const FileBeatCABundleSetting = "  ssl.certificate_authorities: /etc/filebeat/secret/ca-bundle\n"
+
+// JournalBeatCABundleSetting contains ssl ca setting for journalbeat elasticsearch output
+const JournalBeatCABundleSetting = "  ssl.certificate_authorities: /etc/journalbeat/secret/ca-bundle\n"
