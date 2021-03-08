@@ -1161,7 +1161,7 @@ func (m *monitoringPackage) DeletePomPusher(binding string, helper v8outil.Deplo
 }
 
 // MCRegistrationSecret - the name of the secret that contains the cluster registration information
-const MCRegistrationSecret = "verrazzano-cluster"
+const MCRegistrationSecret = "verrazzano-cluster-registration"
 
 // ClusterNameData - the field name in MCRegistrationSecret that contains this managed cluster's name
 const ClusterNameData = "managed-cluster-name"
