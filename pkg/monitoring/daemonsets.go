@@ -175,6 +175,10 @@ func createFilebeatDaemonSet(namespace string, name string, labels map[string]st
 										},
 									},
 								},
+								{
+									Name:  "CLUSTER_NAME",
+									Value: clusterInfo.ManagedClusterName,
+								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
@@ -366,6 +370,10 @@ func createJournalbeatDaemonSet(namespace string, name string, labels map[string
 											Key: "journalbeat-index-name",
 										},
 									},
+								},
+								{
+									Name:  "CLUSTER_NAME",
+									Value: clusterInfo.ManagedClusterName,
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{

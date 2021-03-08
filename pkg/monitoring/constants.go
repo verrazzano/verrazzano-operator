@@ -37,6 +37,8 @@ filebeat.inputs:
 - type: docker
   containers.ids:
   - "*"
+  fields:
+    verrazzano.cluster.name: ${CLUSTER_NAME}
   processors:
   - decode_json_fields:
       fields: ["message"]
@@ -86,6 +88,8 @@ filebeat.inputs:
 - type: log
   paths:
     - /var/lib/docker/containers/**/*.log
+  fields:
+    verrazzano.cluster.name: ${CLUSTER_NAME}
   processors:
   - decode_json_fields:
       fields: ["message"]

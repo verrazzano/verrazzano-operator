@@ -123,6 +123,9 @@ func validateFilebeatDaemonset(assert *assert.Assertions, v appsv1.DaemonSet, cl
 	assert.Equal("filebeat-index-name",
 		v.Spec.Template.Spec.Containers[0].Env[4].ValueFrom.ConfigMapKeyRef.Key)
 
+	assert.Equal("CLUSTER_NAME", v.Spec.Template.Spec.Containers[0].Env[5].Name)
+	assert.Equal("", v.Spec.Template.Spec.Containers[0].Env[5].Value)
+
 	// Volume mounts
 	assert.Equal("config", v.Spec.Template.Spec.Containers[0].VolumeMounts[0].Name)
 	assert.True(v.Spec.Template.Spec.Containers[0].VolumeMounts[0].ReadOnly)
@@ -228,6 +231,9 @@ func validateJournalbeatDaemonset(assert *assert.Assertions, v appsv1.DaemonSet,
 		v.Spec.Template.Spec.Containers[0].Env[4].ValueFrom.ConfigMapKeyRef.LocalObjectReference.Name)
 	assert.Equal(constants.JournalbeatName+"-index-name",
 		v.Spec.Template.Spec.Containers[0].Env[4].ValueFrom.ConfigMapKeyRef.Key)
+
+	assert.Equal("CLUSTER_NAME", v.Spec.Template.Spec.Containers[0].Env[5].Name)
+	assert.Equal("", v.Spec.Template.Spec.Containers[0].Env[5].Value)
 
 	// Volume mounts
 	assert.Equal("config", v.Spec.Template.Spec.Containers[0].VolumeMounts[0].Name)
