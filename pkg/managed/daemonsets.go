@@ -17,7 +17,7 @@ import (
 )
 
 // CreateDaemonSets creates/updates daemon sets needed for each managed cluster.
-func CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, containerRuntime string) error {
+func CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, clusterInfo monitoring.ClusterInfo) error {
 	zap.S().Debugf("Creating/updating daemonset for VerrazzanoBinding %s", vzSynMB.SynBinding.Name)
 
 	// If binding is not System binding, skip creating Daemon sets
@@ -33,7 +33,7 @@ func CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, filteredConnections 
 		defer managedClusterConnection.Lock.RUnlock()
 
 		// Construct DaemonSet for each ManagedCluster
-		newDaemonSets, err := newDaemonSet(clusterName, verrazzanoURI, containerRuntime)
+		newDaemonSets, err := newDaemonSet(clusterName, verrazzanoURI, clusterInfo)
 		if err != nil {
 			return err
 		}
@@ -64,8 +64,8 @@ func CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, filteredConnections 
 }
 
 // Constructs the necessary Daemonset for the specified ManagedCluster
-func newDaemonSet(managedClusterName string, verrazzanoURI string, containerRuntime string) ([]*appsv1.DaemonSet, error) {
+func newDaemonSet(managedClusterName string, verrazzanoURI string, clusterInfo monitoring.ClusterInfo) ([]*appsv1.DaemonSet, error) {
 	var daemonSets []*appsv1.DaemonSet
-	daemonSets = monitoring.SystemDaemonSets(managedClusterName, verrazzanoURI, containerRuntime)
+	daemonSets = monitoring.SystemDaemonSets(managedClusterName, verrazzanoURI, clusterInfo)
 	return daemonSets, nil
 }

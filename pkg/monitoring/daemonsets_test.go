@@ -23,7 +23,7 @@ func TestCreateFilebeatDaemonSet(t *testing.T) {
 		constants.FilebeatName:     true,
 		constants.JournalbeatName:  true,
 		constants.NodeExporterName: true}
-	dsets := SystemDaemonSets(clusterName, uri, "docker://19.3.11")
+	dsets := SystemDaemonSets(clusterName, uri, clusterInfoContainerd)
 	for _, v := range dsets {
 		switch v.Name {
 		case constants.FilebeatName:
@@ -55,14 +55,14 @@ func validateFilebeatDaemonset(assert *assert.Assertions, v appsv1.DaemonSet, cl
 	assert.Equal(labels, v.Spec.Template.Labels)
 
 	// Volumes
-	assert.Lenf(v.Spec.Template.Spec.Volumes, 4, "Spec.Template.Spec.Volumes has wrong number of items")
+	assert.Lenf(v.Spec.Template.Spec.Volumes, 5, "Spec.Template.Spec.Volumes has wrong number of items")
 
 	assert.Equal("config", v.Spec.Template.Spec.Volumes[0].Name)
 	assert.Equal(v.Name+"-config", v.Spec.Template.Spec.Volumes[0].VolumeSource.ConfigMap.LocalObjectReference.Name)
 	assert.Equal(int32(0600), *v.Spec.Template.Spec.Volumes[0].VolumeSource.ConfigMap.DefaultMode)
 
 	assert.Equal("varlibdockercontainers", v.Spec.Template.Spec.Volumes[1].Name)
-	assert.Equal("/var/lib/docker/containers", v.Spec.Template.Spec.Volumes[1].VolumeSource.HostPath.Path)
+	assert.Equal(FilebeatLogHostPathContainerd, v.Spec.Template.Spec.Volumes[1].VolumeSource.HostPath.Path)
 
 	assert.Equal("data", v.Spec.Template.Spec.Volumes[2].Name)
 	assert.Equal("/var/lib/filebeat-data", v.Spec.Template.Spec.Volumes[2].VolumeSource.HostPath.Path)
@@ -71,7 +71,11 @@ func validateFilebeatDaemonset(assert *assert.Assertions, v appsv1.DaemonSet, cl
 	assert.Equal("inputs", v.Spec.Template.Spec.Volumes[3].Name)
 	assert.Equal("filebeat-inputs",
 		v.Spec.Template.Spec.Volumes[3].VolumeSource.ConfigMap.LocalObjectReference.Name)
-	assert.Equal(int32(0600), *v.Spec.Template.Spec.Volumes[0].VolumeSource.ConfigMap.DefaultMode)
+	assert.Equal(int32(0600), *v.Spec.Template.Spec.Volumes[3].VolumeSource.ConfigMap.DefaultMode)
+
+	assert.Equal("secret", v.Spec.Template.Spec.Volumes[4].Name)
+	assert.Equal("filebeat-secret",
+		v.Spec.Template.Spec.Volumes[4].VolumeSource.Secret.SecretName)
 
 	// Containers
 	assert.Lenf(v.Spec.Template.Spec.Containers, 1, "Spec.Template.Spec.Containers has wrong number of items")
@@ -113,14 +117,14 @@ func validateFilebeatDaemonset(assert *assert.Assertions, v appsv1.DaemonSet, cl
 		v.Spec.Template.Spec.Containers[0].Env[3].ValueFrom.SecretKeyRef.LocalObjectReference.Name)
 	assert.Equal("password", v.Spec.Template.Spec.Containers[0].Env[3].ValueFrom.SecretKeyRef.Key)
 
-	assert.Equal("ES_PORT", v.Spec.Template.Spec.Containers[0].Env[4].Name)
-	assert.Equal("9200", v.Spec.Template.Spec.Containers[0].Env[4].Value)
-
-	assert.Equal("INDEX_NAME", v.Spec.Template.Spec.Containers[0].Env[5].Name)
+	assert.Equal("INDEX_NAME", v.Spec.Template.Spec.Containers[0].Env[4].Name)
 	assert.Equal("filebeat-index-config",
-		v.Spec.Template.Spec.Containers[0].Env[5].ValueFrom.ConfigMapKeyRef.LocalObjectReference.Name)
+		v.Spec.Template.Spec.Containers[0].Env[4].ValueFrom.ConfigMapKeyRef.LocalObjectReference.Name)
 	assert.Equal("filebeat-index-name",
-		v.Spec.Template.Spec.Containers[0].Env[5].ValueFrom.ConfigMapKeyRef.Key)
+		v.Spec.Template.Spec.Containers[0].Env[4].ValueFrom.ConfigMapKeyRef.Key)
+
+	assert.Equal("CLUSTER_NAME", v.Spec.Template.Spec.Containers[0].Env[5].Name)
+	assert.Equal("", v.Spec.Template.Spec.Containers[0].Env[5].Value)
 
 	// Volume mounts
 	assert.Equal("config", v.Spec.Template.Spec.Containers[0].VolumeMounts[0].Name)
@@ -138,6 +142,10 @@ func validateFilebeatDaemonset(assert *assert.Assertions, v appsv1.DaemonSet, cl
 	assert.True(v.Spec.Template.Spec.Containers[0].VolumeMounts[3].ReadOnly)
 	assert.Equal("/var/lib/docker/containers", v.Spec.Template.Spec.Containers[0].VolumeMounts[3].MountPath)
 
+	assert.Equal("secret", v.Spec.Template.Spec.Containers[0].VolumeMounts[4].Name)
+	assert.True(v.Spec.Template.Spec.Containers[0].VolumeMounts[4].ReadOnly)
+	assert.Equal("/etc/filebeat/secret", v.Spec.Template.Spec.Containers[0].VolumeMounts[4].MountPath)
+
 	assert.Equal(corev1.PullIfNotPresent, v.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 
 	assert.Nil(v.Spec.Template.Spec.Containers[0].SecurityContext.Privileged)
@@ -154,7 +162,7 @@ func validateJournalbeatDaemonset(assert *assert.Assertions, v appsv1.DaemonSet,
 	assert.Equal(labels, v.Spec.Template.Labels)
 
 	// Volumes
-	assert.Lenf(v.Spec.Template.Spec.Volumes, 5, "Spec.Template.Spec.Volumes has wrong number of items")
+	assert.Lenf(v.Spec.Template.Spec.Volumes, 6, "Spec.Template.Spec.Volumes has wrong number of items")
 
 	assert.Equal("config", v.Spec.Template.Spec.Volumes[0].Name)
 	assert.Equal(v.Name+"-config", v.Spec.Template.Spec.Volumes[0].VolumeSource.ConfigMap.LocalObjectReference.Name)
@@ -173,6 +181,10 @@ func validateJournalbeatDaemonset(assert *assert.Assertions, v appsv1.DaemonSet,
 	assert.Equal("data", v.Spec.Template.Spec.Volumes[4].Name)
 	assert.Equal("/var/lib/journalbeat-data", v.Spec.Template.Spec.Volumes[4].VolumeSource.HostPath.Path)
 	assert.Nil(v.Spec.Template.Spec.Volumes[4].VolumeSource.HostPath.Type)
+
+	assert.Equal("secret", v.Spec.Template.Spec.Volumes[5].Name)
+	assert.Equal("journalbeat-secret",
+		v.Spec.Template.Spec.Volumes[5].VolumeSource.Secret.SecretName)
 
 	// Containers
 	assert.Lenf(v.Spec.Template.Spec.Containers, 1, "Spec.Template.Spec.Containers has wrong number of items")
@@ -214,14 +226,14 @@ func validateJournalbeatDaemonset(assert *assert.Assertions, v appsv1.DaemonSet,
 		v.Spec.Template.Spec.Containers[0].Env[3].ValueFrom.SecretKeyRef.LocalObjectReference.Name)
 	assert.Equal("password", v.Spec.Template.Spec.Containers[0].Env[3].ValueFrom.SecretKeyRef.Key)
 
-	assert.Equal("ES_PORT", v.Spec.Template.Spec.Containers[0].Env[4].Name)
-	assert.Equal("9200", v.Spec.Template.Spec.Containers[0].Env[4].Value)
-
-	assert.Equal("INDEX_NAME", v.Spec.Template.Spec.Containers[0].Env[5].Name)
+	assert.Equal("INDEX_NAME", v.Spec.Template.Spec.Containers[0].Env[4].Name)
 	assert.Equal(constants.JournalbeatName+"-index-config",
-		v.Spec.Template.Spec.Containers[0].Env[5].ValueFrom.ConfigMapKeyRef.LocalObjectReference.Name)
+		v.Spec.Template.Spec.Containers[0].Env[4].ValueFrom.ConfigMapKeyRef.LocalObjectReference.Name)
 	assert.Equal(constants.JournalbeatName+"-index-name",
-		v.Spec.Template.Spec.Containers[0].Env[5].ValueFrom.ConfigMapKeyRef.Key)
+		v.Spec.Template.Spec.Containers[0].Env[4].ValueFrom.ConfigMapKeyRef.Key)
+
+	assert.Equal("CLUSTER_NAME", v.Spec.Template.Spec.Containers[0].Env[5].Name)
+	assert.Equal("", v.Spec.Template.Spec.Containers[0].Env[5].Value)
 
 	// Volume mounts
 	assert.Equal("config", v.Spec.Template.Spec.Containers[0].VolumeMounts[0].Name)
@@ -242,6 +254,10 @@ func validateJournalbeatDaemonset(assert *assert.Assertions, v appsv1.DaemonSet,
 	assert.Equal("etc-machine-id", v.Spec.Template.Spec.Containers[0].VolumeMounts[4].Name)
 	assert.True(v.Spec.Template.Spec.Containers[0].VolumeMounts[4].ReadOnly)
 	assert.Equal("/etc/machine-id", v.Spec.Template.Spec.Containers[0].VolumeMounts[4].MountPath)
+
+	assert.Equal("secret", v.Spec.Template.Spec.Containers[0].VolumeMounts[5].Name)
+	assert.True(v.Spec.Template.Spec.Containers[0].VolumeMounts[5].ReadOnly)
+	assert.Equal("/etc/journalbeat/secret", v.Spec.Template.Spec.Containers[0].VolumeMounts[5].MountPath)
 
 	assert.Equal(corev1.PullIfNotPresent, v.Spec.Template.Spec.Containers[0].ImagePullPolicy)
 

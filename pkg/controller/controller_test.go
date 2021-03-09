@@ -5,6 +5,8 @@ package controller
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
@@ -23,7 +25,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllertest"
-	"testing"
 )
 
 var testClusterName = "test-cluster"
@@ -62,6 +63,11 @@ var testNode = v1.Node{Status: v1.NodeStatus{NodeInfo: v1.NodeSystemInfo{Contain
 var testNodes = []v1.Node{testNode}
 var testNodeList = v1.NodeList{Items: testNodes}
 
+var testClusterInfoDockerStandalone = monitoring.ClusterInfo{ContainerRuntime: "docker://19.3.11"}
+var testClusterInfoDockerManaged = monitoring.ClusterInfo{ContainerRuntime: "docker://19.3.11",
+	ManagedClusterName: "cluster1", ElasticsearchUsername: "testUsername", ElasticsearchPassword: "testPassword",
+	ElasticsearchURL: "testURL", ElasticsearchCABundle: []byte("testCABundle")}
+
 // TestNewController tests creation of a Controller from kubeconfig.
 // This test mocks reading of the kubeconfig file
 // GIVEN a kubeconfig
@@ -84,7 +90,7 @@ func TestNewController(t *testing.T) {
 	}
 
 	// createController invokes NewController which is the function that is being tested
-	controller := createController(t, localMockSetupFunc, monitoringMockSetupFunc)
+	controller := createController(t, localMockSetupFunc, monitoringMockSetupFunc, false)
 
 	// assert initial lister state
 	listers := controller.ListerSet()
@@ -99,7 +105,7 @@ func TestNewController(t *testing.T) {
 // THEN the managed cluster is added to the controller
 // AND all expected external invocations are made for processing a managed cluster
 func TestProcessManagedCluster(t *testing.T) {
-	controller := createController(t, nil, nil)
+	controller := createController(t, nil, nil, false)
 
 	model := &types.SyntheticModel{
 		ObjectMeta: metav1.ObjectMeta{
@@ -128,14 +134,14 @@ func TestProcessManagedCluster(t *testing.T) {
 	managedMock := controller.managed.(*testManagedPackage)
 	managedMock.BuildManagedClusterConnection(testSecretData, controller.stopCh)
 	managedMock.CreateNamespaces(vzSynMB, testFilteredConnections)
-	managedMock.CreateSecrets(vzSynMB, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
+	managedMock.CreateSecrets(vzSynMB, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets, testClusterInfoDockerStandalone)
 	managedMock.CreateServiceAccounts(vzSynMB.SynBinding.Name, vzSynMB.ImagePullSecrets, vzSynMB.ManagedClusters, testFilteredConnections)
-	managedMock.CreateConfigMaps(vzSynMB, testFilteredConnections, "docker://19.3.11")
+	managedMock.CreateConfigMaps(vzSynMB, testFilteredConnections, testClusterInfoDockerStandalone)
 	managedMock.CreateClusterRoles(vzSynMB, testFilteredConnections)
 	managedMock.CreateClusterRoleBindings(vzSynMB, testFilteredConnections)
 	managedMock.CreateServices(vzSynMB, testFilteredConnections)
 	managedMock.CreateDeployments(vzSynMB, controller.managedClusterConnections, controller.verrazzanoURI, controller.secrets)
-	managedMock.CreateDaemonSets(vzSynMB, controller.managedClusterConnections, controller.verrazzanoURI, "docker://19.3.11")
+	managedMock.CreateDaemonSets(vzSynMB, controller.managedClusterConnections, controller.verrazzanoURI, testClusterInfoDockerStandalone)
 	managedMock.SetupComplete()
 
 	// record expected 'util' interactions
@@ -157,7 +163,7 @@ func TestProcessManagedCluster(t *testing.T) {
 // WHEN I invoke processApplicationModelAdded
 // THEN the Controller is updated with the new application model and a new model binding pair
 func TestProcessApplicationModelAdded(t *testing.T) {
-	controller := createController(t, nil, nil)
+	controller := createController(t, nil, nil, false)
 
 	binding := &types.SyntheticBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding"}, Spec: types.ResourceLocationSpec{ModelName: "test-model"}}
 	controller.applicationBindings["test-binding"] = binding
@@ -182,7 +188,7 @@ func TestProcessApplicationModelAdded(t *testing.T) {
 // WHEN I add the previously existing model to the Controller
 // THEN the invocation returns without error and no new model is added
 func TestProcessApplicationModelAddedVersionExists(t *testing.T) {
-	controller := createController(t, nil, nil)
+	controller := createController(t, nil, nil, false)
 
 	model := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
 	model2 := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
@@ -198,7 +204,7 @@ func TestProcessApplicationModelAddedVersionExists(t *testing.T) {
 // WHEN the existing model is deleted by invoking processApplicationModelDeleted on the Controller
 // THEN the deleted model is deleted from the Controller
 func TestProcessApplicationModelDeleted(t *testing.T) {
-	controller := createController(t, nil, nil)
+	controller := createController(t, nil, nil, false)
 
 	model := &types.SyntheticModel{ObjectMeta: metav1.ObjectMeta{Name: "test-model", ResourceVersion: "test1"}}
 	controller.applicationModels[model.Name] = model
@@ -217,7 +223,7 @@ func TestProcessApplicationModelDeleted(t *testing.T) {
 // AND all expected external invocations are made for processing a new application binding
 func TestProcessApplicationBindingAdded(t *testing.T) {
 	// get controller
-	controller := createController(t, nil, nil)
+	controller := createController(t, nil, nil, true)
 
 	binding := &types.SyntheticBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
 		Spec: types.ResourceLocationSpec{
@@ -238,14 +244,14 @@ func TestProcessApplicationBindingAdded(t *testing.T) {
 	// record expected 'managed' interactions
 	managedMock := controller.managed.(*testManagedPackage)
 	managedMock.CreateNamespaces(SyntheticModelBinding, testFilteredConnections)
-	managedMock.CreateSecrets(SyntheticModelBinding, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets)
+	managedMock.CreateSecrets(SyntheticModelBinding, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets, testClusterInfoDockerManaged)
 	managedMock.CreateServiceAccounts(SyntheticModelBinding.SynBinding.Name, SyntheticModelBinding.ImagePullSecrets, SyntheticModelBinding.ManagedClusters, testFilteredConnections)
-	managedMock.CreateConfigMaps(SyntheticModelBinding, testFilteredConnections, "docker://19.3.11")
+	managedMock.CreateConfigMaps(SyntheticModelBinding, testFilteredConnections, testClusterInfoDockerManaged)
 	managedMock.CreateClusterRoles(SyntheticModelBinding, testFilteredConnections)
 	managedMock.CreateClusterRoleBindings(SyntheticModelBinding, testFilteredConnections)
 	managedMock.CreateServices(SyntheticModelBinding, testFilteredConnections)
 	managedMock.CreateDeployments(SyntheticModelBinding, testFilteredConnections, controller.verrazzanoURI, controller.secrets)
-	managedMock.CreateDaemonSets(SyntheticModelBinding, testFilteredConnections, controller.verrazzanoURI, "docker://19.3.11")
+	managedMock.CreateDaemonSets(SyntheticModelBinding, testFilteredConnections, controller.verrazzanoURI, testClusterInfoDockerManaged)
 	managedMock.SetupComplete()
 
 	localMock := controller.local.(*testLocalPackage)
@@ -281,7 +287,7 @@ func TestProcessApplicationBindingAdded(t *testing.T) {
 // WHEN I delete the binding by invoking processApplicationBindingDeleted() on the Controller
 // THEN the binding and all associated state is deleted
 func TestProcessApplicationBindingDeleted(t *testing.T) {
-	controller := createController(t, nil, nil)
+	controller := createController(t, nil, nil, false)
 
 	binding := &types.SyntheticBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-binding", Namespace: "test-namespace", Finalizers: []string{bindingFinalizer}},
 		Spec: types.ResourceLocationSpec{
@@ -337,7 +343,7 @@ func TestProcessApplicationBindingDeleted(t *testing.T) {
 
 // Create Controller instances for the tests.
 // Replaces several external functions used by the Controller to allow for unit testing
-func createController(t *testing.T, localMockSetup func(*testLocalPackage), monitoringMockSetup func(*testMonitoringPackage)) *Controller {
+func createController(t *testing.T, localMockSetup func(*testLocalPackage), monitoringMockSetup func(*testMonitoringPackage), managedCluster bool) *Controller {
 
 	// rewrite the function that is used to get the managed package implementation during creation of a new controller
 	originalGetManagedFunc := newManagedPackage
@@ -404,6 +410,17 @@ func createController(t *testing.T, localMockSetup func(*testLocalPackage), moni
 	secretData := map[string][]byte{"kubeconfig": testSecretData}
 	secret := v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret"}, Data: secretData}
 	controller.kubeClientSet.CoreV1().Secrets("ns1").Create(context.TODO(), &secret, metav1.CreateOptions{})
+	if managedCluster {
+		secret = v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: MCRegistrationSecret},
+			Data: map[string][]byte{ClusterNameData: []byte("cluster1")}}
+		controller.kubeClientSet.CoreV1().Secrets(constants.VerrazzanoSystem).Create(context.TODO(), &secret, metav1.CreateOptions{})
+		secret = v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: ElasticsearchSecretName},
+			Data: map[string][]byte{ElasticsearchURLData: []byte("testURL"),
+				ElasticsearchUsernameData: []byte("testUsername"),
+				ElasticsearchPasswordData: []byte("testPassword"),
+				ElasticsearchCABundleData: []byte("testCABundle")}}
+		controller.kubeClientSet.CoreV1().Secrets(constants.VerrazzanoSystem).Create(context.TODO(), &secret, metav1.CreateOptions{})
+	}
 
 	controller.verrazzanoOperatorClientSet = fake.NewSimpleClientset()
 	controller.managed = newTestManaged()
@@ -460,7 +477,7 @@ func (t *testManagedPackage) CreateNamespaces(vzSynMB *types.SyntheticModelBindi
 	return nil
 }
 
-func (t *testManagedPackage) CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets) error {
+func (t *testManagedPackage) CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec monitoring.Secrets, clusterInfo monitoring.ClusterInfo) error {
 	t.Record("CreateSecrets", map[string]interface{}{
 		"vzSynMB":                            vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
@@ -478,11 +495,11 @@ func (t *testManagedPackage) CreateServiceAccounts(bindingName string, imagePull
 	return nil
 }
 
-func (t *testManagedPackage) CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection, containerRuntime string) error {
+func (t *testManagedPackage) CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection, clusterInfo monitoring.ClusterInfo) error {
 	t.Record("CreateConfigMaps", map[string]interface{}{
 		"vzSynMB":             vzSynMB,
 		"filteredConnections": filteredConnections,
-		"containerRuntime":    containerRuntime})
+		"clusterInfo":         clusterInfo})
 	return nil
 }
 
@@ -545,12 +562,12 @@ func (t *testManagedPackage) UpdateIstioPrometheusConfigMaps(vzSynMB *types.Synt
 	return nil
 }
 
-func (t *testManagedPackage) CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, containerRuntime string) error {
+func (t *testManagedPackage) CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*util.ManagedClusterConnection, verrazzanoURI string, clusterInfo monitoring.ClusterInfo) error {
 	t.Record("CreateDaemonSets", map[string]interface{}{
 		"vzSynMB":                            vzSynMB,
 		"availableManagedClusterConnections": availableManagedClusterConnections,
 		"verrazzanoURI":                      verrazzanoURI,
-		"containerRuntime":                   containerRuntime})
+		"clusterInfo":                        clusterInfo})
 	return nil
 }
 

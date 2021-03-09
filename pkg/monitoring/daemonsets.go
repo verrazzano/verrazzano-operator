@@ -4,9 +4,6 @@
 package monitoring
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/resources"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
@@ -19,17 +16,17 @@ import (
 
 // SystemDaemonSets create all the Daemon sets needed by Filebeats, Journalbeats, and NodeExporters
 // in all the managed clusters.
-func SystemDaemonSets(managedClusterName string, verrazzanoURI string, containerRuntime string) []*appsv1.DaemonSet {
+func SystemDaemonSets(managedClusterName string, verrazzanoURI string, clusterInfo ClusterInfo) []*appsv1.DaemonSet {
 	filebeatLabels := GetFilebeatLabels(managedClusterName)
 	journalbeatLabels := GetJournalbeatLabels(managedClusterName)
 	nodeExporterLabels := GetNodeExporterLabels(managedClusterName)
 	var daemonSets []*appsv1.DaemonSet
 
-	fileabeatDS, err := createFilebeatDaemonSet(constants.LoggingNamespace, constants.FilebeatName, filebeatLabels, containerRuntime)
+	fileabeatDS, err := createFilebeatDaemonSet(constants.LoggingNamespace, constants.FilebeatName, filebeatLabels, clusterInfo)
 	if err != nil {
 		zap.S().Debugf("New Daemonset %s is giving error %s", constants.FilebeatName, err)
 	}
-	journalbeatDS, err := createJournalbeatDaemonSet(constants.LoggingNamespace, constants.JournalbeatName, journalbeatLabels)
+	journalbeatDS, err := createJournalbeatDaemonSet(constants.LoggingNamespace, constants.JournalbeatName, journalbeatLabels, clusterInfo)
 	if err != nil {
 		zap.S().Debugf("New Daemonset %s is giving error %s", constants.JournalbeatName, err)
 	}
@@ -42,12 +39,8 @@ func SystemDaemonSets(managedClusterName string, verrazzanoURI string, container
 	return daemonSets
 }
 
-func createFilebeatDaemonSet(namespace string, name string, labels map[string]string, containerRuntime string) (*appsv1.DaemonSet, error) {
+func createFilebeatDaemonSet(namespace string, name string, labels map[string]string, clusterInfo ClusterInfo) (*appsv1.DaemonSet, error) {
 
-	filebeatVolume := FilebeatVolumeDocker
-	if strings.HasPrefix(containerRuntime, ContainerdContainerRuntimePrefix) {
-		filebeatVolume = FilebeatVolumeContainerd
-	}
 	loggingDaemonSet := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -82,7 +75,7 @@ func createFilebeatDaemonSet(namespace string, name string, labels map[string]st
 							Name: "varlibdockercontainers",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: filebeatVolume,
+									Path: getFilebeatLogHostPath(clusterInfo),
 								},
 							},
 						},
@@ -104,6 +97,13 @@ func createFilebeatDaemonSet(namespace string, name string, labels map[string]st
 									},
 									DefaultMode: resources.NewVal(0600),
 								},
+							},
+						},
+						{
+							Name: "secret",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: constants.FilebeatName + "-secret"},
 							},
 						},
 					},
@@ -140,7 +140,7 @@ func createFilebeatDaemonSet(namespace string, name string, labels map[string]st
 								},
 								{
 									Name:  "ES_URL",
-									Value: fmt.Sprintf("http://vmi-system-es-ingest.%s.svc.cluster.local", constants.VerrazzanoNamespace),
+									Value: getElasticsearchURL(clusterInfo),
 								},
 								{
 									Name: "ES_USER",
@@ -165,10 +165,6 @@ func createFilebeatDaemonSet(namespace string, name string, labels map[string]st
 									},
 								},
 								{
-									Name:  "ES_PORT",
-									Value: "9200",
-								},
-								{
 									Name: "INDEX_NAME",
 									ValueFrom: &corev1.EnvVarSource{
 										ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
@@ -178,6 +174,10 @@ func createFilebeatDaemonSet(namespace string, name string, labels map[string]st
 											Key: "filebeat-index-name",
 										},
 									},
+								},
+								{
+									Name:  "CLUSTER_NAME",
+									Value: clusterInfo.ManagedClusterName,
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
@@ -200,6 +200,11 @@ func createFilebeatDaemonSet(namespace string, name string, labels map[string]st
 									ReadOnly:  true,
 									MountPath: "/var/lib/docker/containers",
 								},
+								{
+									Name:      "secret",
+									ReadOnly:  true,
+									MountPath: "/etc/filebeat/secret",
+								},
 							},
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							SecurityContext: &corev1.SecurityContext{
@@ -218,7 +223,7 @@ func createFilebeatDaemonSet(namespace string, name string, labels map[string]st
 	return loggingDaemonSet, nil
 }
 
-func createJournalbeatDaemonSet(namespace string, name string, labels map[string]string) (*appsv1.DaemonSet, error) {
+func createJournalbeatDaemonSet(namespace string, name string, labels map[string]string, clusterInfo ClusterInfo) (*appsv1.DaemonSet, error) {
 
 	loggingDaemonSet := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -289,6 +294,13 @@ func createJournalbeatDaemonSet(namespace string, name string, labels map[string
 								},
 							},
 						},
+						{
+							Name: "secret",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: constants.JournalbeatName + "-secret"},
+							},
+						},
 					},
 					Containers: []corev1.Container{
 						{
@@ -324,7 +336,7 @@ func createJournalbeatDaemonSet(namespace string, name string, labels map[string
 								},
 								{
 									Name:  "ES_URL",
-									Value: fmt.Sprintf("http://vmi-system-es-ingest.%s.svc.cluster.local", constants.VerrazzanoNamespace),
+									Value: getElasticsearchURL(clusterInfo),
 								},
 								{
 									Name: "ES_USER",
@@ -349,10 +361,6 @@ func createJournalbeatDaemonSet(namespace string, name string, labels map[string
 									},
 								},
 								{
-									Name:  "ES_PORT",
-									Value: "9200",
-								},
-								{
 									Name: "INDEX_NAME",
 									ValueFrom: &corev1.EnvVarSource{
 										ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
@@ -362,6 +370,10 @@ func createJournalbeatDaemonSet(namespace string, name string, labels map[string
 											Key: "journalbeat-index-name",
 										},
 									},
+								},
+								{
+									Name:  "CLUSTER_NAME",
+									Value: clusterInfo.ManagedClusterName,
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
@@ -388,6 +400,11 @@ func createJournalbeatDaemonSet(namespace string, name string, labels map[string
 									Name:      "etc-machine-id",
 									ReadOnly:  true,
 									MountPath: "/etc/machine-id",
+								},
+								{
+									Name:      "secret",
+									ReadOnly:  true,
+									MountPath: "/etc/journalbeat/secret",
 								},
 							},
 							ImagePullPolicy: corev1.PullIfNotPresent,

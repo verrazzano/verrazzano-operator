@@ -12,6 +12,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var clusterInfoDocker = ClusterInfo{ContainerRuntime: "docker://19.3.11"}
+var clusterInfoContainerd = ClusterInfo{ContainerRuntime: "containerd://1.4.0"}
+
 func TestLoggingConfigMapsDocker(t *testing.T) {
 	assert := assert.New(t)
 
@@ -57,7 +60,7 @@ func TestLoggingConfigMapsDocker(t *testing.T) {
 			Data: map[string]string{"journalbeat.yml": JournalbeatConfigData},
 		},
 	}
-	cmaps := LoggingConfigMaps(clusterName, "docker://19.3.11")
+	cmaps := LoggingConfigMaps(clusterName, clusterInfoDocker)
 	assert.NotNilf(cmaps, "LoggingConfigMaps return nil")
 	for _, v := range cmaps {
 		tv, ok := testMap[v.Name]
@@ -123,7 +126,7 @@ func TestLoggingConfigMapsContainerd(t *testing.T) {
 			Data: map[string]string{"journalbeat.yml": JournalbeatConfigData},
 		},
 	}
-	cmaps := LoggingConfigMaps(clusterName, "containerd://1.4.0")
+	cmaps := LoggingConfigMaps(clusterName, clusterInfoContainerd)
 	assert.NotNilf(cmaps, "LoggingConfigMaps return nil")
 	for _, v := range cmaps {
 		tv, ok := testMap[v.Name]

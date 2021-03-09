@@ -20,7 +20,7 @@ func TestCreateConfigMaps(t *testing.T) {
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections, "docker://19.3.11")
+	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections, clusterInfoDocker)
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestCreateConfigMapsUpdateMap(t *testing.T) {
 	clusterConnections := testutil.GetManagedClusterConnections()
 	clusterConnection := clusterConnections["cluster1"]
 
-	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections, "docker://19.3.11")
+	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections, clusterInfoDocker)
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestCreateConfigMapsUpdateMap(t *testing.T) {
 	cm["bar"] = "ddd"
 	cm["biz"] = "ccc"
 
-	err = CreateConfigMaps(SyntheticModelBinding, clusterConnections, "docker://19.3.11")
+	err = CreateConfigMaps(SyntheticModelBinding, clusterConnections, clusterInfoDocker)
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestCreateConfigMapsVmiSystem(t *testing.T) {
 	clusterConnection := clusterConnections[clusterName]
 
 	SyntheticModelBinding.SynBinding.Name = constants.VmiSystemBindingName
-	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections, "docker://19.3.11")
+	err := CreateConfigMaps(SyntheticModelBinding, clusterConnections, clusterInfoDocker)
 	if err != nil {
 		t.Fatalf("can't create config maps: %v", err)
 	}

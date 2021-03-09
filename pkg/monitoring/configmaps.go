@@ -8,11 +8,10 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
 // LoggingConfigMaps gets all the config maps needed by Filebeats and Journalbeats in all the managed cluster.
-func LoggingConfigMaps(managedClusterName string, containerRuntime string) []*corev1.ConfigMap {
+func LoggingConfigMaps(managedClusterName string, clusterInfo ClusterInfo) []*corev1.ConfigMap {
 	filebeatLabels := GetFilebeatLabels(managedClusterName)
 	journalbeatLabels := GetJournalbeatLabels(managedClusterName)
 	var configMaps []*corev1.ConfigMap
@@ -26,18 +25,12 @@ func LoggingConfigMaps(managedClusterName string, containerRuntime string) []*co
 		zap.S().Debugf("New logging config map %s is giving error %s", filebeatindexconfig.Name, err)
 	}
 
-	filebeatConfigData := FilebeatConfigDataDocker
-	filebeatInputData := FilebeatInputDataDocker
-	if strings.HasPrefix(containerRuntime, ContainerdContainerRuntimePrefix) {
-		filebeatConfigData = FilebeatConfigDataContainerd
-		filebeatInputData = FilebeatInputDataContainerd
-	}
-	filebeatconfig, err := createLoggingConfigMap(constants.LoggingNamespace, "filebeat-config", "filebeat.yml", filebeatConfigData, filebeatLabels)
+	filebeatconfig, err := createLoggingConfigMap(constants.LoggingNamespace, "filebeat-config", "filebeat.yml", getFilebeatConfig(clusterInfo), filebeatLabels)
 	if err != nil {
 		zap.S().Debugf("New logging config map %s is giving error %s", filebeatconfig.Name, err)
 	}
 	filebeatconfig.Data["es-index-template.json"] = FilebeatIndexTemplate
-	filebeatinput, err := createLoggingConfigMap(constants.LoggingNamespace, "filebeat-inputs", "kubernetes.yml", filebeatInputData, filebeatLabels)
+	filebeatinput, err := createLoggingConfigMap(constants.LoggingNamespace, "filebeat-inputs", "kubernetes.yml", getFilebeatInput(clusterInfo), filebeatLabels)
 	if err != nil {
 		zap.S().Debugf("New logging config map %s is giving error %s", filebeatinput.Name, err)
 	}
@@ -45,7 +38,7 @@ func LoggingConfigMaps(managedClusterName string, containerRuntime string) []*co
 	if err != nil {
 		zap.S().Debugf("New logging config map %s is giving error %s", journalbeatindexconfig.Name, err)
 	}
-	journalbeatconfig, err := createLoggingConfigMap(constants.LoggingNamespace, "journalbeat-config", "journalbeat.yml", JournalbeatConfigData, journalbeatLabels)
+	journalbeatconfig, err := createLoggingConfigMap(constants.LoggingNamespace, "journalbeat-config", "journalbeat.yml", getJournalbeatConfig(clusterInfo), journalbeatLabels)
 	if err != nil {
 		zap.S().Debugf("New logging config map %s is giving error %s", journalbeatconfig.Name, err)
 	}
