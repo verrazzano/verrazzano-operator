@@ -1186,19 +1186,16 @@ const ElasticsearchPasswordData = "password"
 // cluster's Elasticsearch ca-bundle
 const ElasticsearchCABundleData = "ca-bundle"
 
-// getManagedClusterName returns the cluster name for a managed cluster, empty string otherwise
+// getClusterInfo returns the cluster info, including container runtime, and cluster name
+// as well as admin cluster Elasticsearch details if it is a managed cluster
 func (c *Controller) getClusterInfo() v8omonitoring.ClusterInfo {
-	managedClusterName := ""
-	clusterSecret, err := c.secrets.Get(MCRegistrationSecret)
-	if err == nil {
-		managedClusterName = string(clusterSecret.Data[ClusterNameData])
-	}
 	clusterInfo := v8omonitoring.ClusterInfo{
-		ContainerRuntime:   c.getContainerRuntime(),
-		ManagedClusterName: managedClusterName,
+		ContainerRuntime: c.getContainerRuntime(),
 	}
-	elasticsearchSecret, err := c.secrets.Get(ElasticsearchSecretName)
-	if err == nil {
+	clusterSecret, err1 := c.secrets.Get(MCRegistrationSecret)
+	elasticsearchSecret, err2 := c.secrets.Get(ElasticsearchSecretName)
+	if err1 == nil && err2 == nil {
+		clusterInfo.ManagedClusterName = string(clusterSecret.Data[ClusterNameData])
 		clusterInfo.ElasticsearchURL = string(elasticsearchSecret.Data[ElasticsearchURLData])
 		clusterInfo.ElasticsearchUsername = string(elasticsearchSecret.Data[ElasticsearchUsernameData])
 		clusterInfo.ElasticsearchPassword = string(elasticsearchSecret.Data[ElasticsearchPasswordData])

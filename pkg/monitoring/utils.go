@@ -69,7 +69,7 @@ type ClusterInfo struct {
 
 func getFilebeatConfig(clusterInfo ClusterInfo) string {
 	config := FilebeatConfigDataDocker
-	if strings.HasPrefix(clusterInfo.ContainerRuntime, ContainerdContainerRuntimePrefix) {
+	if isContainerRuntimeContainerd(clusterInfo) {
 		config = FilebeatConfigDataContainerd
 	}
 	if isManagedCluster(clusterInfo) && len(clusterInfo.ElasticsearchCABundle) > 0 {
@@ -86,18 +86,26 @@ func getJournalbeatConfig(clusterInfo ClusterInfo) string {
 	return config
 }
 
+// if the containerRuntime is "containerd", use log input
+// if the containerRuntime is "docker", use docker input
 func getFilebeatInput(clusterInfo ClusterInfo) string {
-	if strings.HasPrefix(clusterInfo.ContainerRuntime, ContainerdContainerRuntimePrefix) {
+	if isContainerRuntimeContainerd(clusterInfo) {
 		return FilebeatInputDataContainerd
 	}
 	return FilebeatInputDataDocker
 }
 
+// if the containerRuntime is "containerd", the host path for logs is /var/log/pods
+// if the containerRuntime is "docker", the host path for logs is /var/lib/docker/containers
 func getFilebeatLogHostPath(clusterInfo ClusterInfo) string {
-	if strings.HasPrefix(clusterInfo.ContainerRuntime, ContainerdContainerRuntimePrefix) {
+	if isContainerRuntimeContainerd(clusterInfo) {
 		return FilebeatLogHostPathContainerd
 	}
 	return FilebeatLogHostPathDocker
+}
+
+func isContainerRuntimeContainerd(clusterInfo ClusterInfo) bool {
+	return strings.HasPrefix(clusterInfo.ContainerRuntime, ContainerdContainerRuntimePrefix)
 }
 
 func isManagedCluster(clusterInfo ClusterInfo) bool {
