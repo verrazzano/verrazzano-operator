@@ -30,7 +30,6 @@ type ManagedClusterConnection struct {
 	KubeClient                  kubernetes.Interface
 	KubeExtClientSet            apiextensionsclient.Interface
 	VerrazzanoOperatorClientSet clientset.Interface
-	KubeConfig                  string
 	Lock                        sync.RWMutex
 	DeploymentLister            appslistersv1.DeploymentLister
 	DeploymentInformer          cache.SharedIndexInformer

@@ -79,23 +79,12 @@ func setupHTTPResolve(cfg *restclient.Config) error {
 }
 
 // BuildManagedClusterConnection builds a ManagedClusterConnection for the given KubeConfig contents.
-func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*util.ManagedClusterConnection, error) {
+func BuildManagedClusterConnection(kubeconfigPath string, stopCh <-chan struct{}) (*util.ManagedClusterConnection, error) {
 	managedClusterConnection := &util.ManagedClusterConnection{}
 
-	// Create a temporary kubeconfig file on disk
-	tmpFileName, err := createKubeconfig()
-	if err != nil {
-		return nil, err
-	}
-	err = ioWriteFile(tmpFileName, kubeConfigContents, 0777)
-	defer osRemove(tmpFileName)
-	if err != nil {
-		return nil, err
-	}
-
 	// Build client connections
-	managedClusterConnection.KubeConfig = string(kubeConfigContents)
-	cfg, err := buildConfigFromFlags("", tmpFileName)
+	// NOTE: Passing empty strings here results in the client falling back to the in-cluster config
+	cfg, err := buildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}

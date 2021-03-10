@@ -6,14 +6,14 @@ package testutilcontroller
 import (
 	"errors"
 	"fmt"
+	"reflect"
+
 	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano-operator/pkg/controller"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"reflect"
 )
 
 func testIndexFunc(obj interface{}) ([]string, error) {
@@ -58,9 +58,7 @@ func NewControllerListers(clients *kubernetes.Interface, clusters []v1beta1.Verr
 		clusterIndexer.Add(&clusters[i])
 	}
 
-	clusterLister := listers.NewVerrazzanoManagedClusterLister(clusterIndexer)
 	return controller.Listers{
-		ManagedClusterLister: &clusterLister,
-		KubeClientSet:        clients,
+		KubeClientSet: clients,
 	}
 }

@@ -94,7 +94,6 @@ func TestNewController(t *testing.T) {
 
 	// assert initial lister state
 	listers := controller.ListerSet()
-	assert.Equal(t, controller.verrazzanoManagedClusterLister, *listers.ManagedClusterLister)
 	assert.Equal(t, 0, len(*listers.SyntheticModelBindings))
 	assert.NotNil(t, listers.KubeClientSet)
 }
@@ -132,7 +131,7 @@ func TestProcessManagedCluster(t *testing.T) {
 
 	// set expectations for 'managed' package interactions
 	managedMock := controller.managed.(*testManagedPackage)
-	managedMock.BuildManagedClusterConnection(testSecretData, controller.stopCh)
+	managedMock.BuildManagedClusterConnection("", controller.stopCh)
 	managedMock.CreateNamespaces(vzSynMB, testFilteredConnections)
 	managedMock.CreateSecrets(vzSynMB, controller.managedClusterConnections, controller.kubeClientSet, controller.secrets, testClusterInfoDockerStandalone)
 	managedMock.CreateServiceAccounts(vzSynMB.SynBinding.Name, vzSynMB.ImagePullSecrets, vzSynMB.ManagedClusters, testFilteredConnections)
@@ -150,7 +149,7 @@ func TestProcessManagedCluster(t *testing.T) {
 	utilMock.SetupComplete()
 
 	// invoke method that is being tested
-	controller.processManagedCluster(testManagedCluster)
+	controller.processManagedCluster(testManagedCluster.Name, "")
 
 	assert.Equal(t, &testManagedClusterConnection, controller.managedClusterConnections[testClusterName])
 
@@ -456,10 +455,10 @@ func newTestManaged() *testManagedPackage {
 	return &t
 }
 
-func (t *testManagedPackage) BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*util.ManagedClusterConnection, error) {
+func (t *testManagedPackage) BuildManagedClusterConnection(kubeconfigPath string, stopCh <-chan struct{}) (*util.ManagedClusterConnection, error) {
 	t.Record("BuildManagedClusterConnection", map[string]interface{}{
-		"kubeConfigContents": kubeConfigContents,
-		"stopCh":             stopCh})
+		"kubeconfigPath": kubeconfigPath,
+		"stopCh":         stopCh})
 	return &testManagedClusterConnection, nil
 }
 

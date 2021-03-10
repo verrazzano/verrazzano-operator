@@ -102,16 +102,9 @@ go-mod:
 	# to populate the vendor folder with the .yaml files
 	# that are required to define custom resources.
 
-	# Obtain verrazzano-crd-generator version
-	mkdir -p vendor/${CRDGEN_PATH}/${CRD_PATH}
-	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-crd-generator`/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml vendor/${CRDGEN_PATH}/${CRD_PATH}
-
 	# Obtain verrazzano-monitoring-operator version
 	mkdir -p vendor/${VMO_PATH}/${VMO_CRD_PATH}
 	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-monitoring-operator`/${VMO_CRD_PATH}/*.yaml vendor/${VMO_PATH}/${VMO_CRD_PATH}
-
-	# List copied CRD YAMLs
-	ls vendor/${CRDGEN_PATH}/${CRD_PATH}
 
 #
 # Docker-related tasks
@@ -159,15 +152,7 @@ OPERATOR_SETUP = test/operatorsetup
 integ-test: build create-cluster
 
 	echo 'Create CRDs needed by the verrazzano-operator...'
-	kubectl create -f vendor/${CRDGEN_PATH}/${CRD_PATH}/verrazzano.io_verrazzanomanagedclusters_crd.yaml
 	kubectl create -f vendor/${VMO_PATH}/${VMO_CRD_PATH}/verrazzano-monitoring-operator-crds.yaml
-
-	echo 'Deploy local cluster and required secret ...'
-	# Create the local cluster secret with empty kubeconfig data.  This will force the verrazzano-operator
-	# to use the in-cluster kubeconfig to access the managed cluster.
-	kubectl create secret generic verrazzano-managed-cluster-local --from-literal=kubeconfig=""
-	kubectl label secret verrazzano-managed-cluster-local k8s-app=verrazzano.oracle.com verrazzano.cluster=local
-	kubectl apply -f ${OPERATOR_SETUP}/local-vmc.yaml
 
 	echo 'Load docker image for the verrazzano-operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}

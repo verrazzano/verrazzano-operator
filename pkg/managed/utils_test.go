@@ -23,7 +23,6 @@ import (
 //   AND the cluster connection listers and informers should be initialized
 func TestBuildManagedClusterConnection(t *testing.T) {
 	assert := asserts.New(t)
-	kubeConfigContents := []byte("test kubecfg contents")
 	testConfig := &rest.Config{
 		Host:            "testHost",
 		APIPath:         "api",
@@ -77,13 +76,7 @@ func TestBuildManagedClusterConnection(t *testing.T) {
 	}
 	defer func() { ioWriteFile = oldIoWriteFile }()
 
-	oldCreateKubeconfig := createKubeconfig
-	createKubeconfig = func() (string, error) {
-		return "kubeconfig9999", nil
-	}
-	defer func() { createKubeconfig = oldCreateKubeconfig }()
-
-	clusterConnection, err := BuildManagedClusterConnection(kubeConfigContents, make(chan struct{}))
+	clusterConnection, err := BuildManagedClusterConnection("", make(chan struct{}))
 	assert.NoError(err, "got error from BuildManagedClusterConnection")
 
 	// assert that all client sets have been initialized
