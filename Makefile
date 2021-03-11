@@ -36,7 +36,6 @@ EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-operator
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
-CRDGEN_PATH = github.com/verrazzano/verrazzano-crd-generator
 VMO_PATH = github.com/verrazzano/verrazzano-monitoring-operator
 VMO_CRD_PATH = k8s/crds
 CRD_PATH = deploy/crds

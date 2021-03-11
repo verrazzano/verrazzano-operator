@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
 	vmoclientset "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
 	vmolisters "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/listers/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
@@ -175,7 +173,6 @@ func createController(t *testing.T, localMockSetup func(*testLocalPackage), moni
 		controller.kubeClientSet.CoreV1().Secrets(constants.VerrazzanoSystem).Create(context.TODO(), &secret, metav1.CreateOptions{})
 	}
 
-	controller.verrazzanoOperatorClientSet = fake.NewSimpleClientset()
 	controller.managed = newTestManaged()
 	controller.cache = newTestCache()
 
@@ -214,13 +211,6 @@ func (t *testManagedPackage) BuildManagedClusterConnection(kubeconfigPath string
 		"kubeconfigPath": kubeconfigPath,
 		"stopCh":         stopCh})
 	return &testManagedClusterConnection, nil
-}
-
-func (t *testManagedPackage) CreateCrdDefinitions(managedClusterConnection *util.ManagedClusterConnection, managedCluster *v1beta1.VerrazzanoManagedCluster) error {
-	t.Record("CreateCrdDefinitions", map[string]interface{}{
-		"managedClusterConnection": managedClusterConnection,
-		"managedCluster":           managedCluster})
-	return nil
 }
 
 func (t *testManagedPackage) CreateNamespaces(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*util.ManagedClusterConnection) error {

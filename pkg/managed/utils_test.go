@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
-	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
-	clientsetfake "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
 	extclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	extclientsetfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	"k8s.io/client-go/kubernetes"
@@ -38,14 +36,6 @@ func TestBuildManagedClusterConnection(t *testing.T) {
 		return fake.NewSimpleClientset(), nil
 	}
 	defer func() { newKubernetesClientSet = origNewKubernetesClientSet }()
-
-	// mock verrazzano operator client set creation to return fake
-	origNewVerrazzanoOperatorClientSet := newVerrazzanoOperatorClientSet
-	newVerrazzanoOperatorClientSet = func(c *rest.Config) (clientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return clientsetfake.NewSimpleClientset(), nil
-	}
-	defer func() { newVerrazzanoOperatorClientSet = origNewVerrazzanoOperatorClientSet }()
 
 	// mock kubernetes ext client set creation to return fake
 	origNewExtClientSet := newExtClientSet
@@ -82,7 +72,6 @@ func TestBuildManagedClusterConnection(t *testing.T) {
 	// assert that all client sets have been initialized
 	assert.NotNil(clusterConnection.KubeClient, "expected client set to be initialized")
 	assert.NotNil(clusterConnection.KubeExtClientSet, "expected client set to be initialized")
-	assert.NotNil(clusterConnection.VerrazzanoOperatorClientSet, "expected client set to be initialized")
 
 	// assert that all listers and informers have been initialized
 	assert.NotNil(clusterConnection.DeploymentLister, "expected lister to be initialized")

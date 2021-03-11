@@ -17,9 +17,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
-	clientsetscheme "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/scheme"
-	informers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/informers/externalversions"
 	vmoclientset "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
 	vmoinformers "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/informers/externalversions"
 	vmolisters "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/listers/vmcontroller/v1"
@@ -30,6 +27,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	v8outil "github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	extclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -170,17 +168,14 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 	// Set up informers and listers for the local k8s cluster
 	//
 	var kubeInformerFactory kubeinformers.SharedInformerFactory
-	var verrazzanoOperatorInformerFactory informers.SharedInformerFactory
 	var vmoInformerFactory vmoinformers.SharedInformerFactory
 	if watchNamespace == "" {
 		// Consider all namespaces if our namespace is left wide open our set to default
 		kubeInformerFactory = kubeinformers.NewSharedInformerFactory(kubeClientSet, constants.ResyncPeriod)
-		verrazzanoOperatorInformerFactory = informers.NewSharedInformerFactory(verrazzanoOperatorClientSet, constants.ResyncPeriod)
 		vmoInformerFactory = vmoinformers.NewSharedInformerFactory(vmoClientSet, constants.ResyncPeriod)
 	} else {
 		// Otherwise, restrict to a specific namespace
 		kubeInformerFactory = kubeinformers.NewFilteredSharedInformerFactory(kubeClientSet, constants.ResyncPeriod, watchNamespace, nil)
-		verrazzanoOperatorInformerFactory = informers.NewFilteredSharedInformerFactory(verrazzanoOperatorClientSet, constants.ResyncPeriod, watchNamespace, nil)
 		vmoInformerFactory = vmoinformers.NewFilteredSharedInformerFactory(vmoClientSet, constants.ResyncPeriod, watchNamespace, nil)
 	}
 	secretsInformer := kubeInformerFactory.Core().V1().Secrets()
@@ -188,7 +183,6 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 	vmiInformer := vmoInformerFactory.Verrazzano().V1().VerrazzanoMonitoringInstances()
 	vmiInformer.Informer().AddEventHandler(k8scache.ResourceEventHandlerFuncs{})
 
-	clientsetscheme.AddToScheme(scheme.Scheme)
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(zap.S().Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClientSet.CoreV1().Events("")})
@@ -229,7 +223,6 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 	stopCh := setupSignalHandler()
 
 	go kubeInformerFactory.Start(stopCh)
-	go verrazzanoOperatorInformerFactory.Start(stopCh)
 	go vmoInformerFactory.Start(stopCh)
 
 	// Wait for the caches to be synced before starting watchers

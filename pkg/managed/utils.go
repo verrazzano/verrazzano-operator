@@ -7,8 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
-	informers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/informers/externalversions"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
@@ -22,11 +20,6 @@ import (
 // functions to set client sets
 var newKubernetesClientSet = func(c *rest.Config) (kubernetes.Interface, error) {
 	clientSet, err := kubernetes.NewForConfig(c)
-	return clientSet, err
-}
-
-var newVerrazzanoOperatorClientSet = func(c *rest.Config) (clientset.Interface, error) {
-	clientSet, err := clientset.NewForConfig(c)
 	return clientSet, err
 }
 
@@ -54,13 +47,6 @@ func BuildManagedClusterConnection(kubeconfigPath string, stopCh <-chan struct{}
 		return nil, err
 	}
 	managedClusterConnection.KubeClient = clientSet
-
-	// Build client connections for verrazzanoOperatorClientSet
-	verrazzanoOperatorClientSet, err := newVerrazzanoOperatorClientSet(cfg)
-	if err != nil {
-		return nil, err
-	}
-	managedClusterConnection.VerrazzanoOperatorClientSet = verrazzanoOperatorClientSet
 
 	kubeClientExt, err := newExtClientSet(cfg)
 	if err != nil {
@@ -111,10 +97,6 @@ func BuildManagedClusterConnection(kubeconfigPath string, stopCh <-chan struct{}
 	managedClusterConnection.ServiceLister = serviceInformer.Lister()
 
 	go kubeInformerFactory.Start(stopCh)
-
-	// Informers on our CRs
-	verrazzanoOperatorInformerFactory := informers.NewSharedInformerFactory(verrazzanoOperatorClientSet, constants.ResyncPeriod)
-	go verrazzanoOperatorInformerFactory.Start(stopCh)
 
 	return managedClusterConnection, nil
 }

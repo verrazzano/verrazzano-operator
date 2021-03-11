@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"sync"
 
-	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"go.uber.org/zap"
@@ -27,30 +26,29 @@ var LookupEnvFunc = os.LookupEnv
 
 // ManagedClusterConnection maintains the connection details to a ManagedCluster.
 type ManagedClusterConnection struct {
-	KubeClient                  kubernetes.Interface
-	KubeExtClientSet            apiextensionsclient.Interface
-	VerrazzanoOperatorClientSet clientset.Interface
-	Lock                        sync.RWMutex
-	DeploymentLister            appslistersv1.DeploymentLister
-	DeploymentInformer          cache.SharedIndexInformer
-	PodLister                   corelistersv1.PodLister
-	PodInformer                 cache.SharedIndexInformer
-	ServiceAccountLister        corelistersv1.ServiceAccountLister
-	ServiceAccountInformer      cache.SharedIndexInformer
-	NamespaceLister             corelistersv1.NamespaceLister
-	NamespaceInformer           cache.SharedIndexInformer
-	SecretLister                corelistersv1.SecretLister
-	SecretInformer              cache.SharedIndexInformer
-	ClusterRoleLister           rbaclistersv1.ClusterRoleLister
-	ClusterRoleInformer         cache.SharedIndexInformer
-	ClusterRoleBindingLister    rbaclistersv1.ClusterRoleBindingLister
-	ClusterRoleBindingInformer  cache.SharedIndexInformer
-	ConfigMapLister             corelistersv1.ConfigMapLister
-	ConfigMapInformer           cache.SharedIndexInformer
-	DaemonSetLister             appslistersv1.DaemonSetLister
-	DaemonSetInformer           cache.SharedIndexInformer
-	ServiceLister               corelistersv1.ServiceLister
-	ServiceInformer             cache.SharedIndexInformer
+	KubeClient                 kubernetes.Interface
+	KubeExtClientSet           apiextensionsclient.Interface
+	Lock                       sync.RWMutex
+	DeploymentLister           appslistersv1.DeploymentLister
+	DeploymentInformer         cache.SharedIndexInformer
+	PodLister                  corelistersv1.PodLister
+	PodInformer                cache.SharedIndexInformer
+	ServiceAccountLister       corelistersv1.ServiceAccountLister
+	ServiceAccountInformer     cache.SharedIndexInformer
+	NamespaceLister            corelistersv1.NamespaceLister
+	NamespaceInformer          cache.SharedIndexInformer
+	SecretLister               corelistersv1.SecretLister
+	SecretInformer             cache.SharedIndexInformer
+	ClusterRoleLister          rbaclistersv1.ClusterRoleLister
+	ClusterRoleInformer        cache.SharedIndexInformer
+	ClusterRoleBindingLister   rbaclistersv1.ClusterRoleBindingLister
+	ClusterRoleBindingInformer cache.SharedIndexInformer
+	ConfigMapLister            corelistersv1.ConfigMapLister
+	ConfigMapInformer          cache.SharedIndexInformer
+	DaemonSetLister            appslistersv1.DaemonSetLister
+	DaemonSetInformer          cache.SharedIndexInformer
+	ServiceLister              corelistersv1.ServiceLister
+	ServiceInformer            cache.SharedIndexInformer
 }
 
 // DeploymentHelper defines an interface for deployments.
