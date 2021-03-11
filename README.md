@@ -83,7 +83,6 @@ Follow those steps using `github.com/verrazzano/verrazzano-crd-generator` as the
 Create the custom resource definitions in the cluster where you want to run the Verrazzano Operator.
 This is a one-time operation:
 ```
-kubectl create -f vendor/github.com/verrazzano/verrazzano-crd-generator/deploy/crds/verrazzano.io_verrazzanomanagedclusters_crd.yaml
 kubectl create -f vendor/github.com/verrazzano/verrazzano-crd-generator/deploy/crds/verrazzano.io_verrazzanobindings_crd.yaml
 kubectl create -f vendor/github.com/verrazzano/verrazzano-crd-generator/deploy/crds/verrazzano.io_verrazzanomodels_crd.yaml
 ```
