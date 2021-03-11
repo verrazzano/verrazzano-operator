@@ -6,22 +6,6 @@ The Verrazzano Operator is the Kubernetes operator that runs in the Verrazzano m
 watches local custom resource definitions for models and bindings, and launches micro-operators
 into Verrazzano managed clusters.
 
-## Status
-
-Current functionality:
-- Learns about managed clusters through a `VerrazzanoManagedCluster` custom resource, and then creates
-  Kubernetes clients and watchers for those clusters.
-- Watches the local Kubernetes cluster in the default namespace for `VerrazzanoModel` and `VerrazzanoBinding` custom resources.
-- A `VerrazzanoModel`/`VerrazzanoBinding` pair describes a Verrazzano application and defines which application components should be installed on which `VerrazzanoManagedCluster`.
-- Upon creation or update of a `VerrazzanoModel`/`VerrazzanoBinding` pair, the Verrazzano Operator launches:
-  - A Verrazzano monitoring instance.
-  - Custom resources needed to deploy application components.
-  - Agents forwarding logs and metrics to the Verrazzano monitoring instance.
-
-- Upon deletion of a `VerrazzanoBinding`, deletes all deployed related resources.
-- Upon updates to the managed cluster's objects created by the Verrazzano Operator (deployments, micro-operator custom resources), triggers a reprocessing of the owning `VerrazzanoBinding`.
-  This causes any drift in expecting state to be fixed immediately by the Verrazzano Operator.
-
 ## Artifacts
 
 Upon a successful release (which occurs on a Git tag), this repo publishes a Docker image: `ghcr.io/verrazzano/verrazzano-operator:tag`
