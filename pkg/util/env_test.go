@@ -4,10 +4,11 @@
 package util
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestGetEnvValues  tests the various GetXXX env var methods
@@ -37,9 +38,6 @@ func TestGetEnvValues(t *testing.T) {
 		{name: "KIBANA_REQUEST_MEMORY", value: sizeValue, method: GetKibanaRequestMemory},
 		{name: "ES_DATA_STORAGE", value: sizeValue, method: GetElasticsearchDataStorageSize},
 		{name: "ACCESS_CONTROL_ALLOW_ORIGIN", value: "foo", method: GetAccessControlAllowOrigin},
-		{name: "rancherURL", value: "https://my.rancher.host", method: GetRancherURL},
-		{name: "rancherHost", value: "my.rancher.host", method: GetRancherHost},
-		{name: "rancherPort", value: "443", method: GetRancherPort},
 	}
 
 	for _, tt := range testVars {

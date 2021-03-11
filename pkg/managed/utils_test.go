@@ -107,58 +107,6 @@ func TestBuildManagedClusterConnection(t *testing.T) {
 	assert.NotNil(clusterConnection.ServiceInformer, "expected informer to be initialized")
 }
 
-// Test_setupHTTPResolve test setting up http resolve for a given restConfig.
-// GIVEN a restConfig and env var "rancherURL" and "rancherHost"
-//  WHEN I call setupHTTPResolve
-//  THEN the restConfig should setup Dial correctly depending on the URL and host
-func Test_setupHTTPResolve(t *testing.T) {
-	type args struct {
-		url  string
-		host string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name:    "no_url",
-			args:    args{url: "", host: ""},
-			wantErr: false,
-		},
-		{
-			name:    "wrong_url",
-			args:    args{url: ":wrong_url", host: "172.17.0.2"},
-			wantErr: true,
-		},
-		{
-			name:    "no_host",
-			args:    args{url: "https://127.0.0.1", host: ""},
-			wantErr: false,
-		},
-		{
-			name:    "same_host",
-			args:    args{url: "https://127.0.0.1", host: "127.0.0.1"},
-			wantErr: false,
-		},
-		{
-			name:    "different_host",
-			args:    args{url: "https://127.0.0.1", host: "172.17.0.2"},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("rancherURL", tt.args.url)
-			os.Setenv("rancherHost", tt.args.host)
-			config := &rest.Config{}
-			if err := setupHTTPResolve(config); (err != nil) != tt.wantErr {
-				t.Errorf("setupHTTPResolve() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 // Test_createTempKubeconfigFile test creating temp file for storing kubeconfig.
 //  WHEN I call createTempKubeconfigFile
 //  THEN a temp file should be created and the name should be returned

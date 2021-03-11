@@ -4,15 +4,8 @@
 package managed
 
 import (
-	"context"
 	"io/ioutil"
-	"net"
-	"net/url"
 	"os"
-	"time"
-
-	"go.uber.org/zap"
-	restclient "k8s.io/client-go/rest"
 
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
 	informers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/informers/externalversions"
@@ -45,38 +38,6 @@ var newExtClientSet = func(c *rest.Config) (extclientset.Interface, error) {
 var buildConfigFromFlags = clientcmd.BuildConfigFromFlags
 var osRemove = os.Remove
 var ioWriteFile = ioutil.WriteFile
-var createKubeconfig = createTempKubeconfigFile
-
-// When the in-cluster accessible host is different from the outside accessible URL's host (parsedHost),
-// do a 'curl --resolve' equivalent
-func setupHTTPResolve(cfg *restclient.Config) error {
-	rancherURL := util.GetRancherURL()
-	if rancherURL != "" {
-		urlObj, err := url.Parse(rancherURL)
-		if err != nil {
-			return err
-		}
-		parsedHost := urlObj.Host
-		host := util.GetRancherHost()
-		port := util.GetRancherPort()
-		zap.S().Debugf("resolve address: %s:%s \n", host, port)
-		if host != "" && port != "" && host != parsedHost {
-			dialer := &net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}
-			cfg.Dial = func(ctx context.Context, network, addr string) (net.Conn, error) {
-				if addr == parsedHost+":443" {
-					addr = host + ":" + port
-					zap.S().Debugf("address modified from %s to %s \n", parsedHost+":443", addr)
-				}
-				return dialer.DialContext(ctx, network, addr)
-			}
-		}
-	}
-
-	return nil
-}
 
 // BuildManagedClusterConnection builds a ManagedClusterConnection for the given KubeConfig contents.
 func BuildManagedClusterConnection(kubeconfigPath string, stopCh <-chan struct{}) (*util.ManagedClusterConnection, error) {
@@ -85,10 +46,6 @@ func BuildManagedClusterConnection(kubeconfigPath string, stopCh <-chan struct{}
 	// Build client connections
 	// NOTE: Passing empty strings here results in the client falling back to the in-cluster config
 	cfg, err := buildConfigFromFlags("", kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	setupHTTPResolve(cfg)
 	if err != nil {
 		return nil, err
 	}
