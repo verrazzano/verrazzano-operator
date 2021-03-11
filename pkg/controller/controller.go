@@ -96,14 +96,13 @@ type Controller struct {
 	imagePullSecrets            []corev1.LocalObjectReference
 
 	// Local cluster listers and informers
-	secretLister                     corev1listers.SecretLister
-	secretInformer                   k8scache.SharedIndexInformer
-	configMapLister                  corev1listers.ConfigMapLister
-	configMapInformer                k8scache.SharedIndexInformer
-	verrazzanoManagedClusterInformer k8scache.SharedIndexInformer
-	vmiLister                        vmolisters.VerrazzanoMonitoringInstanceLister
-	vmiInformer                      k8scache.SharedIndexInformer
-	secrets                          v8omonitoring.Secrets
+	secretLister      corev1listers.SecretLister
+	secretInformer    k8scache.SharedIndexInformer
+	configMapLister   corev1listers.ConfigMapLister
+	configMapInformer k8scache.SharedIndexInformer
+	vmiLister         vmolisters.VerrazzanoMonitoringInstanceLister
+	vmiInformer       k8scache.SharedIndexInformer
+	secrets           v8omonitoring.Secrets
 	// The current set of known managed clusters
 	managedClusterConnections map[string]*v8outil.ManagedClusterConnection
 
@@ -187,7 +186,6 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 	}
 	secretsInformer := kubeInformerFactory.Core().V1().Secrets()
 	configMapInformer := kubeInformerFactory.Core().V1().ConfigMaps()
-	verrazzanoManagedClusterInformer := verrazzanoOperatorInformerFactory.Verrazzano().V1beta1().VerrazzanoManagedClusters()
 	vmiInformer := vmoInformerFactory.Verrazzano().V1().VerrazzanoMonitoringInstances()
 	vmiInformer.Informer().AddEventHandler(k8scache.ResourceEventHandlerFuncs{})
 
@@ -200,32 +198,31 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 		namespace: constants.VerrazzanoNamespace, kubeClientSet: kubeClientSet, secretLister: secretsInformer.Lister(),
 	}
 	controller := &Controller{
-		managed:                          newManagedPackage(),
-		cache:                            newCachePackage(),
-		util:                             newUtilPackage(),
-		local:                            newLocalPackage(),
-		monitoring:                       newMonitoringPackage(),
-		watchNamespace:                   watchNamespace,
-		verrazzanoURI:                    verrazzanoURI,
-		enableMonitoringStorage:          enableMonitoringStorage,
-		kubeClientSet:                    kubeClientSet,
-		verrazzanoOperatorClientSet:      verrazzanoOperatorClientSet,
-		vmoClientSet:                     vmoClientSet,
-		kubeExtClientSet:                 kubeExtClientSet,
-		secretLister:                     secretsInformer.Lister(),
-		secretInformer:                   secretsInformer.Informer(),
-		configMapLister:                  configMapInformer.Lister(),
-		configMapInformer:                configMapInformer.Informer(),
-		verrazzanoManagedClusterInformer: verrazzanoManagedClusterInformer.Informer(),
-		vmiInformer:                      vmiInformer.Informer(),
-		vmiLister:                        vmiInformer.Lister(),
-		recorder:                         recorder,
-		managedClusterConnections:        map[string]*v8outil.ManagedClusterConnection{},
-		applicationModels:                map[string]*types.SyntheticModel{},
-		applicationBindings:              map[string]*types.SyntheticBinding{},
-		SyntheticModelBindings:           map[string]*types.SyntheticModelBinding{},
-		bindingSyncThreshold:             map[string]int{},
-		secrets:                          kubeSecrets,
+		managed:                     newManagedPackage(),
+		cache:                       newCachePackage(),
+		util:                        newUtilPackage(),
+		local:                       newLocalPackage(),
+		monitoring:                  newMonitoringPackage(),
+		watchNamespace:              watchNamespace,
+		verrazzanoURI:               verrazzanoURI,
+		enableMonitoringStorage:     enableMonitoringStorage,
+		kubeClientSet:               kubeClientSet,
+		verrazzanoOperatorClientSet: verrazzanoOperatorClientSet,
+		vmoClientSet:                vmoClientSet,
+		kubeExtClientSet:            kubeExtClientSet,
+		secretLister:                secretsInformer.Lister(),
+		secretInformer:              secretsInformer.Informer(),
+		configMapLister:             configMapInformer.Lister(),
+		configMapInformer:           configMapInformer.Informer(),
+		vmiInformer:                 vmiInformer.Informer(),
+		vmiLister:                   vmiInformer.Lister(),
+		recorder:                    recorder,
+		managedClusterConnections:   map[string]*v8outil.ManagedClusterConnection{},
+		applicationModels:           map[string]*types.SyntheticModel{},
+		applicationBindings:         map[string]*types.SyntheticBinding{},
+		SyntheticModelBindings:      map[string]*types.SyntheticModelBinding{},
+		bindingSyncThreshold:        map[string]int{},
+		secrets:                     kubeSecrets,
 	}
 
 	// Set up signals so we handle the first shutdown signal gracefully

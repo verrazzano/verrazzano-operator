@@ -8,7 +8,6 @@ package testutil
 import (
 	"context"
 
-	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
 	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
@@ -225,14 +224,4 @@ func ReadSyntheticModelBinding(managedClusterPaths ...string) *types.SyntheticMo
 		},
 	}
 	return pair
-}
-
-// GetTestClusters returns a list of Verrazzano Managed SynModel resources.
-func GetTestClusters() []v1beta1.VerrazzanoManagedCluster {
-	return []v1beta1.VerrazzanoManagedCluster{
-		{
-			ObjectMeta: metav1.ObjectMeta{UID: "123-456-789", Name: "cluster1", Namespace: "default"},
-			Spec:       v1beta1.VerrazzanoManagedClusterSpec{Type: "testCluster", ServerAddress: "test.com", Description: "Test SynModel"},
-		},
-	}
 }
