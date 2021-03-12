@@ -4,18 +4,9 @@
 package managed
 
 import (
-	"context"
 	"io/ioutil"
-	"net"
-	"net/url"
 	"os"
-	"time"
 
-	"go.uber.org/zap"
-	restclient "k8s.io/client-go/rest"
-
-	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
-	informers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/informers/externalversions"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
@@ -32,11 +23,6 @@ var newKubernetesClientSet = func(c *rest.Config) (kubernetes.Interface, error) 
 	return clientSet, err
 }
 
-var newVerrazzanoOperatorClientSet = func(c *rest.Config) (clientset.Interface, error) {
-	clientSet, err := clientset.NewForConfig(c)
-	return clientSet, err
-}
-
 var newExtClientSet = func(c *rest.Config) (extclientset.Interface, error) {
 	clientSet, err := extclientset.NewForConfig(c)
 	return clientSet, err
@@ -45,61 +31,14 @@ var newExtClientSet = func(c *rest.Config) (extclientset.Interface, error) {
 var buildConfigFromFlags = clientcmd.BuildConfigFromFlags
 var osRemove = os.Remove
 var ioWriteFile = ioutil.WriteFile
-var createKubeconfig = createTempKubeconfigFile
-
-// When the in-cluster accessible host is different from the outside accessible URL's host (parsedHost),
-// do a 'curl --resolve' equivalent
-func setupHTTPResolve(cfg *restclient.Config) error {
-	rancherURL := util.GetRancherURL()
-	if rancherURL != "" {
-		urlObj, err := url.Parse(rancherURL)
-		if err != nil {
-			return err
-		}
-		parsedHost := urlObj.Host
-		host := util.GetRancherHost()
-		port := util.GetRancherPort()
-		zap.S().Debugf("resolve address: %s:%s \n", host, port)
-		if host != "" && port != "" && host != parsedHost {
-			dialer := &net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}
-			cfg.Dial = func(ctx context.Context, network, addr string) (net.Conn, error) {
-				if addr == parsedHost+":443" {
-					addr = host + ":" + port
-					zap.S().Debugf("address modified from %s to %s \n", parsedHost+":443", addr)
-				}
-				return dialer.DialContext(ctx, network, addr)
-			}
-		}
-	}
-
-	return nil
-}
 
 // BuildManagedClusterConnection builds a ManagedClusterConnection for the given KubeConfig contents.
-func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*util.ManagedClusterConnection, error) {
+func BuildManagedClusterConnection(kubeconfigPath string, stopCh <-chan struct{}) (*util.ManagedClusterConnection, error) {
 	managedClusterConnection := &util.ManagedClusterConnection{}
 
-	// Create a temporary kubeconfig file on disk
-	tmpFileName, err := createKubeconfig()
-	if err != nil {
-		return nil, err
-	}
-	err = ioWriteFile(tmpFileName, kubeConfigContents, 0777)
-	defer osRemove(tmpFileName)
-	if err != nil {
-		return nil, err
-	}
-
 	// Build client connections
-	managedClusterConnection.KubeConfig = string(kubeConfigContents)
-	cfg, err := buildConfigFromFlags("", tmpFileName)
-	if err != nil {
-		return nil, err
-	}
-	setupHTTPResolve(cfg)
+	// NOTE: Passing empty strings here results in the client falling back to the in-cluster config
+	cfg, err := buildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -108,13 +47,6 @@ func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan stru
 		return nil, err
 	}
 	managedClusterConnection.KubeClient = clientSet
-
-	// Build client connections for verrazzanoOperatorClientSet
-	verrazzanoOperatorClientSet, err := newVerrazzanoOperatorClientSet(cfg)
-	if err != nil {
-		return nil, err
-	}
-	managedClusterConnection.VerrazzanoOperatorClientSet = verrazzanoOperatorClientSet
 
 	kubeClientExt, err := newExtClientSet(cfg)
 	if err != nil {
@@ -165,10 +97,6 @@ func BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan stru
 	managedClusterConnection.ServiceLister = serviceInformer.Lister()
 
 	go kubeInformerFactory.Start(stopCh)
-
-	// Informers on our CRs
-	verrazzanoOperatorInformerFactory := informers.NewSharedInformerFactory(verrazzanoOperatorClientSet, constants.ResyncPeriod)
-	go verrazzanoOperatorInformerFactory.Start(stopCh)
 
 	return managedClusterConnection, nil
 }

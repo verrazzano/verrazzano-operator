@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
-	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
-	clientsetfake "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
 	extclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	extclientsetfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	"k8s.io/client-go/kubernetes"
@@ -23,7 +21,6 @@ import (
 //   AND the cluster connection listers and informers should be initialized
 func TestBuildManagedClusterConnection(t *testing.T) {
 	assert := asserts.New(t)
-	kubeConfigContents := []byte("test kubecfg contents")
 	testConfig := &rest.Config{
 		Host:            "testHost",
 		APIPath:         "api",
@@ -39,14 +36,6 @@ func TestBuildManagedClusterConnection(t *testing.T) {
 		return fake.NewSimpleClientset(), nil
 	}
 	defer func() { newKubernetesClientSet = origNewKubernetesClientSet }()
-
-	// mock verrazzano operator client set creation to return fake
-	origNewVerrazzanoOperatorClientSet := newVerrazzanoOperatorClientSet
-	newVerrazzanoOperatorClientSet = func(c *rest.Config) (clientset.Interface, error) {
-		assert.Equal(testConfig, c, "didn't get the expected config")
-		return clientsetfake.NewSimpleClientset(), nil
-	}
-	defer func() { newVerrazzanoOperatorClientSet = origNewVerrazzanoOperatorClientSet }()
 
 	// mock kubernetes ext client set creation to return fake
 	origNewExtClientSet := newExtClientSet
@@ -77,19 +66,12 @@ func TestBuildManagedClusterConnection(t *testing.T) {
 	}
 	defer func() { ioWriteFile = oldIoWriteFile }()
 
-	oldCreateKubeconfig := createKubeconfig
-	createKubeconfig = func() (string, error) {
-		return "kubeconfig9999", nil
-	}
-	defer func() { createKubeconfig = oldCreateKubeconfig }()
-
-	clusterConnection, err := BuildManagedClusterConnection(kubeConfigContents, make(chan struct{}))
+	clusterConnection, err := BuildManagedClusterConnection("", make(chan struct{}))
 	assert.NoError(err, "got error from BuildManagedClusterConnection")
 
 	// assert that all client sets have been initialized
 	assert.NotNil(clusterConnection.KubeClient, "expected client set to be initialized")
 	assert.NotNil(clusterConnection.KubeExtClientSet, "expected client set to be initialized")
-	assert.NotNil(clusterConnection.VerrazzanoOperatorClientSet, "expected client set to be initialized")
 
 	// assert that all listers and informers have been initialized
 	assert.NotNil(clusterConnection.DeploymentLister, "expected lister to be initialized")
@@ -112,58 +94,6 @@ func TestBuildManagedClusterConnection(t *testing.T) {
 	assert.NotNil(clusterConnection.DaemonSetInformer, "expected informer to be initialized")
 	assert.NotNil(clusterConnection.ServiceLister, "expected lister to be initialized")
 	assert.NotNil(clusterConnection.ServiceInformer, "expected informer to be initialized")
-}
-
-// Test_setupHTTPResolve test setting up http resolve for a given restConfig.
-// GIVEN a restConfig and env var "rancherURL" and "rancherHost"
-//  WHEN I call setupHTTPResolve
-//  THEN the restConfig should setup Dial correctly depending on the URL and host
-func Test_setupHTTPResolve(t *testing.T) {
-	type args struct {
-		url  string
-		host string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name:    "no_url",
-			args:    args{url: "", host: ""},
-			wantErr: false,
-		},
-		{
-			name:    "wrong_url",
-			args:    args{url: ":wrong_url", host: "172.17.0.2"},
-			wantErr: true,
-		},
-		{
-			name:    "no_host",
-			args:    args{url: "https://127.0.0.1", host: ""},
-			wantErr: false,
-		},
-		{
-			name:    "same_host",
-			args:    args{url: "https://127.0.0.1", host: "127.0.0.1"},
-			wantErr: false,
-		},
-		{
-			name:    "different_host",
-			args:    args{url: "https://127.0.0.1", host: "172.17.0.2"},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("rancherURL", tt.args.url)
-			os.Setenv("rancherHost", tt.args.host)
-			config := &rest.Config{}
-			if err := setupHTTPResolve(config); (err != nil) != tt.wantErr {
-				t.Errorf("setupHTTPResolve() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
 }
 
 // Test_createTempKubeconfigFile test creating temp file for storing kubeconfig.
