@@ -17,11 +17,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v1beta1v8o "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned"
-	clientsetscheme "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/scheme"
-	informers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/informers/externalversions"
-	listers "github.com/verrazzano/verrazzano-crd-generator/pkg/client/listers/verrazzano/v1beta1"
 	vmoclientset "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
 	vmoinformers "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/informers/externalversions"
 	vmolisters "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/listers/vmcontroller/v1"
@@ -32,6 +27,7 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	v8outil "github.com/verrazzano/verrazzano-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	extclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -97,15 +93,13 @@ type Controller struct {
 	imagePullSecrets            []corev1.LocalObjectReference
 
 	// Local cluster listers and informers
-	secretLister                     corev1listers.SecretLister
-	secretInformer                   k8scache.SharedIndexInformer
-	configMapLister                  corev1listers.ConfigMapLister
-	configMapInformer                k8scache.SharedIndexInformer
-	verrazzanoManagedClusterLister   listers.VerrazzanoManagedClusterLister
-	verrazzanoManagedClusterInformer k8scache.SharedIndexInformer
-	vmiLister                        vmolisters.VerrazzanoMonitoringInstanceLister
-	vmiInformer                      k8scache.SharedIndexInformer
-	secrets                          v8omonitoring.Secrets
+	secretLister      corev1listers.SecretLister
+	secretInformer    k8scache.SharedIndexInformer
+	configMapLister   corev1listers.ConfigMapLister
+	configMapInformer k8scache.SharedIndexInformer
+	vmiLister         vmolisters.VerrazzanoMonitoringInstanceLister
+	vmiInformer       k8scache.SharedIndexInformer
+	secrets           v8omonitoring.Secrets
 	// The current set of known managed clusters
 	managedClusterConnections map[string]*v8outil.ManagedClusterConnection
 
@@ -132,7 +126,6 @@ type Controller struct {
 
 // Listers represents listers used by the controller.
 type Listers struct {
-	ManagedClusterLister   *listers.VerrazzanoManagedClusterLister
 	SyntheticModelBindings *map[string]*types.SyntheticModelBinding
 	KubeClientSet          *kubernetes.Interface
 }
@@ -140,7 +133,6 @@ type Listers struct {
 // ListerSet returns a list of listers used by the controller.
 func (c *Controller) ListerSet() Listers {
 	return Listers{
-		ManagedClusterLister:   &c.verrazzanoManagedClusterLister,
 		SyntheticModelBindings: &c.SyntheticModelBindings,
 		KubeClientSet:          &c.kubeClientSet,
 	}
@@ -176,26 +168,21 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 	// Set up informers and listers for the local k8s cluster
 	//
 	var kubeInformerFactory kubeinformers.SharedInformerFactory
-	var verrazzanoOperatorInformerFactory informers.SharedInformerFactory
 	var vmoInformerFactory vmoinformers.SharedInformerFactory
 	if watchNamespace == "" {
 		// Consider all namespaces if our namespace is left wide open our set to default
 		kubeInformerFactory = kubeinformers.NewSharedInformerFactory(kubeClientSet, constants.ResyncPeriod)
-		verrazzanoOperatorInformerFactory = informers.NewSharedInformerFactory(verrazzanoOperatorClientSet, constants.ResyncPeriod)
 		vmoInformerFactory = vmoinformers.NewSharedInformerFactory(vmoClientSet, constants.ResyncPeriod)
 	} else {
 		// Otherwise, restrict to a specific namespace
 		kubeInformerFactory = kubeinformers.NewFilteredSharedInformerFactory(kubeClientSet, constants.ResyncPeriod, watchNamespace, nil)
-		verrazzanoOperatorInformerFactory = informers.NewFilteredSharedInformerFactory(verrazzanoOperatorClientSet, constants.ResyncPeriod, watchNamespace, nil)
 		vmoInformerFactory = vmoinformers.NewFilteredSharedInformerFactory(vmoClientSet, constants.ResyncPeriod, watchNamespace, nil)
 	}
 	secretsInformer := kubeInformerFactory.Core().V1().Secrets()
 	configMapInformer := kubeInformerFactory.Core().V1().ConfigMaps()
-	verrazzanoManagedClusterInformer := verrazzanoOperatorInformerFactory.Verrazzano().V1beta1().VerrazzanoManagedClusters()
 	vmiInformer := vmoInformerFactory.Verrazzano().V1().VerrazzanoMonitoringInstances()
 	vmiInformer.Informer().AddEventHandler(k8scache.ResourceEventHandlerFuncs{})
 
-	clientsetscheme.AddToScheme(scheme.Scheme)
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(zap.S().Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClientSet.CoreV1().Events("")})
@@ -204,33 +191,31 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 		namespace: constants.VerrazzanoNamespace, kubeClientSet: kubeClientSet, secretLister: secretsInformer.Lister(),
 	}
 	controller := &Controller{
-		managed:                          newManagedPackage(),
-		cache:                            newCachePackage(),
-		util:                             newUtilPackage(),
-		local:                            newLocalPackage(),
-		monitoring:                       newMonitoringPackage(),
-		watchNamespace:                   watchNamespace,
-		verrazzanoURI:                    verrazzanoURI,
-		enableMonitoringStorage:          enableMonitoringStorage,
-		kubeClientSet:                    kubeClientSet,
-		verrazzanoOperatorClientSet:      verrazzanoOperatorClientSet,
-		vmoClientSet:                     vmoClientSet,
-		kubeExtClientSet:                 kubeExtClientSet,
-		secretLister:                     secretsInformer.Lister(),
-		secretInformer:                   secretsInformer.Informer(),
-		configMapLister:                  configMapInformer.Lister(),
-		configMapInformer:                configMapInformer.Informer(),
-		verrazzanoManagedClusterLister:   verrazzanoManagedClusterInformer.Lister(),
-		verrazzanoManagedClusterInformer: verrazzanoManagedClusterInformer.Informer(),
-		vmiInformer:                      vmiInformer.Informer(),
-		vmiLister:                        vmiInformer.Lister(),
-		recorder:                         recorder,
-		managedClusterConnections:        map[string]*v8outil.ManagedClusterConnection{},
-		applicationModels:                map[string]*types.SyntheticModel{},
-		applicationBindings:              map[string]*types.SyntheticBinding{},
-		SyntheticModelBindings:           map[string]*types.SyntheticModelBinding{},
-		bindingSyncThreshold:             map[string]int{},
-		secrets:                          kubeSecrets,
+		managed:                     newManagedPackage(),
+		cache:                       newCachePackage(),
+		util:                        newUtilPackage(),
+		local:                       newLocalPackage(),
+		monitoring:                  newMonitoringPackage(),
+		watchNamespace:              watchNamespace,
+		verrazzanoURI:               verrazzanoURI,
+		enableMonitoringStorage:     enableMonitoringStorage,
+		kubeClientSet:               kubeClientSet,
+		verrazzanoOperatorClientSet: verrazzanoOperatorClientSet,
+		vmoClientSet:                vmoClientSet,
+		kubeExtClientSet:            kubeExtClientSet,
+		secretLister:                secretsInformer.Lister(),
+		secretInformer:              secretsInformer.Informer(),
+		configMapLister:             configMapInformer.Lister(),
+		configMapInformer:           configMapInformer.Informer(),
+		vmiInformer:                 vmiInformer.Informer(),
+		vmiLister:                   vmiInformer.Lister(),
+		recorder:                    recorder,
+		managedClusterConnections:   map[string]*v8outil.ManagedClusterConnection{},
+		applicationModels:           map[string]*types.SyntheticModel{},
+		applicationBindings:         map[string]*types.SyntheticBinding{},
+		SyntheticModelBindings:      map[string]*types.SyntheticModelBinding{},
+		bindingSyncThreshold:        map[string]int{},
+		secrets:                     kubeSecrets,
 	}
 
 	// Set up signals so we handle the first shutdown signal gracefully
@@ -238,13 +223,12 @@ func NewController(config *rest.Config, watchNamespace string, verrazzanoURI str
 	stopCh := setupSignalHandler()
 
 	go kubeInformerFactory.Start(stopCh)
-	go verrazzanoOperatorInformerFactory.Start(stopCh)
 	go vmoInformerFactory.Start(stopCh)
 
 	// Wait for the caches to be synced before starting watchers
 	zap.S().Infow("Waiting for informer caches to sync")
 	if ok := controller.cache.WaitForCacheSync(controller.stopCh, controller.secretInformer.HasSynced,
-		controller.verrazzanoManagedClusterInformer.HasSynced, controller.vmiInformer.HasSynced); !ok {
+		controller.vmiInformer.HasSynced); !ok {
 		return controller, errors.New("failed to wait for caches to sync")
 	}
 
@@ -301,32 +285,24 @@ func createUpdateGlobalEntities(binding *types.SyntheticBinding, c *Controller) 
 // is closed, at which point it will shutdown the workqueue and wait for
 // workers to finish processing their current work items.
 //
-func (c *Controller) Run(threadiness int) error {
+func (c *Controller) Run(threadiness int, kubeconfigPath string) error {
 	defer runtime.HandleCrash()
 
 	// Start the informer factories to begin populating the informer caches
 	zap.S().Infow("Starting Verrazzano Operator controller")
 
-	zap.S().Infow("Starting watchers")
-	c.startLocalWatchers()
+	// create a single in-memory managed cluster for the local cluster
+	c.processManagedCluster("local", kubeconfigPath)
+
 	<-c.stopCh
 	return nil
 }
 
-// Start watchers on the local k8s cluster
-func (c *Controller) startLocalWatchers() {
-
-	//
-	// VerrazzanoManagedClusters
-	//
-	c.verrazzanoManagedClusterInformer.AddEventHandler(k8scache.ResourceEventHandlerFuncs{
-		AddFunc:    func(new interface{}) { c.processManagedCluster(new) },
-		UpdateFunc: func(old, new interface{}) { c.processManagedCluster(new) },
-	})
-}
-
 // Process a change to a VerrazzanoManagedCluster
-func (c *Controller) processManagedCluster(cluster interface{}) {
+// NOTE: This used to be called when a VMC was created or updated, but the old VMC resources are deprecated so we will call this
+// one time at startup to create an in-memory managed cluster for the local cluster. The kubeconfigPath parameter is optional
+// and should generally only have a path when running outside of a Kubernetes cluster (e.g. when running the operator locally).
+func (c *Controller) processManagedCluster(managedClusterName string, kubeconfigPath string) {
 	// Obtain the optional list of imagePullSecrets from the verrazzano-operator service account
 	sa, err := c.kubeClientSet.CoreV1().ServiceAccounts(constants.VerrazzanoSystem).Get(context.TODO(), constants.VerrazzanoOperatorServiceAccount, metav1.GetOptions{})
 	if err != nil {
@@ -352,22 +328,12 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 	// A synthetic SynModel binding pair will be constructed and passed to the managed clusters
 	vzSynMB := CreateSyntheticModelBinding(systemModel, systemBinding, c.verrazzanoURI, c.imagePullSecrets)
 
-	managedCluster := cluster.(*v1beta1v8o.VerrazzanoManagedCluster)
+	// Construct a new client to the managed cluster when it's added
+	_, clusterExists := c.managedClusterConnections[managedClusterName]
+	if !clusterExists {
+		zap.S().Infof("(Re)creating k8s clients for Managed SynModel %s", managedClusterName)
 
-	// The cache is not synced yet so use the kubeClientSet to get the secret
-	secret, err := c.kubeClientSet.CoreV1().Secrets(managedCluster.Namespace).Get(context.TODO(), managedCluster.Spec.KubeconfigSecret, metav1.GetOptions{})
-	if err != nil {
-		zap.S().Errorf("Can't find secret %s for ManagedCluster %s", managedCluster.Spec.KubeconfigSecret, managedCluster.Name)
-		return
-	}
-
-	// Construct a new client to the managed cluster when it's added or changed
-	kubeConfigContents := secret.Data["kubeconfig"]
-	_, clusterExists := c.managedClusterConnections[managedCluster.Name]
-	if !clusterExists || string(kubeConfigContents) != c.managedClusterConnections[managedCluster.Name].KubeConfig {
-		zap.S().Infof("(Re)creating k8s clients for Managed SynModel %s", managedCluster.Name)
-
-		managedClusterConnection, err := c.managed.BuildManagedClusterConnection(kubeConfigContents, c.stopCh)
+		managedClusterConnection, err := c.managed.BuildManagedClusterConnection(kubeconfigPath, c.stopCh)
 		if err != nil {
 			zap.S().Error(err)
 			return
@@ -380,15 +346,15 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 			zap.S().Error(errors.New("failed to wait for caches to sync"))
 		}
 
-		c.managedClusterConnections[managedCluster.Name] = managedClusterConnection
+		c.managedClusterConnections[managedClusterName] = managedClusterConnection
 
 		mc := &types.ManagedCluster{
-			Name:        managedCluster.Name,
+			Name:        managedClusterName,
 			Secrets:     map[string][]string{},
 			Ingresses:   map[string][]*types.Ingress{},
 			RemoteRests: map[string][]*types.RemoteRestConnection{},
 		}
-		vzSynMB.ManagedClusters[managedCluster.Name] = mc
+		vzSynMB.ManagedClusters[managedClusterName] = mc
 
 		// Add in the monitoring and logging namespace if not already added
 		mc.Namespaces = append(mc.Namespaces, constants.MonitoringNamespace, constants.LoggingNamespace)
@@ -397,25 +363,9 @@ func (c *Controller) processManagedCluster(cluster interface{}) {
 		 * Create Artifacts in the Managed SynModel
 		 **********************/
 
-		zap.S().Infow("Starting watchers on " + managedCluster.Name)
-		c.startManagedClusterWatchers(managedCluster.Name, vzSynMB)
-
 		// Create all the components needed by logging and monitoring in managed clusters to push metrics and logs into System VMI in management cluster
 		c.createManagedClusterResourcesForBinding(vzSynMB, c.getClusterInfo())
 	}
-}
-
-// Start watchers on the given ManagedCluster
-func (c *Controller) startManagedClusterWatchers(managedClusterName string, vzSynMB *types.SyntheticModelBinding) {
-	// Pod event handlers
-	c.managedClusterConnections[managedClusterName].PodInformer.AddEventHandler(k8scache.ResourceEventHandlerFuncs{
-		AddFunc: func(new interface{}) {
-			c.updateIstioPolicies(vzSynMB, new.(*corev1.Pod), "added")
-		},
-		DeleteFunc: func(old interface{}) {
-			c.updateIstioPolicies(vzSynMB, old.(*corev1.Pod), "deleted")
-		},
-	})
 }
 
 // update the Istio destination rules and authorization policies for the given model/binding whenever a pod is added or deleted
@@ -942,8 +892,7 @@ func remove(list []string, s string) []string {
 
 // managedInterface defines the functions in the 'managed' package that are used  by the Controller
 type managedInterface interface {
-	BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*v8outil.ManagedClusterConnection, error)
-	CreateCrdDefinitions(managedClusterConnection *v8outil.ManagedClusterConnection, managedCluster *v1beta1v8o.VerrazzanoManagedCluster) error
+	BuildManagedClusterConnection(kubeconfigPath string, stopCh <-chan struct{}) (*v8outil.ManagedClusterConnection, error)
 	CreateNamespaces(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
 	CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedClusterConnections map[string]*v8outil.ManagedClusterConnection, kubeClientSet kubernetes.Interface, sec v8omonitoring.Secrets, clusterInfo v8omonitoring.ClusterInfo) error
 	CreateServiceAccounts(bindingName string, imagePullSecrets []corev1.LocalObjectReference, managedClusters map[string]*types.ManagedCluster, filteredConnections map[string]*v8outil.ManagedClusterConnection) error
@@ -983,8 +932,8 @@ type managedPackage struct {
 
 // All managedPackage methods simply delegate to the corresponding function in the 'managed' package
 
-func (*managedPackage) BuildManagedClusterConnection(kubeConfigContents []byte, stopCh <-chan struct{}) (*v8outil.ManagedClusterConnection, error) {
-	return v8omanaged.BuildManagedClusterConnection(kubeConfigContents, stopCh)
+func (*managedPackage) BuildManagedClusterConnection(kubeconfigPath string, stopCh <-chan struct{}) (*v8outil.ManagedClusterConnection, error) {
+	return v8omanaged.BuildManagedClusterConnection(kubeconfigPath, stopCh)
 }
 
 func (*managedPackage) CreateNamespaces(vzSynMB *types.SyntheticModelBinding, filteredConnections map[string]*v8outil.ManagedClusterConnection) error {

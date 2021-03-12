@@ -8,8 +8,6 @@ package testutil
 import (
 	"context"
 
-	"github.com/verrazzano/verrazzano-crd-generator/pkg/apis/verrazzano/v1beta1"
-	clientset "github.com/verrazzano/verrazzano-crd-generator/pkg/client/clientset/versioned/fake"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	testutil "github.com/verrazzano/verrazzano-operator/test/integ/util"
@@ -35,9 +33,8 @@ func GetManagedClusterConnections() map[string]*util.ManagedClusterConnection {
 func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnection {
 	// create a ManagedClusterConnection that uses client set fakes
 	clusterConnection := &util.ManagedClusterConnection{
-		KubeClient:                  fake.NewSimpleClientset(),
-		KubeExtClientSet:            apiextensionsclient.NewSimpleClientset(),
-		VerrazzanoOperatorClientSet: clientset.NewSimpleClientset(),
+		KubeClient:       fake.NewSimpleClientset(),
+		KubeExtClientSet: apiextensionsclient.NewSimpleClientset(),
 	}
 	// set a fake pod lister on the cluster connection
 	clusterConnection.PodLister = &simplePodLister{
@@ -225,14 +222,4 @@ func ReadSyntheticModelBinding(managedClusterPaths ...string) *types.SyntheticMo
 		},
 	}
 	return pair
-}
-
-// GetTestClusters returns a list of Verrazzano Managed SynModel resources.
-func GetTestClusters() []v1beta1.VerrazzanoManagedCluster {
-	return []v1beta1.VerrazzanoManagedCluster{
-		{
-			ObjectMeta: metav1.ObjectMeta{UID: "123-456-789", Name: "cluster1", Namespace: "default"},
-			Spec:       v1beta1.VerrazzanoManagedClusterSpec{Type: "testCluster", ServerAddress: "test.com", Description: "Test SynModel"},
-		},
-	}
 }

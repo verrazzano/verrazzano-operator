@@ -4,9 +4,10 @@
 package util
 
 import (
-	"go.uber.org/zap"
 	"os"
 	"strconv"
+
+	"go.uber.org/zap"
 )
 
 // This file contains all of the env vars used by the Verrazzano Operator
@@ -186,19 +187,4 @@ func GetElasticsearchIngestNodeReplicas() int32 {
 // will be added to the Access-Control-Allow-Origins response header of the API
 func GetAccessControlAllowOrigin() string {
 	return GetEnvFunc(accessControlAllowOrigin)
-}
-
-// GetRancherURL returns Rancher URL
-func GetRancherURL() string {
-	return GetEnvFunc("rancherURL")
-}
-
-// GetRancherHost returns optional host to access Rancher
-func GetRancherHost() string {
-	return GetEnvFunc("rancherHost")
-}
-
-// GetRancherPort returns optional port to access Rancher
-func GetRancherPort() string {
-	return GetEnvFunc("rancherPort")
 }

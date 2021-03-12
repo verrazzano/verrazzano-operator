@@ -66,7 +66,7 @@ func main() {
 
 	if startController {
 		// start the controller
-		if err = controller.Run(2); err != nil {
+		if err = controller.Run(2, kubeconfig); err != nil {
 			zap.S().Fatalf("Error running controller: %s", err.Error())
 		}
 	}
