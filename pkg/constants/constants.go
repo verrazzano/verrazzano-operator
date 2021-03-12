@@ -67,6 +67,7 @@ var DefaultDashboards = []string{
 	"dashboards/coherence/alerts-dashboard.json",
 	"dashboards/coherence/member-details-dashboard.json",
 	"dashboards/coherence/machines-summary-dashboard.json",
+	"dashboards/helidon/helidon_dashboard.json",
 }
 
 // SystemDashboards list of system dashboard coordinates
