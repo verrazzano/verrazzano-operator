@@ -51,7 +51,7 @@ func TestNewConfigMap(t *testing.T) {
 						Name: "bookstore",
 					}},
 			},
-			expectedSize: 19,
+			expectedSize: 20,
 		},
 	}
 	for _, tt := range tests {
