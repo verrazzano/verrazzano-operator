@@ -109,7 +109,7 @@ func TestGetSystemDeployments(t *testing.T) {
 func TestGetSystemDeploymentsNoClusterName(t *testing.T) {
 	assert := assert.New(t)
 	const clusterName = ""
-	const url = "url"
+	const url = "testurl"
 	secrets, labels := getSecretsAndLabels()
 	deps, err := GetSystemDeployments(clusterName, url, labels, secrets)
 	assert.Error(err, "Expected an error when cluster name is empty")

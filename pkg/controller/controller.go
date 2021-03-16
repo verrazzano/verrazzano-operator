@@ -1115,19 +1115,19 @@ const MCRegistrationSecret = "verrazzano-cluster-registration"
 // ClusterNameData - the field name in MCRegistrationSecret that contains this managed cluster's name
 const ClusterNameData = "managed-cluster-name"
 
-// ElasticsearchURLData - the field name in ElasticsearchSecret that contains the admin cluster's
+// ElasticsearchURLData - the field name in MCRegistrationSecret that contains the admin cluster's
 // Elasticsearch endpoint's URL
-const ElasticsearchURLData = "url"
+const ElasticsearchURLData = "es-url"
 
-// ElasticsearchUsernameData - the field name in ElasticsearchSecret that contains the admin
+// ElasticsearchUsernameData - the field name in MCRegistrationSecret that contains the admin
 // cluster's Elasticsearch username
 const ElasticsearchUsernameData = "username"
 
-// ElasticsearchPasswordData - the field name in ElasticsearchSecret that contains the admin
+// ElasticsearchPasswordData - the field name in MCRegistrationSecret that contains the admin
 // cluster's Elasticsearch password
 const ElasticsearchPasswordData = "password"
 
-// ElasticsearchCABundleData - the field name in ElasticsearchSecret that contains the admin
+// ElasticsearchCABundleData - the field name in MCRegistrationSecret that contains the admin
 // cluster's Elasticsearch ca-bundle
 const ElasticsearchCABundleData = "ca-bundle"
 
