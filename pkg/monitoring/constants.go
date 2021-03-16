@@ -86,6 +86,8 @@ filebeat.inputs:
 - type: log
   paths:
     - /var/lib/docker/containers/**/*.log
+  fields:
+    verrazzano.cluster.name: ${CLUSTER_NAME:local}
   processors:
   - decode_json_fields:
       fields: ["message"]
@@ -121,6 +123,8 @@ output.elasticsearch:
 
 // JournalbeatConfigData contains configuration used by Journalbeats.
 const JournalbeatConfigData = `name: ${NODENAME}
+fields:
+  verrazzano.cluster.name: ${CLUSTER_NAME:local}
 journalbeat.inputs:
 - paths: []
   seek: cursor
