@@ -175,7 +175,7 @@ func createAdminLoggingSecret(namespace, name string, clusterInfo ClusterInfo) *
 		Data: map[string][]byte{
 			"username":  []byte(clusterInfo.ElasticsearchUsername),
 			"password":  []byte(clusterInfo.ElasticsearchPassword),
-			"url":       []byte(clusterInfo.ElasticsearchURL),
+			"es-url":    []byte(clusterInfo.ElasticsearchURL),
 			"ca-bundle": clusterInfo.ElasticsearchCABundle,
 		},
 	}

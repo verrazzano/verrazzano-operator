@@ -141,11 +141,11 @@ func TestGetSystemSecretsManaged(t *testing.T) {
 	assert.Equal(t, "filebeat-secret", systemSecrets[0].Name, "expected secret name")
 	assert.Equal(t, testUsername, string(systemSecrets[0].Data["username"]), "expected username")
 	assert.Equal(t, testPassword, string(systemSecrets[0].Data["password"]), "expected password")
-	assert.Equal(t, testURL, string(systemSecrets[0].Data["url"]), "expected url")
+	assert.Equal(t, testURL, string(systemSecrets[0].Data["es-url"]), "expected url")
 	assert.Equal(t, testCABundle, string(systemSecrets[0].Data["ca-bundle"]), "expected ca bundle")
 	assert.Equal(t, "journalbeat-secret", systemSecrets[1].Name, "expected secret name")
 	assert.Equal(t, testUsername, string(systemSecrets[1].Data["username"]), "expected username")
 	assert.Equal(t, testPassword, string(systemSecrets[1].Data["password"]), "expected password")
-	assert.Equal(t, testURL, string(systemSecrets[1].Data["url"]), "expected url")
+	assert.Equal(t, testURL, string(systemSecrets[1].Data["es-url"]), "expected url")
 	assert.Equal(t, testCABundle, string(systemSecrets[1].Data["ca-bundle"]), "expected ca bundle")
 }

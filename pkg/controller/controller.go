@@ -1115,23 +1115,19 @@ const MCRegistrationSecret = "verrazzano-cluster-registration"
 // ClusterNameData - the field name in MCRegistrationSecret that contains this managed cluster's name
 const ClusterNameData = "managed-cluster-name"
 
-// ElasticsearchSecretName - the name of the secret in the Verrazzano System namespace,
-// that contains credentials and other details for for the admin cluster's Elasticsearch endpoint
-const ElasticsearchSecretName = "verrazzano-cluster-elasticsearch"
-
-// ElasticsearchURLData - the field name in ElasticsearchSecret that contains the admin cluster's
+// ElasticsearchURLData - the field name in MCRegistrationSecret that contains the admin cluster's
 // Elasticsearch endpoint's URL
-const ElasticsearchURLData = "url"
+const ElasticsearchURLData = "es-url"
 
-// ElasticsearchUsernameData - the field name in ElasticsearchSecret that contains the admin
+// ElasticsearchUsernameData - the field name in MCRegistrationSecret that contains the admin
 // cluster's Elasticsearch username
 const ElasticsearchUsernameData = "username"
 
-// ElasticsearchPasswordData - the field name in ElasticsearchSecret that contains the admin
+// ElasticsearchPasswordData - the field name in MCRegistrationSecret that contains the admin
 // cluster's Elasticsearch password
 const ElasticsearchPasswordData = "password"
 
-// ElasticsearchCABundleData - the field name in ElasticsearchSecret that contains the admin
+// ElasticsearchCABundleData - the field name in MCRegistrationSecret that contains the admin
 // cluster's Elasticsearch ca-bundle
 const ElasticsearchCABundleData = "ca-bundle"
 
@@ -1141,14 +1137,13 @@ func (c *Controller) getClusterInfo() v8omonitoring.ClusterInfo {
 	clusterInfo := v8omonitoring.ClusterInfo{
 		ContainerRuntime: c.getContainerRuntime(),
 	}
-	clusterSecret, err1 := c.secrets.Get(MCRegistrationSecret)
-	elasticsearchSecret, err2 := c.secrets.Get(ElasticsearchSecretName)
-	if err1 == nil && err2 == nil {
+	clusterSecret, err := c.secrets.Get(MCRegistrationSecret)
+	if err == nil {
 		clusterInfo.ManagedClusterName = string(clusterSecret.Data[ClusterNameData])
-		clusterInfo.ElasticsearchURL = string(elasticsearchSecret.Data[ElasticsearchURLData])
-		clusterInfo.ElasticsearchUsername = string(elasticsearchSecret.Data[ElasticsearchUsernameData])
-		clusterInfo.ElasticsearchPassword = string(elasticsearchSecret.Data[ElasticsearchPasswordData])
-		clusterInfo.ElasticsearchCABundle = elasticsearchSecret.Data[ElasticsearchCABundleData]
+		clusterInfo.ElasticsearchURL = string(clusterSecret.Data[ElasticsearchURLData])
+		clusterInfo.ElasticsearchUsername = string(clusterSecret.Data[ElasticsearchUsernameData])
+		clusterInfo.ElasticsearchPassword = string(clusterSecret.Data[ElasticsearchPasswordData])
+		clusterInfo.ElasticsearchCABundle = clusterSecret.Data[ElasticsearchCABundleData]
 	}
 	return clusterInfo
 }

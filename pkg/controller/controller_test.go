@@ -163,10 +163,8 @@ func createController(t *testing.T, localMockSetup func(*testLocalPackage), moni
 	controller.kubeClientSet.CoreV1().Secrets("ns1").Create(context.TODO(), &secret, metav1.CreateOptions{})
 	if managedCluster {
 		secret = v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: MCRegistrationSecret},
-			Data: map[string][]byte{ClusterNameData: []byte("cluster1")}}
-		controller.kubeClientSet.CoreV1().Secrets(constants.VerrazzanoSystem).Create(context.TODO(), &secret, metav1.CreateOptions{})
-		secret = v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: ElasticsearchSecretName},
-			Data: map[string][]byte{ElasticsearchURLData: []byte("testURL"),
+			Data: map[string][]byte{ClusterNameData: []byte("cluster1"),
+				ElasticsearchURLData:      []byte("testURL"),
 				ElasticsearchUsernameData: []byte("testUsername"),
 				ElasticsearchPasswordData: []byte("testPassword"),
 				ElasticsearchCABundleData: []byte("testCABundle")}}
