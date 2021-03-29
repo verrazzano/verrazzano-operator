@@ -15,7 +15,7 @@ func TestGetSystemClusterRoleBindings(t *testing.T) {
 	clusterName := "test-cluster"
 	clusterRoleBindings := GetSystemClusterRoleBindings(clusterName)
 	assert.NotNil(clusterRoleBindings, "Expected the response to not be nil")
-	assert.Len(clusterRoleBindings, 3, "Expected three ClusterRoleBindings to be returned")
+	assert.Len(clusterRoleBindings, 4, "Expected three ClusterRoleBindings to be returned")
 
 	// Validate that all the expected ClusterRoleBindings are returned
 	fileBeatFound := false
@@ -40,7 +40,7 @@ func TestGetSystemClusterRoleBindings(t *testing.T) {
 		switch clusterRoleBinding.Name {
 		case constants.FilebeatName:
 			fileBeatFound = true
-			assert.Lenf(labels, 3, "Expected three labels in ClusterRoleBinding %s", clusterRoleBinding.Name)
+			assert.Lenf(labels, 3, "Expected 3 labels in ClusterRoleBinding %s", clusterRoleBinding.Name)
 			assert.Equalf(constants.FilebeatName, labels[constants.K8SAppLabel], "Expected label %s to be %s", constants.K8SAppLabel, constants.FilebeatName)
 			assert.Equalf(constants.FilebeatName, subject.Name, "ClusterRoleBinding %s contains unexpected Name for Subject", clusterRoleBinding.Name)
 			assert.Equalf(constants.LoggingNamespace, subject.Namespace, "ClusterRoleBinding %s contains unexpected Namespace for Subject", clusterRoleBinding.Name)
@@ -48,7 +48,7 @@ func TestGetSystemClusterRoleBindings(t *testing.T) {
 
 		case constants.JournalbeatName:
 			journalBeatFound = true
-			assert.Lenf(labels, 3, "Expected three labels in ClusterRoleBinding %s", clusterRoleBinding.Name)
+			assert.Lenf(labels, 3, "Expected 3 labels in ClusterRoleBinding %s", clusterRoleBinding.Name)
 			assert.Equalf(constants.JournalbeatName, labels[constants.K8SAppLabel], "Expected label %s to be %s", constants.K8SAppLabel, constants.JournalbeatName)
 			assert.Equalf(constants.JournalbeatName, subject.Name, "ClusterRoleBinding %s contains unexpected Name for Subject", clusterRoleBinding.Name)
 			assert.Equalf(constants.LoggingNamespace, subject.Namespace, "ClusterRoleBinding %s contains unexpected Namespace for Subject", clusterRoleBinding.Name)
@@ -56,11 +56,18 @@ func TestGetSystemClusterRoleBindings(t *testing.T) {
 
 		case constants.NodeExporterName:
 			nodeExporterFound = true
-			assert.Lenf(labels, 3, "Expected three labels in ClusterRoleBinding %s", clusterRoleBinding.Name)
+			assert.Lenf(labels, 3, "Expected 3 labels in ClusterRoleBinding %s", clusterRoleBinding.Name)
 			assert.Equalf(constants.NodeExporterName, labels[constants.ServiceAppLabel], "Expected label %s to be %s", constants.ServiceAppLabel, constants.NodeExporterName)
 			assert.Equalf(constants.NodeExporterName, subject.Name, "ClusterRoleBinding %s contains unexpected Name for Subject", clusterRoleBinding.Name)
 			assert.Equalf(constants.MonitoringNamespace, subject.Namespace, "ClusterRoleBinding %s contains unexpected Namespace for Subject", clusterRoleBinding.Name)
 			assert.Equalf(constants.NodeExporterName, roleRef.Name, "ClusterRoleBinding %s contains unexpected Name for RoleRef", clusterRoleBinding.Name)
+
+		case constants.FluentdName:
+			assert.Lenf(labels, 2, "Expected 2 labels in ClusterRoleBinding %s", clusterRoleBinding.Name)
+			assert.Equalf(constants.FluentdName, labels[constants.K8SAppLabel], "Expected label %s to be %s", constants.K8SAppLabel, constants.FluentdName)
+			assert.Equalf(constants.FluentdName, subject.Name, "ClusterRoleBinding %s contains unexpected Name for Subject", clusterRoleBinding.Name)
+			assert.Equalf(constants.VerrazzanoNamespace, subject.Namespace, "ClusterRoleBinding %s contains unexpected Namespace for Subject", clusterRoleBinding.Name)
+			assert.Equalf(constants.FluentdName, roleRef.Name, "ClusterRoleBinding %s contains unexpected Name for RoleRef", clusterRoleBinding.Name)
 
 		default:
 			unexpectedNamesFound = true
@@ -68,7 +75,10 @@ func TestGetSystemClusterRoleBindings(t *testing.T) {
 		}
 
 		// Common label checks
-		assert.Equalf(labels[constants.VerrazzanoBinding], constants.VmiSystemBindingName, "Expected label %s to be %s for ClusterRoleBinding %s", constants.VerrazzanoBinding, constants.VmiSystemBindingName, clusterRoleBinding.Name)
+		if clusterRoleBinding.Name != constants.FluentdName {
+			assert.Equalf(labels[constants.VerrazzanoBinding], constants.VmiSystemBindingName,
+				"Expected label %s to be %s for ClusterRoleBinding %s", constants.VerrazzanoBinding, constants.VmiSystemBindingName, clusterRoleBinding.Name)
+		}
 		assert.Equalf(labels[constants.VerrazzanoCluster], clusterName, "Expected label %s to be %s for ClusterRoleBinding %s", constants.VerrazzanoCluster, clusterName, clusterRoleBinding.Name)
 	}
 	assert.Truef(fileBeatFound, "Expected to get a ClusterRoleBinding response for %s", constants.FilebeatName)

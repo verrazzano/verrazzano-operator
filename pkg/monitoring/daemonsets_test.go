@@ -104,7 +104,7 @@ func validateFilebeatDaemonset(assert *assert.Assertions, v appsv1.DaemonSet, cl
 	assert.Equal("spec.nodeName", v.Spec.Template.Spec.Containers[0].Env[0].ValueFrom.FieldRef.FieldPath)
 
 	assert.Equal("ES_URL", v.Spec.Template.Spec.Containers[0].Env[1].Name)
-	assert.Equal(fmt.Sprintf("http://vmi-system-es-ingest.%s.svc.cluster.local", constants.VerrazzanoNamespace),
+	assert.Equal(fmt.Sprintf("http://vmi-system-es-ingest.%s.svc.cluster.local:9200", constants.VerrazzanoNamespace),
 		v.Spec.Template.Spec.Containers[0].Env[1].Value)
 
 	assert.Equal("ES_USER", v.Spec.Template.Spec.Containers[0].Env[2].Name)
@@ -213,7 +213,7 @@ func validateJournalbeatDaemonset(assert *assert.Assertions, v appsv1.DaemonSet,
 	assert.Equal("spec.nodeName", v.Spec.Template.Spec.Containers[0].Env[0].ValueFrom.FieldRef.FieldPath)
 
 	assert.Equal("ES_URL", v.Spec.Template.Spec.Containers[0].Env[1].Name)
-	assert.Equal(fmt.Sprintf("http://vmi-system-es-ingest.%s.svc.cluster.local", constants.VerrazzanoNamespace),
+	assert.Equal(fmt.Sprintf("http://vmi-system-es-ingest.%s.svc.cluster.local:9200", constants.VerrazzanoNamespace),
 		v.Spec.Template.Spec.Containers[0].Env[1].Value)
 
 	assert.Equal("ES_USER", v.Spec.Template.Spec.Containers[0].Env[2].Name)

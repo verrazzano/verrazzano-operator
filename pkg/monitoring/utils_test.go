@@ -47,7 +47,7 @@ func TestGetMonitoringNamespaceBadComp(t *testing.T) {
 func TestGetMonitoringComponents(t *testing.T) {
 	assert := assert.New(t)
 	comps := GetMonitoringComponents()
-	assert.Lenf(comps, 3, "Wrong number of monitoring components")
+	assert.Lenf(comps, 4, "Wrong number of monitoring components")
 	assert.Contains(comps, constants.FilebeatName)
 	assert.Contains(comps, constants.JournalbeatName)
 	assert.Contains(comps, constants.NodeExporterName)
@@ -123,7 +123,7 @@ func Test_getJournalbeatConfig(t *testing.T) {
 func Test_getElasticsearchURL(t *testing.T) {
 	testURL := "testURL"
 	url := getElasticsearchURL(ClusterInfo{ManagedClusterName: "", ElasticsearchURL: testURL})
-	assert.Equal(t, "http://vmi-system-es-ingest.verrazzano-system.svc.cluster.local", url, "expected elasticsearch url")
+	assert.Equal(t, "http://vmi-system-es-ingest.verrazzano-system.svc.cluster.local:9200", url, "expected elasticsearch url")
 	url = getElasticsearchURL(ClusterInfo{ManagedClusterName: "cluster1", ElasticsearchURL: testURL})
 	assert.Equal(t, testURL, url, "expected elasticsearch url")
 }

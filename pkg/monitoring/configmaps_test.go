@@ -21,8 +21,9 @@ func TestLoggingConfigMapsDocker(t *testing.T) {
 	const clusterName = "cluster1"
 	filebeatLabels := GetFilebeatLabels(clusterName)
 	journalbeatLabels := GetJournalbeatLabels(clusterName)
-
+	fluentdConf := fluentdConfigMap(clusterName)
 	testMap := map[string]corev1.ConfigMap{
+		constants.FluentdConfMapName: *fluentdConf,
 		"index-config": {ObjectMeta: metav1.ObjectMeta{
 			Name:      "index-config",
 			Namespace: constants.LoggingNamespace,
@@ -87,8 +88,9 @@ func TestLoggingConfigMapsContainerd(t *testing.T) {
 	const clusterName = "cluster1"
 	filebeatLabels := GetFilebeatLabels(clusterName)
 	journalbeatLabels := GetJournalbeatLabels(clusterName)
-
+	fluentdConf := fluentdConfigMap(clusterName)
 	testMap := map[string]corev1.ConfigMap{
+		constants.FluentdConfMapName: *fluentdConf,
 		"index-config": {ObjectMeta: metav1.ObjectMeta{
 			Name:      "index-config",
 			Namespace: constants.LoggingNamespace,

@@ -14,6 +14,8 @@ import (
 func GetMonitoringComponentLabels(managedClusterName string, componentName string) map[string]string {
 	if componentName == constants.FilebeatName {
 		return GetFilebeatLabels(managedClusterName)
+	} else if componentName == constants.FluentdName {
+		return GetFluentdLabels(managedClusterName)
 	} else if componentName == constants.JournalbeatName {
 		return GetJournalbeatLabels(managedClusterName)
 	} else if componentName == constants.NodeExporterName {
@@ -30,6 +32,8 @@ func GetMonitoringNamespace(componentName string) string {
 		return constants.LoggingNamespace
 	} else if componentName == constants.NodeExporterName {
 		return constants.MonitoringNamespace
+	} else if componentName == constants.FluentdName {
+		return constants.VerrazzanoNamespace
 	} else {
 		return ""
 	}
@@ -38,13 +42,19 @@ func GetMonitoringNamespace(componentName string) string {
 // GetMonitoringComponents returns list of monitoring components.
 func GetMonitoringComponents() []string {
 	var components []string
-	components = append(components, constants.FilebeatName, constants.JournalbeatName, constants.NodeExporterName)
+	components = append(components, constants.FilebeatName, constants.JournalbeatName, constants.NodeExporterName, constants.FluentdName)
 	return components
 }
 
 // GetFilebeatLabels returns labels for Filebeats.
 func GetFilebeatLabels(managedClusterName string) map[string]string {
 	return map[string]string{constants.K8SAppLabel: constants.FilebeatName, constants.VerrazzanoBinding: constants.VmiSystemBindingName, constants.VerrazzanoCluster: managedClusterName}
+}
+
+// GetFluentdLabels returns labels for FLUENTD.
+func GetFluentdLabels(managedClusterName string) map[string]string {
+	//Avoid cleanup: constants.VerrazzanoBinding: constants.VmiSystemBindingName,
+	return map[string]string{constants.K8SAppLabel: constants.FluentdName, constants.VerrazzanoCluster: managedClusterName}
 }
 
 // GetJournalbeatLabels returns labels for Journalbeats.
@@ -119,5 +129,5 @@ func getElasticsearchURL(clusterInfo ClusterInfo) string {
 	if isManagedCluster(clusterInfo) {
 		return clusterInfo.ElasticsearchURL
 	}
-	return fmt.Sprintf("http://vmi-system-es-ingest.%s.svc.cluster.local", constants.VerrazzanoNamespace)
+	return fmt.Sprintf("http://vmi-system-es-ingest.%s.svc.cluster.local:9200", constants.VerrazzanoNamespace)
 }

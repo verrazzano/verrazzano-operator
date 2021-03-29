@@ -111,3 +111,10 @@ const ProductionProfile = "prod"
 
 // DevelopmentProfile name of the Development Profile Installation
 const DevelopmentProfile = "dev"
+
+// Fluentd constants for FLUENTD
+const (
+	FluentdName        = "fluentd"
+	FluentdConfMapName = "fluentd-config"
+	FluentdConfKey     = "fluentd.conf"
+)

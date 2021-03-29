@@ -18,6 +18,7 @@ import (
 // in all the managed clusters.
 func SystemDaemonSets(managedClusterName string, verrazzanoURI string, clusterInfo ClusterInfo) []*appsv1.DaemonSet {
 	filebeatLabels := GetFilebeatLabels(managedClusterName)
+	fluentdLabels := GetFluentdLabels(managedClusterName)
 	journalbeatLabels := GetJournalbeatLabels(managedClusterName)
 	nodeExporterLabels := GetNodeExporterLabels(managedClusterName)
 	var daemonSets []*appsv1.DaemonSet
@@ -25,6 +26,10 @@ func SystemDaemonSets(managedClusterName string, verrazzanoURI string, clusterIn
 	fileabeatDS, err := createFilebeatDaemonSet(constants.LoggingNamespace, constants.FilebeatName, filebeatLabels, clusterInfo)
 	if err != nil {
 		zap.S().Debugf("New Daemonset %s is giving error %s", constants.FilebeatName, err)
+	}
+	fluentdDS, err := createFluentdDaemonSet(constants.VerrazzanoNamespace, constants.FluentdName, fluentdLabels, clusterInfo)
+	if err != nil {
+		zap.S().Debugf("New Daemonset %s is giving error %s", constants.FluentdName, err)
 	}
 	journalbeatDS, err := createJournalbeatDaemonSet(constants.LoggingNamespace, constants.JournalbeatName, journalbeatLabels, clusterInfo)
 	if err != nil {
@@ -35,7 +40,7 @@ func SystemDaemonSets(managedClusterName string, verrazzanoURI string, clusterIn
 		zap.S().Debugf("New Daemonset %s is giving error %s", constants.NodeExporterName, err)
 	}
 
-	daemonSets = append(daemonSets, fileabeatDS, journalbeatDS, nodeExporterDS)
+	daemonSets = append(daemonSets, fileabeatDS, fluentdDS, journalbeatDS, nodeExporterDS)
 	return daemonSets
 }
 
@@ -550,4 +555,188 @@ func createNodeExporterDaemonSet(namespace string, name string, labels map[strin
 		},
 	}
 	return NodeExporterDaemonSet, nil
+}
+
+const (
+	secretName     = constants.FluentdName + "-secret"
+	volSecret      = "secret-volume"
+	volVarLog      = "varlog"
+	volContainers  = "varlibdockercontainers"
+	volConfig      = "fluentd-config"
+	volumeData     = "datadockercontainers"
+	elasticURLEnv  = "ELASTICSEARCH_URL"
+	elasticUserEnv = "ELASTICSEARCH_USER"
+	elasticPwdEnv  = "ELASTICSEARCH_PASSWORD"
+)
+
+// createFluentdContainer creates a FLUENTD container.
+func createFluentdContainer(clusterInfo ClusterInfo) corev1.Container {
+	container := corev1.Container{
+		Name:            "fluentd",
+		Args:            []string{"-c", "/etc/fluentd.conf"},
+		Image:           util.GetFluentdImage(),
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Env: []corev1.EnvVar{
+			{
+				Name:  "FLUENTD_CONF",
+				Value: confKeyFluentdStandalone,
+			},
+			{
+				Name:  "FLUENT_ELASTICSEARCH_SED_DISABLE",
+				Value: "true",
+			},
+			{
+				Name:  elasticURLEnv,
+				Value: getElasticsearchURL(clusterInfo),
+			},
+			{
+				Name:  "CLUSTER_NAME",
+				Value: clusterInfo.ManagedClusterName,
+			},
+			{
+				Name: elasticUserEnv,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key: "username",
+						Optional: func(opt bool) *bool {
+							return &opt
+						}(true),
+					},
+				},
+			},
+			{
+				Name: elasticPwdEnv,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key: "password",
+						Optional: func(opt bool) *bool {
+							return &opt
+						}(true),
+					},
+				},
+			},
+		},
+		SecurityContext: &corev1.SecurityContext{
+			Privileged: nil,
+			RunAsUser:  resources.New64Val(0),
+			ProcMount:  nil,
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      volSecret,
+				MountPath: "/fluentd/secret",
+				ReadOnly:  true,
+			},
+			{
+				Name:      volConfig,
+				MountPath: "/fluentd/etc",
+				ReadOnly:  true,
+			},
+			//stdout
+			{
+				Name:      volVarLog,
+				MountPath: "/var/log",
+				ReadOnly:  true,
+			},
+			//containers
+			{
+				Name:      volContainers,
+				MountPath: "/var/lib/docker/containers",
+				ReadOnly:  true,
+			},
+			{
+				Name:      volumeData,
+				MountPath: "/u01/data/docker/containers",
+				ReadOnly:  true,
+			},
+		},
+	}
+
+	return container
+}
+
+func createFluentdDaemonSet(namespace string, name string, labels map[string]string, clusterInfo ClusterInfo) (*appsv1.DaemonSet, error) {
+	loggingDaemonSet := &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			UpdateStrategy: appsv1.DaemonSetUpdateStrategy{
+				Type: "RollingUpdate",
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{
+						{
+							Name: volSecret,
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: secretName},
+							},
+						},
+						{
+							Name: volConfig,
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: constants.FluentdConfMapName,
+									},
+									//DefaultMode: func(mode int32) *int32 {
+									//	return &mode
+									//}(420),
+								},
+							},
+						},
+						//stdout
+						{
+							Name: volVarLog,
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/var/log",
+								},
+							},
+						},
+						//docker containers
+						{
+							Name: volContainers,
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/var/lib/docker/containers",
+								},
+							},
+						},
+						{
+							Name: volumeData,
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/u01/data/docker/containers",
+								},
+							},
+						},
+					},
+					Containers: []corev1.Container{
+						createFluentdContainer(clusterInfo),
+						//createConfigReloader(),
+					},
+					TerminationGracePeriodSeconds: resources.New64Val(30),
+					ServiceAccountName:            name, //           "verrazzano-operator", //            name,
+				},
+			},
+		},
+	}
+	return loggingDaemonSet, nil
 }

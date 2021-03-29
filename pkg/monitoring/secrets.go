@@ -137,17 +137,19 @@ func CreateVmiSecrets(binding *types.SyntheticBinding, secrets Secrets) error {
 func GetSystemSecrets(sec Secrets, clusterInfo ClusterInfo) []*corev1.Secret {
 	var secrets []*corev1.Secret
 	if isManagedCluster(clusterInfo) {
+		fluentdSecret := createAdminLoggingSecret(constants.VerrazzanoNamespace, constants.FluentdName, clusterInfo)
 		fileabeatSecret := createAdminLoggingSecret(constants.LoggingNamespace, constants.FilebeatName, clusterInfo)
 		journalbeatSecret := createAdminLoggingSecret(constants.LoggingNamespace, constants.JournalbeatName, clusterInfo)
-		secrets = append(secrets, fileabeatSecret, journalbeatSecret)
+		secrets = append(secrets, fluentdSecret, fileabeatSecret, journalbeatSecret)
 	} else {
 		password, err := sec.GetVmiPassword()
 		if err != nil {
 			zap.S().Errorf("Failed to retrieve secret %v", err)
 		}
+		fluentdSecret := createLocalLoggingSecret(constants.VerrazzanoNamespace, constants.FluentdName, password)
 		fileabeatSecret := createLocalLoggingSecret(constants.LoggingNamespace, constants.FilebeatName, password)
 		journalbeatSecret := createLocalLoggingSecret(constants.LoggingNamespace, constants.JournalbeatName, password)
-		secrets = append(secrets, fileabeatSecret, journalbeatSecret)
+		secrets = append(secrets, fluentdSecret, fileabeatSecret, journalbeatSecret)
 	}
 	return secrets
 }

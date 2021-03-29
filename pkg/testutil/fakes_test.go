@@ -102,7 +102,7 @@ func TestSimpleNamespaceLister(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't get namespaces: %v", err))
 	}
-	assert.Equal(6, len(namespaces))
+	assert.Equal(7, len(namespaces))
 
 	namespace, err := l.Get("test")
 	if err != nil {
@@ -159,7 +159,7 @@ func TestSimpleSecretLister(t *testing.T) {
 
 	secrets, err := clusterConnection.SecretLister.List(labels.Everything())
 	assert.NoError(err, "Should not err for empty list.")
-	assert.Len(secrets, 1, "List should have one entry.")
+	assert.Len(secrets, 2, "List should have one entry.")
 
 	secret, err := clusterConnection.KubeClient.CoreV1().Secrets("test-namespace-1").Create(context.TODO(), &testSecret1, metav1.CreateOptions{})
 	assert.NoError(err, "Creating secret should not err.")
@@ -167,7 +167,7 @@ func TestSimpleSecretLister(t *testing.T) {
 
 	secrets, err = clusterConnection.SecretLister.List(labels.Everything())
 	assert.NoError(err, "Should not err for non-empty list.")
-	assert.Len(secrets, 2, "List should have two entries.")
+	assert.Len(secrets, 3, "List should have two entries.")
 
 	secret, err = clusterConnection.KubeClient.CoreV1().Secrets("test-namespace-1").Create(context.TODO(), &testSecret2, metav1.CreateOptions{})
 	assert.NoError(err, "Creating secret should not err.")
@@ -175,7 +175,7 @@ func TestSimpleSecretLister(t *testing.T) {
 
 	secrets, err = clusterConnection.SecretLister.List(labels.Everything())
 	assert.NoError(err, "Should not err for non-empty list.")
-	assert.Len(secrets, 3, "List should have three entries.")
+	assert.Len(secrets, 4, "List should have three entries.")
 	assert.NotEqual(findByName(secrets, "test-secret-1"), findByName(secrets, "test-secret-2"), "Secrets should be different.")
 }
 

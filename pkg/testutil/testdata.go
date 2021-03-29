@@ -73,6 +73,7 @@ func GetManagedClusterConnection(clusterName string) *util.ManagedClusterConnect
 		clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace(pod.Namespace, clusterName), metav1.CreateOptions{})
 		clusterConnection.KubeClient.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	}
+	clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace("verrazzano-system", ""), metav1.CreateOptions{})
 	clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace("logging", ""), metav1.CreateOptions{})
 	clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace("monitoring", ""), metav1.CreateOptions{})
 	clusterConnection.KubeClient.CoreV1().Namespaces().Create(context.TODO(), getNamespace("istio-system", ""), metav1.CreateOptions{})

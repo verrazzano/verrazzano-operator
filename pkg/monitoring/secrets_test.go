@@ -113,11 +113,12 @@ func TestGetSystemSecretsNotManaged(t *testing.T) {
 
 	clusterInfo := ClusterInfo{}
 	systemSecrets := GetSystemSecrets(mockSecrets, clusterInfo)
-	assert.Equal(t, 2, len(systemSecrets), "expected number of system secrets")
-	assert.Equal(t, "filebeat-secret", systemSecrets[0].Name, "expected secret name")
+	assert.Equal(t, 3, len(systemSecrets), "expected number of system secrets")
+	assert.Equal(t, "fluentd-secret", systemSecrets[0].Name, "expected secret name")
+	assert.Equal(t, "filebeat-secret", systemSecrets[1].Name, "expected secret name")
 	assert.Equal(t, constants.VmiUsername, string(systemSecrets[0].Data["username"]), "expected username")
 	assert.Equal(t, testPassword, string(systemSecrets[0].Data["password"]), "expected password")
-	assert.Equal(t, "journalbeat-secret", systemSecrets[1].Name, "expected secret name")
+	assert.Equal(t, "journalbeat-secret", systemSecrets[2].Name, "expected secret name")
 	assert.Equal(t, constants.VmiUsername, string(systemSecrets[1].Data["username"]), "expected username")
 	assert.Equal(t, testPassword, string(systemSecrets[1].Data["password"]), "expected password")
 }
@@ -137,13 +138,14 @@ func TestGetSystemSecretsManaged(t *testing.T) {
 		ElasticsearchCABundle: []byte(testCABundle),
 	}
 	systemSecrets := GetSystemSecrets(mockSecrets, clusterInfo)
-	assert.Equal(t, 2, len(systemSecrets), "expected number of system secrets")
-	assert.Equal(t, "filebeat-secret", systemSecrets[0].Name, "expected secret name")
+	assert.Equal(t, 3, len(systemSecrets), "expected number of system secrets")
+	assert.Equal(t, "fluentd-secret", systemSecrets[0].Name, "expected secret name")
+	assert.Equal(t, "filebeat-secret", systemSecrets[1].Name, "expected secret name")
 	assert.Equal(t, testUsername, string(systemSecrets[0].Data["username"]), "expected username")
 	assert.Equal(t, testPassword, string(systemSecrets[0].Data["password"]), "expected password")
 	assert.Equal(t, testURL, string(systemSecrets[0].Data["es-url"]), "expected url")
 	assert.Equal(t, testCABundle, string(systemSecrets[0].Data["ca-bundle"]), "expected ca bundle")
-	assert.Equal(t, "journalbeat-secret", systemSecrets[1].Name, "expected secret name")
+	assert.Equal(t, "journalbeat-secret", systemSecrets[2].Name, "expected secret name")
 	assert.Equal(t, testUsername, string(systemSecrets[1].Data["username"]), "expected username")
 	assert.Equal(t, testPassword, string(systemSecrets[1].Data["password"]), "expected password")
 	assert.Equal(t, testURL, string(systemSecrets[1].Data["es-url"]), "expected url")

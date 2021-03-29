@@ -5,7 +5,6 @@ package monitoring
 
 import (
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
-	"go.uber.org/zap"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -13,29 +12,16 @@ import (
 // GetSystemClusterRoles gets all the cluster roles needed by Filebeats, Journalbeats, and NodeExporters in
 // all the clusters.
 func GetSystemClusterRoles(managedClusterName string) []*rbacv1.ClusterRole {
-	var clusterRoles []*rbacv1.ClusterRole
-	filebeatLabels := GetFilebeatLabels(managedClusterName)
-	journalbeatLabels := GetJournalbeatLabels(managedClusterName)
-	nodeExporterLabels := GetNodeExporterLabels(managedClusterName)
-
-	fileabeatCR, err := createLoggingClusterRoles(constants.FilebeatName, filebeatLabels)
-	if err != nil {
-		zap.S().Debugf("New logging cluster role %s is giving error %s", constants.FilebeatName, err)
+	return []*rbacv1.ClusterRole{
+		createLoggingClusterRoles(constants.FilebeatName, GetFilebeatLabels(managedClusterName)),
+		createLoggingClusterRoles(constants.JournalbeatName, GetJournalbeatLabels(managedClusterName)),
+		createMonitoringClusterRoles(constants.NodeExporterName, GetNodeExporterLabels(managedClusterName)),
+		createLoggingClusterRoles(constants.FluentdName, GetFluentdLabels(managedClusterName)),
 	}
-	journalbeatCR, err := createLoggingClusterRoles(constants.JournalbeatName, journalbeatLabels)
-	if err != nil {
-		zap.S().Debugf("New logging cluster role %s is giving error %s", constants.JournalbeatName, err)
-	}
-	nodeExporterCR, err := createMonitoringClusterRoles(constants.NodeExporterName, nodeExporterLabels)
-	if err != nil {
-		zap.S().Debugf("New monitoring cluster role %s is giving error %s", constants.NodeExporterName, err)
-	}
-	clusterRoles = append(clusterRoles, fileabeatCR, journalbeatCR, nodeExporterCR)
-	return clusterRoles
 }
 
 // Constructs the necessary cluster role
-func createLoggingClusterRoles(name string, labels map[string]string) (*rbacv1.ClusterRole, error) {
+func createLoggingClusterRoles(name string, labels map[string]string) *rbacv1.ClusterRole {
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
@@ -49,11 +35,11 @@ func createLoggingClusterRoles(name string, labels map[string]string) (*rbacv1.C
 			},
 		},
 	}
-	return clusterRole, nil
+	return clusterRole
 }
 
 // Constructs the necessary ClusterRoles for the specified ManagedCluster
-func createMonitoringClusterRoles(name string, labels map[string]string) (*rbacv1.ClusterRole, error) {
+func createMonitoringClusterRoles(name string, labels map[string]string) *rbacv1.ClusterRole {
 	// Only generate a cluster role for the managed cluster namespace
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -69,5 +55,5 @@ func createMonitoringClusterRoles(name string, labels map[string]string) (*rbacv
 			},
 		},
 	}
-	return clusterRole, nil
+	return clusterRole
 }
