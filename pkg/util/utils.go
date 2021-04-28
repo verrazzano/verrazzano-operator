@@ -58,7 +58,7 @@ type DeploymentHelper interface {
 
 // GetManagedBindingLabels returns binding labels for managed cluster.
 func GetManagedBindingLabels(binding *types.SyntheticBinding, managedClusterName string) map[string]string {
-	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoBinding: binding.Name, constants.VerrazzanoCluster: managedClusterName, "istio-injection": "enabled"}
+	return map[string]string{constants.K8SAppLabel: constants.VerrazzanoGroup, constants.VerrazzanoBinding: binding.Name, constants.VerrazzanoCluster: managedClusterName, constants.IstioInjection: constants.Enabled}
 }
 
 // GetManagedLabelsNoBinding return labels for managed cluster with no binding.
