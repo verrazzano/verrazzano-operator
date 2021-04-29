@@ -43,6 +43,12 @@ const VerrazzanoNamespace = VerrazzanoSystem
 // VerrazzanoOperatorServiceAccount name for Verrazzano operator service account
 const VerrazzanoOperatorServiceAccount = "verrazzano-operator"
 
+// IstioInjection indicates whether istio sidecars should be injected into pods in given namespace
+const IstioInjection = "istio-injection"
+
+// Enabled indicates that injection is enabled
+const Enabled = "enabled"
+
 // ManifestFile file name for Verrazzano operator manifest
 const ManifestFile = "manifest.json"
 
