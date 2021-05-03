@@ -5,15 +5,13 @@ package integ_test
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano-operator/test/integ/k8s"
-	"time"
 )
 
-const filebeat = "filebeat"
-const journalbeat = "journalbeat"
-const logging = "logging"
 const monitoring = "monitoring"
 const nodeExporter = "node-exporter"
 const promPusherSystem = "prom-pusher-system"
@@ -83,24 +81,6 @@ var _ = Describe("verrazzano-system namespace resources ", func() {
 	})
 })
 
-var _ = Describe("Logging namespace resources ", func() {
-	It("logging namespace should exist ", func() {
-		Eventually(loggingNamespaceExists, oneMinute).Should(BeTrue())
-	})
-	It("Filebeat daemonset should exist ", func() {
-		Eventually(filebeatDaemonsetExists, tenSeconds).Should(BeTrue())
-	})
-	It("Filebeat pod should exist ", func() {
-		Eventually(filebeatPodExists, oneMinute).Should(BeTrue())
-	})
-	It("Jounalbeat daemonset should exist ", func() {
-		Eventually(journalbeatDaemonsetExists, tenSeconds).Should(BeTrue())
-	})
-	It("Jounalbeat pod should exist ", func() {
-		Eventually(journalbeatPodExists, oneMinute).Should(BeTrue())
-	})
-})
-
 var _ = Describe("Monitoring namespace resources ", func() {
 	It("monitoring namespace should exist ", func() {
 		Eventually(monitoringNamespaceExists, oneMinute).Should(BeTrue())
@@ -122,22 +102,6 @@ var _ = Describe("Monitoring namespace resources ", func() {
 	})
 })
 
-// Helper functions
-func loggingNamespaceExists() bool {
-	return K8sClient.DoesNamespaceExist(logging)
-}
-func filebeatPodExists() bool {
-	return K8sClient.DoesPodExist(filebeat, logging)
-}
-func filebeatDaemonsetExists() bool {
-	return K8sClient.DoesDaemonsetExist(filebeat, logging)
-}
-func journalbeatPodExists() bool {
-	return K8sClient.DoesPodExist(journalbeat, logging)
-}
-func journalbeatDaemonsetExists() bool {
-	return K8sClient.DoesDaemonsetExist(journalbeat, logging)
-}
 func monitoringNamespaceExists() bool {
 	return K8sClient.DoesNamespaceExist(monitoring)
 }

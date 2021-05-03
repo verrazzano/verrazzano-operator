@@ -27,16 +27,6 @@ func CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections 
 		defer managedClusterConnection.Lock.RUnlock()
 
 		if vzSynMB.SynBinding.Name == constants.VmiSystemBindingName {
-			newConfigMaps, err := newConfigMaps(vzSynMB.SynBinding.Name, clusterName, clusterInfo)
-			if err != nil {
-				return err
-			}
-			for _, newConfigMap := range newConfigMaps {
-				err = createUpdateConfigMaps(managedClusterConnection, newConfigMap, clusterName)
-				if err != nil {
-					return err
-				}
-			}
 		} else {
 			for _, newConfigMap := range managedClusterObj.ConfigMaps {
 				err := createUpdateConfigMaps(managedClusterConnection, newConfigMap, clusterName)
@@ -99,14 +89,4 @@ func CleanupOrphanedConfigMaps(vzSynMB *types.SyntheticModelBinding, availableMa
 	}
 
 	return nil
-}
-
-// Constructs the necessary ConfigMaps for the specified ManagedCluster in the given VerrazzanoBinding
-func newConfigMaps(bindingName string, managedClusterName string, clusterInfo monitoring.ClusterInfo) ([]*corev1.ConfigMap, error) {
-	var configMaps []*corev1.ConfigMap
-	configMapsLogging := monitoring.LoggingConfigMaps(managedClusterName, clusterInfo)
-	for _, configMap := range configMapsLogging {
-		configMaps = append(configMaps, configMap)
-	}
-	return configMaps, nil
 }

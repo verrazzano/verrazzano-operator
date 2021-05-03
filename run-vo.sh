@@ -37,7 +37,7 @@ profile=${1-:"dev"}
 #export VERRAZZANO_REPO=${WORK}/vz/src/github.com/verrazzano/verrazzano
 export VERRAZZANO_OPERATOR_REPO=$(pwd)
 export VERRAZZANO_REPO=${VERRAZZANO_OPERATOR_REPO}/../verrazzano
-  
+
 echo "Building and installing the verrazzano-operator."
 cd ${VERRAZZANO_OPERATOR_REPO}
 make go-install
@@ -48,17 +48,14 @@ set -x
 kubectl scale deployment verrazzano-operator --replicas=0 -n verrazzano-system
 set +x
 echo ""
-  
+
 # Extract the images required by verrazzano-operator from values.yaml into environment variables.
 export COH_MICRO_IMAGE=$(grep cohMicroImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export HELIDON_MICRO_IMAGE=$(grep helidonMicroImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export WLS_MICRO_IMAGE=$(grep wlsMicroImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export PROMETHEUS_PUSHER_IMAGE=$(grep prometheusPusherImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export NODE_EXPORTER_IMAGE=$(grep nodeExporterImage ${VERRAZZANO_REPO}/install/chart/values.yaml | head -1 | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//' | sort -u)
-export FILEBEAT_IMAGE=$(grep filebeatImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
-export JOURNALBEAT_IMAGE=$(grep journalbeatImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export WEBLOGIC_OPERATOR_IMAGE=$(grep weblogicOperatorImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
-export FLUENTD_IMAGE=$(grep fluentdImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export COH_MICRO_REQUEST_MEMORY="28Mi"
 export HELIDON_MICRO_REQUEST_MEMORY="24Mi"
 export WLS_MICRO_REQUEST_MEMORY="32Mi"
@@ -94,7 +91,7 @@ fi
 
 # Extract the API server realm from values.yaml.
 export API_SERVER_REALM=$(grep apiServerRealm ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2 | sed -e 's/^[[:space:]]*//')
-  
+
 # Extract the Verrazzano system ingress IP from the NGINX ingress controller status.
 export VERRAZZANO_SYSTEM_INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-controller-nginx-ingress-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
@@ -126,7 +123,7 @@ ES_DATA_STORAGE=${ES_DATA_STORAGE}
 PROMETHEUS_DATA_STORAGE=${PROMETHEUS_DATA_STORAGE}
 GRAFANA_DATA_STORAGE=${GRAFANA_DATA_STORAGE}
 EOF
- 
+
 # Run the out-of-cluster Verrazzano operator.
 cmd="verrazzano-operator\
  --zap-log-level=debug \

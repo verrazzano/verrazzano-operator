@@ -112,7 +112,7 @@ func TestCreateVMIServiceAccounts(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't list service account for cluster local: %v", err))
 	}
-	assert.Equal(3, len(serviceAccounts), "3 service accounts were expected for cluster local")
+	assert.Equal(1, len(serviceAccounts), "1 service accounts were expected for cluster local")
 
 	for i, sa := range serviceAccounts {
 		assertCreateVMIServiceAccounts(t, sa, i, "local")
@@ -124,7 +124,7 @@ func TestCreateVMIServiceAccounts(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't list service account for cluster local: %v", err))
 	}
-	assert.Equal(3, len(serviceAccounts), "3 service accounts were expected for cluster cluster-1")
+	assert.Equal(1, len(serviceAccounts), "1 service accounts were expected for cluster cluster-1")
 
 	for i, sa := range serviceAccounts {
 		assertCreateVMIServiceAccounts(t, sa, i, "cluster-1")
@@ -197,11 +197,5 @@ func assertCreateVMIServiceAccounts(t *testing.T, sa *corev1.ServiceAccount, ind
 
 	assert.Equal(labels, sa.Labels, "service account label for namespace %s was not as expected", sa.Namespace)
 	assert.Equal([]corev1.LocalObjectReference{}, sa.ImagePullSecrets, "imagePullSecrets for service account should be empty")
-	if index == 0 {
-		assert.Equal(constants.FilebeatName, sa.Name, "service account has wrong name")
-	} else if index == 1 {
-		assert.Equal(constants.JournalbeatName, sa.Name, "service account has wrong name")
-	} else if index == 2 {
-		assert.Equal(constants.NodeExporterName, sa.Name, "service account has wrong name")
-	}
+	assert.Equal(constants.NodeExporterName, sa.Name, "service account has wrong name")
 }

@@ -14,23 +14,12 @@ import (
 // in all the managed clusters.
 func GetSystemClusterRoleBindings(managedClusterName string) []*rbacv1.ClusterRoleBinding {
 	var clusterRoleBindings []*rbacv1.ClusterRoleBinding
-	filebeatLabels := GetFilebeatLabels(managedClusterName)
-	journalbeatLabels := GetJournalbeatLabels(managedClusterName)
 	nodeExporterLabels := GetNodeExporterLabels(managedClusterName)
-
-	fileabeatCRD, err := createSystemClusterRoleBinding(constants.LoggingNamespace, constants.FilebeatName, filebeatLabels)
-	if err != nil {
-		zap.S().Debugf("New cluster role binding %s is giving error %s", constants.FilebeatName, err)
-	}
-	journalbeatCRD, err := createSystemClusterRoleBinding(constants.LoggingNamespace, constants.JournalbeatName, journalbeatLabels)
-	if err != nil {
-		zap.S().Debugf("New cluster role binding %s is giving error %s", constants.JournalbeatName, err)
-	}
 	nodeExporterCRD, err := createSystemClusterRoleBinding(constants.MonitoringNamespace, constants.NodeExporterName, nodeExporterLabels)
 	if err != nil {
 		zap.S().Debugf("New cluster role binding %s is giving error %s", constants.NodeExporterName, err)
 	}
-	clusterRoleBindings = append(clusterRoleBindings, fileabeatCRD, journalbeatCRD, nodeExporterCRD)
+	clusterRoleBindings = append(clusterRoleBindings, nodeExporterCRD)
 	return clusterRoleBindings
 }
 

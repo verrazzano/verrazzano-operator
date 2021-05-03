@@ -357,7 +357,7 @@ func (c *Controller) processManagedCluster(managedClusterName string, kubeconfig
 		vzSynMB.ManagedClusters[managedClusterName] = mc
 
 		// Add in the monitoring and logging namespace if not already added
-		mc.Namespaces = append(mc.Namespaces, constants.MonitoringNamespace, constants.LoggingNamespace)
+		mc.Namespaces = append(mc.Namespaces, constants.MonitoringNamespace)
 
 		/*********************
 		 * Create Artifacts in the Managed SynModel
