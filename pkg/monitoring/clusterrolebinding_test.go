@@ -15,7 +15,7 @@ func TestGetSystemClusterRoleBindings(t *testing.T) {
 	clusterName := "test-cluster"
 	clusterRoleBindings := GetSystemClusterRoleBindings(clusterName)
 	assert.NotNil(clusterRoleBindings, "Expected the response to not be nil")
-	assert.Len(clusterRoleBindings, 1, "Expected three ClusterRoleBindings to be returned")
+	assert.Len(clusterRoleBindings, 1, "Expected 1 ClusterRoleBinding to be returned")
 
 	// Validate that all the expected ClusterRoleBindings are returned
 	nodeExporterFound := false

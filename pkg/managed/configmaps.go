@@ -26,8 +26,7 @@ func CreateConfigMaps(vzSynMB *types.SyntheticModelBinding, filteredConnections 
 		managedClusterConnection.Lock.RLock()
 		defer managedClusterConnection.Lock.RUnlock()
 
-		if vzSynMB.SynBinding.Name == constants.VmiSystemBindingName {
-		} else {
+		if vzSynMB.SynBinding.Name != constants.VmiSystemBindingName {
 			for _, newConfigMap := range managedClusterObj.ConfigMaps {
 				err := createUpdateConfigMaps(managedClusterConnection, newConfigMap, clusterName)
 				if err != nil {

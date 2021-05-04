@@ -112,7 +112,7 @@ func TestCreateVMIServiceAccounts(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't list service account for cluster local: %v", err))
 	}
-	assert.Equal(1, len(serviceAccounts), "1 service accounts were expected for cluster local")
+	assert.Equal(1, len(serviceAccounts), "1 service account was expected for cluster local")
 
 	for i, sa := range serviceAccounts {
 		assertCreateVMIServiceAccounts(t, sa, i, "local")
@@ -124,7 +124,7 @@ func TestCreateVMIServiceAccounts(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("can't list service account for cluster local: %v", err))
 	}
-	assert.Equal(1, len(serviceAccounts), "1 service accounts were expected for cluster cluster-1")
+	assert.Equal(1, len(serviceAccounts), "1 service account was expected for cluster cluster-1")
 
 	for i, sa := range serviceAccounts {
 		assertCreateVMIServiceAccounts(t, sa, i, "cluster-1")

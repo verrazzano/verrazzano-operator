@@ -40,8 +40,7 @@ func CreateSecrets(vzSynMB *types.SyntheticModelBinding, availableManagedCluster
 		defer managedClusterConnection.Lock.RUnlock()
 
 		var secrets []*corev1.Secret
-		if vzSynMB.SynBinding.Name == constants.VmiSystemBindingName {
-		} else {
+		if vzSynMB.SynBinding.Name != constants.VmiSystemBindingName {
 			secrets = newSecrets(vzSynMB, managedClusterObj, kubeClientSet)
 		}
 
