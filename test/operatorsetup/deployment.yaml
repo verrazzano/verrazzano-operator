@@ -84,8 +84,6 @@ spec:
               value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: WLS_MICRO_IMAGE
               value: container-registry.oracle.com/os/oraclelinux:7-slim
-            - name: PROMETHEUS_PUSHER_IMAGE
-              value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: NODE_EXPORTER_IMAGE
               value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: FILEBEAT_IMAGE

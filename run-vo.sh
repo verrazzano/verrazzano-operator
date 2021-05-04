@@ -53,7 +53,6 @@ echo ""
 export COH_MICRO_IMAGE=$(grep cohMicroImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export HELIDON_MICRO_IMAGE=$(grep helidonMicroImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export WLS_MICRO_IMAGE=$(grep wlsMicroImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
-export PROMETHEUS_PUSHER_IMAGE=$(grep prometheusPusherImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export NODE_EXPORTER_IMAGE=$(grep nodeExporterImage ${VERRAZZANO_REPO}/install/chart/values.yaml | head -1 | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//' | sort -u)
 export FILEBEAT_IMAGE=$(grep filebeatImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export JOURNALBEAT_IMAGE=$(grep journalbeatImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
@@ -104,7 +103,6 @@ USE_SYSTEM_VMI=${USE_SYSTEM_VMI}
 COH_MICRO_IMAGE=$COH_MICRO_IMAGE
 HELIDON_MICRO_IMAGE=$HELIDON_MICRO_IMAGE
 WLS_MICRO_IMAGE=$WLS_MICRO_IMAGE
-PROMETHEUS_PUSHER_IMAGE=$PROMETHEUS_PUSHER_IMAGE
 NODE_EXPORTER_IMAGE=$NODE_EXPORTER_IMAGE
 FILEBEAT_IMAGE=$FILEBEAT_IMAGE
 JOURNALBEAT_IMAGE=$JOURNALBEAT_IMAGE

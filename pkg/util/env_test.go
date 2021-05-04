@@ -23,7 +23,6 @@ func TestGetEnvValues(t *testing.T) {
 		value  string
 		method func() string
 	}{
-		{name: "PROMETHEUS_PUSHER_IMAGE", value: "foo", method: GetPromtheusPusherImage},
 		{name: "NODE_EXPORTER_IMAGE", value: "foo", method: GetNodeExporterImage},
 		{name: "FILEBEAT_IMAGE", value: "foo", method: GetFilebeatImage},
 		{name: "JOURNALBEAT_IMAGE", value: "foo", method: GetJournalbeatImage},

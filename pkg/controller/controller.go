@@ -772,11 +772,6 @@ func (c *Controller) processApplicationBindingDeleted(verrazzanoBinding interfac
 		return
 	}
 
-	err = c.monitoring.DeletePomPusher(binding.Name, &kubeDeployment{kubeClientSet: c.kubeClientSet})
-	if err != nil {
-		zap.S().Errorf("Failed to delete prometheus-pusher for binding %s: %v", vzSynMB.SynBinding.Name, err)
-	}
-
 	// Delete Namespaces - this will also cleanup any Ingresses,
 	// ServiceEntries, ServiceAccounts, ConfigMaps and Secrets within the namespace
 	err = c.managed.DeleteNamespaces(vzSynMB, c.managedClusterConnections, true)
@@ -1091,7 +1086,6 @@ func (l *localPackage) UpdateAcmeDNSSecret(binding *types.SyntheticBinding, kube
 // monitoringInterface defines the functions in the 'monitoring' package that are used  by the Controller
 type monitoringInterface interface {
 	CreateVmiSecrets(binding *types.SyntheticBinding, secrets v8omonitoring.Secrets) error
-	DeletePomPusher(binding string, helper v8outil.DeploymentHelper) error
 }
 
 // monitoringPackage is the monitoringInterface implementation through which all 'monitoring' package functions are invoked
@@ -1103,10 +1097,6 @@ type monitoringPackage struct {
 
 func (m *monitoringPackage) CreateVmiSecrets(binding *types.SyntheticBinding, secrets v8omonitoring.Secrets) error {
 	return v8omonitoring.CreateVmiSecrets(binding, secrets)
-}
-
-func (m *monitoringPackage) DeletePomPusher(binding string, helper v8outil.DeploymentHelper) error {
-	return v8omonitoring.DeletePomPusher(binding, helper)
 }
 
 // MCRegistrationSecret - the name of the secret that contains the cluster registration information

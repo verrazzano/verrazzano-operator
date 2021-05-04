@@ -156,19 +156,9 @@ integ-test: build create-cluster
 	echo 'Load docker image for the verrazzano-operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
-	echo 'Load docker image needed to install istio CRDs ...'
-	docker pull container-registry.oracle.com/olcne/istio_kubectl:1.4.6
-	docker image tag container-registry.oracle.com/olcne/istio_kubectl:1.4.6 container-registry.oracle.com/olcne/kubectl:1.4.6
-	kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/olcne/kubectl:1.4.6
-
 	echo 'Load docker image for the linux slim used for fake micro operators ...'
 	docker pull container-registry.oracle.com/os/oraclelinux:7-slim
 	kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/os/oraclelinux:7-slim
-
-	echo 'Install the istio CRDs ...'
-	kubectl create ns istio-system
-	kubectl apply -f ./test/operatorsetup/istio-crds.yaml
-	kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s
 
 	echo 'Create verrazzano operator required secrets ...'
 	kubectl create namespace ${VERRAZZANO_NS}

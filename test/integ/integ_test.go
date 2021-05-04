@@ -16,7 +16,6 @@ const journalbeat = "journalbeat"
 const logging = "logging"
 const monitoring = "monitoring"
 const nodeExporter = "node-exporter"
-const promPusherSystem = "prom-pusher-system"
 const system = "system"
 const verrazzano = "verrazzano"
 const verrazzanoOperator = "verrazzano-operator"
@@ -114,12 +113,6 @@ var _ = Describe("Monitoring namespace resources ", func() {
 	It("Node exporter daemonset should exist ", func() {
 		Eventually(nodeExporterDaemonExists, tenSeconds).Should(BeTrue())
 	})
-	It("Prom pusher deployment should exist ", func() {
-		Eventually(promPusherDeploymentExists, tenSeconds).Should(BeTrue())
-	})
-	It("Prom pusher pod should exist ", func() {
-		Eventually(promPusherPodExists, oneMinute).Should(BeTrue())
-	})
 })
 
 // Helper functions
@@ -149,12 +142,6 @@ func nodeExporterPodExists() bool {
 }
 func nodeExporterDaemonExists() bool {
 	return K8sClient.DoesDaemonsetExist(nodeExporter, monitoring)
-}
-func promPusherDeploymentExists() bool {
-	return K8sClient.DoesDeploymentExist(promPusherSystem, monitoring)
-}
-func promPusherPodExists() bool {
-	return K8sClient.DoesPodExist(promPusherSystem, monitoring)
 }
 func vmiExists() bool {
 	return K8sClient.DoesVmiExist(system)
