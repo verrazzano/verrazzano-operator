@@ -97,20 +97,11 @@ const AcmeDNSSecret = "verrazzano-cert-manager-acme-dns"
 // AcmeDNSSecretKey secret key for use with Cert Manager
 const AcmeDNSSecretKey = "acmedns.json"
 
-// FilebeatName name for Filebeats
-const FilebeatName = "filebeat"
-
-// JournalbeatName name for Journalbeats
-const JournalbeatName = "journalbeat"
-
 // NodeExporterName name for Node Exporter
 const NodeExporterName = "node-exporter"
 
 // MonitoringNamespace name of the monitoring namespace
 const MonitoringNamespace = "monitoring"
-
-// LoggingNamespace name for the logging namespace
-const LoggingNamespace = "logging"
 
 // ProductionProfile name of the Production Profile Installation
 const ProductionProfile = "prod"

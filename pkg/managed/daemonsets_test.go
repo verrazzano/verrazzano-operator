@@ -3,17 +3,16 @@
 package managed
 
 import (
-	"context"
+	"reflect"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/testutil"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"reflect"
-	"testing"
 )
 
 const verrazzanoURI = "test"
@@ -78,16 +77,7 @@ func TestCreateDaemonSetsUpdateExistingSet(t *testing.T) {
 
 	VzSystemInfo.SynBinding.Name = constants.VmiSystemBindingName
 
-	ds := appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "filebeat",
-			Namespace: "logging",
-		},
-	}
-	_, err := clusterConnection.KubeClient.AppsV1().DaemonSets("logging").Create(context.TODO(), &ds, metav1.CreateOptions{})
-	assert.Nil(err, "can't create daemon sets: %v", err)
-
-	err = CreateDaemonSets(VzSystemInfo, clusterConnections, verrazzanoURI, clusterInfoDocker)
+	err := CreateDaemonSets(VzSystemInfo, clusterConnections, verrazzanoURI, clusterInfoDocker)
 	assert.Nil(err, "got an error from CreateDaemonSets: %v", err)
 
 	// assert that the daemon sets in the given cluster match the expected daemon sets

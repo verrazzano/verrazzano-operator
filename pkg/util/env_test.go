@@ -25,9 +25,6 @@ func TestGetEnvValues(t *testing.T) {
 	}{
 		{name: "PROMETHEUS_PUSHER_IMAGE", value: "foo", method: GetPromtheusPusherImage},
 		{name: "NODE_EXPORTER_IMAGE", value: "foo", method: GetNodeExporterImage},
-		{name: "FILEBEAT_IMAGE", value: "foo", method: GetFilebeatImage},
-		{name: "JOURNALBEAT_IMAGE", value: "foo", method: GetJournalbeatImage},
-		{name: "FLUENTD_IMAGE", value: "foo", method: GetFluentdImage},
 		{name: "ES_MASTER_NODE_REQUEST_MEMORY", value: sizeValue, method: GetElasticsearchMasterNodeRequestMemory},
 		{name: "ES_INGEST_NODE_REQUEST_MEMORY", value: sizeValue, method: GetElasticsearchIngestNodeRequestMemory},
 		{name: "ES_DATA_NODE_REQUEST_MEMORY", value: sizeValue, method: GetElasticsearchDataNodeRequestMemory},
