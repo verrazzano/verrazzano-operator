@@ -122,7 +122,7 @@ func CleanupOrphanedNamespaces(vzSynMB *types.SyntheticModelBinding, availableMa
 		// Delete these Namespace since none are expected on this cluster
 		for _, ns := range existingNamespaceList {
 			// Skip deletion of namespaces Logging and Monitoring from management cluster
-			if ns.Name != constants.MonitoringNamespace && ns.Name != constants.LoggingNamespace {
+			if ns.Name != constants.MonitoringNamespace {
 				zap.S().Infof("Deleting Namespace %s in cluster %s", ns.Name, clusterName)
 				err := managedClusterConnection.KubeClient.CoreV1().Namespaces().Delete(context.TODO(), ns.Name, metav1.DeleteOptions{})
 				if err != nil {
@@ -150,7 +150,7 @@ func CleanupOrphanedNamespaces(vzSynMB *types.SyntheticModelBinding, availableMa
 			// Delete these Namespaces since none are expected on this cluster
 			for _, ns := range existingNamespaceSystemList {
 				// Skip deletion of namespaces Logging, Monitoring, and verrazzano system from management cluster
-				if ns.Name != constants.MonitoringNamespace && ns.Name != constants.LoggingNamespace && ns.Name != constants.VerrazzanoNamespace {
+				if ns.Name != constants.MonitoringNamespace && ns.Name != constants.VerrazzanoNamespace {
 					zap.S().Infof("Deleting Namespace %s in cluster %s", ns.Name, clusterName)
 					err := managedClusterConnection.KubeClient.CoreV1().Namespaces().Delete(context.TODO(), ns.Name, metav1.DeleteOptions{})
 					if err != nil {
@@ -197,7 +197,7 @@ func DeleteNamespaces(vzSynMB *types.SyntheticModelBinding, availableManagedClus
 		}
 		for _, namespace := range existingNamespace {
 			// Skip deletion of namespaces Logging, Monitoring, and verrazzano system namespace from management cluster
-			if namespace.Name != constants.MonitoringNamespace && namespace.Name != constants.LoggingNamespace && namespace.Name != constants.VerrazzanoNamespace {
+			if namespace.Name != constants.MonitoringNamespace && namespace.Name != constants.VerrazzanoNamespace {
 				zap.S().Infof("Deleting Namespace %s in cluster %s", namespace.Name, clusterName)
 				err := managedClusterConnection.KubeClient.CoreV1().Namespaces().Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
 				if err != nil {
@@ -236,7 +236,7 @@ func newNamespaces(binding *types.SyntheticBinding, managedCluster *types.Manage
 					}
 					// Don't enable istio for namespaces used for the verrazzano system namespace, the monitoring
 					// namespace, and the logging namespace.
-					if util.GetManagedClusterNamespaceForSystem() != namespace && namespace != constants.MonitoringNamespace && namespace != constants.LoggingNamespace {
+					if util.GetManagedClusterNamespaceForSystem() != namespace && namespace != constants.MonitoringNamespace {
 						bindingLabels["istio-injection"] = "enabled"
 					}
 					return bindingLabels

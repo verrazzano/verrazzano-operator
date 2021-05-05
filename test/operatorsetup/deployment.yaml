@@ -86,13 +86,7 @@ spec:
               value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: NODE_EXPORTER_IMAGE
               value: container-registry.oracle.com/os/oraclelinux:7-slim
-            - name: FILEBEAT_IMAGE
-              value: container-registry.oracle.com/os/oraclelinux:7-slim
-            - name: JOURNALBEAT_IMAGE
-              value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: WEBLOGIC_OPERATOR_IMAGE
-              value: container-registry.oracle.com/os/oraclelinux:7-slim
-            - name: FLUENTD_IMAGE
               value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: COH_MICRO_REQUEST_MEMORY
               value: 100Mi

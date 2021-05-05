@@ -18,9 +18,7 @@ var GetEnvFunc = os.Getenv
 // Define the ENV vars
 
 const nodeExporterImage = "NODE_EXPORTER_IMAGE"
-const filebeatImage = "FILEBEAT_IMAGE"
-const journalbeatImage = "JOURNALBEAT_IMAGE"
-const fluentdImage = "FLUENTD_IMAGE"
+
 const esMasterNodeRequestMemory = "ES_MASTER_NODE_REQUEST_MEMORY"
 const esIngestNodeRequestMemory = "ES_INGEST_NODE_REQUEST_MEMORY"
 const esDataNodeRequestMemory = "ES_DATA_NODE_REQUEST_MEMORY"
@@ -54,24 +52,9 @@ func GetNodeExporterImage() string {
 	return GetEnvFunc(nodeExporterImage)
 }
 
-// GetFilebeatImage returns the Filebeats image.
-func GetFilebeatImage() string {
-	return GetEnvFunc(filebeatImage)
-}
-
-// GetJournalbeatImage returns the Journabeats image.
-func GetJournalbeatImage() string {
-	return GetEnvFunc(journalbeatImage)
-}
-
 // GetTestWlsFrontendImage returns a dummy application image for tests.
 func GetTestWlsFrontendImage() string {
 	return "container-registry.oracle.com/verrazzano/wl-frontend:324813"
-}
-
-// GetFluentdImage returns the Fluentd image.
-func GetFluentdImage() string {
-	return GetEnvFunc(fluentdImage)
 }
 
 // GetElasticsearchEnabled returns true if Elasticsearch is enabled for the install
