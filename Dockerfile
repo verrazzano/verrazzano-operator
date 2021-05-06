@@ -37,6 +37,8 @@ RUN GO111MODULE=on go build \
 FROM ghcr.io/oracle/oraclelinux:7-slim
 
 RUN yum update -y \
+    && yum-config-manager --save --setopt=ol7_ociyum_config.skip_if_unavailable=true \
+    && yum install -y ca-certificates curl openssl \
     && yum clean all \
     && rm -rf /var/cache/yum
 
