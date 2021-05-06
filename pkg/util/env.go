@@ -17,7 +17,6 @@ var GetEnvFunc = os.Getenv
 
 // Define the ENV vars
 
-const prometheusPusherImage = "PROMETHEUS_PUSHER_IMAGE"
 const nodeExporterImage = "NODE_EXPORTER_IMAGE"
 
 const esMasterNodeRequestMemory = "ES_MASTER_NODE_REQUEST_MEMORY"
@@ -46,11 +45,6 @@ const sharedVMIDefault = "USE_SYSTEM_VMI"
 // GetPrometheusEnabled returns true if Prometheus is enabled for the install
 func GetPrometheusEnabled() bool {
 	return getBoolean(promEnabled)
-}
-
-// GetPromtheusPusherImage returns the Prometheus Pusher image.
-func GetPromtheusPusherImage() string {
-	return GetEnvFunc(prometheusPusherImage)
 }
 
 // GetNodeExporterImage returns the Node Exporter image.

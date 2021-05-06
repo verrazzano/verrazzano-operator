@@ -7,7 +7,6 @@ package managed
 
 import (
 	"context"
-	"errors"
 
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
@@ -31,23 +30,9 @@ func CreateDeployments(vzSynMB *types.SyntheticModelBinding, filteredConnections
 		defer managedClusterConnection.Lock.RUnlock()
 
 		var deployments []*appsv1.Deployment
-		var err error
-		if vzSynMB.SynBinding.Name == constants.VmiSystemBindingName {
-			deployments, err = monitoring.GetSystemDeployments(clusterName, verrazzanoURI, util.GetManagedLabelsNoBinding(clusterName), sec)
-			if err != nil {
-				zap.S().Errorf("Error getting the monitoring system deployments %v", err)
-				continue
-			}
-		} else {
-			deployments, err = newSystemDeployments(vzSynMB.SynBinding, managedClusterObj, verrazzanoURI, sec)
-			if err != nil {
-				zap.S().Errorf("Error creating new deployments %v", err)
-				continue
-			}
-			// Add deployments from genericComponents
-			for _, deployment := range managedClusterObj.Deployments {
-				deployments = append(deployments, deployment)
-			}
+		// Add deployments from genericComponents
+		for _, deployment := range managedClusterObj.Deployments {
+			deployments = append(deployments, deployment)
 		}
 
 		// Create/Update Deployments
@@ -167,25 +152,4 @@ func CleanupOrphanedDeployments(vzSynMB *types.SyntheticModelBinding, availableM
 	}
 
 	return nil
-}
-
-// Constructs the necessary Verrazzano system deployments for the specified ManagedCluster in the given VerrazzanoBinding
-func newSystemDeployments(binding *types.SyntheticBinding, managedCluster *types.ManagedCluster, verrazzanoURI string, sec monitoring.Secrets) ([]*appsv1.Deployment, error) {
-	deployPromPusher := true //temporary variable to create pusher deployment
-	depLabels := util.GetManagedLabelsNoBinding(managedCluster.Name)
-	var deployments []*appsv1.Deployment
-
-	// Does a Prometheus pusher need to be deployed to this cluster?
-	if deployPromPusher == true {
-		if verrazzanoURI == "" {
-			return nil, errors.New("Verrazzano URI cannot be empty for prometheus pusher deployment")
-		}
-		deployment, err := monitoring.CreateDeployment(constants.MonitoringNamespace, binding.Name, depLabels, sec)
-		if err != nil {
-			return nil, err
-		}
-		deployments = append(deployments, deployment)
-	}
-
-	return deployments, nil
 }

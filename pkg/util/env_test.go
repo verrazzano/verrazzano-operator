@@ -23,7 +23,6 @@ func TestGetEnvValues(t *testing.T) {
 		value  string
 		method func() string
 	}{
-		{name: "PROMETHEUS_PUSHER_IMAGE", value: "foo", method: GetPromtheusPusherImage},
 		{name: "NODE_EXPORTER_IMAGE", value: "foo", method: GetNodeExporterImage},
 		{name: "ES_MASTER_NODE_REQUEST_MEMORY", value: sizeValue, method: GetElasticsearchMasterNodeRequestMemory},
 		{name: "ES_INGEST_NODE_REQUEST_MEMORY", value: sizeValue, method: GetElasticsearchIngestNodeRequestMemory},

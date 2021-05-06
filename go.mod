@@ -7,7 +7,7 @@ require (
 	github.com/onsi/gomega v1.9.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
-	github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20201110193547-32e100ccdb72
+	github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20210506182921-9c8e9e80ff10
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	k8s.io/api v0.18.2

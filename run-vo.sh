@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # This script will run the verrazzano-operator outside of the cluster, for local debugging/testing
@@ -53,7 +53,6 @@ echo ""
 export COH_MICRO_IMAGE=$(grep cohMicroImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export HELIDON_MICRO_IMAGE=$(grep helidonMicroImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export WLS_MICRO_IMAGE=$(grep wlsMicroImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
-export PROMETHEUS_PUSHER_IMAGE=$(grep prometheusPusherImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export NODE_EXPORTER_IMAGE=$(grep nodeExporterImage ${VERRAZZANO_REPO}/install/chart/values.yaml | head -1 | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//' | sort -u)
 export WEBLOGIC_OPERATOR_IMAGE=$(grep weblogicOperatorImage ${VERRAZZANO_REPO}/install/chart/values.yaml | cut -d':' -f2,3 | sed -e 's/^[[:space:]]*//')
 export COH_MICRO_REQUEST_MEMORY="28Mi"
@@ -101,7 +100,6 @@ USE_SYSTEM_VMI=${USE_SYSTEM_VMI}
 COH_MICRO_IMAGE=$COH_MICRO_IMAGE
 HELIDON_MICRO_IMAGE=$HELIDON_MICRO_IMAGE
 WLS_MICRO_IMAGE=$WLS_MICRO_IMAGE
-PROMETHEUS_PUSHER_IMAGE=$PROMETHEUS_PUSHER_IMAGE
 NODE_EXPORTER_IMAGE=$NODE_EXPORTER_IMAGE
 FILEBEAT_IMAGE=$FILEBEAT_IMAGE
 JOURNALBEAT_IMAGE=$JOURNALBEAT_IMAGE
