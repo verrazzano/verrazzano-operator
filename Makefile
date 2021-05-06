@@ -151,7 +151,7 @@ OPERATOR_SETUP = test/operatorsetup
 integ-test: build create-cluster
 
 	echo 'Create CRDs needed by the verrazzano-operator...'
-	kubectl create -f vendor/${VMO_PATH}/${VMO_CRD_PATH}/verrazzano-monitoring-operator-crds.yaml
+	kubectl create -f vendor/${VMO_PATH}/${VMO_CRD_PATH}/verrazzano.io_verrazzanomonitoringinstances_crd.yaml
 
 	echo 'Load docker image for the verrazzano-operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
