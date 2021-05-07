@@ -5,18 +5,15 @@ package integ_test
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano-operator/test/integ/k8s"
-	"time"
 )
 
-const filebeat = "filebeat"
-const journalbeat = "journalbeat"
-const logging = "logging"
 const monitoring = "monitoring"
 const nodeExporter = "node-exporter"
-const promPusherSystem = "prom-pusher-system"
 const system = "system"
 const verrazzano = "verrazzano"
 const verrazzanoOperator = "verrazzano-operator"
@@ -83,24 +80,6 @@ var _ = Describe("verrazzano-system namespace resources ", func() {
 	})
 })
 
-var _ = Describe("Logging namespace resources ", func() {
-	It("logging namespace should exist ", func() {
-		Eventually(loggingNamespaceExists, oneMinute).Should(BeTrue())
-	})
-	It("Filebeat daemonset should exist ", func() {
-		Eventually(filebeatDaemonsetExists, tenSeconds).Should(BeTrue())
-	})
-	It("Filebeat pod should exist ", func() {
-		Eventually(filebeatPodExists, oneMinute).Should(BeTrue())
-	})
-	It("Jounalbeat daemonset should exist ", func() {
-		Eventually(journalbeatDaemonsetExists, tenSeconds).Should(BeTrue())
-	})
-	It("Jounalbeat pod should exist ", func() {
-		Eventually(journalbeatPodExists, oneMinute).Should(BeTrue())
-	})
-})
-
 var _ = Describe("Monitoring namespace resources ", func() {
 	It("monitoring namespace should exist ", func() {
 		Eventually(monitoringNamespaceExists, oneMinute).Should(BeTrue())
@@ -114,30 +93,8 @@ var _ = Describe("Monitoring namespace resources ", func() {
 	It("Node exporter daemonset should exist ", func() {
 		Eventually(nodeExporterDaemonExists, tenSeconds).Should(BeTrue())
 	})
-	It("Prom pusher deployment should exist ", func() {
-		Eventually(promPusherDeploymentExists, tenSeconds).Should(BeTrue())
-	})
-	It("Prom pusher pod should exist ", func() {
-		Eventually(promPusherPodExists, oneMinute).Should(BeTrue())
-	})
 })
 
-// Helper functions
-func loggingNamespaceExists() bool {
-	return K8sClient.DoesNamespaceExist(logging)
-}
-func filebeatPodExists() bool {
-	return K8sClient.DoesPodExist(filebeat, logging)
-}
-func filebeatDaemonsetExists() bool {
-	return K8sClient.DoesDaemonsetExist(filebeat, logging)
-}
-func journalbeatPodExists() bool {
-	return K8sClient.DoesPodExist(journalbeat, logging)
-}
-func journalbeatDaemonsetExists() bool {
-	return K8sClient.DoesDaemonsetExist(journalbeat, logging)
-}
 func monitoringNamespaceExists() bool {
 	return K8sClient.DoesNamespaceExist(monitoring)
 }
@@ -149,12 +106,6 @@ func nodeExporterPodExists() bool {
 }
 func nodeExporterDaemonExists() bool {
 	return K8sClient.DoesDaemonsetExist(nodeExporter, monitoring)
-}
-func promPusherDeploymentExists() bool {
-	return K8sClient.DoesDeploymentExist(promPusherSystem, monitoring)
-}
-func promPusherPodExists() bool {
-	return K8sClient.DoesPodExist(promPusherSystem, monitoring)
 }
 func vmiExists() bool {
 	return K8sClient.DoesVmiExist(system)

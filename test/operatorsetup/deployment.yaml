@@ -1,4 +1,4 @@
-# Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 apiVersion: v1
@@ -84,17 +84,9 @@ spec:
               value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: WLS_MICRO_IMAGE
               value: container-registry.oracle.com/os/oraclelinux:7-slim
-            - name: PROMETHEUS_PUSHER_IMAGE
-              value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: NODE_EXPORTER_IMAGE
               value: container-registry.oracle.com/os/oraclelinux:7-slim
-            - name: FILEBEAT_IMAGE
-              value: container-registry.oracle.com/os/oraclelinux:7-slim
-            - name: JOURNALBEAT_IMAGE
-              value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: WEBLOGIC_OPERATOR_IMAGE
-              value: container-registry.oracle.com/os/oraclelinux:7-slim
-            - name: FLUENTD_IMAGE
               value: container-registry.oracle.com/os/oraclelinux:7-slim
             - name: COH_MICRO_REQUEST_MEMORY
               value: 100Mi

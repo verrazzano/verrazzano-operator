@@ -14,42 +14,13 @@ import (
 // all the clusters.
 func GetSystemClusterRoles(managedClusterName string) []*rbacv1.ClusterRole {
 	var clusterRoles []*rbacv1.ClusterRole
-	filebeatLabels := GetFilebeatLabels(managedClusterName)
-	journalbeatLabels := GetJournalbeatLabels(managedClusterName)
 	nodeExporterLabels := GetNodeExporterLabels(managedClusterName)
-
-	fileabeatCR, err := createLoggingClusterRoles(constants.FilebeatName, filebeatLabels)
-	if err != nil {
-		zap.S().Debugf("New logging cluster role %s is giving error %s", constants.FilebeatName, err)
-	}
-	journalbeatCR, err := createLoggingClusterRoles(constants.JournalbeatName, journalbeatLabels)
-	if err != nil {
-		zap.S().Debugf("New logging cluster role %s is giving error %s", constants.JournalbeatName, err)
-	}
 	nodeExporterCR, err := createMonitoringClusterRoles(constants.NodeExporterName, nodeExporterLabels)
 	if err != nil {
 		zap.S().Debugf("New monitoring cluster role %s is giving error %s", constants.NodeExporterName, err)
 	}
-	clusterRoles = append(clusterRoles, fileabeatCR, journalbeatCR, nodeExporterCR)
+	clusterRoles = append(clusterRoles, nodeExporterCR)
 	return clusterRoles
-}
-
-// Constructs the necessary cluster role
-func createLoggingClusterRoles(name string, labels map[string]string) (*rbacv1.ClusterRole, error) {
-	clusterRole := &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: labels,
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				APIGroups: []string{""},
-				Resources: []string{"pods", "namespaces", "services", "daemonsets"},
-				Verbs:     []string{"get", "watch", "list"},
-			},
-		},
-	}
-	return clusterRole, nil
 }
 
 // Constructs the necessary ClusterRoles for the specified ManagedCluster

@@ -584,13 +584,6 @@ func (m *testMonitoringPackage) CreateVmiSecrets(binding *types.SyntheticBinding
 
 	return nil
 }
-func (m *testMonitoringPackage) DeletePomPusher(binding string, helper util.DeploymentHelper) error {
-	m.Record("DeletePomPusher", map[string]interface{}{
-		"binding": binding,
-		"helper":  helper})
-
-	return nil
-}
 
 func testExecuteCreateUpdateGlobaEntitiesGoroutine(binding *types.SyntheticBinding, c *Controller) {
 	createUpdateGlobalEntities(binding, c)
