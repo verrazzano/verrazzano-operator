@@ -4,11 +4,7 @@
 package monitoring
 
 import (
-	crand "crypto/rand"
-	"crypto/sha1"
-	"crypto/sha256"
 	"fmt"
-	"io"
 	"math/rand"
 	"strings"
 	"time"
@@ -17,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/pbkdf2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -44,10 +39,10 @@ func NewVmiSecret(binding *types.SyntheticBinding) *corev1.Secret {
 		},
 		Data: map[string][]byte{
 			"username": []byte(constants.VmiUsername),
-			"password": []byte(genPassword(10)),
+			"password": []byte(genPassword(16)),
 		},
 	}
-	return saltedHash(sec)
+	return sec
 }
 
 // GetVmiPassword returns the password for the VMI secret.
@@ -76,16 +71,6 @@ func genPassword(passSize int) string {
 	return b.String()
 }
 
-func saltedHash(sec *corev1.Secret) *corev1.Secret {
-	salt := make([]byte, 16, 16+sha1.Size)
-	io.ReadFull(crand.Reader, salt)
-	pw := sec.Data["password"]
-	sec.Data["salt"] = salt
-	sec.Data["hash"] = pbkdf2.Key(pw, salt, 27500, 64, sha256.New)
-	zap.S().Debugf("Creating/updating %s secret %s", sec.Namespace, sec.Name)
-	return sec
-}
-
 // CreateVmiSecrets creates/updates a VMI secret.
 func CreateVmiSecrets(binding *types.SyntheticBinding, secrets Secrets) error {
 	vmiSecret, _ := secrets.Get(constants.VmiSecretName)
@@ -97,16 +82,8 @@ func CreateVmiSecrets(binding *types.SyntheticBinding, secrets Secrets) error {
 			return err
 		}
 	} else {
-		updated := false
 		if vmiSecret.Data["username"] == nil || vmiSecret.Data["password"] == nil {
 			vmiSecret = NewVmiSecret(binding)
-			updated = true
-		}
-		if vmiSecret.Data["salt"] == nil || vmiSecret.Data["hash"] == nil {
-			vmiSecret = saltedHash(vmiSecret)
-			updated = true
-		}
-		if updated {
 			_, err := secrets.Update(vmiSecret)
 			if err != nil {
 				return err
