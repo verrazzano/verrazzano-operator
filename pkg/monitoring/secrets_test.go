@@ -3,11 +3,7 @@
 package monitoring
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"testing"
-
-	"golang.org/x/crypto/pbkdf2"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
