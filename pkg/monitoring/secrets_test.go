@@ -3,11 +3,7 @@
 package monitoring
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"testing"
-
-	"golang.org/x/crypto/pbkdf2"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
@@ -58,16 +54,6 @@ func TestExistingVmiSecrets(t *testing.T) {
 	CreateVmiSecrets(&binding, &secrets)
 	sec, _ := GetVmiPassword(&secrets)
 	assert.Equal(t, string(existing.Data["password"]), sec, "existing vmi secret")
-	assertSaltedHash(t, &secrets)
-}
-
-func assertSaltedHash(t *testing.T, secrets Secrets) {
-	sec, _ := secrets.Get(constants.VmiSecretName)
-	saltString := base64.StdEncoding.EncodeToString(sec.Data["salt"])
-	salt, _ := base64.StdEncoding.DecodeString(saltString)
-	hash := pbkdf2.Key(sec.Data["password"], salt, 27500, 64, sha256.New)
-	hashString := base64.StdEncoding.EncodeToString(sec.Data["hash"])
-	assert.Equal(t, hashString, base64.StdEncoding.EncodeToString(hash), "expected SaltedHash")
 }
 
 func TestNewVmiRandomPassword(t *testing.T) {
@@ -76,17 +62,14 @@ func TestNewVmiRandomPassword(t *testing.T) {
 	secrets := &MockSecrets{secrets: map[string]*corev1.Secret{}}
 	CreateVmiSecrets(&binding, secrets)
 	sec1, _ := GetVmiPassword(secrets)
-	assertSaltedHash(t, secrets)
 	secrets.Delete(constants.VerrazzanoNamespace, constants.VmiSecretName)
 
 	CreateVmiSecrets(&binding, secrets)
 	sec2, _ := GetVmiPassword(secrets)
-	assertSaltedHash(t, secrets)
 	secrets.Delete(constants.VerrazzanoNamespace, constants.VmiSecretName)
 
 	CreateVmiSecrets(&binding, secrets)
 	sec3, _ := GetVmiPassword(secrets)
-	assertSaltedHash(t, secrets)
 	secrets.Delete(constants.VerrazzanoNamespace, constants.VmiSecretName)
 
 	assert.NotEqual(t, sec1, sec2, "new random password")
