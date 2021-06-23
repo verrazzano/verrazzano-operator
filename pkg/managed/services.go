@@ -8,11 +8,11 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 
+	"github.com/verrazzano/pkg/diff"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,7 +44,7 @@ func CreateServices(vzSynMB *types.SyntheticModelBinding, filteredConnections ma
 		for _, service := range services {
 			existingService, err := managedClusterConnection.ServiceLister.Services(service.Namespace).Get(service.Name)
 			if existingService != nil {
-				specDiffs := diff.CompareIgnoreTargetEmpties(existingService, service)
+				specDiffs := diff.Diff(existingService, service)
 				if specDiffs != "" {
 					zap.S().Debugf("Service %s : Spec differences %s", service.Name, specDiffs)
 					zap.S().Infof("Updating Service %s in cluster %s", service.Name, clusterName)

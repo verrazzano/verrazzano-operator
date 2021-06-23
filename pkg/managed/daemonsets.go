@@ -6,11 +6,11 @@ package managed
 import (
 	"context"
 
+	"github.com/verrazzano/pkg/diff"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,7 +49,7 @@ func CreateDaemonSets(vzSynMB *types.SyntheticModelBinding, filteredConnections 
 				continue
 			}
 			//If  daemonset already exists, check the spec differences
-			specDiffs := diff.CompareIgnoreTargetEmpties(existingcm, newDaemonSet)
+			specDiffs := diff.Diff(existingcm, newDaemonSet)
 			if specDiffs != "" {
 				zap.S().Debugf("DaemonSet %s : Spec differences %s", newDaemonSet.Name, specDiffs)
 				zap.S().Infof("Updating DaemonSet %s in cluster %s", newDaemonSet.Name, clusterName)

@@ -6,11 +6,11 @@ package managed
 import (
 	"context"
 
+	"github.com/verrazzano/pkg/diff"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,7 +42,7 @@ func createUpdateConfigMaps(managedClusterConnection *util.ManagedClusterConnect
 	existingcm, err := managedClusterConnection.ConfigMapLister.ConfigMaps(newConfigMap.Namespace).Get(newConfigMap.Name)
 	if existingcm != nil {
 		// If config map already exists, check the spec differences
-		specDiffs := diff.CompareIgnoreTargetEmpties(existingcm, newConfigMap)
+		specDiffs := diff.Diff(existingcm, newConfigMap)
 		if specDiffs != "" {
 			zap.S().Debugf("ConfigMap %s : Spec differences %s", newConfigMap.Name, specDiffs)
 			zap.S().Infof("Updating ConfigMap %s:%s in cluster %s", newConfigMap.Namespace, newConfigMap.Name, clusterName)

@@ -8,11 +8,11 @@ package managed
 import (
 	"context"
 
+	"github.com/verrazzano/pkg/diff"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +39,7 @@ func CreateDeployments(vzSynMB *types.SyntheticModelBinding, filteredConnections
 		for _, newDeployment := range deployments {
 			existingDeployment, err := managedClusterConnection.DeploymentLister.Deployments(newDeployment.Namespace).Get(newDeployment.Name)
 			if existingDeployment != nil {
-				specDiffs := diff.CompareIgnoreTargetEmpties(existingDeployment, newDeployment)
+				specDiffs := diff.Diff(existingDeployment, newDeployment)
 				if specDiffs != "" {
 					zap.S().Debugf("Deployment %s : Spec differences %s", newDeployment.Name, specDiffs)
 					zap.S().Infof("Updating deployment %s:%s in cluster %s", newDeployment.Namespace, newDeployment.Name, clusterName)

@@ -8,12 +8,12 @@ import (
 	"encoding/base64"
 	"math/rand"
 
+	"github.com/verrazzano/pkg/diff"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/local"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,7 +61,7 @@ func createSecrets(binding *types.SyntheticBinding, managedClusterConnection *ut
 		existingSecret, err := managedClusterConnection.SecretLister.Secrets(newSecret.Namespace).Get(newSecret.Name)
 		if existingSecret != nil {
 			if existingSecret.Type != wlsRuntimeEncryptionSecret {
-				specDiffs := diff.CompareIgnoreTargetEmpties(existingSecret, newSecret)
+				specDiffs := diff.Diff(existingSecret, newSecret)
 				if specDiffs != "" {
 					zap.S().Debugf("Secret %s : Spec differences %s", newSecret.Name, specDiffs)
 					zap.S().Infof("Updating secret %s:%s in cluster %s", newSecret.Namespace, newSecret.Name, clusterName)

@@ -8,11 +8,11 @@ package managed
 import (
 	"context"
 
+	"github.com/verrazzano/pkg/diff"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,7 +53,7 @@ func createServiceAccount(managedClusterConnection *util.ManagedClusterConnectio
 	for _, newServiceAccount := range newServiceAccounts {
 		existingServiceAccount, err := managedClusterConnection.ServiceAccountLister.ServiceAccounts(newServiceAccount.Namespace).Get(newServiceAccount.Name)
 		if existingServiceAccount != nil {
-			specDiffs := diff.CompareIgnoreTargetEmpties(existingServiceAccount, newServiceAccount)
+			specDiffs := diff.Diff(existingServiceAccount, newServiceAccount)
 			if specDiffs != "" {
 				zap.S().Debugf("ServiceAccount %s : Spec differences %s", newServiceAccount.Name, specDiffs)
 				zap.S().Infof("Updating ServiceAccount %s:%s in cluster %s", newServiceAccount.Namespace, newServiceAccount.Name, clusterName)
