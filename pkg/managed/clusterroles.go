@@ -6,11 +6,11 @@ package managed
 import (
 	"context"
 
+	"github.com/verrazzano/pkg/diff"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/monitoring"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
 	"go.uber.org/zap"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -111,7 +111,7 @@ func CreateClusterRoles(vzSynMB *types.SyntheticModelBinding, filteredConnection
 		for _, newClusterRole := range newClusterRoles {
 			existingClusterRole, err := managedClusterConnection.ClusterRoleLister.Get(newClusterRole.Name)
 			if existingClusterRole != nil {
-				specDiffs := diff.CompareIgnoreTargetEmpties(existingClusterRole, newClusterRole)
+				specDiffs := diff.Diff(existingClusterRole, newClusterRole)
 				if specDiffs != "" {
 					zap.S().Debugf("ClusterRole %s : Spec differences %s", newClusterRole.Name, specDiffs)
 					zap.S().Infof("Updating ClusterRole %s in cluster %s", newClusterRole.Name, clusterName)

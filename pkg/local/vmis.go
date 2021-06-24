@@ -9,17 +9,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+
+	"github.com/verrazzano/pkg/diff"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmoclientset "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
 	vmolisters "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/listers/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano-operator/pkg/types"
 	"github.com/verrazzano/verrazzano-operator/pkg/util"
-	"github.com/verrazzano/verrazzano-operator/pkg/util/diff"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"strconv"
 )
 
 var createInstanceFunc = createInstance
@@ -45,7 +46,7 @@ func CreateUpdateVmi(binding *types.SyntheticBinding, vmoClientSet vmoclientset.
 		newVmi.Spec.Grafana.Storage.PvcNames = existingVmi.Spec.Grafana.Storage.PvcNames
 		newVmi.Spec.Prometheus.Storage.PvcNames = existingVmi.Spec.Prometheus.Storage.PvcNames
 		newVmi.Spec.Elasticsearch.Storage.PvcNames = existingVmi.Spec.Elasticsearch.Storage.PvcNames
-		specDiffs := diff.CompareIgnoreTargetEmpties(existingVmi, newVmi)
+		specDiffs := diff.Diff(existingVmi, newVmi)
 		if specDiffs != "" {
 			zap.S().Infof("VMI %s : Spec differences %s", newVmi.Name, specDiffs)
 			zap.S().Infof("Updating VMI %s", newVmi.Name)
