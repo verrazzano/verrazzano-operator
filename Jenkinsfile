@@ -246,6 +246,7 @@ pipeline {
         }
     }
 
+
     post {
         failure {
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
