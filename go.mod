@@ -2,6 +2,8 @@ module github.com/verrazzano/verrazzano-operator
 
 require (
 	github.com/go-bindata/go-bindata/v3 v3.1.3
+	github.com/go-logr/logr v0.4.0
+	github.com/go-logr/zapr v0.4.0 // indirect
 	github.com/gorilla/mux v1.7.3
 	github.com/kylelemons/godebug v1.1.0
 	github.com/onsi/ginkgo v1.12.1
