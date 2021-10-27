@@ -116,6 +116,10 @@ assets: go-bindata
 	mkdir -p $(ROOT_DIR)/pkg/assets
 	mv $(ROOT_DIR)/assets.go $(ROOT_DIR)/pkg/assets/
 
+.PHONY: go-mod
+go-mod: assets
+	$(GO) mod download
+
 #
 # Docker-related tasks
 #
@@ -124,7 +128,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: build
-build: assets
+build: go-mod
 	docker build --pull \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
