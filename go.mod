@@ -2,6 +2,7 @@ module github.com/verrazzano/verrazzano-operator
 
 require (
 	github.com/gorilla/mux v1.7.3
+	github.com/go-bindata/go-bindata/v3 v3.1.3
 	github.com/kylelemons/godebug v1.1.0
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
@@ -20,9 +21,9 @@ require (
 
 replace (
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
-	k8s.io/api => k8s.io/api v0.18.2
-	k8s.io/apimachinery => k8s.io/apimachinery v0.18.2
-	k8s.io/client-go => k8s.io/client-go v0.18.2
+	k8s.io/api => k8s.io/api v0.19.2
+	k8s.io/apimachinery => k8s.io/apimachinery v0.19.2
+	k8s.io/client-go => k8s.io/client-go v0.19.2
 )
 
 go 1.13
