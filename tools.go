@@ -10,4 +10,5 @@ import (
         _ "github.com/gordonklaus/ineffassign"
         _ "golang.org/x/lint"
         _ "github.com/go-bindata/go-bindata/go-bindata/v3"
+        - "go.uber.org/zap"
 )
