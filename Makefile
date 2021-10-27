@@ -29,18 +29,23 @@ ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
-DIST_DIR:=dist
+ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+DIST_DIR:=$(ROOT_DIR)/dist
 K8S_NAMESPACE:=default
 WATCH_NAMESPACE:=
 EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-operator
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
+GOPATH ?= $(shell go env GOPATH)
+GOBIN:=$(GOPATH)/bin
 VMO_PATH = github.com/verrazzano/verrazzano-monitoring-operator
 VMO_CRD_PATH = k8s/crds
 CRD_PATH = deploy/crds
 HELM_CHART_NAME:=verrazzano
 HELM_CHART_ARCHIVE_NAME = ${HELM_CHART_NAME}-${HELM_CHART_VERSION}.tgz
+GO_BINDATA_VERSION ?= $(shell go list -m -f '{{.Version}}' 'github.com/go-bindata/go-bindata/v3' )
+
 
 .PHONY: all
 all: build
@@ -86,24 +91,30 @@ go-ineffassign:
 	$(GO) get -u github.com/gordonklaus/ineffassign
 	ineffassign $(shell go list ./...)
 
-.PHONY: go-mod
-go-mod:
-	# Generate Manifest file assets, needs to be done before go mod vendor
-	$(GO) get -u github.com/jteeuwen/go-bindata/...
-	go-bindata -pkg assets -o assets.go ./manifest.json ./dashboards/...
-	mkdir -p pkg/assets
-	mv assets.go pkg/assets/
+# find or download go-bindata
+# download go-bindata if necessary
+.PHONY: go-bindata
+go-bindata:
+ifeq (, $(shell command -v go-bindata))
+	$(GO) get github.com/go-bindata/go-bindata/v3/...@${GO_BINDATA_VERSION}
+	echo $(GOBIN)
+	$(eval GO_BINDATA=$(GOBIN)/go-bindata)
+else
+	$(eval GO_BINDATA=$(shell command -v go-bindata))
+endif
+	@{ \
+	set -eu; \
+	ACTUAL_GO_BINDATA_VERSION=$$(${GO_BINDATA} --version | head -1 | awk '{print $$2}') ; \
+	if [ "v$${ACTUAL_GO_BINDATA_VERSION}" != "${GO_BINDATA_VERSION}" ] ; then \
+		echo  "Bad go-bindata version $${ACTUAL_GO_BINDATA_VERSION}, please install ${GO_BINDATA_VERSION}" ; \
+	fi ; \
+	}
 
-	$(GO) mod vendor
-	$(GO) mod tidy
-
-	# go mod vendor only copies the .go files.  Also need
-	# to populate the vendor folder with the .yaml files
-	# that are required to define custom resources.
-
-	# Obtain verrazzano-monitoring-operator version
-	mkdir -p vendor/${VMO_PATH}/${VMO_CRD_PATH}
-	cp `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-monitoring-operator`/${VMO_CRD_PATH}/*.yaml vendor/${VMO_PATH}/${VMO_CRD_PATH}
+.PHONY: assets
+assets: go-bindata
+	$(GO_BINDATA) -pkg assets -o assets.go ./manifest.json ./dashboards/...
+	mkdir -p $(ROOT_DIR)/pkg/assets
+	mv $(ROOT_DIR)/assets.go $(ROOT_DIR)/pkg/assets/
 
 #
 # Docker-related tasks
@@ -113,7 +124,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: build
-build: go-mod
+build: assets
 	docker build --pull \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
@@ -151,7 +162,7 @@ OPERATOR_SETUP = test/operatorsetup
 integ-test: build create-cluster
 
 	echo 'Create CRDs needed by the verrazzano-operator...'
-	kubectl create -f vendor/${VMO_PATH}/${VMO_CRD_PATH}/verrazzano.io_verrazzanomonitoringinstances_crd.yaml
+	kubectl create -f `go list -f '{{.Dir}}' -m github.com/verrazzano/verrazzano-monitoring-operator`/${VMO_CRD_PATH}/verrazzano.io_verrazzanomonitoringinstances_crd.yaml
 
 	echo 'Load docker image for the verrazzano-operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
