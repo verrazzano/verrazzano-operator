@@ -6,8 +6,8 @@
 package tools
 
 import (
-        // Other tools
-        _ "github.com/gordonklaus/ineffassign"
-        _ "golang.org/x/lint"
-        _ "github.com/go-bindata/go-bindata/go-bindata/v3"
+	// Other tools
+	_ "github.com/go-bindata/go-bindata/go-bindata/v3"
+	_ "github.com/gordonklaus/ineffassign"
+	_ "golang.org/x/lint"
 )
