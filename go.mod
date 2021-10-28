@@ -13,7 +13,9 @@ require (
 	github.com/verrazzano/pkg v0.0.2
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20210506182921-9c8e9e80ff10
 	go.uber.org/zap v1.16.0
+	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6 // indirect
+	golang.org/x/tools v0.1.7 // indirect
 	k8s.io/api v0.19.2
 	k8s.io/apiextensions-apiserver v0.19.2
 	k8s.io/apimachinery v0.21.1
