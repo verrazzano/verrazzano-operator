@@ -60,7 +60,7 @@ check: go-fmt go-vet go-ineffassign go-lint
 # Go build related tasks
 #
 .PHONY: go-install
-go-install: go-mod
+go-install: assets
 	$(GO) install ./cmd/...
 
 .PHONY: go-run
@@ -115,10 +115,6 @@ assets: go-bindata
 	$(GO_BINDATA) -pkg assets -o assets.go ./manifest.json ./dashboards/...
 	mkdir -p $(ROOT_DIR)/pkg/assets
 	mv $(ROOT_DIR)/assets.go $(ROOT_DIR)/pkg/assets/
-
-.PHONY: go-mod
-go-mod: assets
-	$(GO) mod download
 
 #
 # Docker-related tasks
