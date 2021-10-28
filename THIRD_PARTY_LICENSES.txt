@@ -4,6 +4,7 @@ Copyright (c) 2020 Oracle America, Inc. and its affiliates.
 Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 Copyright (c) 2020, Oracle and/or its affiliates.
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+Copyright (C) 2021, Oracle and/or its affiliates.
 Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (C) 2020, Oracle and/or its affiliates.
 
@@ -1090,6 +1091,8 @@ Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2011 The Go Authors. All rights reserved.
 Copyright (C) 2009 Apple Inc. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
+Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
@@ -1145,6 +1148,7 @@ Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
 Copyright 2010 The Go Authors. All rights reserved.
 Copyright 2014 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2009,2010 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All right reserved.
 -------- Patents
@@ -1182,9 +1186,9 @@ Copyright 2015 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors. All rights reserved.
 Copyright 2013 The Go Authors. All rights reserved.
+Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2009 The Go Authors. All rights reserved.
-Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2011 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
@@ -1532,4 +1536,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 3a17d7d748ed17834491f88dc386c955
+License file based on go.mod with md5 sum: 0c9fd9136cb78c4f4e43d679487180d4
