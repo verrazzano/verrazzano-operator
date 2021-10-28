@@ -625,12 +625,12 @@ Copyright 2014 Google Inc. All rights reserved.
 -------- Dependency
 github.com/googleapis/gnostic
 -------- Copyrights
-Copyright 2017-2020, Google LLC.
-Copyright 2019 Google LLC. All Rights Reserved.
-Copyright 2020 Google LLC. All Rights Reserved.
-Copyright 2017 Google LLC. All Rights Reserved.
-Copyright 2018 Google LLC. All Rights Reserved.
-Copyright 2020 Google LLC. All Rights Reserved.\n" +
+Copyright 2017, Google Inc.
+Copyright 2019 Google Inc. All Rights Reserved.
+Copyright 2017 Google Inc. All Rights Reserved.
+Copyright 2018 Google Inc. All Rights Reserved.
+Copyright 2017 Google Inc. All Rights Reserved.\n" +
+Copyright 2020 Google Inc. All Rights Reserved.
 
 -------- Dependency
 github.com/modern-go/concurrent
@@ -1398,30 +1398,6 @@ Copyright (c) 2020 Uber Technologies, Inc.
 Copyright (c) 2016, 2017 Uber Technologies, Inc.
 Copyright (c) 2018 Uber Technologies, Inc.
 
--------- Dependency
-gopkg.in/yaml.v3
--------- Copyrights
-copyright staring in 2011 when the project was ported over:
-Copyright (c) 2006-2010 Kirill Simonov
-Copyright (c) 2006-2011 Kirill Simonov
-Copyright (c) 2011-2019 Canonical Ltd
-Copyright 2011-2016 Canonical Ltd.
--------- Notices
-Copyright 2011-2016 Canonical Ltd.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-
 -------- Dependencies Summary
 github.com/json-iterator/go
 github.com/nxadm/tail
@@ -1429,7 +1405,6 @@ github.com/onsi/ginkgo
 go.uber.org/atomic
 go.uber.org/multierr
 go.uber.org/zap
-gopkg.in/yaml.v3
 
 -------- License used by Dependencies
 SPDX:MIT
@@ -1557,4 +1532,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 0d1226b67e9d4354b83d0da8b5a1074e
+License file based on go.mod with md5 sum: 3a17d7d748ed17834491f88dc386c955

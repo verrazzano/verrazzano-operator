@@ -22,16 +22,15 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllertest"
 )
 
 var testClusterName = "test-cluster"
 var testVerrazzanoURI = "/verrazzano/uri"
 
-var testPodInformer = &controllertest.FakeInformer{}
-var testDeploymentInformer = &controllertest.FakeInformer{}
-var testNamespaceInformer = &controllertest.FakeInformer{}
-var testSecretInformer = &controllertest.FakeInformer{}
+var testPodInformer = &FakeInformer{}
+var testDeploymentInformer = &FakeInformer{}
+var testNamespaceInformer = &FakeInformer{}
+var testSecretInformer = &FakeInformer{}
 
 var testManagedClusterConnection = util.ManagedClusterConnection{
 	PodInformer:        testPodInformer,

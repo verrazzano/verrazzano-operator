@@ -18,7 +18,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.19.2
 	k8s.io/apimachinery v0.21.1
 	k8s.io/client-go v12.0.0+incompatible
-	sigs.k8s.io/controller-runtime v0.7.0
+	sigs.k8s.io/controller-runtime v0.6.2
 	sigs.k8s.io/yaml v1.2.0
 )
 
