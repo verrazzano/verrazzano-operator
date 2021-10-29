@@ -29,7 +29,7 @@ RUN go version
 RUN go env
 
 RUN GO111MODULE=on go build \
-    -mod=vendor \
+    -mod= \
     -ldflags '-extldflags "-static"' \
     -ldflags "-X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}" \
     -o /usr/bin/verrazzano-operator ./cmd/...
