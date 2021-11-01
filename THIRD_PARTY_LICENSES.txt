@@ -130,6 +130,7 @@ Copyright (C) 2020, Oracle and/or its affiliates.
 Copyright (c) 2020, Oracle and/or its affiliates.
 Copyright 2019 The Kubernetes Authors.
 Copyright (C) 2021, Oracle and/or its affiliates.
+Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 
 -------- Dependencies Summary
 github.com/verrazzano/verrazzano-monitoring-operator
@@ -1536,4 +1537,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 0c9fd9136cb78c4f4e43d679487180d4
+License file based on go.mod with md5 sum: 2e82b2524d344ca69c4ec3c77622df9b
