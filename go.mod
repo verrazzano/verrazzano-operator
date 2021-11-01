@@ -11,7 +11,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
 	github.com/verrazzano/pkg v0.0.2
-	github.com/verrazzano/verrazzano-monitoring-operator v0.0.0-20211101174307-1998b282d4f9
+	github.com/verrazzano/verrazzano-monitoring-operator v0.0.26
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
