@@ -3713,7 +3713,7 @@
         "definition": "label_values(wls_jvm_uptime{verrazzano_cluster=\"$vzcluster\", weblogic_domainUID=\"$domainName\"},weblogic_clusterName)",
         "hide": 0,
         "includeAll": false,
-        "label": "Cluster",
+        "label": "WebLogic Cluster",
         "multi": false,
         "name": "clusterName",
         "options": [],
