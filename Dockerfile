@@ -37,6 +37,8 @@ RUN GO111MODULE=on go build \
 FROM ghcr.io/oracle/oraclelinux:7-slim
 
 RUN yum update -y \
+    && yum-config-manager --enable ol7_u8_security_validation \
+    && yum install -y openssl \
     && yum clean all \
     && rm -rf /var/cache/yum
 
@@ -45,6 +47,8 @@ COPY --from=build_base /usr/bin/verrazzano-operator /usr/local/bin/verrazzano-op
 # Copy source tree to image
 RUN mkdir -p go/src/github.com/verrazzano/verrazzano-operator
 COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano-operator go/src/github.com/verrazzano/verrazzano-operator
+
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano-operator/THIRD_PARTY_LICENSES.txt /licenses/
 
 RUN groupadd -r verrazzano-operator && useradd --no-log-init -r -g verrazzano-operator -u 1000 verrazzano-operator
 RUN chown 1000:verrazzano-operator /usr/local/bin/verrazzano-operator && chmod 500 /usr/local/bin/verrazzano-operator
