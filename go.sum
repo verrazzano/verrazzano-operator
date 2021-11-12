@@ -424,6 +424,7 @@ github.com/verrazzano/verrazzano-monitoring-operator v0.0.26 h1:gquEWF318Yohd3Qm
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.26/go.mod h1:LhAarjsfEaFMH8HrOAFyTokjl3nssYLw9/ApkGfCWu4=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.27 h1:Ynn4EhbboUQiUDSteU8WEFA3922FPScCbjCxeIYogS0=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.27/go.mod h1:LhAarjsfEaFMH8HrOAFyTokjl3nssYLw9/ApkGfCWu4=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.28 h1:NGAS27XLyM8vVWUUxmTFK5XyDdPyhSYferxUMuvcHno=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.28/go.mod h1:LhAarjsfEaFMH8HrOAFyTokjl3nssYLw9/ApkGfCWu4=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
@@ -634,6 +635,7 @@ golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8T
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 h1:E7g+9GITq07hpfrRu66IVDexMakfv52eLZ2CXBWiKr4=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
+golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 h1:go1bK/D/BFZV2I8cIQd1NKEZ+0owSTG1fDTci4IqFcE=
 golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 gomodules.xyz/jsonpatch/v2 v2.0.1 h1:xyiBuvkD2g5n7cYzx6u2sxQvsAy4QJsZFCzGVdzOXZ0=
 gomodules.xyz/jsonpatch/v2 v2.0.1/go.mod h1:IhYNNY4jnS53ZnfE4PAmpKtDpTCj1JFXc+3mwe7XcUU=
