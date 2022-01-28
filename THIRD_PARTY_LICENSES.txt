@@ -230,6 +230,7 @@ THE SOFTWARE.
 -------- Dependency
 github.com/hashicorp/golang-lru
 -------- Copyrights
+  (no copyright notices found)
 
 -------- Dependencies Summary
 github.com/hashicorp/golang-lru
@@ -637,10 +638,12 @@ Copyright 2020 Google Inc. All Rights Reserved.
 -------- Dependency
 github.com/modern-go/concurrent
 -------- Copyrights
+  (no copyright notices found)
 
 -------- Dependency
 github.com/modern-go/reflect2
 -------- Copyrights
+  (no copyright notices found)
 
 -------- Dependency
 gopkg.in/yaml.v2
@@ -1051,6 +1054,7 @@ Copyright 2010 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors. All rights reserved.
 Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2014 The Go Authors. All rights reserved.
+Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2009 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
@@ -1152,6 +1156,39 @@ Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2014 The Go Authors. All rights reserved.
 Copyright 2009,2010 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All right reserved.
+-------- Patents
+Additional IP Rights Grant (Patents)
+
+"This implementation" means the copyrightable works distributed by
+Google as part of the Go project.
+
+Google hereby grants to You a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except as stated in this section)
+patent license to make, have made, use, offer to sell, sell, import,
+transfer and otherwise run, modify and propagate the contents of this
+implementation of Go, where such license applies only to those patent
+claims, both currently owned or controlled by Google and acquired in
+the future, licensable by Google that are necessarily infringed by this
+implementation of Go.  This grant does not include claims that would be
+infringed only as a consequence of further modification of this
+implementation.  If you or your agent or exclusive licensee institute or
+order or agree to the institution of patent litigation against any
+entity (including a cross-claim or counterclaim in a lawsuit) alleging
+that this implementation of Go or any code incorporated within this
+implementation of Go constitutes direct or contributory patent
+infringement, or inducement of patent infringement, then any patent
+rights granted to you under this License for this implementation of Go
+shall terminate as of the date such litigation is filed.
+
+
+-------- Dependency
+golang.org/x/term
+-------- Copyrights
+Copyright (c) 2009 The Go Authors. All rights reserved.
+Copyright 2019 The Go Authors. All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
+Copyright 2020 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
 
@@ -1298,6 +1335,7 @@ golang.org/x/crypto
 golang.org/x/net
 golang.org/x/oauth2
 golang.org/x/sys
+golang.org/x/term
 golang.org/x/text
 golang.org/x/time
 google.golang.org/protobuf
@@ -1537,4 +1575,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 2b5f0514e4cb5bca2a831865e11b9f59
+License file based on go.mod with md5 sum: 095d1d17436adfb5faca406da6eb67c2
