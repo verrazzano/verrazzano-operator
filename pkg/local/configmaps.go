@@ -23,7 +23,7 @@ import (
 
 // UpdateConfigMaps updates config maps for a given binding in the management cluster.
 func UpdateConfigMaps(binding *types.SyntheticBinding, kubeClientSet kubernetes.Interface, configMapLister corev1listers.ConfigMapLister) error {
-	zap.S().Infof("Updating Local (Management SynModel) configMaps for VerrazzanoBinding %s", binding.Name)
+	zap.S().Debugf("Updating Local (Management SynModel) configMaps for VerrazzanoBinding %s", binding.Name)
 
 	// Construct the set of expected configMap - this currently consists of the ConfigMap that contains the default Grafana dashboard definitions
 	newConfigMap, err := newConfigMap(binding)
