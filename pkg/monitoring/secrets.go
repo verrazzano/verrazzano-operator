@@ -79,15 +79,20 @@ func CreateVmiSecrets(binding *types.SyntheticBinding, secrets Secrets) error {
 		vmiSecret = NewVmiSecret(binding)
 		_, err := secrets.Create(vmiSecret)
 		if err != nil {
+			zap.S().Errorf("Failed to create VMI secret %s/%s: %v", vmiSecret.Namespace, vmiSecret.Name, err)
 			return err
 		}
+		zap.S().Infof("Succesfully created VMI secret %s/%s", vmiSecret.Namespace, vmiSecret.Name)
 	} else {
 		if vmiSecret.Data["username"] == nil || vmiSecret.Data["password"] == nil {
 			vmiSecret = NewVmiSecret(binding)
 			_, err := secrets.Update(vmiSecret)
 			if err != nil {
+				zap.S().Errorf("Failed to update VMI secret %s/%s: %v", vmiSecret.Namespace, vmiSecret.Name, err)
 				return err
 			}
+			zap.S().Infof("Succesfully updated VMI secret %s/%s", vmiSecret.Namespace, vmiSecret.Name)
+
 		}
 	}
 
