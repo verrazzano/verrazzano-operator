@@ -49,17 +49,17 @@ func main() {
 
 	err := prepare()
 	if err != nil {
-		zap.S().Fatalf("Error loading manifest: %s", err.Error())
+		zap.S().Fatalf("Failed loading manifest: %v")
 	}
 	zap.S().Infof("Creating new controller watching namespace %s.", watchNamespace)
 
 	config, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
-		zap.S().Fatalf("Error creating the controller configuration: %s", err.Error())
+		zap.S().Fatalf("Failed creating the controller configuration: %v", err)
 	}
 	controller, err := pkgverrazzanooperator.NewController(config, watchNamespace, verrazzanoURI, enableMonitoringStorage)
 	if err != nil {
-		zap.S().Fatalf("Error creating the controller: %s", err.Error())
+		zap.S().Fatalf("Failed creating the controller: %v", err)
 	}
 
 	apiServerExited := make(chan bool)
@@ -67,7 +67,7 @@ func main() {
 	if startController {
 		// start the controller
 		if err = controller.Run(2, kubeconfig); err != nil {
-			zap.S().Fatalf("Error running controller: %s", err.Error())
+			zap.S().Fatalf("Failed running controller: %v", err)
 		}
 	}
 
