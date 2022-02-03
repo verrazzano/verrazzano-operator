@@ -306,7 +306,7 @@ func (c *Controller) processManagedCluster(managedClusterName string, kubeconfig
 	// Obtain the optional list of imagePullSecrets from the verrazzano-operator service account
 	sa, err := c.kubeClientSet.CoreV1().ServiceAccounts(constants.VerrazzanoSystem).Get(context.TODO(), constants.VerrazzanoOperatorServiceAccount, metav1.GetOptions{})
 	if err != nil {
-		zap.S().Errorf("Can't find ServiceAccount %s in namespace %s", constants.VerrazzanoOperatorServiceAccount, constants.VerrazzanoSystem)
+		zap.S().Errorf("Failed to find ServiceAccount %s in namespace %s", constants.VerrazzanoOperatorServiceAccount, constants.VerrazzanoSystem)
 		return
 	}
 	c.imagePullSecrets = sa.ImagePullSecrets
@@ -343,7 +343,7 @@ func (c *Controller) processManagedCluster(managedClusterName string, kubeconfig
 		zap.S().Infow("Waiting for informer caches to sync")
 		if ok := c.cache.WaitForCacheSync(c.stopCh, managedClusterConnection.DeploymentInformer.HasSynced,
 			managedClusterConnection.NamespaceInformer.HasSynced, managedClusterConnection.SecretInformer.HasSynced); !ok {
-			zap.S().Error(errors.New("failed to wait for caches to sync"))
+			zap.S().Error(errors.New("Failed to wait for caches to sync"))
 		}
 
 		c.managedClusterConnections[managedClusterName] = managedClusterConnection
@@ -562,7 +562,7 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 
 	err = c.waitForManagedClusters(vzSynMB, binding.Name)
 	if err != nil {
-		zap.S().Errorf("Skipping processing of VerrazzanoBinding %s until all referenced Managed Clusters are available, error %s", binding.Name, err.Error())
+		zap.S().Infof("Skipping processing of VerrazzanoBinding %s until all referenced Managed Clusters are available, error %s", binding.Name, err.Error())
 		return
 	}
 
@@ -609,9 +609,9 @@ func checkForDuplicateNamespaces(placement *types.ClusterPlacement, binding *typ
 		for _, currNamespace := range currPlacement.Namespaces {
 			if currNamespace.Name == namespace.Name {
 				if !dupFound {
-					zap.S().Errorf("SynBinding %s has a conflicting namespace with binding %s.  Namespaces must be unique across bindings.", binding.Name, currBinding.Name)
+					zap.S().Errorf("Failed, SynBinding %s has a conflicting namespace with binding %s.  Namespaces must be unique across bindings.", binding.Name, currBinding.Name)
 				}
-				zap.S().Errorf("Duplicate namespace %s found in placement %s", namespace.Name, placement.Name)
+				zap.S().Errorf("Failed, duplicate namespace %s found in placement %s", namespace.Name, placement.Name)
 				dupFound = true
 				break
 			}
@@ -827,7 +827,7 @@ func (c *Controller) waitForManagedClusters(vzSynMB *types.SyntheticModelBinding
 	for {
 		select {
 		case <-timeout:
-			return fmt.Errorf("timed out waiting for Managed clusters referenced in binding %s, error %s", bindingName, err.Error())
+			return fmt.Errorf("Failed, timed out waiting for Managed clusters referenced in binding %s: %v", bindingName, err)
 		case <-tick:
 			zap.S().Debugf("Waiting for all Managed Clusters referenced in binding %s to be available..", bindingName)
 			_, err = c.util.GetManagedClustersForVerrazzanoBinding(vzSynMB, c.managedClusterConnections)

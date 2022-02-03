@@ -27,7 +27,7 @@ func InitLogs(opts kzap.Options) {
 	config.EncoderConfig.MessageKey = "message"
 	logger, err := config.Build()
 	if err != nil {
-		zap.S().Errorf("Error creating logger %v", err)
+		zap.S().Errorf("Failed creating logger %v", err)
 	} else {
 		zap.ReplaceGlobals(logger)
 	}

@@ -137,7 +137,7 @@ func getBoolean(varName string) bool {
 	if ok {
 		boolValue, err := strconv.ParseBool(svalue)
 		if err != nil {
-			zap.S().Errorf("Invalid boolean value for %s: %s", varName, svalue)
+			zap.S().Errorf("Failed, invalid boolean value for %s: %s", varName, svalue)
 			return true
 		}
 		return boolValue
