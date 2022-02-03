@@ -5,8 +5,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
-
 	"k8s.io/client-go/tools/clientcmd"
 
 	pkgverrazzanooperator "github.com/verrazzano/verrazzano-operator/pkg/controller"
@@ -31,16 +29,6 @@ const apiVersionPrefix = "/20210501"
 
 func prepare() error {
 	flag.Parse()
-	fmt.Println(" _    _                                                                    _____")
-	fmt.Println("| |  | |                                                                  / ___ \\                              _")
-	fmt.Println("| |  | |  ____   ____   ____   ____  _____  _____   ____  ____    ___    | |   | | ____    ____   ____   ____ | |_    ___    ____")
-	fmt.Println(" \\ \\/ /  / _  ) / ___) / ___) / _  |(___  )(___  ) / _  ||  _ \\  / _ \\   | |   | ||  _ \\  / _  ) / ___) / _  ||  _)  / _ \\  / ___)")
-	fmt.Println("  \\  /  ( (/ / | |    | |    ( ( | | / __/  / __/ ( ( | || | | || |_| |  | |___| || | | |( (/ / | |    ( ( | || |__ | |_| || |")
-	fmt.Println("   \\/    \\____)|_|    |_|     \\_||_|(_____)(_____) \\_||_||_| |_| \\___/    \\_____/ | ||_/  \\____)|_|     \\_||_| \\___) \\___/ |_|")
-	fmt.Println("                                                                                  |_|")
-	fmt.Println("")
-	fmt.Println("          Verrazzano Operator")
-	fmt.Println("")
 	logs.InitLogs(zapOptions)
 	return nil
 }
@@ -51,6 +39,7 @@ func main() {
 	if err != nil {
 		zap.S().Fatalf("Failed loading manifest: %v")
 	}
+	zap.S().Infof("Starting Verrazzano Operator")
 	zap.S().Infof("Creating new controller watching namespace %s.", watchNamespace)
 
 	config, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
