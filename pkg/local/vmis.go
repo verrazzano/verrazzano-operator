@@ -121,6 +121,9 @@ func createInstance(binding *types.SyntheticBinding, verrazzanoURI string, enabl
 			AutoSecret:      true,
 			SecretsName:     constants.VmiSecretName,
 			CascadingDelete: true,
+			AlertManager: vmov1.AlertManager{
+				Enabled: true,
+			},
 			Grafana: vmov1.Grafana{
 				Enabled:             util.GetGrafanaEnabled(),
 				Storage:             createStorageOption(util.GetGrafanaDataStorageSize(), enableMonitoringStorage),
