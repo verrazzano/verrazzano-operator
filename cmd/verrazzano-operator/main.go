@@ -37,7 +37,7 @@ func main() {
 
 	err := prepare()
 	if err != nil {
-		zap.S().Fatalf("Failed loading manifest: %v")
+		zap.S().Fatalf("Failed loading manifest: %v", err)
 	}
 	zap.S().Infof("Starting Verrazzano Operator")
 	zap.S().Infof("Creating new controller watching namespace %s.", watchNamespace)

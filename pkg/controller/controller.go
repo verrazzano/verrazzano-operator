@@ -562,7 +562,7 @@ func (c *Controller) processApplicationBindingAdded(verrazzanoBinding interface{
 
 	err = c.waitForManagedClusters(vzSynMB, binding.Name)
 	if err != nil {
-		zap.S().Infof("Skipping processing of VerrazzanoBinding %s until all referenced Managed Clusters are available, error %s", binding.Name, err.Error())
+		zap.S().Infof("Skipping processing of VerrazzanoBinding %s until all referenced Managed Clusters are available: %v", binding.Name, err)
 		return
 	}
 
