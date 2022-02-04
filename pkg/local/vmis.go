@@ -123,6 +123,9 @@ func createInstance(binding *types.SyntheticBinding, verrazzanoURI string, enabl
 			CascadingDelete: true,
 			AlertManager: vmov1.AlertManager{
 				Enabled: true,
+				Resources: vmov1.Resources{
+					RequestMemory: util.GetPrometheusRequestMemory(),
+				},
 			},
 			Grafana: vmov1.Grafana{
 				Enabled:             util.GetGrafanaEnabled(),
