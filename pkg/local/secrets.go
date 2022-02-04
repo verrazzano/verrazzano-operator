@@ -1,4 +1,4 @@
-// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package local
@@ -63,7 +63,7 @@ func CreateGenericSecret(newSecret corev1.Secret, kubeClientSet kubernetes.Inter
 	_, err := kubeClientSet.CoreV1().Secrets(newSecret.Namespace).Create(context.TODO(), &newSecret, metav1.CreateOptions{})
 
 	if err != nil {
-		zap.S().Errorf("Error creating secret %s:%s - error %s", newSecret.Namespace, newSecret.Name, err.Error())
+		zap.S().Errorf("Failed creating secret %s:%s: %v", newSecret.Namespace, newSecret.Name, err)
 	}
 	return err
 }
@@ -82,7 +82,7 @@ func GetSecret(name string, namespace string, kubeClientSet kubernetes.Interface
 func GetSecretByUID(kubeClientSet kubernetes.Interface, ns string, uid string) (*corev1.Secret, bool, error) {
 	secretsList, err := kubeClientSet.CoreV1().Secrets(ns).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		zap.S().Errorf("Error %s getting the list of secrets", err.Error())
+		zap.S().Errorf("Failed getting the list of secre: %v", err)
 		return nil, false, err
 	}
 	for _, secret := range secretsList.Items {
@@ -106,14 +106,14 @@ func UpdateAcmeDNSSecret(binding *types.SyntheticBinding, kubeClientSet kubernet
 		// Secret will not exist when not using "bring your own dns"
 		return nil
 	} else if err != nil {
-		return fmt.Errorf("Request to get secret %s in namespace %s failed with error %v", name, namespace, err)
+		return fmt.Errorf("Failed to get secret %s in namespace %s failed with error %v", name, namespace, err)
 	}
 
 	// Unmarshal the acme dns credentials
 	var dnsCredentials map[string]acmeDNS
 	acmeDNSData, found := secret.Data[acmeDNSKey]
 	if !found {
-		return fmt.Errorf("The data in secret %s in namespace %s does not contain the key %s", name, namespace, acmeDNSKey)
+		return fmt.Errorf("Failed, the data in secret %s in namespace %s does not contain the key %s", name, namespace, acmeDNSKey)
 	}
 	err = json.Unmarshal(acmeDNSData, &dnsCredentials)
 	if err != nil {
@@ -122,7 +122,7 @@ func UpdateAcmeDNSSecret(binding *types.SyntheticBinding, kubeClientSet kubernet
 
 	// Make sure the map is not empty
 	if len(dnsCredentials) == 0 {
-		return fmt.Errorf("The key %s in secret %s in namespace %s does not contain any data", acmeDNSKey, name, namespace)
+		return fmt.Errorf("Failed, the key %s in secret %s in namespace %s does not contain any data", acmeDNSKey, name, namespace)
 	}
 
 	// All the records contain the same credentials, obtain the entry keyed by the uri

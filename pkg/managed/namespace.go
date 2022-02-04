@@ -1,4 +1,4 @@
-// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Handles creation/deletion of deployments based, on a VerrazzanoBinding
@@ -260,7 +260,7 @@ func waitForNSDeletion(mc *util.ManagedClusterConnection, namespace string, clus
 	for {
 		select {
 		case <-timeout:
-			return fmt.Errorf("timed out waiting for namespace %s to be removed in  managed cluster %s", namespace, cluster)
+			return fmt.Errorf("Failed, timed out waiting for namespace %s to be removed in  managed cluster %s", namespace, cluster)
 		case <-tick:
 			zap.S().Infof("Waiting for namespace %s in managed cluster %s to be removed..", namespace, cluster)
 			_, err = mc.KubeClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
@@ -270,7 +270,7 @@ func waitForNSDeletion(mc *util.ManagedClusterConnection, namespace string, clus
 			}
 
 			if err != nil {
-				return fmt.Errorf("Error removing namespace %s in managed cluster %s, error %s", namespace, cluster, err.Error())
+				return fmt.Errorf("Failed removing namespace %s in managed cluster %s, %v", namespace, cluster, err)
 			}
 		}
 	}

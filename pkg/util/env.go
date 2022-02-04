@@ -1,4 +1,4 @@
-// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package util
@@ -137,7 +137,7 @@ func getBoolean(varName string) bool {
 	if ok {
 		boolValue, err := strconv.ParseBool(svalue)
 		if err != nil {
-			zap.S().Errorf("Invalid boolean value for %s: %s", varName, svalue)
+			zap.S().Errorf("Failed, invalid boolean value for %s: %s", varName, svalue)
 			return true
 		}
 		return boolValue

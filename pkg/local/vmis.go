@@ -1,4 +1,4 @@
-// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Handles creation/deletion of VMI CRs, based on a VerrazzanoBinding
@@ -48,16 +48,17 @@ func CreateUpdateVmi(binding *types.SyntheticBinding, vmoClientSet vmoclientset.
 		newVmi.Spec.Elasticsearch.Storage.PvcNames = existingVmi.Spec.Elasticsearch.Storage.PvcNames
 		specDiffs := diff.Diff(existingVmi, newVmi)
 		if specDiffs != "" {
-			zap.S().Infof("VMI %s : Spec differences %s", newVmi.Name, specDiffs)
-			zap.S().Infof("Updating VMI %s", newVmi.Name)
+			zap.S().Debugf("VMI %s : Spec differences %s", newVmi.Name, specDiffs)
+			zap.S().Infof("Updating VMI %s/%s", newVmi.Namespace, newVmi.Name)
 			newVmi.ResourceVersion = existingVmi.ResourceVersion
 			_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Update(context.TODO(), newVmi, metav1.UpdateOptions{})
 		}
 	} else {
-		zap.S().Infof("Creating VMI %s", newVmi.Name)
+		zap.S().Infof("Creating VMI %s%s", newVmi.Namespace, newVmi.Name)
 		_, err = vmoClientSet.VerrazzanoV1().VerrazzanoMonitoringInstances(newVmi.Namespace).Create(context.TODO(), newVmi, metav1.CreateOptions{})
 	}
 	if err != nil {
+		zap.S().Infof("Failed to create/update VMI %s/%s: %v", newVmi.Namespace, newVmi.Name, err)
 		return err
 	}
 	return nil
@@ -90,7 +91,7 @@ func createStorageOption(envSetting string, enableMonitoringStorageEnvFlag strin
 	}
 	monitoringStorageEnabled, err := strconv.ParseBool(enableMonitoringStorageEnvFlag)
 	if err != nil {
-		zap.S().Errorf("Invalid storage setting: %s", enableMonitoringStorageEnvFlag)
+		zap.S().Errorf("Failed, invalid storage setting: %s", enableMonitoringStorageEnvFlag)
 	} else if monitoringStorageEnabled && len(envSetting) > 0 {
 		storageSetting = vmov1.Storage{
 			Size: envSetting,

@@ -1,4 +1,4 @@
-// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package util
@@ -125,7 +125,7 @@ func GetManagedClustersForVerrazzanoBinding(vzSynMB *types.SyntheticModelBinding
 	filteredManagedClusters := map[string]*ManagedClusterConnection{}
 	for _, managedCluster := range vzSynMB.ManagedClusters {
 		if _, ok := availableManagedClusterConnections[managedCluster.Name]; !ok {
-			return nil, fmt.Errorf("Managed cluster %s referenced in binding %s not found", managedCluster.Name, vzSynMB.SynBinding.Name)
+			return nil, fmt.Errorf("Failed, managed cluster %s referenced in binding %s not found", managedCluster.Name, vzSynMB.SynBinding.Name)
 		}
 		filteredManagedClusters[managedCluster.Name] = availableManagedClusterConnections[managedCluster.Name]
 
@@ -174,7 +174,7 @@ func SharedVMIDefault() bool {
 		if err == nil {
 			useSharedVMI = value
 		} else {
-			zap.S().Errorf("Invalid value for %s: %s", sharedVMIDefault, envValue)
+			zap.S().Errorf("Failed, invalid value for %s: %s", sharedVMIDefault, envValue)
 		}
 	}
 	return useSharedVMI

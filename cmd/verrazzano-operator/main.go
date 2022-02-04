@@ -1,12 +1,10 @@
-// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package main
 
 import (
 	"flag"
-	"fmt"
-
 	"k8s.io/client-go/tools/clientcmd"
 
 	pkgverrazzanooperator "github.com/verrazzano/verrazzano-operator/pkg/controller"
@@ -31,16 +29,6 @@ const apiVersionPrefix = "/20210501"
 
 func prepare() error {
 	flag.Parse()
-	fmt.Println(" _    _                                                                    _____")
-	fmt.Println("| |  | |                                                                  / ___ \\                              _")
-	fmt.Println("| |  | |  ____   ____   ____   ____  _____  _____   ____  ____    ___    | |   | | ____    ____   ____   ____ | |_    ___    ____")
-	fmt.Println(" \\ \\/ /  / _  ) / ___) / ___) / _  |(___  )(___  ) / _  ||  _ \\  / _ \\   | |   | ||  _ \\  / _  ) / ___) / _  ||  _)  / _ \\  / ___)")
-	fmt.Println("  \\  /  ( (/ / | |    | |    ( ( | | / __/  / __/ ( ( | || | | || |_| |  | |___| || | | |( (/ / | |    ( ( | || |__ | |_| || |")
-	fmt.Println("   \\/    \\____)|_|    |_|     \\_||_|(_____)(_____) \\_||_||_| |_| \\___/    \\_____/ | ||_/  \\____)|_|     \\_||_| \\___) \\___/ |_|")
-	fmt.Println("                                                                                  |_|")
-	fmt.Println("")
-	fmt.Println("          Verrazzano Operator")
-	fmt.Println("")
 	logs.InitLogs(zapOptions)
 	return nil
 }
@@ -49,17 +37,18 @@ func main() {
 
 	err := prepare()
 	if err != nil {
-		zap.S().Fatalf("Error loading manifest: %s", err.Error())
+		zap.S().Fatalf("Failed loading manifest: %v", err)
 	}
+	zap.S().Infof("Starting Verrazzano Operator")
 	zap.S().Infof("Creating new controller watching namespace %s.", watchNamespace)
 
 	config, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
-		zap.S().Fatalf("Error creating the controller configuration: %s", err.Error())
+		zap.S().Fatalf("Failed creating the controller configuration: %v", err)
 	}
 	controller, err := pkgverrazzanooperator.NewController(config, watchNamespace, verrazzanoURI, enableMonitoringStorage)
 	if err != nil {
-		zap.S().Fatalf("Error creating the controller: %s", err.Error())
+		zap.S().Fatalf("Failed creating the controller: %v", err)
 	}
 
 	apiServerExited := make(chan bool)
@@ -67,7 +56,7 @@ func main() {
 	if startController {
 		// start the controller
 		if err = controller.Run(2, kubeconfig); err != nil {
-			zap.S().Fatalf("Error running controller: %s", err.Error())
+			zap.S().Fatalf("Failed running controller: %v", err)
 		}
 	}
 
