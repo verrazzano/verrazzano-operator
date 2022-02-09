@@ -1,14 +1,10 @@
 # Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
+FROM ghcr.io/oracle/oraclelinux:8-slim AS build_base
 
-RUN yum update -y \
-    && yum-config-manager --save --setopt=ol7_ociyum_config.skip_if_unavailable=true \
-    && yum install -y oracle-golang-release-el7 \
-    && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/golang113/x86_64 \
-    && yum install -y golang-1.13.3-1.el7 \
-    && yum clean all \
+RUN microdnf upgrade -y \
+    && microdnf install -y golang \
     && go version
 
 # Compile to /usr/bin
@@ -34,10 +30,10 @@ RUN GO111MODULE=on go build \
     -ldflags "-X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}" \
     -o /usr/bin/verrazzano-operator ./cmd/...
 
-FROM ghcr.io/oracle/oraclelinux:7-slim
+FROM ghcr.io/oracle/oraclelinux:8-slim
 
-RUN yum update -y \
-    && yum clean all \
+RUN microdnf update -y \
+    && microdnf clean all \
     && rm -rf /var/cache/yum
 
 COPY --from=build_base /usr/bin/verrazzano-operator /usr/local/bin/verrazzano-operator

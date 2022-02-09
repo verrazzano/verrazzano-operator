@@ -2,9 +2,11 @@ github.com/verrazzano/verrazzano-operator
 -------- Copyrights
 Copyright (c) 2020 Oracle America, Inc. and its affiliates. 
 Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 Copyright (c) 2020, Oracle and/or its affiliates.
-Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
+Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (C) 2020, Oracle and/or its affiliates.
 
@@ -1575,4 +1577,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 095d1d17436adfb5faca406da6eb67c2
+License file based on go.mod with md5 sum: 16ee140d78bdb693e8fce1162b600437
