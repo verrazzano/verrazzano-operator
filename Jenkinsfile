@@ -50,7 +50,6 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
-        GITHUB_RELEASE_USERID = credentials('github-userid-release')
     }
 
     stages {
