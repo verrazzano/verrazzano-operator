@@ -16,27 +16,52 @@
   "editable": true,
   "gnetId": 12853,
   "graphTooltip": 0,
-  "id": 20,
-  "iteration": 1615567657492,
+  "iteration": 1651852923206,
   "links": [],
   "panels": [
     {
       "cacheTimeout": null,
-      "colorBackground": true,
-      "colorValue": false,
-      "colors": [
-        "#d44a3a",
-        "#37872D",
-        "#FADE2A"
-      ],
       "datasource": null,
-      "format": "none",
-      "gauge": {
-        "maxValue": 100,
-        "minValue": 0,
-        "show": false,
-        "thresholdLabels": false,
-        "thresholdMarkers": true
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "id": 0,
+              "op": "=",
+              "text": "UP",
+              "type": 1,
+              "value": "1"
+            },
+            {
+              "id": 1,
+              "op": "=",
+              "text": "DOWN",
+              "type": 1,
+              "value": "0"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#d44a3a",
+                "value": null
+              },
+              {
+                "color": "#37872D",
+                "value": 1
+              },
+              {
+                "color": "#FADE2A"
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 2,
@@ -47,85 +72,71 @@
       "id": 29,
       "interval": null,
       "links": [],
-      "mappingType": 1,
-      "mappingTypes": [
-        {
-          "name": "value to text",
-          "value": 1
-        },
-        {
-          "name": "range to text",
-          "value": 2
-        }
-      ],
       "maxDataPoints": 100,
-      "nullPointMode": "connected",
-      "nullText": null,
-      "options": {},
-      "postfix": "",
-      "postfixFontSize": "50%",
-      "prefix": "",
-      "prefixFontSize": "50%",
-      "rangeMaps": [
-        {
-          "from": "null",
-          "text": "N/A",
-          "to": "null"
-        }
-      ],
-      "sparkline": {
-        "fillColor": "rgba(31, 118, 189, 0.18)",
-        "full": false,
-        "lineColor": "rgb(31, 120, 193)",
-        "show": false,
-        "ymax": null,
-        "ymin": null
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
       },
-      "tableColumn": "",
+      "pluginVersion": "7.5.11",
       "targets": [
         {
-          "expr": "up{job=\"$serviceID\", instance=\"$instance\"}",
+          "exemplar": true,
+          "expr": "up{job=\"$serviceID\", instance=\"$instance\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
-      "thresholds": "1",
       "timeFrom": null,
       "timeShift": null,
       "title": "Status",
-      "type": "singlestat",
-      "valueFontSize": "80%",
-      "valueMaps": [
-        {
-          "op": "=",
-          "text": "UP",
-          "value": "1"
-        },
-        {
-          "op": "=",
-          "text": "DOWN",
-          "value": "0"
-        }
-      ],
-      "valueName": "current"
+      "type": "stat"
     },
     {
       "cacheTimeout": null,
-      "colorBackground": false,
-      "colorValue": false,
-      "colors": [
-        "#299c46",
-        "rgba(237, 129, 40, 0.89)",
-        "#d44a3a"
-      ],
       "datasource": "Prometheus",
       "description": " base_jvm_uptime_seconds Displays the uptime of the JVM in milliseconds.",
-      "format": "s",
-      "gauge": {
-        "maxValue": 100,
-        "minValue": 0,
-        "show": false,
-        "thresholdLabels": false,
-        "thresholdMarkers": true
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "id": 0,
+              "op": "=",
+              "text": "N/A",
+              "type": 1,
+              "value": "null"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 2,
@@ -136,62 +147,36 @@
       "id": 26,
       "interval": null,
       "links": [],
-      "mappingType": 1,
-      "mappingTypes": [
-        {
-          "name": "value to text",
-          "value": 1
-        },
-        {
-          "name": "range to text",
-          "value": 2
-        }
-      ],
       "maxDataPoints": 100,
-      "nullPointMode": "connected",
-      "nullText": null,
-      "options": {},
-      "pluginVersion": "6.5.2",
-      "postfix": "",
-      "postfixFontSize": "50%",
-      "prefix": "",
-      "prefixFontSize": "50%",
-      "rangeMaps": [
-        {
-          "from": "null",
-          "text": "N/A",
-          "to": "null"
-        }
-      ],
-      "sparkline": {
-        "fillColor": "rgba(31, 118, 189, 0.18)",
-        "full": false,
-        "lineColor": "rgb(31, 120, 193)",
-        "show": false,
-        "ymax": null,
-        "ymin": null
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
       },
-      "tableColumn": "",
+      "pluginVersion": "7.5.11",
       "targets": [
         {
-          "expr": "base_jvm_uptime_seconds{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_jvm_uptime_seconds{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
-      "thresholds": "",
       "timeFrom": null,
       "timeShift": null,
       "title": "Uptime",
-      "type": "singlestat",
-      "valueFontSize": "80%",
-      "valueMaps": [
-        {
-          "op": "=",
-          "text": "N/A",
-          "value": "null"
-        }
-      ],
-      "valueName": "current"
+      "type": "stat"
     },
     {
       "aliasColors": {},
@@ -201,6 +186,12 @@
       "dashes": false,
       "datasource": "Prometheus",
       "description": "base_gc_total Displays the total number of collections that have occurred. This attribute lists -1 if the collection count is undefined for this collector.",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -226,10 +217,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "6.5.2",
+      "pluginVersion": "7.5.11",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -239,7 +230,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "base_gc_total{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_gc_total{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "{{ name }}",
           "refId": "A"
@@ -294,6 +287,12 @@
       "dashes": false,
       "datasource": "Prometheus",
       "description": "base_gc_time_seconds Displays the approximate accumulated collection elapsed time in seconds. This attribute displays -1 if the collection elapsed time is undefined for this collector. The JVM implementation may use a high resolution timer to measure the elapsed time. This attribute may display the same value even if the collection count has been incremented if the collection elapsed time is very short.",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -320,10 +319,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "6.5.2",
+      "pluginVersion": "7.5.11",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -333,7 +332,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "base_gc_time_seconds{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_gc_time_seconds{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "legendFormat": "{{ name }}",
           "refId": "A"
         }
@@ -386,6 +387,12 @@
       "dashes": false,
       "datasource": "Prometheus",
       "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -411,9 +418,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.5.11",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -423,7 +431,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "base_cpu_systemLoadAverage{instance=\"$instance\",job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_cpu_systemLoadAverage{instance=\"$instance\",job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "CPU load",
           "refId": "A"
@@ -476,6 +486,12 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -504,9 +520,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.5.11",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -516,19 +533,25 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "base_memory_usedHeap_bytes{instance=\"$instance\",job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_memory_usedHeap_bytes{instance=\"$instance\",job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Used Heap",
           "refId": "A"
         },
         {
-          "expr": "base_memory_committedHeap_bytes{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_memory_committedHeap_bytes{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Commited Heap",
           "refId": "C"
         },
         {
-          "expr": "base_memory_maxHeap_bytes{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_memory_maxHeap_bytes{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Max Heap",
           "refId": "B"
@@ -581,6 +604,12 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -607,9 +636,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.5.11",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -619,7 +649,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "base_thread_count{instance=\"$instance\",job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_thread_count{instance=\"$instance\",job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "Thread Count",
           "refId": "A"
@@ -668,22 +700,38 @@
     },
     {
       "cacheTimeout": null,
-      "colorBackground": false,
-      "colorValue": false,
-      "colors": [
-        "#299c46",
-        "rgba(237, 129, 40, 0.89)",
-        "#d44a3a"
-      ],
       "datasource": "Prometheus",
       "description": "base_classloader_loadedClasses_count Displays the number of classes that are currently loaded in the JVM.",
-      "format": "none",
-      "gauge": {
-        "maxValue": 100,
-        "minValue": 0,
-        "show": false,
-        "thresholdLabels": false,
-        "thresholdMarkers": true
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "id": 0,
+              "op": "=",
+              "text": "N/A",
+              "type": 1,
+              "value": "null"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 3,
@@ -694,81 +742,71 @@
       "id": 20,
       "interval": null,
       "links": [],
-      "mappingType": 1,
-      "mappingTypes": [
-        {
-          "name": "value to text",
-          "value": 1
-        },
-        {
-          "name": "range to text",
-          "value": 2
-        }
-      ],
       "maxDataPoints": 100,
-      "nullPointMode": "connected",
-      "nullText": null,
-      "options": {},
-      "pluginVersion": "6.5.2",
-      "postfix": "",
-      "postfixFontSize": "50%",
-      "prefix": "",
-      "prefixFontSize": "50%",
-      "rangeMaps": [
-        {
-          "from": "null",
-          "text": "N/A",
-          "to": "null"
-        }
-      ],
-      "sparkline": {
-        "fillColor": "rgba(31, 118, 189, 0.18)",
-        "full": false,
-        "lineColor": "rgb(31, 120, 193)",
-        "show": false,
-        "ymax": null,
-        "ymin": null
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
       },
-      "tableColumn": "",
+      "pluginVersion": "7.5.11",
       "targets": [
         {
-          "expr": "base_classloader_loadedClasses_count{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_classloader_loadedClasses_count{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
-      "thresholds": "",
       "timeFrom": null,
       "timeShift": null,
       "title": "Currently loaded Classes",
-      "type": "singlestat",
-      "valueFontSize": "80%",
-      "valueMaps": [
-        {
-          "op": "=",
-          "text": "N/A",
-          "value": "null"
-        }
-      ],
-      "valueName": "avg"
+      "type": "stat"
     },
     {
       "cacheTimeout": null,
-      "colorBackground": false,
-      "colorValue": false,
-      "colors": [
-        "#299c46",
-        "rgba(237, 129, 40, 0.89)",
-        "#d44a3a"
-      ],
       "datasource": "Prometheus",
       "description": "base_classloader_loadedClasses_total_total Displays the total number of classes that have been loaded since the JVM has started execution.",
-      "format": "none",
-      "gauge": {
-        "maxValue": 100,
-        "minValue": 0,
-        "show": false,
-        "thresholdLabels": false,
-        "thresholdMarkers": true
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "id": 0,
+              "op": "=",
+              "text": "N/A",
+              "type": 1,
+              "value": "null"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 3,
@@ -779,81 +817,71 @@
       "id": 23,
       "interval": null,
       "links": [],
-      "mappingType": 1,
-      "mappingTypes": [
-        {
-          "name": "value to text",
-          "value": 1
-        },
-        {
-          "name": "range to text",
-          "value": 2
-        }
-      ],
       "maxDataPoints": 100,
-      "nullPointMode": "connected",
-      "nullText": null,
-      "options": {},
-      "pluginVersion": "6.5.2",
-      "postfix": "",
-      "postfixFontSize": "50%",
-      "prefix": "",
-      "prefixFontSize": "50%",
-      "rangeMaps": [
-        {
-          "from": "null",
-          "text": "N/A",
-          "to": "null"
-        }
-      ],
-      "sparkline": {
-        "fillColor": "rgba(31, 118, 189, 0.18)",
-        "full": false,
-        "lineColor": "rgb(31, 120, 193)",
-        "show": false,
-        "ymax": null,
-        "ymin": null
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
       },
-      "tableColumn": "",
+      "pluginVersion": "7.5.11",
       "targets": [
         {
-          "expr": "base_classloader_loadedClasses_total_total{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_classloader_loadedClasses_total_total{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
-      "thresholds": "",
       "timeFrom": null,
       "timeShift": null,
       "title": "Total loaded Classes",
-      "type": "singlestat",
-      "valueFontSize": "80%",
-      "valueMaps": [
-        {
-          "op": "=",
-          "text": "N/A",
-          "value": "null"
-        }
-      ],
-      "valueName": "avg"
+      "type": "stat"
     },
     {
       "cacheTimeout": null,
-      "colorBackground": false,
-      "colorValue": false,
-      "colors": [
-        "#299c46",
-        "rgba(237, 129, 40, 0.89)",
-        "#d44a3a"
-      ],
       "datasource": "Prometheus",
       "description": "base_classloader_unloadedClasses_total_total Displays the total number of classes unloaded since the JVM has started execution.",
-      "format": "none",
-      "gauge": {
-        "maxValue": 100,
-        "minValue": 0,
-        "show": false,
-        "thresholdLabels": false,
-        "thresholdMarkers": true
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "id": 0,
+              "op": "=",
+              "text": "N/A",
+              "type": 1,
+              "value": "null"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 3,
@@ -864,62 +892,36 @@
       "id": 24,
       "interval": null,
       "links": [],
-      "mappingType": 1,
-      "mappingTypes": [
-        {
-          "name": "value to text",
-          "value": 1
-        },
-        {
-          "name": "range to text",
-          "value": 2
-        }
-      ],
       "maxDataPoints": 100,
-      "nullPointMode": "connected",
-      "nullText": null,
-      "options": {},
-      "pluginVersion": "6.5.2",
-      "postfix": "",
-      "postfixFontSize": "50%",
-      "prefix": "",
-      "prefixFontSize": "50%",
-      "rangeMaps": [
-        {
-          "from": "null",
-          "text": "N/A",
-          "to": "null"
-        }
-      ],
-      "sparkline": {
-        "fillColor": "rgba(31, 118, 189, 0.18)",
-        "full": false,
-        "lineColor": "rgb(31, 120, 193)",
-        "show": false,
-        "ymax": null,
-        "ymin": null
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
       },
-      "tableColumn": "",
+      "pluginVersion": "7.5.11",
       "targets": [
         {
-          "expr": "base_classloader_unloadedClasses_total_total{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "base_classloader_unloadedClasses_total_total{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
-      "thresholds": "",
       "timeFrom": null,
       "timeShift": null,
       "title": "Total unloaded Classes",
-      "type": "singlestat",
-      "valueFontSize": "80%",
-      "valueMaps": [
-        {
-          "op": "=",
-          "text": "N/A",
-          "value": "null"
-        }
-      ],
-      "valueName": "avg"
+      "type": "stat"
     },
     {
       "aliasColors": {},
@@ -929,6 +931,12 @@
       "dashes": false,
       "datasource": "Prometheus",
       "description": "vendor_requests_meter_rate_per_second",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -954,10 +962,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "6.5.2",
+      "pluginVersion": "7.5.11",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -967,7 +975,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor_requests_meter_rate_per_second{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "vendor_requests_meter_rate_per_second{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "",
           "refId": "A"
@@ -1022,6 +1032,12 @@
       "dashes": false,
       "datasource": "Prometheus",
       "description": "vendor_grpc_requests_meter_rate_per_second",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -1047,10 +1063,10 @@
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "6.5.2",
+      "pluginVersion": "7.5.11",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1060,7 +1076,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vendor_grpc_requests_meter_rate_per_second{instance=\"$instance\", job=\"$serviceID\"}",
+          "exemplar": true,
+          "expr": "vendor_grpc_requests_meter_rate_per_second{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "interval": "",
           "intervalFactor": 2,
           "legendFormat": "",
           "refId": "A"
@@ -1109,7 +1127,7 @@
     }
   ],
   "refresh": "",
-  "schemaVersion": 20,
+  "schemaVersion": 27,
   "style": "dark",
   "tags": [],
   "templating": {
@@ -1117,19 +1135,24 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
-          "text": "None",
-          "value": ""
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
         },
         "datasource": "Prometheus",
         "definition": "label_values(verrazzano_cluster)",
+        "description": null,
+        "error": null,
         "hide": 0,
         "includeAll": true,
         "label": "Verrazzano Cluster",
         "multi": false,
         "name": "vzcluster",
         "options": [],
-        "query": "label_values(verrazzano_cluster)",
+        "query": {
+          "query": "label_values(verrazzano_cluster)",
+          "refId": "Prometheus-vzcluster-Variable-Query"
+        },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -1143,18 +1166,25 @@
       {
         "allValue": null,
         "current": {
-          "text": "hello-helidon-appconf_default_hello-helidon_hello-helidon-component",
-          "value": "hello-helidon-appconf_default_hello-helidon_hello-helidon-component"
+          "isNone": true,
+          "selected": false,
+          "text": "None",
+          "value": ""
         },
         "datasource": "Prometheus",
         "definition": "label_values(base_classloader_loadedClasses_count{verrazzano_cluster=~\"$vzcluster\"}, job)",
+        "description": null,
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": "ServiceID",
         "multi": false,
         "name": "serviceID",
         "options": [],
-        "query": "label_values(base_classloader_loadedClasses_count{verrazzano_cluster=~\"$vzcluster\"}, job)",
+        "query": {
+          "query": "label_values(base_classloader_loadedClasses_count{verrazzano_cluster=~\"$vzcluster\"}, job)",
+          "refId": "StandardVariableQuery"
+        },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -1168,18 +1198,25 @@
       {
         "allValue": null,
         "current": {
-          "text": "10.244.0.48:8080",
-          "value": "10.244.0.48:8080"
+          "isNone": true,
+          "selected": false,
+          "text": "None",
+          "value": ""
         },
         "datasource": "Prometheus",
         "definition": "label_values(base_classloader_loadedClasses_count{verrazzano_cluster=~\"$vzcluster\",job=\"$serviceID\"}, instance)",
+        "description": null,
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": null,
         "multi": false,
         "name": "instance",
         "options": [],
-        "query": "label_values(base_classloader_loadedClasses_count{verrazzano_cluster=~\"$vzcluster\",job=\"$serviceID\"}, instance)",
+        "query": {
+          "query": "label_values(base_classloader_loadedClasses_count{verrazzano_cluster=~\"$vzcluster\",job=\"$serviceID\"}, instance)",
+          "refId": "Prometheus-instance-Variable-Query"
+        },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -1224,5 +1261,5 @@
   "timezone": "",
   "title": "Helidon Monitoring Dashboard",
   "uid": "TkcxbEtWz",
-  "version": 8
+  "version": 1
 }
