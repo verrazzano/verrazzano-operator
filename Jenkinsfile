@@ -51,7 +51,6 @@ pipeline {
         DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
-        GITHUB_RELEASE_EMAIL = credentials('github-email-release')
     }
 
     stages {
