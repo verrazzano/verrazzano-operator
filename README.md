@@ -1,3 +1,5 @@
+# ***Development has moved to [verrazzano/verrazzano](https://github.com/verrazzano/verrazzano)***
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/verrazzano/verrazzano-operator)](https://goreportcard.com/report/github.com/verrazzano/verrazzano-operator)
 
 # Verrazzano Operator
